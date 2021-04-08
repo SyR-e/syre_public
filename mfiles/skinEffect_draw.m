@@ -24,7 +24,7 @@ condType   = dataSet.SlotConductorType;
 condIns    = dataSet.SlotConductorInsulation;
 condShape  = dataSet.SlotConductorShape;
 condRadius = dataSet.SlotConductorRadius;
-condWidth   = dataSet.SlotConductorWidth;
+condWidth  = dataSet.SlotConductorWidth;
 condHeight = dataSet.SlotConductorHeight;
 condNumber = dataSet.SlotConductorNumber;
 
@@ -83,23 +83,25 @@ n3ph   = geo.win.n3phase;
 
 alphaSlot = 2*pi/(6*p*q*n3ph);   % slot pitch [rad]
 
-if ~isnan(kcu) % conductor size computed from kCu
+if (~isnan(kcu) & strcmp(condType,'Round')) % conductor size computed from kCu
     Acond = Aslot*kcu/nCondIn;
-    if strcmp(condType,'Round')
+%     if strcmp(condType,'Round')
         rCond = (Acond/pi)^0.5;
         wCond = 2*rCond;
         hCond = 2*rCond;
-    else
-        wCond = (Acond/condHB)^0.5;
-        hCond = condHB*wCond;
-        rCond = geo.win.rCond;
-        if rCond>wCond/2
-            rCond=wCond/2;
-        end
-        if rCond>hCond/2
-            rCond=hCond/2;
-        end
-    end
+%     else
+        %wCond = (Acond/condHB)^0.5;
+        %hCond = condHB*wCond;
+%         wCond = geo.win.wCond;
+%         hCond = geo.win.hCond;
+%         rCond = geo.win.rCond;
+%         if rCond>wCond/2
+%             rCond=wCond/2;
+%         end
+%         if rCond>hCond/2
+%             rCond=hCond/2;
+%         end
+%     end
 else          % conductor size imposed, kCu computed at the end
     if strcmp(condType,'Round')
         rCond = geo.win.rCond;

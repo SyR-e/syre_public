@@ -23,9 +23,26 @@ for ii=1:length(MatList)
         ind=ii;
     end
 end
-if ind==0
-    mat.MatName=MatName;
-    mat.MatList=MatList;
-else
+
+matListBase = MatList;
+
+if ind~=0
     mat=MatLib{ind};
+else
+    load('materialLibrary\custom_iron.mat')
+    ind=0;
+    for ii=1:length(MatList)
+        if strcmp(MatList{ii},MatName)
+            ind=ii;
+        end
+    end
+    
+    matListCustom = MatList;
+    
+    if ind~=0
+        mat=MatLib{ind};
+    else
+        mat.MatName = MatName;
+        mat.MatList = [matListBase matListCustom];
+    end
 end

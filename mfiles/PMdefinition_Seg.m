@@ -51,6 +51,12 @@ YpontSplitDx    = temp.YpontSplitDx;
 XpontSplitSx    = temp.XpontSplitSx;
 YpontSplitSx    = temp.YpontSplitSx;
 
+hcAngle         = temp.hcAngle-pi/2/geo.p;
+
+% flag_cent= temp.flag_cent;
+% flag_ext= temp.flag_ext;
+% flag_shiftUP= temp.flag_shiftUP;
+
 % from geo
 p         = geo.p;
 nlay      = geo.nlay;
@@ -66,6 +72,8 @@ deltaFBS  = geo.delta_FBS;
 PMclearC  = geo.PMclear(1,:);
 PMclearE  = geo.PMclear(2,:);
 
+%ang_rib   = geo.ang_rib;
+
 % initialize variables for PM area.
 %   C --> central portion of the barrier
 %   E --> external portion of the barrier (arms)
@@ -78,7 +86,39 @@ PMclearE  = geo.PMclear(2,:);
 
 % point definition - central section
 
-b = YpontSplitBarSx(2,:)-YpontRadBarSx-pont0/4;
+% b = YpontSplitBarDx(2,:)-YpontRadBarDx-pont0/4;
+% flagDx = YpontSplitBarDx(2,:)<YpontSplitBarSx(2,:);
+
+b = zeros(1,nlay);
+b1 = zeros(1,nlay);
+b2 = zeros(1,nlay);
+% b(flagDx==1) = YpontSplitBarDx(2,flagDx==1)-YpontRadBarDx(flagDx==1)-pont0/4;
+% b(flagDx==0) = YpontSplitBarSx(2,flagDx==0)-YpontRadBarSx(flagDx==0)-pont0/4;
+
+b1 = YpontSplitBarDx(2,:)-YpontRadBarDx-pont0/4;
+b2 = YpontSplitBarSx(2,:)-YpontRadBarSx-pont0/4;
+
+b=min(b1,b2);
+
+%if pont!!
+% index_PM1= flag_cent==1 & flag_shiftUP==0;
+% if sum(index_PM1)>0
+%     index_ang1= ang_rib(index_PM1)<0;
+%     if sum(index_ang1)>0
+%         b(index_ang1)=  YpontSplitBarDx(2,(index_ang1))-YpontRadBarDx(index_ang1)-pont0/4;
+%     end
+%     index_ang1=not(index_ang1);
+%     if sum(index_ang1)>0
+%         b(index_ang1)=  YpontSplitBarSx(2,(index_ang1))-YpontRadBarSx(index_ang1)-pont0/4;
+%     end
+% end
+
+% index_PM2= flag_shiftUP==1;
+% if sum(index_PM2)>0
+%         b(index_PM2)=  YpBar2(index_PM2)-YpontRadBarDx(index_PM2)-pont0/4;
+% end
+
+
 AreaC = hc.*b;
 if FBS>0
     if flagPMFBS
@@ -100,15 +140,18 @@ PMdimC=floor(PMdimC*100)/100;
 
 AreaC = PMdimC.*hc;
 
+
 % Check clearance size: the minimum PM thickness is set to pont0
 PMclearLim = hc-pont0*ones(size(hc));
 PMclearC(PMclearC>PMclearLim) = PMclearLim(PMclearC>PMclearLim);
 PMclearE(PMclearE>PMclearLim) = PMclearLim(PMclearE>PMclearLim);
 
 xPMC1b = XpontRadBarSx+PMclearC;
-yPMC1b = YpontRadBarSx;
+yPMC1b(YpontRadBarSx<=YpontRadBarDx) = YpontRadBarDx(YpontRadBarSx<=YpontRadBarDx);
+yPMC1b(YpontRadBarSx>YpontRadBarDx) = YpontRadBarSx(YpontRadBarSx>YpontRadBarDx);
 xPMC2b = XpontRadBarDx;
-yPMC2b = YpontRadBarDx;
+yPMC2b(YpontRadBarSx<=YpontRadBarDx) = YpontRadBarDx(YpontRadBarSx<=YpontRadBarDx);
+yPMC2b(YpontRadBarSx>YpontRadBarDx) = YpontRadBarSx(YpontRadBarSx>YpontRadBarDx);
 
 xPMC2t = xPMC2b;
 yPMC2t = yPMC2b+PMdimC;
@@ -116,24 +159,110 @@ xPMC1t = xPMC1b;
 yPMC1t = yPMC2t;
 
 % point definition - external section
-xPME2b = XpBar2+pont0*cos(pi/2/p+deltaFBS/2);
-yPME2b = YpBar2+pont0*sin(pi/2/p+deltaFBS/2);
+xPME2b = XpontSplitBarDx(1,:)+pont0*cos(pi/2/p+deltaFBS/2+hcAngle);
+yPME2b = YpontSplitBarDx(1,:)+pont0*sin(pi/2/p+deltaFBS/2+hcAngle);
+
+xPME2b(yPME2b<YpBar2)=XpBar2(yPME2b<YpBar2)+pont0*cos(pi/2/p+deltaFBS/2+hcAngle(yPME2b<YpBar2));
+yPME2b(yPME2b<YpBar2)=YpBar2(yPME2b<YpBar2)+pont0*sin(pi/2/p+deltaFBS/2+hcAngle(yPME2b<YpBar2));
+
+
 [a1,b1,c1] = retta_per_2pti(XpBar1,YpBar1,xxD1k,yyD1k);
-a2 = tan(pi/2/p+deltaFBS/2-pi/2).*ones(1,nlay);
+a2 = tan(pi/2/p+deltaFBS/2+hcAngle-pi/2).*ones(1,nlay);
 b2 = -1*ones(1,nlay);
-c2 = YpBar2+pont0*sin(pi/2/p+deltaFBS/2)-a2.*(XpBar2+pont0*cos(pi/2/p+deltaFBS/2));
+%c2 = YpontSplitBarDx(1,:)+pont0*sin(pi/2/p+deltaFBS/2)-a2.*(XpontSplitBarDx(1,:)+pont0*cos(pi/2/p+deltaFBS/2));
+c2 = yPME2b -a2.*xPME2b;
 [xPME1b,yPME1b]=intersezione_tra_rette(a1,b1,c1,a2,b2,c2);
 
 filt=YpBar1>yPME1b;
 if sum(filt)
-    xPME1b(filt) = XpBar1(filt)+pont0*cos(pi/2/p+deltaFBS/2);
-    yPME1b(filt) = YpBar1(filt)+pont0*sin(pi/2/p+deltaFBS/2);
-    [a2,b2,c2]=retta_per_2pti(XpBar2(filt),YpBar2(filt),xxD2k(filt),yyD2k(filt));
-    a1 = tan(pi/2/p+deltaFBS/2-pi/2).*filt;
+    xPME1b(filt) = XpBar1(filt)+pont0*cos(pi/2/p+deltaFBS/2+hcAngle(filt));
+    yPME1b(filt) = YpBar1(filt)+pont0*sin(pi/2/p+deltaFBS/2+hcAngle(filt));
+%   [a2,b2,c2]=retta_per_2pti(XpBar2(filt),YpBar2(filt),xxD2k(filt),yyD2k(filt));
+    [a2,b2,c2]=retta_per_2pti(XpBar2,YpBar2,xxD2k,yyD2k);
+    a1 = tan(pi/2/p+deltaFBS/2+hcAngle-pi/2).*filt;
     b1 = -1.*filt;
-    c1 = YpBar1(filt)+pont0*sin(pi/2/p+deltaFBS/2)-a1(filt).*(XpBar1(filt)+pont0*cos(pi/2/p+deltaFBS/2));
+    c1(filt) = (YpBar1(filt)+pont0*sin(pi/2/p+deltaFBS/2+hcAngle(filt))-a1(filt).*(XpBar1(filt)+pont0*cos(pi/2/p+deltaFBS/2+hcAngle(filt))));
     [xPME2b(filt),yPME2b(filt)]=intersezione_tra_rette(a1(filt),b1(filt),c1(filt),a2(filt),b2(filt),c2(filt));
 end
+
+filt=YpontSplitBarSx(1,:)>yPME1b;
+if sum(filt)
+    xPME1b(filt) = XpontSplitBarSx(1,filt)+pont0*cos(pi/2/p+deltaFBS/2+hcAngle(filt));
+    yPME1b(filt) = YpontSplitBarSx(1,filt)+pont0*sin(pi/2/p+deltaFBS/2+hcAngle(filt));
+%     [a2,b2,c2]=retta_per_2pti(XpBar2(filt),YpBar2(filt),xxD2k(filt),yyD2k(filt));
+    [a2,b2,c2]=retta_per_2pti(XpontSplitBarDx(1,filt),YpontSplitBarDx(1,filt),xxD2k,yyD2k);
+    [a3,b3,c3]=retta_per_2pti(XpBar2,YpBar2,xxD2k,yyD2k);
+    a1 = tan(pi/2/p+deltaFBS/2+hcAngle-pi/2).*filt;
+    b1 = -1.*filt;
+    c1(filt) = YpontSplitBarSx(1,filt)+pont0*sin(pi/2/p+deltaFBS/2+hcAngle(filt))-a1(filt).*(XpontSplitBarSx(1,filt)+pont0*cos(pi/2/p+deltaFBS/2+hcAngle(filt)));
+    [xPME2b(filt),yPME2b(filt)]=intersezione_tra_rette(a1(filt),b1(filt),c1(filt),a2(filt),b2(filt),c2(filt));
+end
+
+
+
+% xPME2b(1) = XpBar2(1);
+% yPME2b(1) = YpBar2(1);
+% xPME1b(1) = XpBar1(1);
+% yPME1b(1) = YpBar1(1);
+
+
+% xPME2t(yPME2b<YpBar2)=XpBar1(yPME2b<YpBar2);
+% yPME2t(yPME2b<YpBar2)=YpBar2(yPME2b<YpBar2);
+
+% 
+% xPME2t = xPME2b+PMdimE*cos(pi/2/p+deltaFBS/2);
+% yPME2t = yPME2b+PMdimE*sin(pi/2/p+deltaFBS/2);
+
+
+% XpontSplitBarDxRot(1,:)=XpontSplitBarDx(2,:)*cos(pi/2/p+deltaFBS/2)-YpontSplitBarDx(2,:)*sin(pi/2/p+deltaFBS/2);
+% YpontSplitBarDxRot(1,:)=XpontSplitBarDx(2,:)*sin(pi/2/p+deltaFBS/2)+YpontSplitBarDx(2,:)*cos(pi/2/p+deltaFBS/2);
+% 
+% XpontSplitBarSxRot(1,:)=XpontSplitBarSx(2,:)*cos(pi/2/p+deltaFBS/2)-YpontSplitBarSx(2,:)*sin(pi/2/p+deltaFBS/2);
+% YpontSplitBarSxRot(1,:)=XpontSplitBarSx(2,:)*sin(pi/2/p+deltaFBS/2)+YpontSplitBarSx(2,:)*cos(pi/2/p+deltaFBS/2);
+% 
+% flagDx = zeros(1,nlay);
+% flagDx = YpontSplitBarDxRot(1,:)<YpontSplitBarSxRot(1,:);
+% 
+% limPMext = zeros(1,nlay);
+% XlimPMext(flagDx==1) = XpontSplitBarDx(2,flagDx==1);
+% YlimPMext(flagDx==1) = YpontSplitBarDx(2,flagDx==1);
+% XlimPMext(flagDx==0) = XpontSplitBarSx(2,flagDx==0);
+% YlimPMext(flagDx==0) = YpontSplitBarSx(2,flagDx==0);
+% 
+% index_PMlimext= YlimPMext< YpBar2;
+% if sum(index_PMlimext)
+%        XlimPMext(index_PMlimext)=XpBar2(index_PMlimext);
+%        YlimPMext(index_PMlimext)=YpBar2(index_PMlimext);
+% end 
+% 
+% b=zeros(1,nlay);
+% b(flagDx==1) = calc_distanza_punti([XlimPMext(flagDx==1)' YlimPMext(flagDx==1)'],[xxD2k(flagDx==1)' yyD2k(flagDx==1)'])';
+% b(flagDx==0) = calc_distanza_punti([XlimPMext(flagDx==0)' YlimPMext(flagDx==0)'],[xxD1k(flagDx==0)' yyD1k(flagDx==0)'])';
+    
+% index_PMe1= flag_ext==1 & ang_rib<0
+% if sum(index_PMe1)
+%     xPME2b(index_PMe1) = XpontSplitBarDx(1,index_PMe1)+pont0*cos(pi/2/p+deltaFBS/2);
+%     yPME2b(index_PMe1) = YpontSplitBarDx(1,index_PMe1)+pont0*sin(pi/2/p+deltaFBS/2);
+%     [a1,b1,c1] = retta_per_2pti(XpBar1,YpBar1,xxD1k,yyD1k);
+%     a2 = tan(pi/2/p+deltaFBS/2-pi/2).*(index_PMe1);
+%     b2 = -1*(index_PMe1);
+%     c2 = YpontSplitBarDx(1,(index_PMe1))+pont0*sin(pi/2/p+deltaFBS/2)-a2(index_PMe1).*(XpontSplitBarDx(1,(index_PMe1))+pont0*cos(pi/2/p+deltaFBS/2)).*(index_PMe1);
+%     [xPME1b(index_PMe1),yPME1b(index_PMe1)]=intersezione_tra_rette(a1(index_PMe1),b1(index_PMe1),c1(index_PMe1),a2(index_PMe1),b2(index_PMe1),c2(index_PMe1));
+% end
+% 
+% index_PMe1= flag_ext==1 & ang_rib>0;
+% if sum(index_PMe1)
+%         xPME1b(index_PMe1) = XpontSplitBarSx(1,index_PMe1)+pont0*cos(pi/2/p+deltaFBS/2);
+%         yPME1b(index_PMe1) = YpontSplitBarSx(1,index_PMe1)+pont0*sin(pi/2/p+deltaFBS/2);
+%         
+%     [a1,b1,c1] = retta_per_2pti(XpBar2,YpBar2,xxD2k,yyD2k);
+%     a2 = tan(pi/2/p+deltaFBS/2-pi/2).*(index_PMe1);
+%     b2 = -1*(index_PMe1);
+%     c2 = YpontSplitBarSx(1,(index_PMe1))+pont0*sin(pi/2/p+deltaFBS/2)-a2(index_PMe1).*(XpontSplitBarSx(1,(index_PMe1))+pont0*cos(pi/2/p+deltaFBS/2)).*(index_PMe1);
+%     [xPME2b(index_PMe1),yPME2b(index_PMe1)]=intersezione_tra_rette(a1(index_PMe1),b1(index_PMe1),c1(index_PMe1),a2(index_PMe1),b2(index_PMe1),c2(index_PMe1));
+% end
+
+
 
 % xPME2b(1) = XpBar2(1);
 % yPME2b(1) = YpBar2(1);
@@ -141,8 +270,8 @@ end
 % yPME1b(1) = YpBar1(1);
 
 % PM clearance
-xPME1b = xPME1b+PMclearE*cos(pi/2/p-pi/2+deltaFBS/2);
-yPME1b = yPME1b+PMclearE*sin(pi/2/p-pi/2+deltaFBS/2);
+xPME1b = xPME1b+PMclearE.*cos(pi/2/p-pi/2+deltaFBS/2+hcAngle);
+yPME1b = yPME1b+PMclearE.*sin(pi/2/p-pi/2+deltaFBS/2+hcAngle);
 
 b1 = calc_distanza_punti([xPME1b' yPME1b'],[xxD1k' yyD1k'])';
 b2 = calc_distanza_punti([xPME2b' yPME2b'],[xxD2k' yyD2k'])';
@@ -169,10 +298,10 @@ PMdimE=floor(PMdimE*100)/100;
 
 AreaE = PMdimE.*hc;
 
-xPME2t = xPME2b+PMdimE*cos(pi/2/p+deltaFBS/2);
-yPME2t = yPME2b+PMdimE*sin(pi/2/p+deltaFBS/2);
-xPME1t = xPME1b+PMdimE*cos(pi/2/p+deltaFBS/2);
-yPME1t = yPME1b+PMdimE*sin(pi/2/p+deltaFBS/2);
+xPME2t = xPME2b+PMdimE.*cos(pi/2/p+deltaFBS/2+hcAngle);
+yPME2t = yPME2b+PMdimE.*sin(pi/2/p+deltaFBS/2+hcAngle);
+xPME1t = xPME1b+PMdimE.*cos(pi/2/p+deltaFBS/2+hcAngle);
+yPME1t = yPME1b+PMdimE.*sin(pi/2/p+deltaFBS/2+hcAngle);
 
 
 % label
@@ -262,11 +391,3 @@ temp.xPME2t = xPME2t;
 temp.yPME2t = yPME2t;
 
 mat.LayerMag.Br = [Br Br];
-
-
-
-
-
-
-
-

@@ -12,25 +12,50 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function remove_material(MatName,type)
+function remove_material(MatName,type,library)
 % 
 % remove_material(MatName,type)
 % 
 
-if strcmp(type,'Iron')
-    filename='materialLibrary\iron_material.mat';
-elseif strcmp(type,'Conductor')
-    filename='materialLibrary\conductor_material.mat';
-elseif strcmp(type,'Layer')
-    filename='materialLibrary\layer_material.mat';
-else
-    disp('Wrong material type!')
-    disp('Allowed material type:')
-    disp('Iron')
-    disp('Conductor')
-    disp('Layer')
-    error('Insert a correct material type!')
+if nargin==2
+    library = 'custom';
 end
+
+switch library
+    case 'built-in'
+        switch type
+            case 'Iron'
+                filename='materialLibrary\iron_material.mat';
+            case 'Conductor'
+                 filename='materialLibrary\conductor_material.mat';
+            case 'Layer'
+                filename='materialLibrary\layer_material.mat';
+        end
+    case 'custom'
+       switch type
+            case 'Iron'
+                filename='materialLibrary\custom_iron.mat';
+            case 'Conductor'
+                 filename='materialLibrary\custom_conductor.mat';
+            case 'Layer'
+                filename='materialLibrary\custom_layer.mat';
+        end
+end
+
+% if strcmp(type,'Iron')
+%     filename='materialLibrary\iron_material.mat';
+% elseif strcmp(type,'Conductor')
+%     filename='materialLibrary\conductor_material.mat';
+% elseif strcmp(type,'Layer')
+%     filename='materialLibrary\layer_material.mat';
+% else
+%     disp('Wrong material type!')
+%     disp('Allowed material type:')
+%     disp('Iron')
+%     disp('Conductor')
+%     disp('Layer')
+%     error('Insert a correct material type!')
+% end
 
 load(filename)
 
@@ -42,7 +67,7 @@ for ii=1:length(MatList)
 end
 
 if index==0
-    disp([MatName ' not found in ' type ' material library'])
+    disp([MatName ' not found in ' library ' ' type ' material library'])
     disp('Materials present:')
     for ii=1:length(MatList)
         disp(['- ' MatList{ii}]);
@@ -66,7 +91,7 @@ end
 
 save(filename,'MatList','MatLib');
 
-disp([MatName ' deleted from ' type ' material library'])
+disp([MatName ' deleted from ' library ' ' type ' material library'])
 
 
 

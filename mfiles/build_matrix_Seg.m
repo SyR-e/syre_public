@@ -18,7 +18,6 @@ PMdimC   = geo.PMdim(1,:);
 PMdimE   = geo.PMdim(2,:);
 nlay     = geo.nlay;
 pontR    = geo.pontR;
-%splitRib = geo.radial_ribs_split;
 
 B1k   = temp.B1k;
 B2k   = temp.B2k;
@@ -58,8 +57,26 @@ YpontSplitDx    = temp.YpontSplitDx;
 XpontSplitSx    = temp.XpontSplitSx;
 YpontSplitSx    = temp.YpontSplitSx;
 
+xS01k = temp.xS01k;
+yS01k = temp.yS01k;
+xS02k = temp.xS02k;
+yS02k = temp.yS02k;
+
+flag_segV       = temp.flag_segV;
 splitRib        = temp.splitRib;
 
+if any(splitRib)
+    flag_cent       = temp.flag_cent;
+    flag_ext        = temp.flag_ext;
+    flag_shift      = temp.flag_shift;
+    flag_shiftUP    = temp.flag_shiftUP;
+    xI01k=temp.xI01k;
+    yI01k=temp.yI01k;
+    xI02k=temp.xI02k;
+    yI02k=temp.yI02k;
+
+    
+end
 xPMC1b = temp.xPMC1b;
 yPMC1b = temp.yPMC1b;
 xPMC1t = temp.xPMC1t;
@@ -77,8 +94,7 @@ yPME2b = temp.yPME2b;
 xPME2t = temp.xPME2t;
 yPME2t = temp.yPME2t;
 
-switch geo.RotType
-    case 'Seg'
+if strcmp(geo.RotType,'Seg')
         xC1k=temp.xC1k;
         yC1k=temp.yC1k;
         xC2k=temp.xC2k;
@@ -91,7 +107,27 @@ switch geo.RotType
         yC01k=temp.yC01k;
         xC02k=temp.xC02k;
         yC02k=temp.yC02k;
-    otherwise
+        
+        
+        %%%%%%%
+        %         XpontSplitBarSx(1,:)=temp.XpontSplitBarSx(1,:);
+        %         YpontSplitBarSx(1,:)=temp.YpontSplitBarSx(1,:);
+        %         XpontSplitDx(1,:)=temp.XpontSplitDx(1,:);
+        %         YpontSplitDx(1,:)=temp.YpontSplitDx(1,:);
+        %         XpontSplitBarDx(1,:)=temp.XpontSplitBarDx(1,:);
+        %         YpontSplitBarDx(1,:)=temp.YpontSplitBarDx(1,:);
+        %         XpontSplitDx(1,:)=temp.XpontSplitDx(1,:);
+        %         YpontSplitDx(1,:)=temp.YpontSplitDx(1,:);
+
+        %
+        %         XpontSplitBarSx(2,:)=temp.XpontSplitBarSx(2,:);
+        %         YpontSplitBarSx(2,:)=temp.YpontSplitBarSx(2,:);
+        %         XpontSplitSx(2,:)=temp.XpontSplitSx(2,:);
+        %         YpontSplitSx(2,:)=temp.YpontSplitSx(2,:);
+        %         XpontSplitBarDx(2,:)=temp.XpontSplitBarDx(2,:);
+        %         YpontSplitBarDx(2,:)=temp.YpontSplitBarDx(2,:);
+        %         XpontSplitDx(2,:)=temp.XpontSplitDx(2,:);
+        %         YpontSplitDx(2,:)=temp.YpontSplitDx(2,:);
 end
 
 % This function build the rotor matrix (defining the geometry). Each half
@@ -124,60 +160,239 @@ Mag     = [];
 indexEle = 1;
 
 for ii=1:nlay
-    % rotor matrix
-    % first section: from q-axis to the arms. counterclockwise contour from (XpBar1,YpBar1) to (XpBar2,YpBar2)
+    %% first section: from q-axis to the arms. counterclockwise contour from (XpBar1,YpBar1) to (XpBar2,YpBar2)
     if pontR(ii)~=0
         if splitRib(ii)
-            rotore = [rotore
-                XpontRadBarSx(ii)     YpontRadBarSx(ii)     XpontRadBarDx(ii)     YpontRadBarDx(ii)     NaN NaN 0 codMatAirRot indexEle
-                XpontRadBarDx(ii)     YpontRadBarDx(ii)     XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) NaN NaN 0 codMatAirRot indexEle
-                XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    NaN NaN 0 codMatAirRot indexEle
-                XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    NaN NaN 0 codMatAirRot indexEle
-                XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    XpontSplitBarSx(2,ii) YpontSplitBarSx(2,ii) NaN NaN 0 codMatAirRot indexEle
-                XpontSplitBarSx(2,ii) YpontSplitBarSx(2,ii) XpontRadBarSx(ii)     YpontRadBarSx(ii)     NaN NaN 0 codMatAirRot indexEle
-                ];
-            indexEle = indexEle+1;
-            
-            rotore = [rotore
-                XpBar1(ii)            YpBar1(ii)            XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) NaN NaN 0 codMatAirRot indexEle
-                XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    NaN NaN 0 codMatAirRot indexEle
-                XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    NaN NaN 0 codMatAirRot indexEle
-                XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) NaN NaN 0 codMatAirRot indexEle
-                XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) XpBar2(ii)            YpBar2(ii)            NaN NaN 0 codMatAirRot indexEle
-                ];
-            
-        else
+%             if flag_pont(ii)==1
+                if (flag_cent(ii)==1)           % end-rib goes on the central barrier 
+                    rotore = [rotore
+                        XpontRadBarSx(ii)     YpontRadBarSx(ii)     XpontRadBarDx(ii)     YpontRadBarDx(ii)     NaN                     NaN                   0 codMatAirRot indexEle
+                        XpontRadBarDx(ii)     YpontRadBarDx(ii)     XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) NaN                     NaN                   0 codMatAirRot indexEle
+                        xI02k(ii)             yI02k(ii)             XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) XpontSplitDx(2,ii)      YpontSplitDx(2,ii)    1 codMatAirRot indexEle
+                        XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    NaN                     NaN                   0 codMatAirRot indexEle
+                        xI01k(ii)             yI01k(ii)             XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    XpontSplitBarSx(2,ii)   YpontSplitBarSx(2,ii) 1 codMatAirRot indexEle
+                        XpontSplitBarSx(2,ii) YpontSplitBarSx(2,ii) XpontRadBarSx(ii)     YpontRadBarSx(ii)     NaN                     NaN                   0 codMatAirRot indexEle
+                        ];
+                    indexEle = indexEle+1;
+                end
+                %                  if (flag_cent(ii)==1 && flag_ext(ii)==1)
+                %                 rotore = [rotore
+                %                     XpontRadBarSx(ii)     YpontRadBarSx(ii)     XpontRadBarDx(ii)     YpontRadBarDx(ii)     NaN NaN 0 codMatAirRot indexEle
+                %                     XpontRadBarDx(ii)     YpontRadBarDx(ii)     XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) NaN NaN 0 codMatAirRot indexEle
+                %                     xI02k(ii)             yI02k(ii)             XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) XpontSplitDx(2,ii)   YpontSplitDx(2,ii) 1 codMatAirRot indexEle
+                %                     XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    NaN NaN 0 codMatAirRot indexEle
+                %                     xI01k(ii)             yI01k(ii)             XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    XpontSplitBarSx(2,ii)   YpontSplitBarSx(2,ii) 1 codMatAirRot indexEle
+                %                     XpontSplitBarSx(2,ii) YpontSplitBarSx(2,ii) XpontRadBarSx(ii)     YpontRadBarSx(ii)     NaN NaN 0 codMatAirRot indexEle
+                %                     ];
+                %                 indexEle = indexEle+1;
+                %                  end
+                if (flag_cent(ii)==0 && flag_ext(ii)==1)              % end-rib goes on the external barrier
+                    if flag_shiftUP(ii)==1                            % rib with positive offset (shifted towards the exteranal barrier)
+                        rotore = [rotore
+                            XpontRadBarSx(ii)     YpontRadBarSx(ii)     XpontRadBarDx(ii)     YpontRadBarDx(ii)     NaN NaN 0 codMatAirRot indexEle
+                            XpontRadBarDx(ii)     YpontRadBarDx(ii)     XpBar2(ii)            YpBar2(ii)            NaN NaN 0 codMatAirRot indexEle
+                            XpBar2(ii)            YpBar2(ii)            XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) NaN NaN 0 codMatAirRot indexEle
+                            ];
+                    else
+                        rotore = [rotore
+                            XpontRadBarSx(ii)     YpontRadBarSx(ii)     XpontRadBarDx(ii)     YpontRadBarDx(ii)     NaN NaN 0 codMatAirRot indexEle
+                            XpontRadBarDx(ii)     YpontRadBarDx(ii)     XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) NaN NaN 0 codMatAirRot indexEle
+                            ];
+                    end
+                    rotore = [rotore
+                        xI02k(ii)             yI02k(ii)             XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    1 codMatAirRot indexEle
+                        XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    NaN                   NaN                   0 codMatAirRot indexEle
+                        xI01k(ii)             yI01k(ii)             XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    XpontSplitBarSx(2,ii) YpontSplitBarSx(2,ii) 1 codMatAirRot indexEle
+                        XpontSplitBarSx(2,ii) YpontSplitBarSx(2,ii) XpBar1(ii)            YpBar1(ii)            NaN                   NaN                   0 codMatAirRot indexEle
+                        XpBar1(ii)            YpBar1(ii)            XpontRadBarSx(ii)     YpontRadBarSx(ii)     NaN                   NaN                   0 codMatAirRot indexEle
+                        ];
+                    indexEle = indexEle+1;
+                end
+                
+                % end
+                if (any(isfinite(geo.RotorFillet(1,:))) && (strcmp(geo.RotType,'Seg')))
+
+                    if flag_ext(ii)==1
+                        rotore = [rotore
+                            xC1k(ii)              yC1k(ii)              XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) NaN                   NaN                   0 codMatAirRot indexEle
+                            xS01k(ii)             yS01k(ii)             XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    1 codMatAirRot indexEle
+                            XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    NaN                   NaN                   0 codMatAirRot indexEle
+                            xS02k(ii)             yS02k(ii)             XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) 1 codMatAirRot indexEle
+                            ];
+                        
+                    else
+                        rotore = [rotore
+                            xC1k(ii)              yC1k(ii)              XpBar1(ii)            YpBar1(ii)            NaN                   NaN                   0 codMatAirRot indexEle
+                            XpBar1(ii)            YpBar1(ii)            XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) NaN                   NaN                   0 codMatAirRot indexEle
+                            xS01k(ii)             yS01k(ii)             XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    1 codMatAirRot indexEle
+                            XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    NaN                   NaN                   0 codMatAirRot indexEle
+                            xS02k(ii)             yS02k(ii)             XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) 1 codMatAirRot indexEle
+                            ];
+                    end
+                    
+                    if flag_shift(ii)==1                                        % rib with negative offset (shifted towards the center)
+                        rotore = [rotore
+                            XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) XpBar2(ii)  YpBar2(ii)            NaN                   NaN                   0 codMatAirRot indexEle
+                            XpBar2(ii)            YpBar2(ii)            xC4k(ii)    yC4k(ii)              NaN                   NaN                   0 codMatAirRot indexEle
+                            ];
+                    else
+                        rotore = [rotore
+                            XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) xC4k(ii)              yC4k(ii)              NaN                   NaN                   0 codMatAirRot indexEle
+                            ];
+                        
+                    end
+                else
+ 
+                    if flag_ext(ii)==1                              % end-rib goes on the external barrier
+                        rotore = [rotore
+                            xxD1k(ii)             yyD1k(ii)             XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) NaN                   NaN                   0 codMatAirRot indexEle
+                            xS01k(ii)             yS01k(ii)             XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    1 codMatAirRot indexEle
+                            XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    NaN                   NaN                   0 codMatAirRot indexEle
+                            xS02k(ii)             yS02k(ii)             XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) 1 codMatAirRot indexEle
+                            ];
+                    else
+                        rotore = [rotore
+                            xxD1k(ii)             yyD1k(ii)             XpBar1(ii)            YpBar1(ii)            NaN                   NaN                   0 codMatAirRot indexEle
+                            XpBar1(ii)            YpBar1(ii)            XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) NaN                   NaN                   0 codMatAirRot indexEle
+                            xS01k(ii)             yS01k(ii)             XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    1 codMatAirRot indexEle
+                            XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    NaN                   NaN                   0 codMatAirRot indexEle
+                            xS02k(ii)             yS02k(ii)             XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) 1 codMatAirRot indexEle
+                            ];
+                    end
+                    
+                    if flag_shift(ii)==1                                            % rib with negative offset (shifted towards the center)
+                        rotore = [rotore
+                            XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) XpBar2(ii)  YpBar2(ii)            NaN                   NaN                   0 codMatAirRot indexEle
+                            XpBar2(ii)            YpBar2(ii)            xxD2k(ii)   yyD2k(ii)              NaN                   NaN                   0 codMatAirRot indexEle
+                            ];
+                    else
+                        rotore = [rotore
+                            XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) xxD2k(ii)              yyD2k(ii)              NaN                   NaN                   0 codMatAirRot indexEle
+                            ];
+                    end
+                    
+
+                end
+%             else
+%                 rotore = [rotore
+%                     XpontRadBarSx(ii)     YpontRadBarSx(ii)     XpontRadBarDx(ii)     YpontRadBarDx(ii)     NaN NaN 0 codMatAirRot indexEle
+%                     XpontRadBarDx(ii)     YpontRadBarDx(ii)     XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) NaN NaN 0 codMatAirRot indexEle
+%                     XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    NaN NaN 0 codMatAirRot indexEle
+%                     XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    NaN NaN 0 codMatAirRot indexEle
+%                     XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    XpontSplitBarSx(2,ii) YpontSplitBarSx(2,ii) NaN NaN 0 codMatAirRot indexEle
+%                     XpontSplitBarSx(2,ii) YpontSplitBarSx(2,ii) XpontRadBarSx(ii)     YpontRadBarSx(ii)     NaN NaN 0 codMatAirRot indexEle
+%                     ];
+%                 indexEle = indexEle+1;
+%                 
+%                 rotore = [rotore
+%                     XpBar1(ii)            YpBar1(ii)            XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) NaN NaN 0 codMatAirRot indexEle
+%                     XpontSplitBarSx(1,ii) YpontSplitBarSx(1,ii) XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    NaN NaN 0 codMatAirRot indexEle
+%                     XpontSplitSx(1,ii)    YpontSplitSx(1,ii)    XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    NaN NaN 0 codMatAirRot indexEle
+%                     XpontSplitDx(1,ii)    YpontSplitDx(1,ii)    XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) NaN NaN 0 codMatAirRot indexEle
+%                     XpontSplitBarDx(1,ii) YpontSplitBarDx(1,ii) XpBar2(ii)            YpBar2(ii)            NaN NaN 0 codMatAirRot indexEle
+%                     ];
+%             end
+        elseif flag_segV(ii)==0
             rotore = [rotore
                 XpBar1(ii)        YpBar1(ii)        XpontRadBarSx(ii) YpontRadBarSx(ii) NaN NaN 0 codMatAirRot indexEle
-                XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)    NaN NaN 0 codMatAirRot indexEle
+                xS01k(ii)          yS01k(ii)          XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)     1 codMatAirRot indexEle
+                %XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)    NaN NaN 0 codMatAirRot indexEle
                 XpontRadSx(ii)    YpontRadSx(ii)    XpontRadDx(ii)    YpontRadDx(ii)    NaN NaN 0 codMatAirRot indexEle
-                XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) NaN NaN 0 codMatAirRot indexEle
+                xS02k(ii)          yS02k(ii)          XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) 1 codMatAirRot indexEle
+                %XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) NaN NaN 0 codMatAirRot indexEle
                 XpontRadBarDx(ii) YpontRadBarDx(ii) XpBar2(ii)        YpBar2(ii)        NaN NaN 0 codMatAirRot indexEle
                 ];
         end
-    else
+    elseif flag_segV(ii)==0
         rotore = [rotore
             XpBar1(ii)        YpBar1(ii)        XpontRadBarSx(ii) YpontRadBarSx(ii) NaN NaN 0 codMatAirRot indexEle
             XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadBarDx(ii) YpontRadBarDx(ii) NaN NaN 0 codMatAirRot indexEle
             XpontRadBarDx(ii) YpontRadBarDx(ii) XpBar2(ii)        YpBar2(ii)        NaN NaN 0 codMatAirRot indexEle
             ];
     end
-    % second section of the layer: arms and barrier edges, from (XpBar2,YpBar2) to (XpBar1,YpBar1)
-    if (any(isfinite(geo.RotorFillet)) && (strcmp(geo.RotType,'Seg')))
-        rotore = [rotore
-            XpBar2(ii) YpBar2(ii) xC4k(ii)   yC4k(ii)   NaN      NaN      0 codMatAirRot indexEle
-            xC02k(ii)  yC02k(ii)  xC4k(ii)   yC4k(ii)   xC3k(ii) yC3k(ii) 1 codMatAirRot indexEle
-            xC3k(ii)   yC3k(ii)   xC2k(ii)   yC2k(ii)   NaN      NaN      0 codMatAirRot indexEle
-            xC01k(ii)  yC01k(ii)  xC2k(ii)   yC2k(ii)   xC1k(ii) yC1k(ii) 1 codMatAirRot indexEle
-            xC1k(ii)   yC1k(ii)   XpBar1(ii) YpBar1(ii) NaN      NaN      0 codMatAirRot indexEle
-            ];
+    
+    
+    %% second section of the layer: arms and barrier edges, from (XpBar2,YpBar2) to (XpBar1,YpBar1)
+    if (any(isfinite(geo.RotorFillet(1,:))) && (strcmp(geo.RotType,'Seg')))
+        if pontR(ii)~=0
+             if splitRib(ii)==1
+            rotore = [rotore
+                %XpontSplitBarDx(1,ii)   YpontSplitBarDx(1,ii)   xC4k(ii)                yC4k(ii)                NaN      NaN      0 codMatAirRot indexEle
+                xC02k(ii)               yC02k(ii)               xC4k(ii)                yC4k(ii)                xC3k(ii) yC3k(ii) 1 codMatAirRot indexEle
+                xC3k(ii)                yC3k(ii)                xC2k(ii)                yC2k(ii)                NaN      NaN      0 codMatAirRot indexEle
+                xC01k(ii)               yC01k(ii)               xC2k(ii)                yC2k(ii)                xC1k(ii) yC1k(ii) 1 codMatAirRot indexEle
+                %xC1k(ii)                yC1k(ii)                XpontSplitBarSx(1,ii)   YpontSplitBarSx(1,ii)   NaN      NaN      0 codMatAirRot indexEle
+                ];
+             elseif  flag_segV(ii)==0 
+            rotore = [rotore
+%                 XpBar2(ii)              YpBar2(1,ii)            xC4k(ii)                yC4k(ii)                NaN      NaN      0 codMatAirRot indexEle
+                xC02k(ii)               yC02k(ii)               xC4k(ii)                yC4k(ii)                xC3k(ii) yC3k(ii) 1 codMatAirRot indexEle
+                xC3k(ii)                yC3k(ii)                xC2k(ii)                yC2k(ii)                NaN      NaN      0 codMatAirRot indexEle
+                xC01k(ii)               yC01k(ii)               xC2k(ii)                yC2k(ii)                xC1k(ii) yC1k(ii) 1 codMatAirRot indexEle
+%                 xC1k(ii)                yC1k(ii)                XpBar1(ii)              YpBar1(ii)   NaN      NaN      0 codMatAirRot indexEle
+                ];
+            elseif flag_segV(ii)==1
+           rotore = [rotore
+                %XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) NaN NaN 0 codMatAirRot indexEle
+                XpontRadBarDx(ii) YpontRadBarDx(ii)  xC4k(ii)                yC4k(ii)         NaN NaN 0 codMatAirRot indexEle
+                xC02k(ii)               yC02k(ii)               xC4k(ii)                yC4k(ii)                xC3k(ii) yC3k(ii) 1 codMatAirRot indexEle
+                xC3k(ii)                yC3k(ii)                xC2k(ii)                yC2k(ii)                NaN      NaN      0 codMatAirRot indexEle
+                xC01k(ii)               yC01k(ii)               xC2k(ii)                yC2k(ii)                xC1k(ii) yC1k(ii) 1 codMatAirRot indexEle
+                xC1k(ii) yC1k(ii)         XpontRadBarSx(ii) YpontRadBarSx(ii) NaN NaN 0 codMatAirRot indexEle
+                xS01k(ii)          yS01k(ii)         XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)     1 codMatAirRot indexEle
+                %XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)    NaN NaN 0 codMatAirRot indexEle
+                XpontRadSx(ii)    YpontRadSx(ii)     XpontRadDx(ii)    YpontRadDx(ii)    NaN NaN 0 codMatAirRot indexEle
+                xS02k(ii)          yS02k(ii)         XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) 1 codMatAirRot indexEle
+                ];
+             end
+        else
+            rotore = [rotore
+                B1k(ii)    0          B2k(ii)    0          NaN      NaN      0 codMatAirRot indexEle
+                XpBar2(ii) YpBar2(ii) xC4k(ii)   yC4k(ii)   NaN      NaN      0 codMatAirRot indexEle
+                xC02k(ii)  yC02k(ii)  xC4k(ii)   yC4k(ii)   xC3k(ii) yC3k(ii) 1 codMatAirRot indexEle
+                xC3k(ii)   yC3k(ii)   xC2k(ii)   yC2k(ii)   NaN      NaN      0 codMatAirRot indexEle
+                xC01k(ii)  yC01k(ii)  xC2k(ii)   yC2k(ii)   xC1k(ii) yC1k(ii) 1 codMatAirRot indexEle
+                xC1k(ii)   yC1k(ii)   XpBar1(ii) YpBar1(ii) NaN      NaN      0 codMatAirRot indexEle
+                ];
+        end
     else
-        rotore = [rotore
-            XpBar2(ii)     YpBar2(ii)     xxD2k(ii)  yyD2k(ii)  NaN       NaN       0 codMatAirRot indexEle
-            XcRibTraf2(ii) YcRibTraf2(ii) xxD2k(ii)  yyD2k(ii)  xpont(ii) ypont(ii) 1 codMatAirRot indexEle
-            XcRibTraf1(ii) YcRibTraf1(ii) xpont(ii)  ypont(ii)  xxD1k(ii) yyD1k(ii) 1 codMatAirRot indexEle
-            xxD1k(ii)      yyD1k(ii)      XpBar1(ii) YpBar1(ii) NaN       NaN       0 codMatAirRot indexEle
-            ];
+        if splitRib(ii)==1
+            rotore = [rotore
+                %XpontSplitBarDx(1,ii)       YpontSplitBarDx(1,ii)       xxD2k(ii)               yyD2k(ii)             NaN       NaN       0 codMatAirRot indexEle
+                XcRibTraf2(ii)              YcRibTraf2(ii)              xxD2k(ii)               yyD2k(ii)             xpont(ii) ypont(ii) 1 codMatAirRot indexEle
+                XcRibTraf1(ii)              YcRibTraf1(ii)              xpont(ii)               ypont(ii)             xxD1k(ii) yyD1k(ii) 1 codMatAirRot indexEle
+                %xxD1k(ii)                   yyD1k(ii)                   XpontSplitBarSx(1,ii)   YpontSplitBarSx(1,ii) NaN       NaN       0 codMatAirRot indexEle
+                ];
+        elseif flag_segV(ii)==0
+            rotore = [rotore
+                XpBar2(ii)     YpBar2(ii)     xxD2k(ii)  yyD2k(ii)  NaN       NaN       0 codMatAirRot indexEle
+                XcRibTraf2(ii) YcRibTraf2(ii) xxD2k(ii)  yyD2k(ii)  xpont(ii) ypont(ii) 1 codMatAirRot indexEle
+                XcRibTraf1(ii) YcRibTraf1(ii) xpont(ii)  ypont(ii)  xxD1k(ii) yyD1k(ii) 1 codMatAirRot indexEle
+                xxD1k(ii)      yyD1k(ii)      XpBar1(ii) YpBar1(ii) NaN       NaN       0 codMatAirRot indexEle
+                ];
+        elseif flag_segV(ii)==1
+            if pontR(ii)~=0
+                rotore = [rotore
+                    %XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) NaN NaN 0 codMatAirRot indexEle
+                    XpontRadBarDx(ii) YpontRadBarDx(ii)  xxD2k(ii)         yyD2k(ii)         NaN NaN 0 codMatAirRot indexEle
+                    XcRibTraf2(ii) YcRibTraf2(ii) xxD2k(ii)  yyD2k(ii)  xpont(ii) ypont(ii) 1 codMatAirRot indexEle
+                    XcRibTraf1(ii) YcRibTraf1(ii) xpont(ii)  ypont(ii)  xxD1k(ii) yyD1k(ii) 1 codMatAirRot indexEle
+                    xxD1k(ii)          yyD1k(ii)         XpontRadBarSx(ii) YpontRadBarSx(ii) NaN NaN 0 codMatAirRot indexEle
+                    xS01k(ii)          yS01k(ii)         XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)     1 codMatAirRot indexEle
+                    %XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)    NaN NaN 0 codMatAirRot indexEle
+                    XpontRadSx(ii)    YpontRadSx(ii)     XpontRadDx(ii)    YpontRadDx(ii)    NaN NaN 0 codMatAirRot indexEle
+                    xS02k(ii)          yS02k(ii)         XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) 1 codMatAirRot indexEle
+                    ];
+            else
+                rotore = [rotore
+                    B1k(ii)    0          B2k(ii)    0          NaN      NaN      0 codMatAirRot indexEle
+                    XpBar2(ii)     YpBar2(ii)     xxD2k(ii)  yyD2k(ii)  NaN       NaN       0 codMatAirRot indexEle
+                    XcRibTraf2(ii) YcRibTraf2(ii) xxD2k(ii)  yyD2k(ii)  xpont(ii) ypont(ii) 1 codMatAirRot indexEle
+                    XcRibTraf1(ii) YcRibTraf1(ii) xpont(ii)  ypont(ii)  xxD1k(ii) yyD1k(ii) 1 codMatAirRot indexEle
+                    xxD1k(ii)      yyD1k(ii)      XpBar1(ii) YpBar1(ii) NaN       NaN       0 codMatAirRot indexEle
+                    ];
+            end
+        end
     end
     indexEle = indexEle+1;
     

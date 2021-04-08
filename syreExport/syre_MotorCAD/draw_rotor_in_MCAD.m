@@ -77,7 +77,8 @@ switch geo.RotType
         invoke(mcad,'SetVariable','UShape_WebThickness_Array',tmp);
         
     case 'Seg'
-        invoke(mcad,'SetVariable','MotorType_MotorLAB','SYNCREL');
+        invoke(mcad,'SetVariable','MotorType_MotorLAB','BPM');
+        invoke(mcad,'SetVariable','BPMRotor','13'); %interior V (web)
         
         tmp=geo.Ar*2;
         invoke(mcad,'SetVariable','Shaft_Dia',tmp);

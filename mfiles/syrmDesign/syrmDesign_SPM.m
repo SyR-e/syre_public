@@ -158,19 +158,19 @@ end
 
 %% calculate slot area (regualr region subtract redundant region of fillet radius)
 Aslots  = zeros(m,n);
-dTempCu = zeros(mn);
+dTempCu = zeros(m,n);
 for ii=1:m
     for jj=1:n
         % slot area evaluation
         geo0 = geo;
-        geo0.r  = r(rr,cc);
-        geo0.lt = lt(rr,cc);
-        geo0.wt = wt(rr,cc);
+        geo0.r  = r(ii,jj);
+        geo0.lt = lt(ii,jj);
+        geo0.wt = wt(ii,jj);
         try
             [tmp1,~] = drawSlot(geo0);
-            Aslots(rr,cc) = 6*geo.p*geo.q*tmp1.Aslot;
+            Aslots(ii,jj) = 6*geo.p*geo.q*tmp1.Aslot;
         catch
-            Aslots(rr,cc) = NaN;
+            Aslots(ii,jj) = NaN;
         end
         
         % copper overtemperature

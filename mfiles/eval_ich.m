@@ -203,7 +203,7 @@ if flagSave
         mkdir([pathname outFolder]);
     end
 
-    resFolder = [pathname outFolder filename(1:end-4) '_ich\'];
+    resFolder = [pathname outFolder 'charCurr - ' datestr(now,30) '\'];
     mkdir(resFolder)
 
     save([resFolder 'ichOut.mat'],'ich','ichOut');

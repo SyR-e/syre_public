@@ -21,13 +21,15 @@ tmp = material_properties_iron(dataSet.StatorMaterial);
 if ~isfield(tmp,'kgm3')
     error('Select a correct stator iron material')
 end
-mat.Stator.kgm3 = tmp.kgm3;
-mat.Stator.alpha = tmp.alpha;
-mat.Stator.beta = tmp.beta;
-mat.Stator.kh = tmp.kh;
-mat.Stator.ke = tmp.ke;
-mat.Stator.BH = tmp.BH;
-mat.Stator.MatName = tmp.MatName;
+mat.Stator.kgm3      = tmp.kgm3;
+mat.Stator.alpha     = tmp.alpha;
+mat.Stator.beta      = tmp.beta;
+mat.Stator.kh        = tmp.kh;
+mat.Stator.ke        = tmp.ke;
+mat.Stator.BH        = tmp.BH;
+mat.Stator.E         = tmp.E;
+mat.Stator.sigma_max = tmp.sigma_max;
+mat.Stator.MatName   = tmp.MatName;
 % mat.mu = tmp.mu;
 %mat.MatList.iron = tmp.MatList;
 
@@ -37,13 +39,14 @@ if ~isfield(tmp,'kgm3')
     error('Select a correct rotor iron material')
 end
 mat.Rotor.sigma_max = tmp.sigma_max;
-mat.Rotor.kgm3 = tmp.kgm3;
-mat.Rotor.alpha = tmp.alpha;
-mat.Rotor.beta = tmp.beta;
-mat.Rotor.kh = tmp.kh;
-mat.Rotor.ke = tmp.ke;
-mat.Rotor.BH = tmp.BH;
-mat.Rotor.MatName = tmp.MatName;
+mat.Rotor.kgm3      = tmp.kgm3;
+mat.Rotor.alpha     = tmp.alpha;
+mat.Rotor.beta      = tmp.beta;
+mat.Rotor.kh        = tmp.kh;
+mat.Rotor.ke        = tmp.ke;
+mat.Rotor.BH        = tmp.BH;
+mat.Rotor.E         = tmp.E;
+mat.Rotor.MatName   = tmp.MatName;
 % mat.mu = tmp.mu;
 
 %% slot conductor

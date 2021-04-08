@@ -17,26 +17,18 @@ function dataSet = DrawAndSaveMachine_MN(dataSet,filename,pathname)
 % == NEW SCRIPT FOR SAVING A MACHINE FROM GUI MANUAL ENTRIES ==
 % ==== TAKE THE DIR AND THE STRUCT DATASET ===============================
 
-% dataSet = handles.dataSet;
-
-if nargin < 2
-    [filename,pathname] = uiputfile(['newmachine.mat'],'input machine name and location');
-end
+pathname = dataSet.currentpathname;
+filename = dataSet.currentfilename;
 load([pathname filename]);
 
 eval_type = 'singt';
 
 h = OpenMagnet(1);  % 1 = visible, 0 = invisible
-[geo,mat] = draw_motor_in_MN(geo,mat,pathname,filename,h);
+draw_motor_in_MN(geo,mat,pathname,filename,h);
 [h,f] = SaveDocumentMagnet(h,[pathname,filename(1:end-4),'.mn']);
 CloseMagnet(h)
 
-% dataSet.currentpathname = [pathname '\'];
-% dataSet.currentfilename = filename;
 dataSet.slidingGap      = 1; % R347
-save([pathname filename],'geo','per','dataSet','mat'); 
-
-% set(handles.currentMotFileName,'String',filename);  % update display
 
 % refresh GUI display data
 load([pathname filename]);

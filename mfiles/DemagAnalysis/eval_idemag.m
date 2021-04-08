@@ -67,7 +67,7 @@ if ~exist([pathname outFolder],'dir')
     mkdir([pathname outFolder]);
 end
 
-resFolder = [filename(1:end-4) '_DemagCurve\'];
+resFolder = ['demagCurve - ' datestr(now,30) '\'];
 mkdir([pathname outFolder],resFolder);
 resFolder = [pathname outFolder resFolder];
 

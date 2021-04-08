@@ -29,36 +29,162 @@ if tmp == 2
         invoke(mcad,'LoadFromFile',[dataSet.currentpathname file_mot]);
     end
     
-    %Setting type Housing
+    %Setting Cooling System
     switch  dataSet.HousingType
         case 'Axial fins (Servo)'
             invoke(mcad,'SetVariable','HousingType', 9 );
-        case 'Water Jacket (Axial)'
-            invoke(mcad,'SetVariable','HousingType', 11);
-        case 'Water Jacket (Spiral)'
-            invoke(mcad,'SetVariable','HousingType', 12);
-        case 'None'
-            invoke(mcad,'SetVariable','HousingType', 13);
-    end
-    
-    % Setting inlet temperature
-    switch  dataSet.HousingType
-        case 'Axial fins (Servo)'
             tmp=dataSet.InletTemperature;
             tmp=num2str(tmp);
             tmp(tmp=='.')=',';
             invoke(mcad,'SetVariable','Ambient_Temperature',tmp);
         case 'Water Jacket (Axial)'
+            invoke(mcad,'SetVariable','HousingType', 11 );
+            invoke(mcad,'SetVariable','Housing_Water_Jacket', 1 );
             tmp=dataSet.InletTemperature;
             tmp=num2str(tmp);
             tmp(tmp=='.')=',';
             invoke(mcad,'SetVariable','WJ_Fluid_Inlet_Temperature',tmp);
+            
+            invoke(mcad,'SetVariable','WJ_Channel-Lam',5);
+            invoke(mcad,'SetVariable','WJ_Channel_Height',5);
+            
+            dataSet.FlowRate = 6;
+            tmp = dataSet.FlowRate/(5.988*10^4);
+            tmp = num2str(tmp);
+            tmp(tmp=='.')=',';
+            invoke(mcad,'SetVariable','WJ_Fluid_Volume_Flow_Rate', tmp);   %l/min
+            
+            %%Water-Glycol properties
+            tmp = 0.399;
+            tmp = num2str(tmp);
+            tmp(tmp=='.')=',';
+            invoke(mcad,'SetVariable','WJ_Fluid_Thermal_Conductivity', tmp);
+            tmp =1065;
+            tmp = num2str(tmp);
+            tmp(tmp=='.')=',';
+            invoke(mcad,'SetVariable','WJ_Fluid_Density', tmp);
+            tmp = 3364;
+            tmp = num2str(tmp);
+            tmp(tmp=='.')=',';
+            invoke(mcad,'SetVariable','WJ_Fluid_Specific_Heat', tmp);
+            tmp = 2.25*10^-6;
+            tmp = num2str(tmp);
+            tmp(tmp=='.')=',';
+            invoke(mcad,'SetVariable','WJ_Fluid_Kinematic_Viscosity', tmp);
+            tmp = 0.002396;
+            tmp = num2str(tmp);
+            tmp(tmp=='.')=',';
+            invoke(mcad,'SetVariable','WJ_Fluid_Dynamic_Viscosity', tmp);
+            tmp = 20.2;
+            tmp = num2str(tmp);
+            tmp(tmp=='.')=',';
+            invoke(mcad,'SetVariable','WJ_Fluid_Prandlt_Number', tmp);
+            
         case 'Water Jacket (Spiral)'
+            invoke(mcad,'SetVariable','HousingType', 12 );
+            invoke(mcad,'SetVariable','Housing_Water_Jacket', 1 );
             tmp=dataSet.InletTemperature;
             tmp=num2str(tmp);
             tmp(tmp=='.')=',';
             invoke(mcad,'SetVariable','WJ_Fluid_Inlet_Temperature',tmp);
+            
+            invoke(mcad,'SetVariable','WJ_Channel-Lam',5);
+            invoke(mcad,'SetVariable','WJ_Channel_Height',5);
+            
+            
+            dataSet.FlowRate = 6;
+            tmp = dataSet.FlowRate/(5.988*10^4);
+            tmp = num2str(tmp);
+            tmp(tmp=='.')=',';
+            invoke(mcad,'SetVariable','WJ_Fluid_Volume_Flow_Rate', tmp);   %l/min
+            
+            if strcmp(dataSet.Fluid,'W/G 50/50')
+                %%Water-Glycol 50 50 properties
+                tmp = 0.399;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Thermal_Conductivity', tmp);
+                tmp =1065;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Density', tmp);
+                tmp = 3364;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Specific_Heat', tmp);
+                tmp = 2.25*10^-6;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Kinematic_Viscosity', tmp);
+                tmp = 0.002396;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Dynamic_Viscosity', tmp);
+                tmp = 20.2;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Prandlt_Number', tmp);
+            end
+            
+            if strcmp(dataSet.Fluid,'W/G 60/40')
+                %%Water-Glycol 60 40 properties
+                tmp = 0.361;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Thermal_Conductivity', tmp);
+                tmp =1079;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Density', tmp);
+                tmp = 3262;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Specific_Heat', tmp);
+                tmp = 2.79*10^-6;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Kinematic_Viscosity', tmp);
+                tmp = 0.00301;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Dynamic_Viscosity', tmp);
+                tmp = 27.2;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Prandlt_Number', tmp);
+            end
+            
+            if strcmp(dataSet.Fluid,'Water')
+                %%Water-Glycol 60 40 properties
+                tmp = 0.6233;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Thermal_Conductivity', tmp);
+                tmp =992.3;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Density', tmp);
+                tmp = 4178;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Specific_Heat', tmp);
+                tmp = 6.59*10^-7;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Kinematic_Viscosity', tmp);
+                tmp = 0.0006539;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Dynamic_Viscosity', tmp);
+                tmp = 4.383;
+                tmp = num2str(tmp);
+                tmp(tmp=='.')=',';
+                invoke(mcad,'SetVariable','WJ_Fluid_Prandlt_Number', tmp);
+            end
+            
+            
         case 'None'
+            invoke(mcad,'SetVariable','HousingType', 13 );
             tmp=dataSet.InletTemperature;
             tmp=num2str(tmp);
             tmp(tmp=='.')=',';
@@ -66,21 +192,8 @@ if tmp == 2
     end
     
     %Setting calculation type
-    invoke(mcad,'SetVariable','Transient_Calculation_Type', 0);
-    
-    %Setting transient period
-    if dataSet.TransientPeriod ~= inf
-        tmp=dataSet.TransientPeriod;
-        tmp=num2str(tmp);
-        tmp(tmp=='.')=',';
-        invoke(mcad,'SetVariable','Transient_Time_Period',tmp);
-    %Setting number of Point    
-        tmp=dataSet.TransientTimeStep;
-        tmp=num2str(tmp);
-        tmp(tmp=='.')=',';
-        invoke(mcad,'SetVariable','Number_Transient_Points',tmp);
-    end
-    
+    invoke(mcad,'SetVariable','Transient_Calculation_Type', 0); 
+
     %Show thermal context
     invoke(mcad,'ShowThermalContext');
     
@@ -94,7 +207,7 @@ if tmp == 2
     disp(' ')
     
     %Close Motor-CAD
-    invoke(mcad,'Quit');
+    %     invoke(mcad,'Quit');
 else
     error('Error: File .mot not found...')
 end

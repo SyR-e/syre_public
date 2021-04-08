@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [A,G] = calcAreaShape(Mat)
+function [A,G,shape] = calcAreaShape(Mat)
 
 nEle = size(Mat,1);
 
@@ -55,9 +55,14 @@ for ii=1:nEle
         end
         x_n = r*cos(theta(2:end-1)) + x0;
         y_n = r*sin(theta(2:end-1)) + y0;
-        if ((X(end)==x2)&&(Y(end)==y2))
-            X = [X x2 fliplr(x_n) x1];
-            Y = [Y y2 fliplr(y_n) y1];
+        if ~isempty(X)
+            if ((X(end)==x2)&&(Y(end)==y2))
+                X = [X x2 fliplr(x_n) x1];
+                Y = [Y y2 fliplr(y_n) y1];
+            else
+                X = [X x1 x_n x2];
+                Y = [Y y1 y_n y2];
+            end
         else
             X = [X x1 x_n x2];
             Y = [Y y1 y_n y2];
@@ -71,4 +76,3 @@ warning('on')
 A     = area(shape,1);
 [x,y] = centroid(shape,1);
 G = (x^2+y^2)^0.5;
-

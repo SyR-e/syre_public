@@ -12,16 +12,20 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function add_material_layer(MatName)
+function add_material_layer(MatName,library)
 
-% prompt={'Relative permeability',...
-%         'Density [kg*m^-3]'...
-%         'Remanence [T]',...
-%         'Coercive field [A/m]',...
-%         'Conductivity [S/m]',...
-%         'Reference temperature [°C]',...
-%         'Br=f(temperature) [T]',...
-%         'Br=f(temperature) [T]'};
+if nargin==1
+    library = 'custom';
+end
+
+switch library
+    case 'built-in'
+        libName = 'materialLibrary\layer_material.mat';
+    case 'custom'
+        libName = 'materialLibrary\custom_layer.mat';
+end
+
+
 prompt={'Relative permeability',...
         'Density [kg*m^-3]'...
         'Remanence [T]',...
@@ -53,7 +57,7 @@ mat.temp.Bd   = eval(answer{7});
 
 mat.Hc = mat.Br/(mat.mu*(4e-7*pi));
 
-load('materialLibrary\layer_material')
+load(libName)
 ind=length(MatList);
 ind=ind+1;
 MatList{ind}=MatName;
@@ -69,8 +73,8 @@ legend('show')
 
 button = questdlg('Save?','SELECT','Yes','No','Yes');
 if isequal(button,'Yes')
-    save('materialLibrary\layer_material.mat','MatList','MatLib');
-    disp('Material added to Material Library')
+    save(libName,'MatList','MatLib');
+    disp(['Material added to ' library ' Material Library'])
 else
     disp('material not saved')
 end

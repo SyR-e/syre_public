@@ -66,6 +66,25 @@ end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
+% PDE Toolbox
+disp('PDE Toolbox check...')
+flag=0;
+
+test = ver();
+for ii=1:length(test)
+    if strcmp(test(ii).Name,'Partial Differential Equation Toolbox')
+        flag=1;
+    end
+end
+
+if ~flag
+    disp('(x)PDE Toolbox not available')
+else
+    disp('(v)PDE Toolbox available')
+end
+
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+
 if out
     disp('Minimum requirements fulfilled')
 else

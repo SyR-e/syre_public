@@ -573,7 +573,7 @@ end
 if ~isfield(dataSet,'HousingType')
     dataSet.InletTemperature = 40;
     dataSet.HousingType = 'Axial fins (Servo)';
-    dataSet.TransientPeriod = Inf;
+    dataSet.TransientPeriod = 60;
     dataSet.TransientTimeStep = 50;
     if Dflag
         disp('rev445 - added Motor-CAD interface')
@@ -629,6 +629,64 @@ if ~isfield(dataSet,'MassWinding')
         disp('rev487 - added mass of active part and rotor inertia')
     end
     flag=1;
+end
+
+% Radial Ribs parameters 
+if ~isfield(dataSet,'pontRangEdit')
+    dataSet.pontRangEdit    = zeros(1,dataSet.NumOfLayers);
+    dataSet.pontRoffsetEdit = zeros(1,dataSet.NumOfLayers);
+    dataSet.RotorFilletRadEdit = dataSet.MinMechTol*ones(1,dataSet.NumOfLayers);
+    if Dflag
+        disp('2020 12 09 - Added improved radial ribs parameters')
+    end
+    flag=1;
+end
+
+
+% SEG updates 
+if ~isfield(dataSet,'RadShiftInner')
+    dataSet.RadShiftInner = zeros(1,dataSet.NumOfLayers);
+    dataSet.NarrowFactor = ones(1,dataSet.NumOfLayers);
+    dataSet.RadRibSplit = dataSet.RadRibSplit*ones(1,dataSet.NumOfLayers);
+    if Dflag
+        disp('2021 02 23 - Added improved Seg barriers parameters')
+    end
+    flag=1;
+end
+
+% Fillet update 
+if ~isfield(dataSet,'RotorFilletIn')
+    dataSet.RotorFilletIn = dataSet.MinMechTol*ones(1,dataSet.NumOfLayers);
+    dataSet.RotorFilletOut = dataSet.MinMechTol*ones(1,dataSet.NumOfLayers);
+    dataSet = rmfield(dataSet,'RotorFilletRadEdit');
+    if Dflag
+        disp('2021 02 23 - Added improved rotor fillet parameters')
+    end
+    flag=1;
+end
+
+% Barrier Shrink 
+if ~isfield(dataSet,'CentralShrink')
+    dataSet.CentralShrink = zeros(1,dataSet.NumOfLayers);
+
+    if Dflag
+        disp('2021 03 22 - Added Central Barriers Shrink')
+    end
+    flag=1;
+end
+
+
+% Motor-CAD tab Update
+if ~isfield(dataSet,'th_eval_type')
+    dataSet.FlowRate = 6;
+    dataSet.Fluid = 'W/G 50/50';
+    dataSet.th_eval_type = 'Steady State';
+    dataSet.MachineTemperature = 80;
+    dataSet.TransientPeriod = 60;
+    if Dflag
+        disp('2021 03 30 - Updated Motor-CAD Tab')
+    end
+    flag=1; 
 end
 
 %% remove old fields of dataSet

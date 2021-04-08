@@ -184,7 +184,8 @@ if length(CurrLoPP)>1
         fd(ii) = output{ii}.fd;
         fq(ii) = output{ii}.fq;
     end
-    dirPower = [pathname resFolder filemot(1:end-4) '_singT - ' int2str(dataIn.tempPP) 'deg\'];
+    %dirPower = [pathname resFolder filemot(1:end-4) '_singT - ' int2str(dataIn.tempPP) 'deg\'];
+    dirPower = [pathname resFolder 'senseOut - ' int2str(dataIn.tempPP) 'deg - ' datestr(now,30) '\'];
     mkdir(dirPower);
     
     x = 1:length(CurrLoPP);

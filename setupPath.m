@@ -1,3 +1,5 @@
+function setupPath()
+
 % Copyright 2014
 %
 %    Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,37 +15,72 @@
 %    limitations under the License.
 
 % add the required directories to the path
-thisfilepath = fileparts(which('GUI_Syre.mlapp'));
+syreDirectory = fileparts(which('GUI_Syre.mlapp'));
+
+clc
 
 %if isoctave
 %    thisfilepath = fileparts(canonicalize_file_name(thisfilepath));
 %    endfileName = '\';
 %end
 addpath ('C:\femm42\mfiles');
-addpath (fullfile ([thisfilepath]));
-addpath (fullfile (thisfilepath,'mfiles'));
-addpath (fullfile (thisfilepath,'mfiles','MODE'));
-addpath (fullfile (thisfilepath,'mfiles','syrmDesign'));
-addpath (fullfile (thisfilepath,'mfiles','DemagAnalysis'));
-addpath (fullfile (thisfilepath,'mfiles','MaterialLibraryFunctions'));
+addpath (fullfile(syreDirectory));
+addpath (fullfile(syreDirectory,'mfiles'));
+addpath (fullfile(syreDirectory,'mfiles','MODE'));
+addpath (fullfile(syreDirectory,'mfiles','syrmDesign'));
+addpath (fullfile(syreDirectory,'mfiles','DemagAnalysis'));
+addpath (fullfile(syreDirectory,'mfiles','MaterialLibraryFunctions'));
+addpath (fullfile(syreDirectory,'mfiles','StructuralPDE'));
+addpath (fullfile(syreDirectory,'mfiles','syreMMM'));
 
-addpath (fullfile (thisfilepath,'materialLibrary'));
+addpath (fullfile(syreDirectory,'materialLibrary'));
+addpath (fullfile(syreDirectory,'motorExamples'));
 
-addpath (fullfile (thisfilepath,'results'));
-% xfemmPath = fullfile (thisfilepath,'mfiles','xfemm-code-310','mfemm');
-addpath (fullfile (thisfilepath,'syreManipulateMM'));
-addpath (fullfile (thisfilepath,'syreManipulateMM','mfiles'));
-addpath (fullfile (thisfilepath,'syreExport'));
-addpath(genpath(fullfile(thisfilepath,'syreExport\syre_Dxf')));
-addpath(genpath(fullfile(thisfilepath,'syreExport\syre_MagNet')));
-addpath(genpath(fullfile(thisfilepath,'syreExport\syre_MotorCAD')));
+% addpath (fullfile (thisfilepath,'results'));
+% addpath (fullfile (syreDirectory,'syreManipulateMM'));
+% addpath (fullfile (syreDirectory,'syreManipulateMM','mfiles'));
+addpath (fullfile (syreDirectory,'syreExport'));
+addpath(genpath(fullfile(syreDirectory,'syreExport\syre_Dxf')));
+addpath(genpath(fullfile(syreDirectory,'syreExport\syre_MagNet')));
+addpath(genpath(fullfile(syreDirectory,'syreExport\syre_MotorCAD')));
 
-% addpath (fullfile (xfemmPath));
-% addpath (fullfile (xfemmPath, 'preproc'));
-% addpath (fullfile (xfemmPath, 'postproc'));
-% addpath (fullfile (xfemmPath, 'examples'));
-% addpath (fullfile (xfemmPath, 'depends'));
-% addpath (fullfile (xfemmPath, 'visualisation'));
-% mexdir = fullfile(xfemmPath, ['xfemm_mex_files_for_' computer('arch')]);
-% addpath (mexdir);
+% check additional features (custom functions)
+addpath(fullfile(syreDirectory,'syreCustomFeatures'));
+addon = dir([syreDirectory '\syreCustomFeatures\']);
+if length(addon)>2
+    disp('Custom features added:')
+    for ii=3:length(addon)
+        addpath(genpath([syreDirectory '\syreCustomFeatures\' addon(ii).name]));
+        disp(['- ' addon(ii).name]);
+    end
+end
+
 savepath
+
+% check for missing folders
+if ~exist([cd '\results'],'dir')
+    mkdir('results')
+end
+if ~exist([cd '\tmp'],'dir')
+    mkdir('tmp')
+end
+
+% Check for custom library files
+if ~exist([syreDirectory '\materialLibrary\custom_iron.mat'],'file')
+    MatLib = {};
+    MatList = {};
+    save([syreDirectory '\materialLibrary\custom_iron.mat'],'MatLib','MatList');
+end
+if ~exist([syreDirectory '\materialLibrary\custom_layer.mat'],'file')
+    MatLib = {};
+    MatList = {};
+    save([syreDirectory '\materialLibrary\custom_layer.mat'],'MatLib','MatList');
+end
+if ~exist([syreDirectory '\materialLibrary\custom_conductor.mat'],'file')
+    MatLib = {};
+    MatList = {};
+    save([syreDirectory '\materialLibrary\custom_conductor.mat'],'MatLib','MatList');
+end
+
+
+

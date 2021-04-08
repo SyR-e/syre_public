@@ -53,8 +53,10 @@ if tmp == 2
     
     eval_type = dataIn.EvalType;
     
-    per.overload=CurrLoPP;
-    per.BrPP=BrPP;
+    per.overload = CurrLoPP;
+    per.BrPP = BrPP;
+    per.i0 = dataIn.RatedCurrent;
+    per.isim = dataIn.SimulatedCurrent;
     
     geo.nsim_singt = NumOfRotPosPP;       % # simulated positions
     geo.delta_sim_singt = AngularSpanPP;  % angular span of simulation
@@ -84,7 +86,7 @@ if tmp == 2
     geo0=geo;
     mat0=mat;
     % evaluation
-    dataIn.MCADFEMM=0;
+    dataIn.MCADFEMM = 0;
     
     if dataIn.MCADFEMM==0
         if ppState<1
@@ -95,7 +97,7 @@ if tmp == 2
                 [~,geometry{ii},~,output{ii},tempDirName{ii}] = MCADfitness([],geoTmp,perTmp,matTmp,eval_type,fileMotWithPath);
             end
         else
-            parfor ii = 1:length(CurrLoPP) %%%
+            parfor ii = 1:length(CurrLoPP) 
                 geoTmp = geo0;
                 perTmp = performance{ii};
                 matTmp = mat0;

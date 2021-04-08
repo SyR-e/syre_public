@@ -24,17 +24,21 @@
 function [xt2,yt2,x2,y2,r2]=tg_cir(xr1,yr1,xr2,yr2,xp,yp)
 % keyboard
 [a,b,c]=retta_per_2pti(xr1,yr1,xr2,yr2);
-mp=yp/xp;
+mp=yp./xp;
 
-A=(- (4*a^2 + 4*b^2)*(b^2 - b^2*(mp^2 + 1) + b^2*mp^2) + (2*b^2 - 2*a*b*mp)^2);
-B= (- ((2*xp + 2*mp*yp)*b^2 + 2*c*mp*b)*(4*a^2 + 4*b^2) - 4*a*c*(2*b^2 - 2*a*b*mp));
-C=(4*a^2 + 4*b^2)*(b^2*(xp^2 + yp^2) - c^2) + 4*a^2*c^2;
+A = (- (4*a.^2 + 4*b.^2).*(b.^2 - b.^2.*(mp.^2 + 1) + b.^2.*mp.^2) + (2.*b.^2 - 2.*a.*b.*mp).^2);
+B = (- ((2.*xp + 2.*mp.*yp).*b.^2 + 2.*c.*mp.*b).*(4.*a.^2 + 4.*b.^2) - 4.*a.*c.*(2.*b.^2 - 2.*a.*b.*mp));
+C = (4.*a.^2 + 4.*b.^2).*(b.^2.*(xp.^2 + yp.^2) - c.^2) + 4.*a.^2.*c.^2;
 
-x2_vect=roots([A,B,C]);
-x2=min(x2_vect);
-y2=mp*x2;
-r2=sqrt((xp-x2)^2+(yp-y2)^2);
+%x2_vect = roots([A,B,C]);
 
-xt2=-(2*a*c-2*b^2*x2+2*a*b*y2)/(2*(a^2+b^2));
-yt2=-(a/b)*xt2-(c/b);
+x2_1 = ((-B+sqrt( B.^2-4*A.*C))./(2.*A));
+x2_2 = ((-B-sqrt( B.^2-4*A.*C))./(2.*A));
+x2 = min(x2_1,x2_2);
+
+y2 = mp.*x2;
+r2 = sqrt((xp-x2).^2+(yp-y2).^2);
+
+xt2=-(2.*a.*c-2.*b.^2.*x2+2.*a.*b.*y2)./(2.*(a.^2+b.^2));
+yt2=-(a./b).*xt2-(c./b);
 

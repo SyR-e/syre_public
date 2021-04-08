@@ -1,4 +1,4 @@
-function [cost,geo,mat,out,pathname]=MCADfitness (RQ,geo,per,mat,eval_type,filenameIn)
+function [cost,geo,mat,out,pathname] = MCADfitness (RQ,geo,per,mat,eval_type,filenameIn)
 
 % [~,filename,ext] = fileparts(filenameIn);
 [pathname,filename,ext] = fileparts(filenameIn);
@@ -19,7 +19,13 @@ invoke(mcad,'LoadFromFile',[pathname file_mot]);
 invoke(mcad,'SetVariable','AirgapMeshPoints_layers',1440);
 invoke(mcad,'SetVariable','AirgapMeshPoints_mesh',1440);
 
-[SOL]=simulate_xdegMCAD(geo,per,mat,eval_type,pathname,filename);
+%EMag to Thermal
+invoke(mcad,'SetVariable','MagneticThermalCoupling',1);
+
+%AC losses
+invoke(mcad,'SetVariable','ProximityLossModel',1);   %Full FEA model
+
+[SOL] = simulate_xdegMCAD(geo,per,mat,eval_type,pathname,filename);
 
 %save outputs
 out.id = mean(SOL.id);  %const

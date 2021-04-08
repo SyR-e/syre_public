@@ -36,7 +36,9 @@ rhoFE     = mat.Rotor.kgm3;         % Densità del ferro di rotore [kg/m3]
 sigmaFe   = mat.Rotor.sigma_max;    % Yield strength of the rotor iron [MPa]
 
 radial_ribs_eval = geo.radial_ribs_eval;    % radial ribs flag
-
+RotorFillet1 = geo.RotorFillet1;
+RotorFillet2 = geo.RotorFillet2;
+% RotorFillet=geo.RotorFillet;
 
 %% Initializations
 % top barrier points (near airgap)
@@ -450,6 +452,19 @@ XpontRadDx    = zeros(1,nlay);
 YpontRadDx    = zeros(1,nlay);
 XpontRadSx    = zeros(1,nlay);
 YpontRadSx    = zeros(1,nlay);
+xS01          = zeros(1,nlay);
+yS01          = zeros(1,nlay);
+xS02          = zeros(1,nlay);
+yS02          = zeros(1,nlay);
+
+
+
+
+%check rotor fillet rad
+RotorFillet2(RotorFillet2>hc/2)=round(hc((RotorFillet2>hc/2))/2);
+RotorFillet1(RotorFillet1<pont0)=pont0;
+RotorFillet1(RotorFillet1>hc/2)=round(hc((RotorFillet1>hc/2))/2);
+RotorFillet1(RotorFillet1<pont0)=pont0;
 
 for ii=1:nlay % controlla se utilizzare calcolo matriciale invece di ciclo for
     if pontR(ii)==0
@@ -461,31 +476,94 @@ for ii=1:nlay % controlla se utilizzare calcolo matriciale invece di ciclo for
         YpontRadBarDx(ii) = 0;
         XpontRadBarSx(ii) = B1k(ii);
         YpontRadBarSx(ii) = 0;
+        
+%         xS01(ii)=NaN;
+%         yS01(ii)=NaN;
+%           
+%         xS02(ii)=NaN;
+%         yS02(ii)=NaN;
     else
-        a0 = 0;
-        b0 = 1;
-        c0 = -pontR(ii)/2;
-        [a2,b2,c2] = retta_per_2pti(B2k(ii),0,xxD2k(ii),yyD2k(ii));
-        [a1,b1,c1] = retta_per_2pti(B1k(ii),0,xxD1k(ii),yyD1k(ii));
         
-        racc_pont = pont0;
-        if pont0>abs(B2k(ii)-B1k(ii))
-            racc_pont = (B2k(ii)-B1k(ii))/3;
-        end
-        
-        [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0,a2,b2,c2);
-        XpontRadDx(ii) = xTmp-racc_pont;
-        YpontRadDx(ii) = yTmp;
-        [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0-pont0,a2,b2,c2);
-        XpontRadBarDx(ii) = xTmp;
-        YpontRadBarDx(ii) = yTmp;
-        
-        [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0,a1,b1,c1);
-        XpontRadSx(ii) = xTmp+racc_pont;
-        YpontRadSx(ii) = yTmp;
-        [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0-pont0,a1,b1,c1);
-        XpontRadBarSx(ii) = xTmp;
-        YpontRadBarSx(ii) = yTmp;
+        %         racc_pont = pont0;
+%         if pont0>abs(B2k(ii)-B1k(ii))
+%             racc_pont = (B2k(ii)-B1k(ii))/3;
+%         end
+
+
+         
+  
+         a0 = 0;
+         b0 = 1;
+         c0 = -pontR(ii)/2;
+         [a1,b1,c1] = retta_per_2pti(B1k(ii),0,xxD1k(ii),yyD1k(ii));
+         [a2,b2,c2] = retta_per_2pti(B2k(ii),0,xxD2k(ii),yyD2k(ii));
+         
+         [m0,q0,~]=retta_abc2mq(a0,b0,c0);
+         [m1,q1,~]=retta_abc2mq(a1,b1,c1);
+         [m2,q2,~]=retta_abc2mq(a2,b2,c2);
+         
+          yp1=pontR(ii)/2;
+          xp1=(yp1-q1)./m1;
+          
+          yp2=yp1;
+          xp2=(yp2-q2)./m2;
+          
+          XpontRadSx(ii)=xp1+RotorFillet1(ii);
+          YpontRadSx(ii)=yp1;
+          
+          XpontRadDx(ii)=xp2-RotorFillet2(ii);
+          YpontRadDx(ii)=yp2;
+          
+          a=(1+m1.*m1);
+          b=-2*xp1+2*m1.*(q1-yp1);
+          c=-RotorFillet1(ii).*RotorFillet1(ii)+xp1.^2+(q1-yp1).^2;
+          XpontRadBarSx(ii)=(-b+sqrt(b.^2-4*a.*c))./(2*a);
+          YpontRadBarSx(ii)=m1.*XpontRadBarSx(1,(ii))+q1;
+          
+          a=(1+m2.*m2);
+          b=-2*xp2+2*m2.*(q2-yp2);
+          c=-RotorFillet2(ii).*RotorFillet2(ii)+xp2.^2+(q2-yp2).^2;
+          XpontRadBarDx(ii)=(-b+sqrt(b.^2-4*a.*c))./(2*a);
+          YpontRadBarDx(ii)=m2.*XpontRadBarDx(1,(ii))+q2;
+          
+          m1perp=-1/m1;
+          q1perp=YpontRadBarSx(ii)-m1perp*XpontRadBarSx(ii);
+          
+          m2perp=-1/m2;
+          q2perp=YpontRadBarDx(ii)-m2perp*XpontRadBarDx(ii);
+          
+          xS01(ii)=XpontRadSx(ii);
+          yS01(ii)=m1perp.*xS01(ii)+q1perp;
+          
+          xS02(ii)=XpontRadDx(ii);
+          yS02(ii)=m2perp.*xS02(ii)+q2perp;
+          
+%         a0 = 0;
+%         b0 = 1;
+%         c0 = -pontR(ii)/2;
+%         [a2,b2,c2] = retta_per_2pti(B2k(ii),0,xxD2k(ii),yyD2k(ii));
+%         [a1,b1,c1] = retta_per_2pti(B1k(ii),0,xxD1k(ii),yyD1k(ii));
+%         
+%         racc_pont = pont0;
+%         if pont0>abs(B2k(ii)-B1k(ii))
+%             racc_pont = (B2k(ii)-B1k(ii))/3;
+%         end
+%         
+%         [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0,a2,b2,c2);
+%         XpontRadDx(ii) = xTmp-racc_pont;
+%         YpontRadDx(ii) = yTmp;
+%         [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0-pont0,a2,b2,c2);
+%         XpontRadBarDx(ii) = xTmp;
+%         YpontRadBarDx(ii) = yTmp;
+%         
+%         [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0,a1,b1,c1);
+%         XpontRadSx(ii) = xTmp+racc_pont;
+%         YpontRadSx(ii) = yTmp;
+%         [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0-pont0,a1,b1,c1);
+%         XpontRadBarSx(ii) = xTmp;
+%         YpontRadBarSx(ii) = yTmp;
+
+
     end
 end
 
@@ -710,6 +788,10 @@ geo.yPMC2b      = yPMC2b;
 % geo.xPMC2t      = xPMC2t;
 % geo.yPMC2t      = yPMC2t;
 
+geo.RotorFillet1 = RotorFillet1;
+geo.RotorFillet2 = RotorFillet2;
+
+
 geo.AreaCMax  = AreaCMax;
 geo.AreaEMax  = AreaEMax;
 geo.AreaC     = AreaC;
@@ -755,6 +837,10 @@ temp.XpontRadBarDx   = XpontRadBarDx;
 temp.XpontRadBarSx   = XpontRadBarSx;
 temp.YpontRadBarDx   = YpontRadBarDx;
 temp.YpontRadBarSx   = YpontRadBarSx;
+temp.xS01            = xS01;
+temp.yS01            = yS01;
+temp.xS02            = xS02;
+temp.yS02            = yS02;
 % temp.XcRaccpontRadSx = XcRaccpontRadSx;
 % temp.YcRaccpontRadSx = YcRaccpontRadSx;
 % temp.RcRaccpontRadSx = RcRaccpontRadSx;

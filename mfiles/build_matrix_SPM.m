@@ -52,7 +52,7 @@ rotore = [rotore
     xAiro yAiro xAiri yAiri NaN   NaN    0 codMatAirRot indexEle
     0     0     xAiri yAiri xPMci yPMci -1 codMatAirRot indexEle
     ];
-
+indexEle = indexEle+1;
 
 Mag = [Mag
     xPMci      yPMci      xPMco yPMco NaN   NaN    0 codMatBar indexEle

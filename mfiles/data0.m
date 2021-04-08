@@ -103,29 +103,22 @@ geo.lt  = dataIn.ToothLength;    % tooth length [mm]
 geo.acs = dataIn.StatorSlotOpen; % stator slot opening [p.u.]
 geo.wt  = dataIn.ToothWidth;       % tooth width [mm]
 
-    if dataIn.ParallelSlotCheck
-        geo.parallel_slot = 1;
-    else
-        geo.parallel_slot = 0;
-    end
+if dataIn.ParallelSlotCheck
+    geo.parallel_slot = 1;
+else
+    geo.parallel_slot = 0;
+end
     
-geo.betaPMshape=dataIn.betaPMshape;               % barrier filling factor
+geo.betaPMshape = dataIn.betaPMshape;               % barrier filling factor
 
 geo.ttd = dataIn.ToothTangDepth;   % tooth tang depth [mm]
 geo.tta = dataIn.ToothTangAngle;   % tooth tang angle (mech degree)
 geo.SFR = dataIn.FilletCorner;     % fillet at the back corner of the slot [mm]
 
 % rotor
-% Parameter for Vtype rotor geometry: slope of semi-barrier - rev.Gallo
-% if strcmp(geo.RotType,'Vtype')
-%     geo.VanglePM=dataIn.SlopeBarrier*pi/180;
-% else
-%     geo.VanglePM=NaN;
-% end
 
 if strcmp(geo.RotType,'SPM')
     geo.nlay = 1;
-    %dataIn.DepthOfBarrier = 1;        %OCT
 else
     geo.nlay  = dataIn.NumOfLayers;    % number of layers
 end
@@ -138,7 +131,7 @@ geo.hfe_min   = 2*geo.pont0;                      % min tickness of each steel f
 geo.win.kcu = dataIn.SlotFillFactor;                % slot filling factor (net copper/slot area)
 geo.win.avv = dataIn.WinMatr;
 geo.win.avv_flag   = dataIn.WinFlag; %AS
-geo.win.n3phase = dataIn.Num3PhaseCircuit; %AS stator 3-phase circuits number
+geo.win.n3phase    = dataIn.Num3PhaseCircuit; %AS stator 3-phase circuits number
 geo.win.kracc      = dataIn.PitchShortFac;       % pitch shortening factor (for end connections length estimation)
 geo.win.Ns         = dataIn.TurnsInSeries;          % turns in series per phase (entire motor, one way, all poles in series)
 geo.win.Nbob       = geo.win.Ns/geo.p/(geo.q)/size(geo.win.avv,1);  % conductors in slot per layer
@@ -173,12 +166,15 @@ geo.PMdir = 'r';    % radial direction
 geo.mesh_K_MOOA = dataIn.Mesh_MOOA;    % optimization
 geo.mesh_K = dataIn.Mesh;         % post-processing and manual design
 
+% Rotor
 geo.x0 = geo.r/cos(pi/2/geo.p);
 geo.dalpha_pu = dataIn.ALPHApu;
-% rev.Gallo
 geo.dalpha = geo.dalpha_pu*(90/geo.p);   % [mec degrees]
 geo.hc_pu = dataIn.HCpu;
 geo.dx = dataIn.DepthOfBarrier;
+geo.dxIB = dataIn.RadShiftInner;
+geo.kOB = dataIn.NarrowFactor;
+geo.hcShrink = dataIn.CentralShrink;
 
 % PM sizing
 geo.PMdim     = dataIn.PMdim;
@@ -190,14 +186,17 @@ geo.pontT = dataIn.TanRibEdit;
 geo.pontR = dataIn.RadRibEdit;
 geo.radial_ribs_eval = dataIn.RadRibCheck;
 geo.radial_ribs_split = dataIn.RadRibSplit;
-geo.RotorFillet=dataIn.RotorFillet;
-
+geo.RotorFillet = dataIn.RotorFillet;
+geo.pontRang = dataIn.pontRangEdit;
+geo.pontRoffset = dataIn.pontRoffsetEdit;
+geo.RotorFillet1 = dataIn.RotorFilletIn;
+geo.RotorFillet2 = dataIn.RotorFilletOut;
 
 % Flux Barrier Shift (mechanical radians)
-geo.th_FBS=dataIn.thetaFBS*pi/180;  % th_FBS is the shift angle in mechanical radians
+geo.th_FBS = dataIn.thetaFBS*pi/180;  % th_FBS is the shift angle in mechanical radians
 
 % % Sliding airgap definition
-geo.slidingGap=dataIn.slidingGap;
+geo.slidingGap = dataIn.slidingGap;
 
 %% bounds: limits of the search space
 % dalpha1 [p.u.]
@@ -209,16 +208,9 @@ else
     bounds_dalpha = ones(geo.nlay-1,1) * [dataIn.DeltaAlphaBou(1) dataIn.DeltaAlphaBou(2)]; % other angles [p.u.]
 end
 
-% Slope Barrier bounds Vtype rotor geometry - rev.Gallo
-% if strcmp(geo.RotType, 'Vtype')
-%     bounds_angleDEG = [dataIn.SlopeBarrBou(1) dataIn.SlopeBarrBou(2)];   %bound slope barrier [deg]
-% else
-%     bounds_angleDEG = [0 0];
-% end
 if strcmp(geo.RotType, 'SPM')
     % thickness of PM
     bounds_hc = geo.lm * [dataIn.hcBou(1) dataIn.hcBou(2)];
-%     geo.hc_pu = mean(bounds_hc);
 else
     % barrier ticknesses [p.u.]
     bounds_hc = ones(geo.nlay,1) * [dataIn.hcBou(1)  dataIn.hcBou(2)];
@@ -289,7 +281,6 @@ if geo.nlay == 1
         bounds_thFBS    dataIn.ThetaFBSBouCheck
         bounds_PMdim    dataIn.PMdimBouCheck*(indexPM(:)./indexPM(:))
         bounds_gamma    dataIn.GammaBouCheck];
-    
 else
     bounds = [
         bounds_dalpha_1 dataIn.Dalpha1BouCheck
@@ -318,10 +309,11 @@ end
 bounds = bounds(filt_bounds,1:2);
 
 %% OBJECTIVES
-objs = [per.min_exp_torque  dataIn.TorqueOptCheck
-    per.max_exp_ripple      dataIn.TorRipOptCheck
-    per.max_Cu_mass         dataIn.MassCuOptCheck
-    per.max_PM_mass         dataIn.MassPMOptCheck];
+objs = [
+    per.min_exp_torque  dataIn.TorqueOptCheck
+    per.max_exp_ripple  dataIn.TorRipOptCheck
+    per.max_Cu_mass     dataIn.MassCuOptCheck
+    per.max_PM_mass     dataIn.MassPMOptCheck];
 
 filt_objs = (objs(:,2)==1);
 objs = objs(objs(:,2)==1,:);
@@ -364,7 +356,6 @@ RQnames{k+3} = 'wt';        % tooth width
 RQnames{k+4} = 'lt';        % tooth length
 RQnames{k+5} = 'acs';       % stator slot opening [p.u.]
 RQnames{k+6} = 'ttd';       % tooth tang depth [mm]
-%RQnames{k+7} = 'VanglePM';  % slope barrier [deg]
 RQnames{k+7} = 'th_FBS';    % flux barrier shift [mech deg]
 
 k=k+8;
@@ -386,7 +377,6 @@ OBJnames{2} = 'TorRip';
 OBJnames{3} = 'MassCu';
 OBJnames{4} = 'MassPM';
 
-
 % eliminate unnecessary OBJnames
 OBJnames = OBJnames(filt_objs);
 geo.OBJnames = OBJnames;
@@ -397,17 +387,7 @@ geo.t = gcd(Q,geo.p);    % number of periods
 t2=gcd(Q,2*geo.p);
 QsCalc=Q/t2;
 psCalc=2*geo.p/t2;
-% if rem(psCalc,2)==0 %AS
-%     %periodic machine
-% %     geo.tempWinTable = geo.defaultavv;
-%     geo.tempWinTable = geo.win.avv;
-%     geo.periodicity = 4;
-% else
-%     %anti-periodic machine
-% %     geo.tempWinTable = [geo.defaultavv -geo.defaultavv];
-%     geo.tempWinTable = [geo.win.avv -geo.win.avv];
-%     geo.periodicity = 5;
-% end
+
 if isfield(geo,'Qs')  % Qs set in the GUI
     geo.ps = round(psCalc*geo.Qs/QsCalc);
     % Check for periodicity: if ps is odd, the simulated portion of motor

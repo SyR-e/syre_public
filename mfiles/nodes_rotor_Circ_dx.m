@@ -49,6 +49,8 @@ yyD1k=zeros(1,nlay);
 xxD2k=zeros(1,nlay);
 yyD2k=zeros(1,nlay);
 
+
+
 % CENTRO FITTIZIO DI COORDINATE (x0,0)
 beta = 180/pi * calc_apertura_cerchio(pi/180*alpha,r,x0);
 % La funzione calc_apertura_cerchio riceve in input le coordinate polari,

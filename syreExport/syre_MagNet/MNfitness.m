@@ -14,7 +14,18 @@
 
 function [geo,mat,out,pathname] = MNfitness(RQ,geo,per,mat,eval_type,pathname,filename)
 
-currentDir=pwd();
+% MNfitness
+% runs the MagNet simulation of a filename.mn model
+% - creates a temp dir
+% - moves the machine into the temp dir
+% - simulate_xdeg_MN(eval_type)
+% - calc out from SOL
+% - saves the .mat file into the temp dir
+
+% currentDir=pwd();
+pathnameIn = pathname;
+[~,pathname]=createTempDir();
+copyfile([pathnameIn strrep(filename,'.mat','.mn')],[pathname strrep(filename,'.mat','.mn')]); % copy .mn in the temporary folder
 
 [SOL] = simulate_xdeg_MN(geo,per,eval_type,pathname,filename);
 
@@ -39,6 +50,6 @@ if (per.delta_sim_singt == 360)
     out.velDim = per.EvalSpeed;
 end
 
-save('geo','geo','out','mat','-append');   % save geo and out
+% save('geo','geo','out','mat','-append');   % save geo and out
 
-cd(currentDir);
+% cd(currentDir);

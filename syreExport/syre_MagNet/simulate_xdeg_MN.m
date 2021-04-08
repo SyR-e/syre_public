@@ -29,13 +29,10 @@ switch eval_type
         error('MagNet Simulations not available for the selected evaluation type!');
 end
 
-% randFactor = 0;
-
 th0 = geo.th0;
 p   = geo.p;
 r  = geo.r;
 gap = geo.g;
-% ns  = geo.ns;
 pc  = 360/(6*geo.q*p)/2;
 ps  = geo.ps;
 n3ph = geo.win.n3phase; %AS number of 3-phase circuits
@@ -56,48 +53,7 @@ id = iAmp * cos(gamma * pi/180);
 iq = iAmp * sin(gamma * pi/180);
 Imod = abs(id + 1i* iq);       % Modulo corrente (A)
 
-% Avvio delle simulazioni e salvataggi
-if  (eval_type == 'singt')
-    
-    iStr=num2str(Imod,3); iStr = strrep(iStr,'.','A');
-    gammaStr=num2str(gamma,4); gammaStr = strrep(gammaStr,'.','d');
-    if isempty(strfind(gammaStr, 'd'))
-        gammaStr = [gammaStr 'd'];
-    end
-    nStr = int2str(per.EvalSpeed);
-    nStr = strrep(nStr,'.','rpm');
-    if ~strcmpi(nStr,'rpm')
-        nStr = [nStr 'rpm'];
-    end
-    
-    resFolder = [filename(1:end-4) '_results\FEA results\'];
-    if ~exist([pathname resFolder],'dir')
-        mkdir([pathname resFolder]);
-    end
-    
-    CaseDir = [pathname resFolder filename(1:end-4) '_T_eval_',iStr,'_',gammaStr '_' nStr '_MN'];
-
-else
-    Idstr=num2str(id,3); Idstr = strrep(Idstr,'.','A');
-    Iqstr=num2str(iq,3); Iqstr = strrep(Iqstr,'.','A');
-    
-    if isempty(strfind(Idstr, 'A'))
-        Idstr = [Idstr 'A'];
-    end
-    if isempty(strfind(Iqstr, 'A'))
-        Iqstr = [Iqstr 'A'];
-    end
-    
-    CaseDir = [pathname 'CaseBackup\', filename(1:end-4),'_' Idstr 'x' Iqstr '_MN'];
-    
-end
-
-mkdir(CaseDir);
-CaseDir = [CaseDir '\'];
-
-copyfile([pathname filename(1:end-4) '.mn'],[CaseDir filename(1:end-4) '.mn']);
-
-DocSV = invoke(h.magnetHandler, 'openDocument',[CaseDir,filename(1:end-4) '.mn']);
+DocSV = invoke(h.magnetHandler, 'openDocument',[pathname,filename(1:end-4) '.mn']);
 Doc = invoke(h.magnetHandler, 'getDocument');
 View = invoke(Doc, 'getCurrentView');
 Solution = invoke(Doc, 'getSolution');
@@ -180,7 +136,7 @@ invoke(h.magnetHandler, 'processCommand', Command);
 %%
 phase_index = {'U','V','W'};
 if exist('th0')
-    % casi successivi feb 2010 (+90 perchè Waveform in Magnet\coil è un sin)
+    % casi successivi feb 2010 (+90 perch? Waveform in Magnet\coil ? un sin)
     phase_angle = [0 -120 120] + (gamma_*180/pi + th0(1) + 90);
 else
     % casi precedenti feb 2010
@@ -191,7 +147,7 @@ for nn=1:n3ph
     for ii = 1:3
         Command=['Call getDocument().setCoilSourceType("',phase_index{ii},int2str(nn),'", infoCurrentDriven)'];
         invoke(h.magnetHandler, 'processCommand', Command);
-
+        
         Command = 'REDIM ArrayOfValues(5)';
         invoke(h.magnetHandler, 'processCommand', Command);
         Command = 'ArrayOfValues(0)= 0';
@@ -223,25 +179,249 @@ for nn=1:n3ph
     end
 end
 
-% %number of turns
-% Command = ['Call getDocument().setCoilNumberOfTurns("U", ' num2str(N_cond) ')'];
-% invoke(h.magnetHandler, 'processCommand', Command);
-% Command = ['Call getDocument().setCoilNumberOfTurns("V", ' num2str(N_cond) ')'];
-% invoke(h.magnetHandler, 'processCommand', Command);
-% Command = ['Call getDocument().setCoilNumberOfTurns("W", ' num2str(N_cond) ')'];
-% invoke(h.magnetHandler, 'processCommand', Command);
-
 % solve
 invoke(Doc, 'solveTransient2dWithMotion');
 
-RunS_PostProcessingMN;
-
-%save the model (.mn)
-% Command=['Call getDocument().save("',CaseFileName,'")'];
-Command=['Call getDocument().save("',[CaseDir,filename(1:end-4) '.mn'],'")'];
+%% Post processing
+NTime       = invoke(Solution,'getFieldSolutionTimeInstants',1);  % read simulation time values
+Command     = 'TimeInstants = getDocument().getSolution().getFieldSolutionTimeInstants(1,time_instants)';
 invoke(h.magnetHandler, 'processCommand', Command);
 
-%% output
+time = [];
+for ij = 1:NTime
+    invoke(h.magnetHandler, 'processCommand', ['Call setVariant(0, time_instants(' num2str(ij-1) '))']);
+    time(ij) = invoke(h.magnetHandler, 'getVariant', 0);
+end
+
+Nbodies = invoke(Doc,'getNumberOfBodies',1);
+invoke(h.magnetHandler, 'processCommand', 'REDIM ArrayOfValues(0)');
+
+Flux_1sim = [];
+Torque_1sim = [];
+pm_loss = zeros(n_mag_simulati,NTime);
+
+Ncoils = invoke(Doc,'getNumberOfCoils');
+
+Nbarrier=0;
+rotor_barrier_loss=zeros(NTime,Nbarrier);
+
+for ii=1:NTime
+    % flux, currents, resitance
+    Flux_1sim_1ph = [];
+    Torque_r = [];
+    
+    % problem ID
+    Command = 'ReDim ProblemID(1)';
+    invoke(h.magnetHandler, 'processCommand', Command);
+    Command = 'ProblemID(0) = 1';
+    invoke(h.magnetHandler, 'processCommand', Command);
+    Command = ['ProblemID(1) = ' num2str(time(ii) * 1.001)];
+    invoke(h.magnetHandler, 'processCommand', Command);
+    
+    for jj=1:Ncoils
+        Command = ['Call getDocument.getSolution.getFluxLinkageThroughCoil(ProblemID, ' num2str(jj) ', magnitude, phase)'];
+        invoke(h.magnetHandler, 'processCommand', Command);
+        invoke(h.magnetHandler, 'processCommand', 'Call setVariant(0, magnitude)');
+        x = invoke(h.magnetHandler, 'getVariant', 0);
+        Flux_1sim_1ph = [Flux_1sim_1ph x];
+    end
+    
+    % torque
+    for jjj=1:Nbodies
+        Command = ['Call getDocument.getSolution.getTorqueAboutOriginOnBody(ProblemID, ' num2str(jjj) ', torque_x, torque_y, torque_z)'];
+        invoke(h.magnetHandler, 'processCommand', Command);
+        invoke(h.magnetHandler, 'processCommand', 'Call setVariant(0, torque_z)');
+        torque = invoke(h.magnetHandler, 'getVariant', 0);
+        Torque_r = [Torque_r torque];
+    end
+    
+    % load iron and pm losses (only for 360 deg simulation)
+    if (ii == 1) && (xdeg == 360)
+        
+        % stator: hysteresis and classical
+        %         h_loss_s = zeros(1,Mac.Qs);
+        %         c_loss_s = zeros(1,Mac.Qs);
+        
+        for jjj = 1:geo.Qs
+            Command = ['IronLoss = getDocument.getSolution.getIronLossInComponent (ProblemID,"statore_' num2str(jjj) '" , Losses)'];
+            invoke(h.magnetHandler, 'processCommand', Command);
+            invoke(h.magnetHandler, 'processCommand', 'Call setVariant(0, Losses)');
+            test0 = invoke(h.magnetHandler, 'getVariant', 0);
+            test0 = cell2mat(test0);
+            h_loss_s(jjj) = test0(1);
+            c_loss_s(jjj) = test0(2);
+        end
+        % rotor
+        Command = ['IronLoss = getDocument.getSolution.getIronLossInComponent (ProblemID,"rotor" , Losses)'];
+        invoke(h.magnetHandler, 'processCommand', Command);
+        invoke(h.magnetHandler, 'processCommand', 'Call setVariant(0, Losses)');
+        test0 = invoke(h.magnetHandler, 'getVariant', 0);
+        test0 = cell2mat(test0);
+        h_loss_r = test0(1);
+        c_loss_r = test0(2);
+    end
+    % PM loss
+    for jjj = 1:n_mag_simulati
+        Command = ['PowerLoss=getDocument().getSolution().getOhmicLossInConductor(ProblemID,"Magnet_Bar_' num2str(jjj) '")'];
+        invoke(h.magnetHandler, 'processCommand', Command);
+        invoke(h.magnetHandler, 'processCommand', 'Call setVariant(0, PowerLoss)');
+        pm_loss(jjj,ii) = invoke(h.magnetHandler, 'getVariant', 0);
+    end
+    Flux_1sim = [Flux_1sim;Flux_1sim_1ph];
+    Torque_1sim = [Torque_1sim;Torque_r];
+    ii;
+    % Rotor conductor Losses:
+    if (Nbarrier==0)
+        jjj=1;
+        rotor_barrier_loss(ii,jjj) = 0;
+    else
+        jk=1;
+        for jjj=1:Nbarrier
+            for jj=1:geo.ps
+                Command = ['PowerLoss=getDocument().getSolution().getOhmicLossInConductor(ProblemID,"barrier#' num2str(jjj),'_',num2str(jj) '")'];
+                invoke(h.magnetHandler, 'processCommand', Command);
+                invoke(h.magnetHandler, 'processCommand', 'Call setVariant(0, PowerLoss)');
+                rotor_barrier_loss(ii,jk) = invoke(h.magnetHandler, 'getVariant', 0);
+                jk=jk+1;
+            end
+        end
+    end
+end
+Torque_1sim = Torque_1sim * Q /geo.Qs;
+Flux_1sim = Flux_1sim * Q /geo.Qs / N_parallel;
+pm_loss = pm_loss * Q /geo.Qs;
+Ppm = mean(sum(pm_loss));
+if (xdeg == 360)
+    Period_mot=gcd(geo.Qs,geo.p);
+    if (geo.Qs==1)
+        Pfes_h = mean(h_loss_s) * Q /geo.Qs;
+        Pfes_c = mean(c_loss_s) * Q /geo.Qs;
+    else
+        Pfes_h = mean(h_loss_s) * Q;
+        Pfes_c = mean(c_loss_s) * Q;
+    end
+    Pfer_h = h_loss_r / geo.ps * 2 * geo.p;
+    Pfer_c = c_loss_r / geo.ps * 2 * geo.p;
+    PjrBar=sum(mean(rotor_barrier_loss))*2 * geo.p/geo.ps;
+end
+
+
+%% FluxElab (RunS_FluxElab_MN_2)
+% PostProcess Flux_UVW --> Flux_dq
+
+% phase flux
+% time sequence is POSITIVE
+% physical sequence is POSITIVE
+
+% coil positive is towards airgap
+%
+% % eliminates time = 0
+% Fluxa = Flux_1sim(:,1);
+% Fluxb = Flux_1sim(:,2);
+% Fluxc = Flux_1sim(:,3);
+
+% rotor mechanical position (RunS_SetParCase_new)
+% t = 0, fase corrente in base a gamma, posizione rotore 0
+pos_0 = 0;
+pos_Mov = time/1000 * per.EvalSpeed * pi/30 + pos_0;  % rotor position (rad mec)
+pos_Mov = pos_Mov(1:end)';
+
+%% posizione del rotore (rad elt)
+if exist('th0')
+    % casi successivi feb 2010 (+90 perchï¿½ Waveform in Magnet\coil ï¿½ un sin)
+    theta = th0(1) * pi/180 + pos_Mov * geo.p;
+else
+    % casi precedenti feb 2010
+    % d_axis Vs alpha_axis mechanical position
+    theta = pi/2 + pos_Mov * geo.p;  % mec rad
+end
+
+Fluxa = zeros(size(theta,1),n3ph);
+Fluxb = zeros(size(theta,1),n3ph);
+Fluxc = zeros(size(theta,1),n3ph);
+Fluxd = zeros(size(theta,1),n3ph);
+Fluxq = zeros(size(theta,1),n3ph);
+
+for ii=1:n3ph
+    theta = theta+(th0(ii)-th0(1))*pi/180;
+    
+    Fluxa(:,ii) = Flux_1sim(:,1+3*(ii-1));
+    Fluxb(:,ii) = Flux_1sim(:,2+3*(ii-1));
+    Fluxc(:,ii) = Flux_1sim(:,3+3*(ii-1));
+    
+    Fluxd(:,ii) = 2/3*(+(Fluxa(:,ii)-0.5*Fluxb(:,ii)-0.5*Fluxc(:,ii)).*cos(theta)+sqrt(3)/2*(Fluxb(:,ii)-Fluxc(:,ii)).*sin(theta));
+    Fluxq(:,ii) = 2/3*(-(Fluxa(:,ii)-0.5*Fluxb(:,ii)-0.5*Fluxc(:,ii)).*sin(theta)+sqrt(3)/2*(Fluxb(:,ii)-Fluxc(:,ii)).*cos(theta));
+end
+
+Fluxd = Fluxd(2:end,:);
+Fluxd = [Fluxd(NTime-1,:);Fluxd];
+Fluxq = Fluxq(2:end,:);
+Fluxq = [Fluxq(NTime-1,:);Fluxq];
+
+Fluxd = Fluxd(1:(end-1),:);
+Fluxq = Fluxq(1:(end-1),:);
+
+Fluxd = mean(Fluxd,2);
+Fluxq = mean(Fluxq,2);
+
+%% Voltage Elab (RunS_VoltageElab_MN)
+% dq e.m.f.
+Ed = per.EvalSpeed * geo.p * pi/30 * (-Fluxq);
+Eq = per.EvalSpeed * geo.p * pi/30 * ( Fluxd);
+
+% Ed_g = per.EvalSpeed * geo.p * pi/30 * ( Fluxq);
+% Eq_g = per.EvalSpeed * geo.p * pi/30 * ( Fluxd);
+
+pos_EMF = (pos_Mov(2:end) + pos_Mov(1:end-1))/2;
+dT = (time(2) - time(1))/1000;
+% Ea_ =  (Fluxa(2:end)-Fluxa(1:end-1))/dT;
+% Eb_ =  (Fluxb(2:end)-Fluxb(1:end-1))/dT;
+% Ec_ =  (Fluxc(2:end)-Fluxc(1:end-1))/dT;
+
+% Ea = interp1(pos_EMF,Ea_,pos_Mov,'pchip');
+% Eb = interp1(pos_EMF,Eb_,pos_Mov,'pchip');
+% Ec = interp1(pos_EMF,Ec_,pos_Mov,'pchip');
+
+% Ea = Ea(1:(end-1),:);
+% Eb = Eb(1:(end-1),:);
+% Ec = Ec(1:(end-1),:);
+
+
+Ea_ =  (Fluxa(2:end,:)-Fluxa(1:end-1,:))/dT;
+Eb_ =  (Fluxb(2:end,:)-Fluxb(1:end-1,:))/dT;
+Ec_ =  (Fluxc(2:end,:)-Fluxc(1:end-1,:))/dT;
+
+Ea = zeros(length(time),n3ph);
+Eb = zeros(length(time),n3ph);
+Ec = zeros(length(time),n3ph);
+
+for ii=1:n3ph
+    Ea(:,ii) = interp1(pos_EMF,Ea_(:,1),pos_Mov,'pchip');
+    Eb(:,ii) = interp1(pos_EMF,Eb_(:,1),pos_Mov,'pchip');
+    Ec(:,ii) = interp1(pos_EMF,Ec_(:,1),pos_Mov,'pchip');
+end
+
+Ea = Ea(1:(end-1),:);
+Eb = Eb(1:(end-1),:);
+Ec = Ec(1:(end-1),:);
+
+Torque_0 = -mean(Torque_1sim(:,1));
+tmp1 = id*ones(size(time,2),1);
+tmp2 = iq*ones(size(time,2),1);
+
+%per avere il grafico Torque coincidente come in FEMM devo:
+%parto dalla seconda riga, metto la sesta riga nella prima riga,elimino
+%l'ultima riga
+Torque_1sim = Torque_1sim((2:(end)),:);
+Torque_1sim = [Torque_1sim(NTime-1,:);Torque_1sim];
+Torque_1sim = Torque_1sim(1:(end-1),:);
+
+%save the model (.mn)
+Command=['Call getDocument().save("',[pathname,filename(1:end-4) '.mn'],'")'];
+% Command=['Call getDocument().save("',[CaseDir,filename(1:end-4) '.mn'],'")'];
+invoke(h.magnetHandler, 'processCommand', Command);
+
+% output
 tempo   = time(2:end);         %ms
 th = (geo.th0(1) * pi/180 + tempo/1000 * per.EvalSpeed * pi/30 * geo.p);
 
@@ -260,12 +440,7 @@ SOL.fd = Fluxd';
 SOL.fq = Fluxq';
 SOL.T = (mean([-Torque_1sim(:,1) Torque_1sim(:,2)],2))';
 
-% Command='Call close(False)';
-% invoke(h.magnetHandler, 'processCommand', Command);
-
 CloseMagnet(h);
-
-% cd(cd);
 
 
 

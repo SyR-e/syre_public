@@ -13,7 +13,7 @@
 %    limitations under the License.
 
 
-function [i0,Rs] = calc_io(geo,per)
+function [i0,Rs,geo] = calc_io(geo,per)
 
 % calc_io.m
 % data la geometria e la dissipazione ammessa calcola l'ampiezza del vettore corrente
@@ -41,7 +41,7 @@ Aslots = geo.Aslot*(6*geo.p*geo.q*n3phase)/1e6; % [m^2]
 
 % end turn length
 if geo.q<1
-    % concentrated winding
+    %concentrated winding
     lend=0.5*(geo.wt+pi*(geo.r+geo.g+geo.lt/2)*sin(pi/6/geo.p/geo.q*n3phase))/1e3;    % [m] from Gamba - A new PMASRM with nonconventional FS pole combination
 else
     % distributed winding
@@ -78,6 +78,7 @@ kj=loss/(2*pi*R*l);
 i0 = (kj*kcu/rocu*l/(l+lend)*2*pi*R*2*Aslots/(4*(n3phase*3)^2)/N^2)^0.5; %AS
 
 Rs = loss/(n3phase*3/2*i0^2); %AS
+
 
 
 

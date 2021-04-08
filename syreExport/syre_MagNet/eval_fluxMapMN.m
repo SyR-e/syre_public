@@ -23,18 +23,19 @@ function eval_fluxMapMN(dataIn,varargin)
 
 
 pathname=dataIn.currentpathname;
-%  filemot = strrep(dataIn.currentfilename,'.mat','.fem');
 filemot= dataIn.currentfilename;
 load([dataIn.currentpathname dataIn.currentfilename]);
 
+RatedCurrent = dataIn.RatedCurrent;
 CurrLoPP = dataIn.CurrLoPP;
+SimulatedCurrent = dataIn.SimulatedCurrent;
 GammaPP  = dataIn.GammaPP;
 BrPP = dataIn.BrPP;
 NumOfRotPosPP = dataIn.NumOfRotPosPP;
 AngularSpanPP = dataIn.AngularSpanPP;
 NumGrid = dataIn.NumGrid;
-per.EvalSpeed = dataIn.EvalSpeed;
 
+per.EvalSpeed = dataIn.EvalSpeed;
 
 clc;
 syreRoot = fileparts(which('GUI_Syre.mlapp'));
@@ -88,39 +89,149 @@ switch length(iAmp)
         iqvect=linspace(iAmp(3),iAmp(4),n_grid);
 end
 
-[F_map,OUT] = eval_FdFq_tables_in_MN(geo,per,mat,dataIn,idvect,iqvect,eval_type,pathname, filemot);
+% ----------------------------------------------------------------
+%% temp
+[Id,Iq] = meshgrid(idvect,iqvect);
 
-% builds a new folder for each id, iq simulation
+I = Id + 1i * Iq;
+iAmp = abs(I);
+gamma = angle(I) * 180/pi;
+
+mat = mat;  %#ok parfor compatibility (do not comment)
+geo = geo;  %#ok parfor compatibility (do not comment)
+
+% create vector for parpool efficiency
+[nR,nC] = size(iAmp);
+iVect = iAmp(:);
+gVect = gamma(:);
+
+for ii=1:length(iVect)
+    disp(['Evaluation of position I:',num2str(iVect(ii)),' gamma:',num2str(gVect(ii))]);
+    perTmp = per;
+    perTmp.gamma    = gVect(ii);
+    perTmp.overload = iVect(ii)/per.i0;
+    [~,~,OUT{ii},~] = MNfitness([],geo,perTmp,mat,eval_type,pathname,filemot);
+end
+
+Id = Id(:);
+Iq = Iq(:);
+Fd   = zeros(size(Id));
+Fq   = zeros(size(Id));
+T    = zeros(size(Id));
+dT   = zeros(size(Id));
+dTpp = zeros(size(Id));
+if isfield(OUT{1},'Pfes_h')
+    Pfes_h = zeros(size(Id));
+    Pfes_c = zeros(size(Id));
+    Pfer_h = zeros(size(Id));
+    Pfer_c = zeros(size(Id));
+    Ppm    = zeros(size(Id));
+    velDim = OUT{1,1}.velDim;
+end
+
+for ii=1:length(Id)
+    Fd(ii)   = OUT{ii}.fd;
+    Fq(ii)   = OUT{ii}.fq;
+    T(ii)    = OUT{ii}.T;
+    dT(ii)   = OUT{ii}.dT;
+    dTpp(ii) = OUT{ii}.dTpp;
+    SOL{ii}  = OUT{ii}.SOL;
+    
+    if isfield(OUT{ii},'Pfes_h')
+        Pfes_h(ii) = OUT{ii}.Pfes_h;
+        Pfes_c(ii) = OUT{ii}.Pfes_c;
+        Pfer_h(ii) = OUT{ii}.Pfer_h;
+        Pfer_c(ii) = OUT{ii}.Pfer_c;
+        Ppm(ii)    = OUT{ii}.Ppm;
+    end
+end
+
+Id   = reshape(Id,[nR,nC]);
+Iq   = reshape(Iq,[nR,nC]);
+Fd   = reshape(Fd,[nR,nC]);
+Fq   = reshape(Fq,[nR,nC]);
+T    = reshape(T,[nR,nC]);
+dT   = reshape(dT,[nR,nC]);
+dTpp = reshape(dTpp,[nR,nC]);
+SOL  = reshape(SOL,[nR,nC]);
+
+if isfield(OUT{1},'Pfes_h')
+    Pfes_h = reshape(Pfes_h,[nR,nC]);
+    Pfes_c = reshape(Pfes_c,[nR,nC]);
+    Pfer_h = reshape(Pfer_h,[nR,nC]);
+    Pfer_c = reshape(Pfer_c,[nR,nC]);
+    Ppm    = reshape(Ppm,[nR,nC]);
+end
+
+F_map.Id   = Id;
+F_map.Iq   = Iq;
+F_map.Fd   = Fd;
+F_map.Fq   = Fq;
+F_map.T    = T;
+F_map.dT   = dT;
+F_map.dTpp = dTpp;
+
+if exist('Pfes_h')
+    F_map.Pfes_h = Pfes_h;
+    F_map.Pfes_c = Pfes_c;
+    F_map.Pfer_h = Pfer_h;
+    F_map.Pfer_c = Pfer_c;
+    F_map.Ppm    = Ppm;
+    F_map.Pfe    = Pfes_h+Pfes_c+Pfer_h+Pfer_c;
+    F_map.velDim = velDim;
+end
+
+% results folder
 Idstr=num2str(max(abs(idvect)),3); Idstr = strrep(Idstr,'.','A');
 Iqstr=num2str(max(abs(iqvect)),3); Iqstr = strrep(Iqstr,'.','A');
 
-if isempty(strfind(Idstr, 'A'))
+if ~contains(Idstr, 'A')
     Idstr = [Idstr 'A'];
 end
-if isempty(strfind(Iqstr, 'A'))
+if ~contains(Iqstr, 'A')
     Iqstr = [Iqstr 'A'];
 end
+
+% NewDir=[pathname,[filemot(1:end-4) '_F_map_' Idstr 'x' Iqstr]];
 
 resFolder = [filemot(1:end-4) '_results\FEA results\'];
 if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder]);
 end
 
-NewDir=[pathname resFolder filemot(1:end-4) '_F_map_' Idstr 'x' Iqstr '_MN'];
+% NewDir = [pathname resFolder filemot(1:end-4) '_F_map_' Idstr 'x' Iqstr '_' int2str(per.tempPP) 'deg'];
+NewDir = [pathname resFolder 'F_map_' Idstr 'x' Iqstr '_' int2str(per.tempPP) 'deg_MN'];
+if exist('Pfes_h')
+    nStr = int2str(per.EvalSpeed);
+    nStr = strrep(nStr,'.','rpm');
+    if ~strcmpi(nStr,'rpm')
+        nStr = [nStr 'rpm'];
+    end
+    NewDir = [NewDir '_' nStr '_ironLoss'];
+end
 mkdir(NewDir);
 NewDir=[NewDir '\'];
 if isoctave()            %OCT
     file_name1= strcat(NewDir,'F_map','.mat');
-    save('-v7', file_name1,'F_map','OUT');
+    save('-v7', file_name1,'F_map','SOL');
     clear file_name1
 else
-    save([NewDir,'F_map','.mat'],'F_map','OUT');
+    save([NewDir,'F_map','.mat'],'F_map','SOL','dataSet','geo','per','mat');
 end
 
 % interp and then plots the magnetic curves
-filename=filemot(1:end-4);
-%         plot_singm;
+[pathname,filename,ext] = fileparts(filemot);
 plot_singm(F_map,NewDir,filename);
+
+% add motor information to flux map files
+dataSet.RatedCurrent     = RatedCurrent;
+dataSet.CurrLoPP         = CurrLoPP;
+dataSet.SimulatedCurrent = SimulatedCurrent;
+dataSet.BrPP             = BrPP;
+dataSet.NumOfRotPosPP    = NumOfRotPosPP;
+dataSet.AngularSpanPP    = AngularSpanPP;
+dataSet.NumGrid          = NumGrid;
+dataSet.EvalSpeed        = per.EvalSpeed;
+
+save([NewDir,'F_map','.mat'],'dataSet','geo','per','mat','-append');
 save([NewDir,'fdfq_idiq_n256.mat'],'dataSet','geo','per','mat','-append'); 
-
-

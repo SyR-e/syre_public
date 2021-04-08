@@ -28,8 +28,6 @@ function [SOL] = simulate_xdeg(geo,per,mat,eval_type,pathname,filename)
 gamma   = per.gamma;
 th0     = geo.th0;
 p       = geo.p;
-% ns      = geo.ns;
-% pc      = 360/(6*geo.q*p)/2;
 ps      = geo.ps;
 n3phase = geo.win.n3phase; %AS number of 3-phase circuits
 Nbob    = geo.win.Nbob;
@@ -163,13 +161,9 @@ end
 iAmp = per.overload*per.i0;
 if iAmp==0
     iOff = iOffsetPU*per.i0;
-%     iOff = iOffsetPU*calc_io(geo,per);
 else
     iOff = iOffsetPU*iAmp;
 end
-
-% iAmpCoil = iAmp*Nbob*n3phase;
-% iOffCoil = iOff*Nbob*n3phase;
 
 iAmpCoil = iAmp*Nbob;
 iOffCoil = iOff*Nbob;
@@ -182,7 +176,7 @@ i_tmp = zeros(3*n3phase,nsim);   %matrix containing all phase current values for
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%% ciclo for %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Open and draw motor once, rotate and simulate nsim positions 
+% Open and draw motor once, rotate and simulate nsim positions
 openfemm(1);
 opendocument([pathname,filename]);
 
@@ -202,15 +196,13 @@ SOL.fc = zeros(n3phase,nsim);   % phase c flux linkage
 phase_name = cell(n3phase*3,1);
 phase_name_neg = cell(n3phase*3,1);
 
-for jj = 1:nsim
-%     theta_r = theta(jj)/p;
-
+for jj = 1:nsim    
     % assign the phase current values to the FEMM circuits
     for ik=0:(n3phase-1)
         if geo.win.avv_flag((3*ik)+1)==1 && geo.win.avv_flag((3*ik)+2)==1 && geo.win.avv_flag((3*ik)+3)==1
             % healthy winding set
-%             i123 = dq2abc(id,iq,thetaPark(jj)*pi/180,n3phase,ik);
-%             i123 = dq2abc(id,iq,(thetaPark(jj)-ik*60/n3phase)*pi/180); % AS version
+            %             i123 = dq2abc(id,iq,thetaPark(jj)*pi/180,n3phase,ik);
+            %             i123 = dq2abc(id,iq,(thetaPark(jj)-ik*60/n3phase)*pi/180); % AS version
             i123 = dq2abc(id,iq,(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);             % each 3phase set has its own offset angle
             i_tmp((3*ik)+1,jj) = i123(1)+iOffCoil;
             i_tmp((3*ik)+2,jj) = i123(2)+iOffCoil;
@@ -242,18 +234,18 @@ for jj = 1:nsim
     end
     
     % assign the Hc property to each of the bonded magnets
-%     if strcmp(geo.RotType,'SPM')
-%         mi_modifymaterial(mat.LayerMag.MatName,3,mat.LayerMag.Hc);
-%     else
-        if length(mat.LayerMag.Hc)==1
-            Hc_vect = mat.LayerMag.Hc*ones(1,length(geo.BLKLABELS.rotore.BarName));
-        else
-            %             Hc_vect=[Hc Hc];  // DUBBIO -- a cosa serve? 2018 07 26
-        end
-        for ii = 1:length(Hc_vect)
-            mi_modifymaterial([mat.LayerMag.MatName '_' num2str(ii)],3,Hc_vect(ii));
-        end
-%     end
+    %     if strcmp(geo.RotType,'SPM')
+    %         mi_modifymaterial(mat.LayerMag.MatName,3,mat.LayerMag.Hc);
+    %     else
+    if length(mat.LayerMag.Hc)==1
+        Hc_vect = mat.LayerMag.Hc*ones(1,length(geo.BLKLABELS.rotore.BarName));
+    else
+        %             Hc_vect=[Hc Hc];  // DUBBIO -- a cosa serve? 2018 07 26
+    end
+    for ii = 1:length(Hc_vect)
+        mi_modifymaterial([mat.LayerMag.MatName '_' num2str(ii)],3,Hc_vect(ii));
+    end
+    %     end
     
     theta_r = theta(jj)/p;
     if flagSG
@@ -295,8 +287,8 @@ for jj = 1:nsim
     
     for ik=0:(n3phase-1) %AS
         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);
-%         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)-ik*60/n3phase)*pi/180);
-%         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),thetaPark(jj)*pi/180,n3phase,ik);
+        %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)-ik*60/n3phase)*pi/180);
+        %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),thetaPark(jj)*pi/180,n3phase,ik);
         fd_temp(ik+1,jj)=fdq(1);
         fq_temp(ik+1,jj)=fdq(2);
         fa_temp(ik+1,jj)=f(3*ik+1);
@@ -306,9 +298,6 @@ for jj = 1:nsim
     
     fd=mean(fd_temp(:,jj));
     fq=mean(fq_temp(:,jj));
-%     fa=mean(fa_temp(:,jj));
-%     fb=mean(fb_temp(:,jj));
-%     fc=mean(fc_temp(:,jj));
     
     % Torque computation. For old model, the rotor blocks are selected and
     % torque is computed as block integral. For new models (with
@@ -469,7 +458,7 @@ for jj = 1:nsim
                 pos   = zeros(1,EleNo);               % Mesh elements centroid coordinates as complex number
                 groNo = zeros(1,EleNo);               % group number
                 area  = zeros(1,EleNo);
-%                 vert  = zeros(EleNo,3);
+                %                 vert  = zeros(EleNo,3);
                 for ee = 1:EleNo
                     elm = mo_getelement(ee);
                     pos(ee) = elm(4)+j*elm(5);
@@ -490,15 +479,15 @@ for jj = 1:nsim
             % download from FEMM the flux density data for iron loss
             % computation (for each mesh element)
             for ee=1:EleNo
-                 tmp = mo_getpointvalues(real(pos(ee)),imag(pos(ee)));
-                 switch groNo(ee)
-                     case 12  % stator iron
-                         bs(jj,ee) = tmp(2)+j*tmp(3);
-                     case 22  % rotor iron
-                         br(jj,ee) = tmp(2)+j*tmp(3);
-                     otherwise % rotor PM
-                         am(jj,ee) = tmp(1);
-                 end
+                tmp = mo_getpointvalues(real(pos(ee)),imag(pos(ee)));
+                switch groNo(ee)
+                    case 12  % stator iron
+                        bs(jj,ee) = tmp(2)+j*tmp(3);
+                    case 22  % rotor iron
+                        br(jj,ee) = tmp(2)+j*tmp(3);
+                    otherwise % rotor PM
+                        am(jj,ee) = tmp(1);
+                end
             end
     end
     
@@ -510,7 +499,7 @@ end
 if (strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron'))
     % computation of the elements volume
     vol = (area/1e6)*(l/1000);
-
+    
     SOL.bs    = bs;
     SOL.br    = br;
     SOL.am    = am;

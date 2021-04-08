@@ -42,6 +42,10 @@ XpontRadBarDx = temp.XpontRadBarDx;
 YpontRadBarDx = temp.YpontRadBarDx;
 XpontRadBarSx = temp.XpontRadBarSx;
 YpontRadBarSx = temp.YpontRadBarSx;
+xS01          = temp.xS01;      
+yS01          = temp.yS01;          
+xS02          = temp.xS02;      
+yS02          = temp.yS02;  
 
 
 % magnet
@@ -88,9 +92,9 @@ for ii=1:nlay
     % rotor matrix
     if (YpontRadSx(ii)~=0) % ponticello radiale
         rotore = [rotore
-            XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)    NaN NaN 0 codMatAirRot indexEle
-            XpontRadSx(ii)    YpontRadSx(ii)    XpontRadDx(ii)    YpontRadDx(ii)    NaN NaN 0 codMatAirRot indexEle
-            XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) NaN NaN 0 codMatAirRot indexEle
+            xS01(ii)           yS01(ii)          XpontRadBarSx(ii) YpontRadBarSx(ii)  XpontRadSx(ii)     YpontRadSx(ii)     1 codMatAirRot indexEle
+            XpontRadSx(ii)     YpontRadSx(ii)    XpontRadDx(ii)    YpontRadDx(ii)     NaN                NaN                0 codMatAirRot indexEle
+            xS02(ii)           yS02(ii)          XpontRadDx(ii)    YpontRadDx(ii)     XpontRadBarDx(ii)  YpontRadBarDx(ii)  1 codMatAirRot indexEle
             ];
     else
         rotore = [rotore

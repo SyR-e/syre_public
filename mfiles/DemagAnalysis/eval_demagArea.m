@@ -47,7 +47,7 @@ if ~exist([pathname outFolder],'dir')
     mkdir([pathname outFolder]);
 end
 
-resFolder = [filename(1:end-4) '_demagArea_' int2str(per.tempPP) 'Deg_' int2str(per.i0*per.overload) 'Amp\'];
+resFolder = ['demagArea_' int2str(per.tempPP) 'deg_' int2str(per.i0*per.overload) 'Amp\'];
 mkdir([pathname outFolder resFolder]);
 resFolder = [pathname outFolder resFolder];
 

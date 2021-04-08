@@ -19,7 +19,8 @@ function [thisfilepath,dirName]=createTempDir()
 mang=num2str(randi((10^7),1));
 dirName=mang(1:end);
 warning off MATLAB:MKDIR:DirectoryExists
-thisfilepath = fileparts(which('MODEstart.m'));
+% thisfilepath = fileparts(which('MODEstart.m'));
+thisfilepath = fileparts(which('GUI_Syre.mlapp'));
 mkdir(fullfile(thisfilepath,'tmp'));
 warning on MATLAB:MKDIR:DirectoryExists
 while(exist([thisfilepath '\tmp\' dirName],'dir'))

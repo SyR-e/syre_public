@@ -12,7 +12,19 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function add_material_conductor(MatName)
+function add_material_conductor(MatName,library)
+
+if nargin==1
+    library = 'custom';
+end
+
+switch library
+    case 'built-in'
+        libName = 'materialLibrary\conductor_material.mat';
+    case 'custom'
+        libName = 'materialLibrary\custom_conductor.mat';
+end
+
 
 prompt={'Conductivity [S/m]',...
         'Density [kg*m^-3]',...
@@ -28,7 +40,7 @@ mat.sigma     = eval(answer{1});
 mat.kgm3      = eval(answer{2});
 mat.alpha     = eval(answer{3});
 
-load('materialLibrary\conductor_material')
+load(libName)
 ind=length(MatList);
 ind=ind+1;
 MatList{ind}=MatName;
@@ -36,8 +48,8 @@ MatLib{ind}=mat;
 
 button = questdlg('Save?','SELECT','Yes','No','Yes');
 if isequal(button,'Yes')
-    save('materialLibrary\conductor_material.mat','MatList','MatLib');
-    disp('Material added to Material Library')
+    save(libName,'MatList','MatLib');
+    disp(['Material added to ' library ' Material Library'])
 else
     disp('material not saved')
 end

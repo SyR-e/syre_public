@@ -25,7 +25,7 @@ function [cost,geo,mat,out,pathname] = FEMMfitness(RQ,geo,per,mat,eval_type,file
 [~,filename,ext] = fileparts(filenameIn);
 filename = [filename ext]; % fem file name
 
-[thisfilepath,pathname]=createTempDir();
+[~,pathname]=createTempDir();
 
 if ~isempty(RQ)
     
@@ -54,13 +54,9 @@ if ~isempty(RQ)
     per.i0 = calc_io(geo,per);
     
 else
-    
     % post proc or FEMM simulation (existing geometry)
     copyfile(filenameIn,[pathname filename]); % copy .fem in the temporary folder
 end
-
-% evaluates the candidate machine (depending on eval_type)
-% fem = dimMesh(geo,eval_type);
 
 mat.LayerMag.Br = per.BrPP;
 mat.LayerMag.Hc = per.BrPP/(4e-7*pi*mat.LayerMag.mu);

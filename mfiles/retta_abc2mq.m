@@ -6,11 +6,11 @@ function [m,q,v]=retta_abc2mq(a,b,c)
 % oppure x=v (retta verticale)
 
 if b~=0
-    m=-a/b;
-    q=-c/b;
+    m=-a./b;
+    q=-c./b;
     v=NaN;
 else
-    v=-c/a;
+    v=-c./a;
     m=NaN;
     q=NaN;
 end

@@ -78,10 +78,18 @@ dataSet.DepthOfBarrier = round(geo.dx,2);
 dataSet.HCpu = round(geo.hc_pu,2);
 dataSet.betaPMshape = round(geo.betaPMshape,2);
 dataSet.EstimatedCopperTemp = temp_est_simpleMod(geo,per);
-dataSet.RotorFillet=geo.RotorFillet;
+% dataSet.RotorFillet=geo.RotorFillet;
 dataSet.CurrentDensity = per.i0*geo.win.Nbob*2/(geo.Aslot*geo.win.kcu);
-dataSet.RotorFillet=geo.RotorFillet;
+dataSet.RotorFillet = geo.RotorFillet(1,:);
+dataSet.pontRangEdit = geo.pontRang;
+dataSet.pontRoffsetEdit = geo.pontRoffset;
+dataSet.RadRibSplit = geo.radial_ribs_split;
+dataSet.RotorFilletIn = geo.RotorFillet1;
+dataSet.RotorFilletOut = geo.RotorFillet2;
+dataSet.RadShiftInner = geo.dxIB; 
+dataSet.NarrowFactor = geo.kOB;
 
+dataSet.CentralShrink = geo.hcShrink;
 % dalpha = geo.dalpha;            % barriers ends (deg)
 % hc = geo.hc;                    % barriers hieghts (mm)
 

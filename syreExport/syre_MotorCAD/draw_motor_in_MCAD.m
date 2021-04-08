@@ -3,43 +3,54 @@ function draw_motor_in_MCAD(filename, pathname)
 load([pathname filename])
 mcad=actxserver('MotorCAD.AppAutomation');
  
-% %%%%%%%%%% Materials
-% % tmp=geo.BLKLABELS.materials(4);
-% % tmp = convertCharsToStrings(tmp);
-% % invoke(mcad,'SetComponentMaterial','Stator Lam (Back Iron)',tmp);
-% % invoke(mcad,'SetComponentMaterial','Stator Lam (Tooth)',tmp);       %stator
-% % invoke(mcad,'SetComponentMaterial','Rotor Lam (Back Iron)',tmp);    %rotor
-% % invoke(mcad,'SetComponentMaterial','Shaft [Active]',tmp);           %shaft
+%% Materials
+materials = geo.BLKLABELS.materials;
 
-%Stator and Rotor angle
+%%% note: the material names in syre and motorcad must be the same
+
+%Iron
+tmp = materials(4);
+%tmp = strcat(tmp,'_ImportedFromSyR-e');
+tmp = convertCharsToStrings(tmp);
+invoke(mcad,'SetComponentMaterial','Stator Lam (Back Iron)',tmp);
+invoke(mcad,'SetComponentMaterial','Stator Lam (Tooth)',tmp);      
+invoke(mcad,'SetComponentMaterial','Rotor Lam (Back Iron)',tmp);    
+invoke(mcad,'SetComponentMaterial','Shaft [Active]',tmp); 
+
+%Magnet
+tmp = materials(6);
+tmp = convertCharsToStrings(tmp);
+invoke(mcad,'SetComponentMaterial','Magnet',tmp);
+
+%% Stator and Rotor
 invoke(mcad,'SetVariable','StatorRotation',0);
 invoke(mcad,'SetVariable','RotorRotation',(90/geo.p));
-%invoke(mcad,'SetVariable','BPM_Rotor','13');
 
-% stator parameters 
-draw_stator_in_MCAD(mcad,geo,per,mat,dataSet)
-% rotor parameters
-draw_rotor_in_MCAD(mcad,geo,per,mat)
+draw_stator_in_MCAD(mcad,geo,0,0,dataSet)
+draw_rotor_in_MCAD(mcad,geo,0,0)
 
-%%%%%%Lamination stacking factor
-invoke(mcad,'SetVariable','Stacking_Factor_[Stator]',1);
-invoke(mcad,'SetVariable','Stacking_Factor_[Rotor]',1);
+% %Lamination stacking factor
+% invoke(mcad,'SetVariable','Stacking_Factor_[Stator]',1);
+% invoke(mcad,'SetVariable','Stacking_Factor_[Rotor]',1);
 
 file_mot=strrep(filename,'.mat','.mot');
 invoke(mcad,'SaveToFile',[pathname file_mot]);
 
-windingSyreToMCAD(mcad,pathname,filename,file_mot)          %export winding to MotorCAD
-syreToDxfMCAD(pathname,filename)             %create a proper .dxf for MotorCAD with 1 slot and 1 pole
+%% Winding
+windingSyreToMCAD(mcad,pathname,filename,file_mot)  
+
+%% dxf
+syreToDxfMCAD(pathname,filename)              
 
 %.dxf MCAD settings
-invoke(mcad,'LoadDXFFile',[pathname filename(1:end-4),'.dxf']);        %load the .dxf to MotorCAD
+invoke(mcad,'LoadDXFFile',[pathname filename(1:end-4),'.dxf']); 
 invoke(mcad,'SetVariable','UseDXFImportForFEA_Magnetic', true);
 invoke(mcad,'SetVariable','UseDXFImportForFEA_Mechanical',true);
 invoke(mcad,'SetVariable','DXFImportType',1);
 
+%% Output 
 %Save MCAD model
 invoke(mcad,'SaveToFile',[pathname file_mot]);
-% invoke(mcad,'Quit');
 
 %Save workspace
 save([pathname,filename],'dataSet','geo','per','mat');
@@ -50,5 +61,4 @@ disp(' ')
 disp('Syr-e file saved in:')
 disp([pathname filename])
 disp(' ')
-
 end

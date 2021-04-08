@@ -24,25 +24,23 @@ function eval_operatingPointMN(dataIn)
 % Open matlabpool manually prior to execution
 
 pathname=dataIn.currentpathname;
-%  filemot = strrep(dataIn.currentfilename,'.mat','.fem');
 filemot= dataIn.currentfilename;
 load([dataIn.currentpathname dataIn.currentfilename]);
 
 RatedCurrent = dataIn.RatedCurrent;
 CurrLoPP = dataIn.CurrLoPP;
 SimulatedCurrent = dataIn.SimulatedCurrent;
-
 GammaPP  = dataIn.GammaPP;
 BrPP = dataIn.BrPP;
 NumOfRotPosPP = dataIn.NumOfRotPosPP;
 AngularSpanPP = dataIn.AngularSpanPP;
 NumGrid = dataIn.NumGrid;
+
 per.EvalSpeed = dataIn.EvalSpeed;
 
-
 clc;
-syreRoot = fileparts(which('GUI_Syre.mlapp'));
-current_path = syreRoot;
+% syreRoot = fileparts(which('GUI_Syre.mlapp'));
+% current_path = syreRoot;
 
 overload_temp =  CurrLoPP;   % current to be simulated
 gamma_temp = GammaPP;        % current phase angle
@@ -75,7 +73,6 @@ for ii = 1:length(overload_temp)
 end
 
 % save output into individual folders
-% iAmp = overload_temp*calc_io(geo,per);
 for ii = 1:length(SimulatedCurrent)
     
     geo = geometry{ii};
@@ -99,12 +96,16 @@ for ii = 1:length(SimulatedCurrent)
         mkdir([pathname resFolder]);
     end
     
-    FILENAME = [filemot(1:end-4) '_T_eval_',iStr,'_',gammaStr '_' nStr '_MN'];
-    %             [success,message,messageid] = mkdir(pathname,FILENAME);
-    newDir=[pathname resFolder FILENAME '\'];
-    
-    save([newDir,FILENAME,'.mat'],'geo','per','out');
+    FILENAME = ['T_eval_',iStr,'_',gammaStr '_' int2str(dataIn.tempPP) 'deg' '_' nStr '_MN'];
 
+    mkdir([pathname resFolder],FILENAME);
+    newDir=[pathname resFolder FILENAME '\'];
+
+%     copyfile([dirName filemot],[newDir filemot]);
+%     save([newDir filemot],'geo','per','mat','out','-append');
+    save([newDir filemot],'geo','per','mat','out');
+    copyfile([dirName strrep(filemot,'.mat','.mn')],[newDir strrep(filemot,'.mat','.mn')]);
+    
     % plot and save figs
     klength = 1; kturns = 1;
     delta_sim_singt = per.delta_sim_singt;
