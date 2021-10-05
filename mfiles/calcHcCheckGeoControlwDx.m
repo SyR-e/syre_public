@@ -122,6 +122,16 @@ dx(dx<-0.99) = -0.99;
 B1k=Bx0-hc/2+dx.*hc/2;
 B2k=Bx0+hc/2+dx.*hc/2;
 
+for ii=1:nlay-1
+    if B2k(ii+1)>Bx0(ii)
+        B2k(ii+1) = Bx0(ii)-hfe_min;
+    end
+    if B1k(ii)<Bx0(ii+1)
+        B1k(ii) = Bx0(ii+1)+hfe_min;
+    end
+end
+
+
 beta = 180/pi * calc_apertura_cerchio(pi/180*alpha,r,x0);
 rbeta = (x0 - r * cos(alpha*pi/180))./(cos(beta*pi/180));
 [xpont,ypont] = calc_intersezione_cerchi(r-pontT, rbeta, x0);

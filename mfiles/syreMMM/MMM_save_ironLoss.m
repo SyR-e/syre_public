@@ -23,8 +23,8 @@ if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder])
 end
 
-fdfq     = motorModel.fdfq;
-ironLoss = motorModel.ironLoss;
+fdfq     = motorModel.FluxMap_dq;
+ironLoss = motorModel.IronPMLossMap_dq;
 
 Id     = ironLoss.Id;
 Iq     = ironLoss.Iq;

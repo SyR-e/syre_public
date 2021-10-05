@@ -1,4 +1,3 @@
-
 % Copyright 2018
 %
 %    Licensed under the Apache License, Version 2.0 (the "License");
@@ -689,6 +688,133 @@ if ~isfield(dataSet,'th_eval_type')
     flag=1; 
 end
 
+% Optimization - New Bounds and Obj   
+if ~isfield(dataSet,'TanRibBou')
+    dataSet.RadRibBouCheck        = 0;
+    dataSet.RadRibBou             = [0 0];
+    dataSet.TanRibBouCheck        = 0;
+    dataSet.TanRibBou             = [0 0];
+    dataSet.CentralShrinkBouCheck = 0;
+    dataSet.CentralShrinkBou      = [0 0];
+    dataSet.RadShiftInnerBouCheck = 0;
+    dataSet.RadShiftInnerBou      = [0 0];
+    dataSet.PowerFactorOptCheck   = 0;
+    dataSet.MinExpPowerFactor     = 0;
+    dataSet.NoLoadFluxOptCheck    = 0;
+    dataSet.MaxExpNoLoadFlux      = 0; 
+    dataSet.MechStressOptCheck    = 0;
+    dataSet.MaxExpMechStress      = 0;
+    if Dflag
+        disp('2021 04 20 - Added new bounds and objectives in the Optimization tab')
+    end
+    flag=1;
+end
+
+% Custom geometry
+if ~isfield(dataSet,'custom')
+    dataSet.pShape.rotor  = [];
+    dataSet.pShape.stator = [];
+    dataSet.pShape.magnet = [];
+    dataSet.pShape.slot   = [];
+    dataSet.pShape.flag   = 0;
+    dataSet.custom        = 0;
+
+    if Dflag
+        disp('2021 04 28 - Added Custom Geometry')
+    end
+    flag=1;
+end
+
+% Slot model - Bottom conductor gap 
+if ~isfield(dataSet,'SlotConductorBottomGap')
+    dataSet.SlotConductorBottomGap  = 0;
+    geo.win.gapBotCond = 0;
+    
+    if Dflag
+        disp('2021 05 03 - Added bottom conductor gap')
+    end
+    flag=1;
+end
+
+% Double tangential rotor fillet  
+if ~isfield(geo,'RotorFilletTan1')
+    dataSet.RotorFilletTan1  = nan(1,dataSet.NumOfLayers);
+    dataSet.RotorFilletTan2  = nan(1,dataSet.NumOfLayers);
+    dataSet.TanRibCheck = 0; 
+    %geo = rmfield(geo,'RotorFillet');
+    if Dflag
+        disp('2021 05 05 - Added double tangential rotor fillet')
+    end
+    flag=1;
+end
+
+% Scaling
+if ~isfield(dataSet,'ScaleCheck')
+%     dataSet.ScaleFactor  = 1;
+%     dataSet.ScaleFactorAxial  = 1;
+    dataSet.ScaleCheck = 0;
+  
+    if Dflag
+        disp('2021 05 12 - Added Scale Machine')
+    end
+    flag=1;
+end
+
+% Slot width display
+if ~isfield(dataSet,'SlotWidth')
+    dataSet.SlotWidth = 0;
+    if Dflag
+        disp('2021 05 14 - Added slot width display')
+    end
+    flag=1;
+end
+
+% End windigs
+if ~isfield(dataSet,'EndWindingsLength')
+    [~,~,geo] = calc_io(geo,per);
+    dataSet.EndWindingsLength = geo.lend;
+    if Dflag
+        disp('2021 06 14 - Added End-windings length')
+    end
+    flag=1;
+end
+
+if ~isfield(dataSet,'MapQuadrants')
+    if strcmp(dataSet.FluxBarrierMaterial,'Air')
+        dataSet.MapQuadrants = 1;
+    else
+        dataSet.MapQuadrants = 2;
+    end
+    if Dflag
+        disp('2021 07 14 - Added quadrants selection for flux maps')
+    end
+    flag=1;
+end
+
+% MotorCAD Thermal Limits
+if ~isfield(dataSet,'AmbTemp')
+    dataSet.TempCuLimit = 180;
+    dataSet.InitTemp    = 45;
+    dataSet.TransTime   = 30;
+    dataSet.SimIth0     = NaN;
+    dataSet.SimIthpk    = NaN;
+    dataSet.AmbTemp     = 50;
+    
+    if Dflag
+        disp('2021 07 25 - Added Thermal Limits Calculation')
+    end
+    flag=1;
+end
+
+% Display the number of parallel
+if ~isfield(dataSet,'SlotConductorParallel')
+    dataSet.SlotConductorParallel = round(geo.p*geo.q*geo.win.nCond/geo.win.Ns,2);    
+    if Dflag
+        disp('2021 08 30 - Added the number of parallel display')
+    end
+    flag=1;
+end
+
 %% remove old fields of dataSet
 flagClear = 0;
 if isfield(dataSet,'BarFillFac')
@@ -742,6 +868,21 @@ if isfield(dataSet,'XFEMMPPMot')
     flagClear = 1;
 end
 
+if isfield(dataSet,'MachineTemperature')
+    dataSet = rmfield(dataSet,'MachineTemperature');
+    flagClear = 1;
+end
+
+if isfield(dataSet,'MaxExpMechStress')
+    dataSet = rmfield(dataSet,'MaxExpMechStress');
+    flagClear = 1;
+end
+
+if isfield(dataSet,'RotorFillet')
+    dataSet = rmfield(dataSet,'RotorFillet');
+    flagClear = 1;
+end
+
 if flagClear
     disp('Removed old dataSet fields')
 end
@@ -772,4 +913,8 @@ if flag && Dflag
     title = 'WARNING';
 %     f = warndlg(msg,title,'modal');
 end
+
+end
+
+
 

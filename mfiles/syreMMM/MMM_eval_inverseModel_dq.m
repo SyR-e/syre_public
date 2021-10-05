@@ -28,11 +28,11 @@ end
 flagE = setup.flagE;
 extrapolationMethod = setup.extrapolationMethod;
 
-Id = motorModel.fdfq.Id;
-Iq = motorModel.fdfq.Iq;
-Fd = motorModel.fdfq.Fd;
-Fq = motorModel.fdfq.Fq;
-T  = motorModel.fdfq.T;
+Id = motorModel.FluxMap_dq.Id;
+Iq = motorModel.FluxMap_dq.Iq;
+Fd = motorModel.FluxMap_dq.Fd;
+Fq = motorModel.FluxMap_dq.Fq;
+T  = motorModel.FluxMap_dq.T;
 
 % flagE = 0; % Extrapolation flag. If 1, the flux linkage limits are not restricted
 

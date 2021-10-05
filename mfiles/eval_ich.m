@@ -25,7 +25,7 @@ function [ichOut,ich]=eval_ich(setup)
 %    are automatically saved.
 % 2) from SyR-e GUI:
 %    The input is the dataSet structure, with the settings from the GUI.
-%    Results are sutomatically saved.
+%    Results are automatically saved.
 % 3) as function from script:
 %    in this case the input is the structure "setup" and it is possible to
 %    avoid the results save. FEA simulations are done with 6 positions

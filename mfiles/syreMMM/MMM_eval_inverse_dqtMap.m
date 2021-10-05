@@ -15,7 +15,7 @@
 
 function [dqtMapF] = MMM_eval_inverse_dqtMap(motorModel)
 
-dqtMap = motorModel.dqtMap;
+dqtMap = motorModel.FluxMap_dqt;
 
 [xS,yS,zS]=size(dqtMap.data.Id);
 

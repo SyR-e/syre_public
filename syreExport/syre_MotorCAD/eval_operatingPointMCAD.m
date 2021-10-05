@@ -143,7 +143,7 @@ if tmp == 2
         end
         
         % plot and save figs
-        klength = 1; kturns = 1; delta_sim_singt = geo.delta_sim_singt;
+        delta_sim_singt = geo.delta_sim_singt;
         
         if dataIn.MCADFEMM==0
             plot_singtMCAD(out,klength,kturns,delta_sim_singt,newDir,filemot);

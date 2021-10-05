@@ -15,13 +15,13 @@
 function MMM_MaxTw(motorModel,hax)
 
 % load data
-Id  = motorModel.fdfq.Id;
-Iq  = motorModel.fdfq.Iq;
-Fd  = motorModel.fdfq.Fd;
-Fq  = motorModel.fdfq.Fq;
-Tem = motorModel.fdfq.T;
+Id  = motorModel.FluxMap_dq.Id;
+Iq  = motorModel.FluxMap_dq.Iq;
+Fd  = motorModel.FluxMap_dq.Fd;
+Fq  = motorModel.FluxMap_dq.Fq;
+Tem = motorModel.FluxMap_dq.T;
 
-TwData = motorModel.Tw;
+TwData = motorModel.TnSetup;
 
 p         = motorModel.data.p;
 axisType  = motorModel.data.axisType;
@@ -31,6 +31,8 @@ Rs0       = motorModel.data.Rs;
 n3phase   = motorModel.data.n3phase;
 Imax      = motorModel.data.Imax;
 Vdc       = motorModel.data.Vdc;
+l         = motorModel.data.l;
+lend      = motorModel.data.lend;
 
 nVect = linspace(TwData.nmin,TwData.nmax,TwData.nstep);
 TVect = linspace(TwData.Tmin,TwData.Tmax,TwData.Tstep);
@@ -109,7 +111,7 @@ for ii=1:numel(TwMap.n)
     
     % 2) Iron loss evaluation
     if strcmp(TwData.IronLossFlag,'Yes')
-        [~,Pfes_h,Pfes_c,Pfer_h,Pfer_c,Ppm] = calcIronLoss(motorModel.ironLoss,motorModel.fdfq,FreqElet);
+        [~,Pfes_h,Pfes_c,Pfer_h,Pfer_c,Ppm] = calcIronLoss(motorModel.IronPMLossMap_dq,motorModel.FluxMap_dq,FreqElet);
         if strcmp(TwData.PMLossFlag,'Yes')
             Ppm = Ppm*TwData.PMLossFactor;
         else
@@ -122,9 +124,9 @@ for ii=1:numel(TwMap.n)
         Pfer_c = zeros(size(Id));
         Ppm    = zeros(size(Id));
     end
-    Pfes = Pfes_h+Pfes_c;
-    Pfer = Pfer_h+Pfer_c;
-    Pfe  = Pfes+Pfer+Ppm;
+    Pfes = TwData.IronLossFactor*(Pfes_h+Pfes_c);
+    Pfer = TwData.IronLossFactor*(Pfer_h+Pfer_c);
+    Pfe  = (Pfes+Pfer+Ppm);
     
     % 3) Joule rotor loss (IM only)
     if strcmp(motorType,'IM')
@@ -169,11 +171,13 @@ for ii=1:numel(TwMap.n)
     
     % 6) Phase resistance computation (with temperature and skin effect)
     if strcmp(TwData.SkinEffectFlag,'Yes')
-        kAC = calcSkinEffect(motorModel.skinEffect,FreqElet,TwData.temperature,TwData.SkinEffectMethod);
+        kAC = calcSkinEffect(motorModel.acLossFactor,FreqElet,TwData.temperature,TwData.SkinEffectMethod);
     else
         kAC = 1;
     end
-    Rs = Rs0.*kAC.*(1+0.004*(TwData.temperature-temp0)).*ones(size(Id));
+%      kAC = 2;
+    Rs0 = Rs0.*(kAC*l/(lend+l)+lend/(lend+l));         % applying the kac just to the active length
+    Rs  = Rs0.*(1+0.004*(TwData.temperature-temp0)).*ones(size(Id));
     
     % 7) Voltage computation
     Vof = Vind+Rs.*Io;  % phase voltage
@@ -284,7 +288,7 @@ for ii=1:numel(TwMap.n)
         TwMap.P(ii)     = Tmap(ii)*nmap(ii)*pi/30;
         TwMap.Ploss(ii) = interp2(Id,Iq,Ploss,id,iq);
         TwMap.Pjs(ii)   = interp2(Id,Iq,3/2*Rs*n3phase.*Io_m.^2,id,iq);
-        TwMap.PjDC(ii)  = interp2(Id,Iq,3/2*Rs*n3phase.*Io_m.^2./kAC,id,iq);
+        TwMap.PjDC(ii)  = interp2(Id,Iq,3/2*Rs*n3phase.*Io_m.^2./(kAC*l/(lend+l)+lend/(lend+l)),id,iq);
         TwMap.PjAC(ii)  = TwMap.Pjs(ii)-TwMap.PjDC(ii);
         TwMap.Pfe(ii)   = interp2(Id,Iq,Pfe,id,iq);
         TwMap.Pfes(ii)  = interp2(Id,Iq,Pfes,id,iq);
@@ -461,7 +465,7 @@ for ii=1:length(flagPlot)
             clabel(c,h)
             colorbar
         case 16
-            title('Iron and mechanical loss map')
+            title('Iron + PM + mechanical loss map')
             [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Pmech+TwMap.Pfes+TwMap.Pfer+TwMap.Ppm);
             clabel(c,h)
             colorbar

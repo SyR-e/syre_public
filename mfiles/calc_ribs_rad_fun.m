@@ -32,13 +32,14 @@ hc = geo.hc;
 radial_ribs_split = geo.radial_ribs_split;  % flag to define if radial ribs is single or splitted
 radial_ribs_eval  = geo.radial_ribs_eval;   % flag to select if ribs are automatically sized or not
 
+
 pontRang       = geo.pontRang;
 pontRoffset    = geo.pontRoffset;
 RotorFilletRad = geo.RotorFillet1;
 RotorFilletRad1 = geo.RotorFillet1;
 RotorFilletRad2 = geo.RotorFillet2;
 kOB             = geo.kOB;
-delta_FBS       = geo.delta_FBS;
+% delta_FBS       = geo.delta_FBS;
 
 if ~strcmp(geo.RotType,'Seg')
     temp.flag_segV = zeros(1,nlay);
@@ -96,7 +97,8 @@ radial_ribs_split(flag_segV==1) = 0;
 geo.radial_ribs_split = radial_ribs_split;
 
 RotorFilletRad2(RotorFilletRad2>hc/2)=round(hc((RotorFilletRad2>hc/2))/2,2);
-RotorFilletRad1(RotorFilletRad1<pont0)=pont0;RotorFilletRad1(RotorFilletRad1>hc/2)=round(hc((RotorFilletRad1>hc/2))/2,2);
+RotorFilletRad1(RotorFilletRad1<pont0)=pont0;
+RotorFilletRad1(RotorFilletRad1>hc/2)=round(hc((RotorFilletRad1>hc/2))/2,2);
 RotorFilletRad1(RotorFilletRad1<pont0)=pont0;
 
 %limit Radial ribs Fillet

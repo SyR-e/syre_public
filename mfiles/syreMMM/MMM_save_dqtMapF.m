@@ -24,12 +24,12 @@ if ~exist([pathname resFolder],'dir')
 end
 
 
-Id      = motorModel.idiq.Id;
-Iq      = motorModel.idiq.Iq;
-Fd      = motorModel.idiq.Fd;
-Fq      = motorModel.idiq.Fq;
-T       = motorModel.idiq.T;
-dqtMapF = motorModel.dqtMapF;
+Id      = motorModel.FluxMapInv_dq.Id;
+Iq      = motorModel.FluxMapInv_dq.Iq;
+Fd      = motorModel.FluxMapInv_dq.Fd;
+Fq      = motorModel.FluxMapInv_dq.Fq;
+T       = motorModel.FluxMapInv_dq.T;
+dqtMapF = motorModel.FluxMapInv_dqt;
 
 save([pathname resFolder 'idiq_fdfq_n256_dqt.mat'],'Id','Iq','Fd','Fq','T','dqtMapF')
 

@@ -12,17 +12,17 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function plot_singtMCAD(out,klength,kturns,delta_sim_singt,newDir,filemot)
+function plot_singtMCAD(out,delta_sim_singt,newDir,filemot)
 % single working point has been simulated
 
- t = out.SOL.T'* klength;
+ t = out.SOL.T';
 % t60 = [t60;t60(1)];
 % t = repeat_n(t60',360/delta_sim_singt);
 
-fd = out.SOL.fd'*klength*kturns;
+fd = out.SOL.fd';
 % fd60=[f_d;f_d(1)];
 % fd=repeat_n(fd60',360/delta_sim_singt);
-fq = out.SOL.fq'*klength*kturns;
+fq = out.SOL.fq';
 % fq60=[f_q;f_q(1)];
 % fq=repeat_n(fq60',360/delta_sim_singt);
 gamma = mean(atan2(-out.SOL.id',out.SOL.iq')) * 180/pi;

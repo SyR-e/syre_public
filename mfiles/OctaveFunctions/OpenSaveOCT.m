@@ -2,7 +2,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%% Load existing motor %%%%%%%%%%%%%%%%%%%%%%
 
-[filemot, pathname, fltidx]=uigetfile('mot_01.fem', 'Pick a motor');
+[filemot, pathname, fltidx]=uigetfile('motorExamples\mot_01.fem', 'Pick a motor');
 load(strrep(filemot,'.fem','.mat'));
 [dataSet,geo,per] = back_compatibility(dataSet,geo,per,1);
 

@@ -23,10 +23,10 @@ if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder]);
 end
 
-AOA  = motorModel.AOA;
-MTPA = motorModel.AOA.MTPA;
-MTPV = motorModel.AOA.MTPV;
-save([pathname resFolder 'AOAcurves.mat'],'AOA')
+controlLocus  = motorModel.controlTrajectories;
+MTPA = motorModel.controlTrajectories.MTPA;
+MTPV = motorModel.controlTrajectories.MTPV;
+save([pathname resFolder 'AOAcurves.mat'],'controlLocus')
 save([pathname resFolder 'MTPAcurve.mat'],'MTPA')
 save([pathname resFolder 'MTPVcurve.mat'],'MTPV')
 

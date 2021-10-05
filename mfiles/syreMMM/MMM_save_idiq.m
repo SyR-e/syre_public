@@ -23,11 +23,11 @@ if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder])
 end
 
-Id = motorModel.idiq.Id;
-Iq = motorModel.idiq.Iq;
-Fd = motorModel.idiq.Fd;
-Fq = motorModel.idiq.Fq;
-T  = motorModel.idiq.T;
+Id = motorModel.FluxMapInv_dq.Id;
+Iq = motorModel.FluxMapInv_dq.Iq;
+Fd = motorModel.FluxMapInv_dq.Fd;
+Fq = motorModel.FluxMapInv_dq.Fq;
+T  = motorModel.FluxMapInv_dq.T;
 
 save([pathname resFolder 'idiq_fdfq_n256.mat'],'Id','Iq','Fd','Fq','T');
 

@@ -38,6 +38,10 @@ else
     flagSG=0;
 end
 
+if geo.ps==2*geo.p
+    flagSG=0;
+end
+
 switch eval_type
     case 'MO_OA' % optimization
         nsim = per.nsim_MOOA;
@@ -196,7 +200,7 @@ SOL.fc = zeros(n3phase,nsim);   % phase c flux linkage
 phase_name = cell(n3phase*3,1);
 phase_name_neg = cell(n3phase*3,1);
 
-for jj = 1:nsim    
+for jj = 1:nsim
     % assign the phase current values to the FEMM circuits
     for ik=0:(n3phase-1)
         if geo.win.avv_flag((3*ik)+1)==1 && geo.win.avv_flag((3*ik)+2)==1 && geo.win.avv_flag((3*ik)+3)==1
@@ -255,7 +259,13 @@ for jj = 1:nsim
         % before sliding gap was introduced - delete the airgap arc prior to moving the rotor
         mi_selectgroup(20), mi_deleteselectedarcsegments;
         % rotate the rotor
-        mi_selectgroup(22), mi_selectgroup(2), mi_selectgroup(200),
+        tmp = geo.PMdim(:);
+        nPM = geo.ps*numel(tmp(tmp~=0))*2;
+        indexPM = 200+(1:1:nPM);
+        mi_selectgroup(22), mi_selectgroup(2);
+        for kk=1:length(indexPM)
+            mi_selectgroup(indexPM(kk));
+        end
         if jj > 1
             mi_moverotate(0,0,(thetaPark(jj) - thetaPark(jj-1))/p);
         else
@@ -269,6 +279,8 @@ for jj = 1:nsim
         end
     end
     
+    %     mi_modifycircprop('fase1', 1 ,0);
+    %     mi_modifycircprop('fase1n', 1 ,0);
     mi_analyze(1);
     mi_loadsolution;
     
@@ -304,7 +316,23 @@ for jj = 1:nsim
     % slidingGap), torque is directly computed from the airgap boundary
     if flagSG
         %mo_groupselectblock(2), mo_groupselectblock(22), mo_groupselectblock(200)
-        T = mo_gapintegral('AGap',0);
+        if geo.ps==2*geo.p
+            %             mo_groupselectblock(2), mo_groupselectblock(22), mo_groupselectblock(200)
+            %             T=mo_blockintegral(22)*2*p/ps;
+            %             mo_clearblock;
+            for ii=1:length(geo.BLKLABELS.rotore.xy(:,1))
+                xB=geo.BLKLABELS.rotore.xy(ii,1);
+                yB=geo.BLKLABELS.rotore.xy(ii,2);
+                %         if ~flagSG
+                [xB,yB]=rot_point(xB,yB,theta_r*pi/180);
+                %         end
+                mo_selectblock(xB,yB);
+            end
+            T=mo_blockintegral(22)*2*p/ps;
+            mo_clearblock;
+        else
+            T = mo_gapintegral('AGap',0);
+        end
     else
         for ii=1:length(geo.BLKLABELS.rotore.xy(:,1))
             xB=geo.BLKLABELS.rotore.xy(ii,1);

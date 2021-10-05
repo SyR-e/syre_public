@@ -15,7 +15,7 @@
 
 function MMM_plot_skinEffect(motorModel)
 
-skinEffect = motorModel.skinEffect;
+skinEffect = motorModel.acLossFactor;
 
 pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;

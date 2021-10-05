@@ -23,6 +23,6 @@ if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder])
 end
 
-skinEffect = motorModel.skinEffect;
+skinEffect = motorModel.acLossFactor;
 
 save([pathname resFolder 'skinEffectModel.mat'],'skinEffect');

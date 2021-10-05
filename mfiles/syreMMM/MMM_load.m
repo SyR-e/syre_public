@@ -28,7 +28,7 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
         save([pathname filename],'dataSet','-append');
     end
     data.i0        = round(mod.dataSet.RatedCurrent,2);
-    data.Imax      = round(mod.dataSet.RatedCurrent*mod.dataSet.CurrLoPP(1));
+    data.Imax      = round(mod.dataSet.RatedCurrent*mod.dataSet.CurrLoPP(1),2);
     data.Vdc       = 565;
     data.nmax      = mod.dataSet.OverSpeed;
     data.n0        = mod.dataSet.EvalSpeed;
@@ -41,7 +41,13 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     data.tempPM    = mod.dataSet.tempPP;
     data.Ns        = mod.dataSet.TurnsInSeries;
     data.l         = mod.dataSet.StackLength;
-%     data.J         = mod.dataSet.RotorInertia;
+    data.lend      = mod.dataSet.EndWindingsLength;
+    data.R         = mod.dataSet.StatorOuterRadius;
+    if isfield(mod.dataSet,'RotorInertia')
+        data.J = mod.dataSet.RotorInertia;
+    else
+        data.J = 0;
+    end
     if(strcmp(mod.dataSet.TypeOfRotor,'Circular')||strcmp(mod.dataSet.TypeOfRotor,'Seg')||strcmp(mod.dataSet.TypeOfRotor,'ISeg')||strcmp(mod.dataSet.TypeOfRotor,'Fluid'))
         data.axisType = 'SR';
     else
@@ -60,6 +66,8 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     
     data.nCurr = 4;
     
+    data.tempVectPM = data.tempPM;
+    
     skewData.thSkw   = 0;
     skewData.nSlice  = 1;
     skewData.nPoints = 51;
@@ -68,11 +76,12 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     scaleFactors.Llq = 0;
     scaleFactors.l   = data.l;
     scaleFactors.Ns  = data.Ns;
+    scaleFactors.R   = data.R;
     
-    dqtElab.harmonic  = 6*[1 2 3];
-    dqtElab.CurrLoad  = 1;
-    dqtElab.CurrAmpl  = dqtElab.CurrLoad*data.i0;
-    dqtElab.CurrAngle = 45;
+%     dqtElab.harmonic  = 6*[1 2 3];
+%     dqtElab.CurrLoad  = 1;
+%     dqtElab.CurrAmpl  = dqtElab.CurrLoad*data.i0;
+%     dqtElab.CurrAngle = 45;
     
     Tw.nCurrent         = 2;
     Tw.nmin             = 0;
@@ -91,19 +100,36 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     Tw.PMLossFactor     = 1;
     Tw.Control          = 'Maximum efficiency';
     
-    motorModel.data        = data;
-    motorModel.fdfq        = [];
-    motorModel.dqtMap      = [];
-    motorModel.ironLoss    = [];
-    motorModel.skinEffect  = [];
-    motorModel.AOA         = [];
-    motorModel.Inductance  = [];
-    motorModel.idiq        = [];
-    motorModel.dqtMapF     = [];
-    motorModel.scale       = scaleFactors;
-    motorModel.skew        = skewData;
-    motorModel.dqtElab     = dqtElab;
-    motorModel.Tw          = Tw;
+    SyreDrive.Ctrl_type    = 'Torque control';
+    SyreDrive.FMapsModel   = 'dq Model';
+    SyreDrive.Converter.V0 = 0;
+    SyreDrive.Converter.Rd = 1e-4;
+    SyreDrive.Converter.dT = 1;
+    SyreDrive.SS_on = 'Off';
+    SyreDrive.SS_settings.inj_waveform = 'Sinusoidal';
+    SyreDrive.SS_settings.dem = 'Current';
+    SyreDrive.SS_settings.HS_ctrl = 'APP';
+    
+    WaveformSetup.CurrLoad  = 1;
+    WaveformSetup.CurrAmpl  = data.i0;
+    WaveformSetup.CurrAngle = 45;
+    WaveformSetup.EvalSpeed = data.n0;
+    WaveformSetup.nCycle    = 1;
+    
+    motorModel.data                = data;
+    motorModel.FluxMap_dq          = [];
+    motorModel.FluxMap_dqt         = [];
+    motorModel.IronPMLossMap_dq    = [];
+    motorModel.acLossFactor        = [];
+    motorModel.controlTrajectories = [];
+    motorModel.IncInductanceMap_dq = [];
+    motorModel.FluxMapInv_dq       = [];
+    motorModel.FluxMapInv_dqt      = [];
+    motorModel.tmpScale            = scaleFactors;
+    motorModel.tmpSkew             = skewData;
+    motorModel.TnSetup             = Tw;
+    motorModel.SyreDrive           = SyreDrive;
+    motorModel.WaveformSetup       = WaveformSetup;
     
     motorModel.dataSet = mod.dataSet;
     motorModel.geo     = mod.geo;

@@ -21,6 +21,7 @@ void ramp(float target, float delta, float *output);
 void HF_position_detect2(Xalphabeta isab, int commiss_counter,int* counter ,float* theta_hf,Xalphabeta* vsab_ref);
 void ReadLut(float *tab0, float Xin, float Xmax,float Xmin, float DX, float inv_DX, float* Yout);
 void interp2d(float *P, float x, float y, float Dx, float invDx, float Dy, float invDy, float Xmax, float Xmin, float Ymax , float Ymin, int Npointx, float* V);
+void ReadLut2d(float *tab0,float x,float y,float Dx,float invDx,float Dy,float invDy,float Xmax,float Xmin,float Ymax,float Ymin,int Npointx,float* V);
 float sgn(float i);
 void FluxObserver(void);
 void Compute_Inductance(void);

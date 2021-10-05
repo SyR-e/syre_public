@@ -12,12 +12,45 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [OUT] = FEAfixSimulation(RQ,geo,per,mat,eval_type,filemot)
+function [OUT] = FEAfixSimulation(RQ,geo,per,mat,eval_type,filemot,gammaFix)
 
 % load simulation (Torque)
-[~,~,~,out,~] = FEMMfitness(RQ,geo,per,mat,eval_type,filemot);
-OUT.fd = out.fd;
-OUT.fq = out.fq;
+if ~gammaFix
+    [~,~,~,out,~] = FEMMfitness(RQ,geo,per,mat,eval_type,filemot);
+    OUT.fd = out.fd;
+    OUT.fq = out.fq;
+    OUT.id = out.id;
+    OUT.iq = out.iq;
+else
+    deltaGamma = 3;
+    numSim     = 5;
+    
+    gVect = (0:deltaGamma:deltaGamma*(numSim-1));
+    gVect = gVect-mean(gVect);
+    gVect = gVect+RQ(end);
+    
+    TVect  = nan(size(gVect));
+    FdVect = nan(size(gVect));
+    FqVect = nan(size(gVect));
+    IdVect = nan(size(gVect));
+    IqVect = nan(size(gVect));
+    for ii=1:length(gVect)
+        RQ(end) = gVect(ii);
+        [~,~,~,out,~] = FEMMfitness(RQ,geo,per,mat,eval_type,filemot);
+        TVect(ii)  = out.T;
+        FdVect(ii) = out.fd;
+        FqVect(ii) = out.fq;
+        IdVect(ii) = out.id;
+        IqVect(ii) = out.iq;
+    end
+    
+    [~,index] = max(TVect);
+    OUT.fd = FdVect(index);
+    OUT.fq = FqVect(index);
+    OUT.id = IdVect(index);
+    OUT.iq = IqVect(index);
+    
+end
 
 % Characteristic current (Vtype and SPM)
 if (strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'Vtype'))

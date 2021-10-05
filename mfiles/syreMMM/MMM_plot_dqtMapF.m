@@ -23,7 +23,7 @@ if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder]);
 end
 
-dqtMapF = motorModel.dqtMapF;
+dqtMapF = motorModel.FluxMapInv_dqt;
 
 IdLim = [min(dqtMapF.dataF.Id,[],'all') max(dqtMapF.dataF.Id,[],'all')];
 IqLim = [min(dqtMapF.dataF.Iq,[],'all') max(dqtMapF.dataF.Iq,[],'all')];

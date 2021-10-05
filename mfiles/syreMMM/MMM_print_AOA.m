@@ -23,8 +23,8 @@ if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder]);
 end
 
-MTPA = motorModel.AOA.MTPA;
-MTPV = motorModel.AOA.MTPV;
+MTPA = motorModel.controlTrajectories.MTPA;
+MTPV = motorModel.controlTrajectories.MTPV;
 
 % LUT
 m = 1;  % # of lines

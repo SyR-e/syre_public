@@ -245,6 +245,10 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 			//-------------------Speed Compute----------------------------------//
 			
 			theta_elt_meas      = PP * theta_mec_meas;
+			while(theta_elt_meas > PI)
+				theta_elt_meas -= TWOPI;
+			while(theta_elt_meas < -PI)
+				theta_elt_meas += TWOPI;
 			SinCos_elt_meas.sin = sin(theta_elt_meas);
 			SinCos_elt_meas.cos = cos(theta_elt_meas);
 				
@@ -543,12 +547,14 @@ static void mdlTerminate(SimStruct *S) {
 #include "cg_sfun.h"       /* Code generation registration function */
 #endif
 
+//----------------------------------------------------------------------------------------------------//
+
 void FluxObserver(void) {
 	
 	lambda_CM_ab_km1 = lambda_CM_ab;
 	
-	interp2d(&FD_LUT[0][0], fabs(isdq.d), fabs(isdq.q), DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &lambda_CM_dq.d);
-	interp2d(&FQ_LUT[0][0], fabs(isdq.q), fabs(isdq.d), DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &lambda_CM_dq.q);
+	ReadLut2d(&FD_LUT[0][0], fabs(isdq.d), fabs(isdq.q), DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &lambda_CM_dq.d);
+	ReadLut2d(&FQ_LUT[0][0], fabs(isdq.q), fabs(isdq.d), DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &lambda_CM_dq.q);
 	if (isdq.d < 0)
 		lambda_CM_dq.d = -lambda_CM_dq.d;
 	if (isdq.q < 0)
@@ -569,6 +575,8 @@ void FluxObserver(void) {
 	delta = atan(lambda_dq.q/lambda_dq.d);
 	
 }
+
+//----------------------------------------------------------------------------------------------------//
 
 void Compute_Inductance(void) {
 	

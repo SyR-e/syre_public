@@ -66,6 +66,25 @@ end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
+% CF Toolbox
+disp('Curve Fitting Toolbox check...')
+flag=0;
+
+test = ver();
+for ii=1:length(test)
+    if strcmp(test(ii).Name,'Curve Fitting Toolbox')
+        flag=1;
+    end
+end
+
+if ~flag
+    disp('(x)Curve Fitting Toolbox not available')
+else
+    disp('(v)Curve Fitting Toolbox available')
+end
+
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+
 % PDE Toolbox
 disp('PDE Toolbox check...')
 flag=0;
@@ -92,4 +111,8 @@ else
 end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+
+if nargout==0
+    clear out
+end
 

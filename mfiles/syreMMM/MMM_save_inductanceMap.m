@@ -23,12 +23,12 @@ if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder])
 end
 
-Id  = motorModel.fdfq.Id;
-Iq  = motorModel.fdfq.Iq;
-ldd = motorModel.Inductance.Ldd;
-ldq = motorModel.Inductance.Ldq;
-lqd = motorModel.Inductance.Lqd;
-lqq = motorModel.Inductance.Lqq;
+Id  = motorModel.FluxMap_dq.Id;
+Iq  = motorModel.FluxMap_dq.Iq;
+ldd = motorModel.IncInductanceMap_dq.Ldd;
+ldq = motorModel.IncInductanceMap_dq.Ldq;
+lqd = motorModel.IncInductanceMap_dq.Lqd;
+lqq = motorModel.IncInductanceMap_dq.Lqq;
 
 save([pathname resFolder 'inductanceMap.mat'],'Id','Iq','ldd','ldq','lqd','lqq');
 

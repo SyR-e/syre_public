@@ -33,16 +33,16 @@ if ~isempty(RQ)
     RQ=RQ';
     geo.pathname=pwd();
     
-    options.iteration=0;
-    options.currentgen=1;
-    options.PopulationSize=1;
+%     options.iteration=0;
+%     options.currentgen=1;
+%     options.PopulationSize=1;
     
     if strcmp(eval_type,'MO_OA')
-        options.iteration=options.iteration+1;
-        iteration=options.iteration;
-        populationSize=options.PopulationSize;
-        generation=floor(iteration/populationSize)+1;
-        options.currentgen=generation;
+%         options.iteration=options.iteration+1;
+%         iteration=options.iteration;
+%         populationSize=options.PopulationSize;
+%         generation=floor(iteration/populationSize)+1;
+%         options.currentgen=generation;
         RQ % debug .. when syre crashes it is useful to have visibility of last RQ
     end
     
@@ -53,6 +53,13 @@ if ~isempty(RQ)
     
     per.i0 = calc_io(geo,per);
     
+    %     if any(strcmp(geo.OBJnames,'Fdq0'))
+    %         per0 = per;
+    %         per0.overload = 0;
+    %         per0.gamma = 0;
+    %         per0.nsim_singt = 1;
+    %     end
+    
 else
     % post proc or FEMM simulation (existing geometry)
     copyfile(filenameIn,[pathname filename]); % copy .fem in the temporary folder
@@ -61,57 +68,66 @@ end
 mat.LayerMag.Br = per.BrPP;
 mat.LayerMag.Hc = per.BrPP/(4e-7*pi*mat.LayerMag.mu);
 
-[SOL] = simulate_xdeg(geo,per,mat,eval_type,pathname,filename);
+flagSim = 1;
 
-% standard results
-out.id     = mean(SOL.id);                                      % [A]
-out.iq     = mean(SOL.iq);                                      % [A]
-out.fd     = mean(SOL.fd);                                      % [Vs]
-out.fq     = mean(SOL.fq);                                      % [Vs]
-out.T      = mean(SOL.T);                                       % [Nm]
-out.dT     = std(SOL.T);                                        % [Nm]
-out.dTpu   = std(SOL.T)/out.T;                                  % [pu]
-out.dTpp   = max(SOL.T)-min(SOL.T);                             % [Nm]
-out.IPF    = sin(atan(out.iq./out.id)-atan(out.fq./out.fd));
-%out.MassPM = mean(SOL.VolPM)*mat.LayerMag.kgm3;                 % [kg]
-out.SOL    = SOL;
-
-% check Torque sign
-if sign(out.T)~=sign(out.fd*out.iq-out.fq*out.id)
-    out.T = -out.T;
-    out.SOL.T = -out.SOL.T;
-end
-
-if isfield(SOL,'F')
-    out.F=mean(SOL.F);
-end
-
-if isfield(SOL,'psh')
-    out.Pfes_h = sum(sum(SOL.psh))*(2*geo.p/geo.ps);
-    out.Pfes_c = sum(sum(SOL.psc))*(2*geo.p/geo.ps);
-    out.Pfer_h = sum(sum(SOL.prh))*(2*geo.p/geo.ps);
-    out.Pfer_c = sum(sum(SOL.prc))*(2*geo.p/geo.ps);
-    out.Ppm    = sum(sum(SOL.ppm))*(2*geo.p/geo.ps);
-    out.Pfe    = out.Pfes_h + out.Pfes_c + out.Pfer_h + out.Pfer_c;
-    out.velDim = per.EvalSpeed;
+if flagSim
+    [SOL] = simulate_xdeg(geo,per,mat,eval_type,pathname,filename);
     
-    if strcmp(eval_type,'singmIron')
-        % remove all the debug data from SOL, to avoid excessive data size
-        SOL = rmfield(SOL,'psh');
-        SOL = rmfield(SOL,'psc');
-        SOL = rmfield(SOL,'prh');
-        SOL = rmfield(SOL,'prc');
-        SOL = rmfield(SOL,'ppm');
-        SOL = rmfield(SOL,'freq');
-        SOL = rmfield(SOL,'bs');
-        SOL = rmfield(SOL,'br');
-        SOL = rmfield(SOL,'am');
-        SOL = rmfield(SOL,'Jm');
-        SOL = rmfield(SOL,'pos');
-        SOL = rmfield(SOL,'vol');
-        SOL = rmfield(SOL,'groNo');
-        out.SOL = SOL;
+    % standard results
+    out.id     = mean(SOL.id);                                      % [A]
+    out.iq     = mean(SOL.iq);                                      % [A]
+    out.fd     = mean(SOL.fd);                                      % [Vs]
+    out.fq     = mean(SOL.fq);                                      % [Vs]
+    out.T      = mean(SOL.T);                                       % [Nm]
+    out.dT     = std(SOL.T);                                        % [Nm]
+    out.dTpu   = std(SOL.T)/out.T;                                  % [pu]
+    out.dTpp   = max(SOL.T)-min(SOL.T);                             % [Nm]
+    out.IPF    = sin(atan(out.iq./out.id)-atan(out.fq./out.fd));
+    %out.MassPM = mean(SOL.VolPM)*mat.LayerMag.kgm3;                 % [kg]
+    out.SOL    = SOL;
+    
+    % check Torque sign
+    if sign(out.T)~=sign(out.fd*out.iq-out.fq*out.id)
+        out.T = -out.T;
+        out.SOL.T = -out.SOL.T;
     end
+    
+    if isfield(SOL,'F')
+        out.F=mean(SOL.F);
+    end
+    
+    if isfield(SOL,'psh')
+        out.Pfes_h = sum(sum(SOL.psh))*(2*geo.p/geo.ps);
+        out.Pfes_c = sum(sum(SOL.psc))*(2*geo.p/geo.ps);
+        out.Pfer_h = sum(sum(SOL.prh))*(2*geo.p/geo.ps);
+        out.Pfer_c = sum(sum(SOL.prc))*(2*geo.p/geo.ps);
+        out.Ppm    = sum(sum(SOL.ppm))*(2*geo.p/geo.ps);
+        out.Pfe    = out.Pfes_h + out.Pfes_c + out.Pfer_h + out.Pfer_c;
+        out.velDim = per.EvalSpeed;
+        
+        if strcmp(eval_type,'singmIron')
+            % remove all the debug data from SOL, to avoid excessive data size
+            SOL = rmfield(SOL,'psh');
+            SOL = rmfield(SOL,'psc');
+            SOL = rmfield(SOL,'prh');
+            SOL = rmfield(SOL,'prc');
+            SOL = rmfield(SOL,'ppm');
+            SOL = rmfield(SOL,'freq');
+            SOL = rmfield(SOL,'bs');
+            SOL = rmfield(SOL,'br');
+            SOL = rmfield(SOL,'am');
+            SOL = rmfield(SOL,'Jm');
+            SOL = rmfield(SOL,'pos');
+            SOL = rmfield(SOL,'vol');
+            SOL = rmfield(SOL,'groNo');
+            out.SOL = SOL;
+        end
+    end
+    
+else
+    out.T = -10^50;
+    out.dTpp = 10^50;
+    out.IPF = -10^50;
 end
 
 if ~isempty(RQ)     % MODE optimization (RQ geometry)
@@ -132,21 +148,61 @@ if ~isempty(RQ)     % MODE optimization (RQ geometry)
     end
     % Copper Mass
     if temp1<=length(geo.OBJnames) && strcmp(geo.OBJnames{temp1},'MassCu')
+        if flagSim
         cost(temp1) = calcMassCu(geo,mat);
         temp1=temp1+1;
+        else
+         cost(temp1) = 10^50;
+        end
     end
     % PM Mass
     if temp1<=length(geo.OBJnames) && strcmp(geo.OBJnames{temp1},'MassPM')
+         if flagSim
         cost(temp1) = calcMassPM(geo,mat);
+        temp1=temp1+1;
+        else
+            cost(temp1) = 10^50;
+        end
     end
     
+    % Power Factor
+    if temp1<=length(geo.OBJnames) && strcmp(geo.OBJnames{temp1},'PF')
+        cost(temp1) = -out.IPF;
+        temp1=temp1+1;
+    end
+    
+    % No Load flux
+    if temp1<=length(geo.OBJnames) && strcmp(geo.OBJnames{temp1},'Fdq0')
+        if flagSim
+            per0 = per;
+            per0.overload = 0;
+            per0.gamma = 0;
+            per0.nsim_singt = 1;
+            per0.nsim_MOOA = 1;
+            [SOL0] = simulate_xdeg(geo,per0,mat,eval_type,pathname,filename);
+            cost(temp1) = abs(SOL0.fd+j*SOL0.fq);
+        else
+            cost(temp1) = 10^50;
+        end
+        temp1 = temp1+1;
+    end
+   
+     
     % penalize weak solutions
-    for j = 1:length(cost)
-        if cost(j)>per.objs(j,1)
-            if per.objs(j,1)>0
-                cost(j)=cost(j)*10;  % minimization problem
+    for ii = 1:length(cost)
+        if cost(ii)>per.objs(ii,1) && per.objs(ii,3)==0
+            if per.objs(ii,1)>0
+                cost(ii)=cost(ii)*10;  % minimization problem
             else
-                cost(j)=cost(j)*0.1; % maximization problem
+                cost(ii)=cost(ii)*0.1; % maximization problem
+            end
+        end
+        
+        if ((cost(ii)<per.objs(ii,1)-per.objs(ii,3)) || (cost(ii)>per.objs(ii,1)+per.objs(ii,3))) && per.objs(ii,3)
+            if per.objs(ii,1)>0
+                cost(ii)=cost(ii)*10;  % minimization problem
+            else
+                cost(ii)=cost(ii)*0.1; % maximization problem
             end
         end
     end
@@ -159,7 +215,7 @@ if ~isempty(RQ)     % MODE optimization (RQ geometry)
     if isoctave()            %OCT
         save('-mat7-binary', strrep(filename,'.fem','.mat'),'geo','cost','per','dataSet','mat');
     else
-        save([pathname strrep(filename,'.fem','.mat')],'geo','cost','per','dataSet','mat');
+        save([pathname strrep(filename,'.fem','.mat')],'geo','cost','per','dataSet','mat','out');
     end
 else
     cost = [];

@@ -20,6 +20,13 @@ h = app.AxisGeometry;
 dataSet = app.dataSet;
 
 cla(h);
+
+
+if app.dataSet.custom
+    app = customDraw(app);
+    dataSet = app.dataSet;
+end 
+
 [~, ~, geo,per,mat] = data0(dataSet);
 [geo,gamma,mat] = interpretRQ(dataSet.RQ,geo,mat);
 geo.x0 = geo.r/cos(pi/2/geo.p);
@@ -53,13 +60,17 @@ Lend = calc_Lend(geo);
 dataSet.Lend = Lend;
 
 % Rated current computation (thermal model)
-dataSet.AdmiJouleLosses = dataSet.ThermalLoadKj*(2*pi*dataSet.StatorOuterRadius*dataSet.StackLength*1e-6);
-per.Loss = dataSet.AdmiJouleLosses;
-per.tempcuest = temp_est_simpleMod(geo,per);
-dataSet.EstimatedCopperTemp = per.tempcuest;
-[dataSet.RatedCurrent,dataSet.Rs] = calc_io(geo,per);
-dataSet.SimulatedCurrent = dataSet.RatedCurrent * dataSet.CurrLoPP;
+if  isnan(dataSet.SimIth0)
+    dataSet.AdmiJouleLosses = dataSet.ThermalLoadKj*(2*pi*dataSet.StatorOuterRadius*dataSet.StackLength*1e-6);
+    per.Loss = dataSet.AdmiJouleLosses;
+    per.tempcuest = temp_est_simpleMod(geo,per);
+    dataSet.EstimatedCopperTemp = per.tempcuest;
+    [dataSet.RatedCurrent,dataSet.Rs,geo] = calc_io(geo,per);
+    dataSet.SimulatedCurrent = dataSet.RatedCurrent * dataSet.CurrLoPP;
+end
+
 per.i0 = dataSet.RatedCurrent;
+dataSet.EndWindingsLength = geo.lend;
 
 % Mass and Inertia computation
 geo.mCu = calcMassCu(geo,mat);
@@ -74,13 +85,18 @@ dataSet.MassRotorIron  = geo.mFeR;
 dataSet.RotorInertia   = geo.J;
 
 % Refresh display
+dataSet.SlotWidth = geo.st;
+dataSet.SlotConductorParallel = geo.win.pCond;
 dataSet.DepthOfBarrier = round(geo.dx,2);
 dataSet.HCpu = round(geo.hc_pu,2);
 dataSet.betaPMshape = round(geo.betaPMshape,2);
-dataSet.EstimatedCopperTemp = temp_est_simpleMod(geo,per);
-% dataSet.RotorFillet=geo.RotorFillet;
-dataSet.CurrentDensity = per.i0*geo.win.Nbob*2/(geo.Aslot*geo.win.kcu);
-dataSet.RotorFillet = geo.RotorFillet(1,:);
+if  isnan(dataSet.SimIth0)
+    dataSet.EstimatedCopperTemp = temp_est_simpleMod(geo,per);
+end
+
+dataSet.CurrentDensity = per.i0*geo.win.Nbob*2/(sqrt(2)*geo.Aslot*geo.win.kcu);
+%dataSet.CurrentDensity = per.i0/(sqrt(2)*geo.Aslot*geo.win.kcu*geo.win.pCond);
+
 dataSet.pontRangEdit = geo.pontRang;
 dataSet.pontRoffsetEdit = geo.pontRoffset;
 dataSet.RadRibSplit = geo.radial_ribs_split;
@@ -107,6 +123,8 @@ end
 dataSet.RadRibEdit = round(geo.pontR*100)/100;
 % set(app.RadRibEdit,'String',mat2str(tmp));
 dataSet.FilletCorner = geo.SFR;
+dataSet.RotorFilletTan1  = geo.RotorFilletTan1;
+dataSet.RotorFilletTan2  = geo.RotorFilletTan2;
 % set(app.FillCorSlotEdit,'String',mat2str(round(100*geo.SFR)/100));
 dataSet.ShaftRadius = floor(geo.Ar*100)/100;
 

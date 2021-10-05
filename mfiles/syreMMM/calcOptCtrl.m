@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [IdOpt,IqOpt]=calcOptCtrl(Id,Iq,Num,Den)
+function [IdOpt,IqOpt]=calcOptCtrl(Id,Iq,Num,Den,axisType)
 
 
 IdVect=Id(1,:);
@@ -85,6 +85,14 @@ end
 
 IdOpt=IdOpt(~isnan(IdOpt));
 IqOpt=IqOpt(~isnan(IqOpt));
-    
 
+if nargin==5
+    if strcmp(axisType,'SR')
+        [IdOpt,filt,~] = unique(IdOpt);
+        IqOpt=IqOpt(filt);
+    else
+        [IqOpt,filt,~] = unique(IqOpt);
+        IdOpt=IdOpt(filt);
+    end
+end
 

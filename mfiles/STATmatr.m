@@ -176,7 +176,7 @@ end
 
 % boundary conditions (FEMM-style codes)
 codBound_FluxTan  = 0;      % 0 flux tangential
-if (Qs<geo.p*geo.q*6)
+if (Qs<geo.p*geo.q*6*geo.win.n3phase)
     codBound_periodic = 10;     % 10 odd or even periodicity
 else
     codBound_periodic = -10;    % -10 no periodicity, simulate full machine

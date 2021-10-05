@@ -107,9 +107,8 @@ for ii = 1:length(SimulatedCurrent)
     copyfile([dirName strrep(filemot,'.mat','.mn')],[newDir strrep(filemot,'.mat','.mn')]);
     
     % plot and save figs
-    klength = 1; kturns = 1;
     delta_sim_singt = per.delta_sim_singt;
-    plot_singt(out,klength,kturns,delta_sim_singt,newDir,filemot);
+    plot_singt(out,delta_sim_singt,newDir,filemot);
     if delta_sim_singt==360
         plot_singtIron(geo,out,newDir,filemot);
     end

@@ -44,6 +44,7 @@ if dataSet.FEAfixN==0
     map.kq   = ones(size(map.xx));
     map.km   = ones(size(map.xx));
     map.k0   = ones(size(map.xx));
+    map.kg   = ones(size(map.xx));
     map.xRaw = [];
     map.bRaw = [];
 else
@@ -52,6 +53,7 @@ else
     map.kq   = FEAfixOut.kq;
     map.km   = FEAfixOut.km;
     map.k0   = FEAfixOut.k0;
+    map.kg   = FEAfixOut.kg;
     map.xRaw = FEAfixOut.xRaw;
     map.bRaw = FEAfixOut.bRaw;
 end
@@ -59,6 +61,9 @@ end
 if strcmp(dataSet.TypeOfRotor,'SPM')
     map.fd = map.fd.*map.kd;
     map.fq = map.fq.*map.kq;
+    map.gamma = map.gamma.*map.kg;
+    map.id = map.iAmp.*cos(map.gamma*pi/180);
+    map.iq = map.iAmp.*sin(map.gamma*pi/180);
     map.T  = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
     map.PF = abs(sin(atan(map.iq./map.id)-atan(map.fq./map.fd)));
 elseif strcmp(dataSet.TypeOfRotor,'Vtype')
@@ -67,11 +72,17 @@ elseif strcmp(dataSet.TypeOfRotor,'Vtype')
     map.fM  = map.fM.*map.km;
     map.T   = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
     map.ich = map.ich.*map.km./map.k0;
+    map.gamma = map.gamma.*map.kg;
+    map.id = map.iAmp.*cos(map.gamma*pi/180);
+    map.iq = map.iAmp.*sin(map.gamma*pi/180);
 else
     map.fd = map.fd.*map.kd;
     map.fq = map.fq.*map.kq;
     map.T  = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
     map.PF = abs(sin(atan(map.iq./map.id)-atan(map.fq./map.fd)));
+    map.gamma = map.gamma.*map.kg;
+    map.id = map.iAmp.*cos(map.gamma*pi/180);
+    map.iq = map.iAmp.*sin(map.gamma*pi/180);
 end
 
 % if isfield(map,'ich')
@@ -242,20 +253,6 @@ end
 
 figure(hfig)
 
-% if(isfield(map,'Bfei0'))
-%
-%     figure,
-%     subplot(2,2,1)
-%     [c, h] = contour(map.xx,map.bb,map.Bsq/dataSet.bi);
-%     clabel(c,h); title('Bfe - PM')
-%     subplot(2,2,2)
-%     [c, h] = contour(map.xx,map.bb,map.Bfei0);
-%     clabel(c,h); title('Bfe - i0')
-%     subplot(2,2,3)
-%     [c, h] = contour(map.xx,map.bb,abs(map.Bsq/dataSet.bi + 1i* map.Bfei0));
-%     clabel(c,h); title('Bfe - total')
-%
-% end
 
 if(0)
     

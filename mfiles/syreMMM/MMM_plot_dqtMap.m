@@ -16,7 +16,7 @@
 function MMM_plot_dqtMap(motorModel)
 
 % load data
-dqtMap = motorModel.dqtMap;
+dqtMap = motorModel.FluxMap_dqt;
 
 pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;

@@ -95,6 +95,7 @@ if exist(tempFolder,'dir')
 else
     mkdir(tempFolder);
     disp(' (x) does not exist!!! Created')
+    
 end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
@@ -122,7 +123,16 @@ else
     flag=1;
 end
 
+if sum(isnan(motorModel.data.tempVectPM))
+    motorModel.data.tempVectPM = motorModel.data.tempPM;
+    disp([' (v) added flux map at ' int2str(motorModel.data.tempPM) 'deg'])
+end
+
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+if prod(~isnan(motorModel.data.tempVectPM))
+    motorModel.data.tempVectPM = motorModel.data.tempPM;
+%     disp('Map added')
+end
 
 if flag
     answer = 'Yes';

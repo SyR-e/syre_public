@@ -16,34 +16,35 @@
 function [Plim] = OpLimEval(motorModel,Imax,Vdc)
 
 % load data
-Id  = motorModel.fdfq.Id;
-Iq  = motorModel.fdfq.Iq;
-Fd  = motorModel.fdfq.Fd;
-Fq  = motorModel.fdfq.Fq;
-T   = motorModel.fdfq.T;
+Id  = motorModel.FluxMap_dq.Id;
+Iq  = motorModel.FluxMap_dq.Iq;
+Fd  = motorModel.FluxMap_dq.Fd;
+Fq  = motorModel.FluxMap_dq.Fq;
+T   = motorModel.FluxMap_dq.T;
 IPF = sin(atan2(Iq,Id)-atan2(Fq,Fd));
 
 axisType  = motorModel.data.axisType;
 motorType = motorModel.data.motorType;
 nmax      = motorModel.data.nmax;
 p         = motorModel.data.p;
+Rs        = motorModel.data.Rs;
 
 Vmax = Vdc/sqrt(3);
 
-id_MTPA = motorModel.AOA.MTPA.id;
-iq_MTPA = motorModel.AOA.MTPA.iq;
-T_MTPA  = motorModel.AOA.MTPA.T;
+id_MTPA = motorModel.controlTrajectories.MTPA.id;
+iq_MTPA = motorModel.controlTrajectories.MTPA.iq;
+T_MTPA  = motorModel.controlTrajectories.MTPA.T;
 
-I_MTPA = abs(id_MTPA+j*iq_MTPA);
+I_MTPA = abs(id_MTPA+1i*iq_MTPA);
 
-id_MTPV = motorModel.AOA.MTPV.id;
-iq_MTPV = motorModel.AOA.MTPV.iq;
-T_MTPV  = motorModel.AOA.MTPV.T;
+id_MTPV = motorModel.controlTrajectories.MTPV.id;
+iq_MTPV = motorModel.controlTrajectories.MTPV.iq;
+T_MTPV  = motorModel.controlTrajectories.MTPV.T;
 
-I_MTPV = abs(id_MTPV+j*iq_MTPV);
+I_MTPV = abs(id_MTPV+1i*iq_MTPV);
 
-I = abs(Id+j*Iq);
-F = abs(Fd+j*Fq);
+I = abs(Id+1i*Iq);
+F = abs(Fd+1i*Fq);
 
 if strcmp(motorType,'PM')
     ich = min(I_MTPV);
@@ -85,27 +86,8 @@ else
     end
 end
 
-F_A = interp2(Id,Iq,F,id_A,iq_A,'cubic');   % rated flux
-T_A = interp2(Id,Iq,T,id_A,iq_A,'cubic');   % rated torque
-
-w_A = Vmax/F_A;     % rated pulsation [rad/s elt]
-n_A = w_A*30/pi/p;  % rated speed [rpm]
-
-F_B = interp2(Id,Iq,F,id_B,iq_B,'cubic');
-T_B = interp2(Id,Iq,T,id_B,iq_B,'cubic');
-
-w_B = Vmax/F_B;
-n_B = w_B*30/pi/p;
-
-F_C = interp2(Id,Iq,F,id_C,iq_C,'cubic');
-T_C = interp2(Id,Iq,T,id_C,iq_C,'cubic');
-
-w_C = Vmax/F_C;
-n_C = w_C*30/pi/p;
-
-% tratto A-B
+% A-B segment
 c = contourc(unique(Id),unique(Iq),I,[Imax Imax]);
-
 id_Imax = (c(1,2:end));
 iq_Imax = (c(2,2:end));
 
@@ -117,7 +99,6 @@ if strcmp(axisType,'SR')
     if (ich<=Imax)
         id_BC = linspace(id_B,id_C,50);
         id_BC = id_BC(1:end-1);
-        %iq_BC = polyval(p_KvMax_i,id_BC);
         iq_BC = interp1(id_MTPV,iq_MTPV,id_BC,'linear','extrap');
     else
         id_BC = [id_B id_C];
@@ -131,8 +112,6 @@ else
     if (ich<=Imax)
         iq_BC = linspace(iq_B,iq_C,50);
         iq_BC = iq_BC(1:end-1);
-        %id_BC = polyval(p_KvMax_i,iq_BC);
-     %Definisco id_BC, prima non lo era - rev.Gallo
         id_BC = interp1(iq_MTPV,id_MTPV,iq_BC,'linear','extrap');
     else
         id_BC = [id_B id_C];
@@ -141,67 +120,69 @@ else
 end
 
 % PROFILO COPPIA - POT MAX
-F_AB = interp2(Id,Iq,F,id_AB,iq_AB,'cubic');
-
-if F_AB(end) > F_AB(1)
+fd_AB = interp2(Id,Iq,Fd,id_AB,iq_AB,'cubic');
+fq_AB = interp2(Id,Iq,Fq,id_AB,iq_AB,'cubic');
+F_AB = fd_AB + 1i*fq_AB;
+if abs(F_AB(end)) > abs(F_AB(1))
     F_AB  = fliplr(F_AB);
     id_AB = fliplr(id_AB);
     iq_AB = fliplr(iq_AB);
+    fd_AB = fliplr(fd_AB);
+    fq_AB = fliplr(fq_AB);
 end
-w_AB = Vmax ./ F_AB;
+fd_BC = interp2(Id,Iq,Fd,id_BC,iq_BC,'cubic');
+fq_BC = interp2(Id,Iq,Fq,id_BC,iq_BC,'cubic');
+F_BC = fd_BC + 1i*fq_BC;
+
 T_AB = interp2(Id,Iq,T,id_AB,iq_AB,'cubic');
-V_AB = w_AB .* F_AB;
-I_AB = abs(id_AB+j*iq_AB);
+I_AB = (id_AB+1i*iq_AB);
+% voltage equation (Vdq)max = R*idq + j*w*fdq --> w
+b = Rs*(fd_AB.*iq_AB-fq_AB.*id_AB)./abs(F_AB).^2;
+c = (Rs^2*abs(I_AB).^2-Vmax^2)./abs(F_AB).^2;
+w_AB = -b + sqrt(b.^2-c);
+V_AB = Rs*I_AB + 1i.*w_AB.*F_AB;
 
-F_BC = interp2(Id,Iq,F,id_BC,iq_BC,'cubic');
-w_BC = Vmax ./ F_BC;
 T_BC = interp2(Id,Iq,T,id_BC,iq_BC,'cubic');
-V_BC = w_BC .* F_BC;
-I_BC = abs(id_BC+j*iq_BC);
+I_BC = (id_BC+1i*iq_BC);
+% voltage equation (Vdq)max = R*idq + j*w*fdq --> w
+b = Rs*(fd_BC.*iq_BC-fq_BC.*id_BC)./(fd_BC.^2+fq_BC.^2);
+c = (Rs^2*(id_BC.^2+iq_BC.^2)-Vmax^2)./(fd_BC.^2+fq_BC.^2);
+w_BC = -b + sqrt(b.^2-c);
+V_BC = Rs*I_BC + 1i.*w_BC.*F_BC;
 
-% low speed values (w < w1)
+w_A = w_AB(1);     % rated pulsation [rad/s elt]
+w_B = w_AB(end);     
+w_C = w_BC(end);     
+
+n_A = w_A*30/pi/p;  % rated speed [rpm]
+n_B = w_B*30/pi/p;  
+n_C = w_C*30/pi/p;  
+
+% low speed values (w < w1, MTPA)
 w_0A = linspace(0,w_A,20);
-T_0A = ones(size(w_0A)) * T_A;
-V_0A = F_A * w_0A;
-I_0A = ones(size(w_0A)) * Imax;
+w_0A = w_0A(1:end-1);
 
-% limiti iq
+T_A = interp2(Id,Iq,T,id_A,iq_A,'cubic');   % rated torque
+T_B = interp2(Id,Iq,T,id_B,iq_B,'cubic');
+T_C = interp2(Id,Iq,T,id_C,iq_C,'cubic');
+
+T_0A = ones(size(w_0A)) * T_A;
+V_0A = (Rs*(id_A + 1i*iq_A) + 1i.*w_0A.*(fd_AB(1) + 1i*fq_AB(1)));
+
+% merge 0A - AB - BC
 id_max = [id_A*ones(size(w_0A)) id_AB id_BC];
 iq_max = [iq_A*ones(size(w_0A)) iq_AB iq_BC];
-
-F_max = [F_A*ones(size(w_0A)) F_AB F_BC];
-iq_min = zeros(size(iq_max));
-
-% a pieno carico
-fd_AB = interp2(Id,Iq,Fd,id_AB,iq_AB,'cubic');
-fd_BC = interp2(Id,Iq,Fd,id_BC,iq_BC,'cubic');
-fq_AB = interp2(Id,Iq,Fq,id_AB,iq_AB,'cubic');
-fq_BC = interp2(Id,Iq,Fq,id_BC,iq_BC,'cubic');
-% %  a vuoto
-% fq_AB_0 = interp2(id,iq,Fq,id_AB,0,'cubic');
-% fq_BC_0 = interp2(id,iq,Fq,id_BC,0,'cubic');
-% % fq_AB_0 = interp2(id,iq,Fd,id_AB,0);
-% % fq_BC_0 = interp2(id,iq,Fd,id_BC,0);
-% a vuoto
-
+I = id_max + 1i*iq_max;
 fd_max = [fd_AB(1)*ones(size(w_0A)) fd_AB fd_BC];
 fq_max = [fq_AB(1)*ones(size(w_0A)) fq_AB fq_BC];
-
-% fq_0 = [fq_AB_0(1)*ones(size(w_0A)) fq_AB_0 fq_BC_0];
-
-% F0 = abs(fd_max + j*fq_0);
-% temp = abs(fd_max + j*fq_max);
-% iq_min(lm > F_max) = iq_max(lm > F_max);
+F = fd_max + 1i*fq_max;
 
 % mechanical speed evaluation (IM only)
 % synchronous speed
 if exist('Wslip','var')
     wslip = interp2(Id,Iq,Wslip,id_max,iq_max,'cubic');
-    [a,last_number] = find(not(isnan(wslip)),1,'last');
+    [~,last_number] = find(not(isnan(wslip)),1,'last');
     wslip(isnan(wslip)) = wslip(last_number);
-    %     rot_temperature = 20;
-    %     ref_temperature = 100;
-    %temp_coeff = (234.5 + rot_temperature)/(234.5 + Rr_temp);
     temp_coeff=1;
     wslip = wslip * temp_coeff;
 else
@@ -209,41 +190,22 @@ else
 end
 
 w = [w_0A w_AB w_BC];
-wr = w - wslip;
+wr = (w - wslip)/p;
 
-% potenza meccanica corretta (a parte Pfe)
-P = [T_0A T_AB T_BC] .* wr/p;
-% calcolo sbagliato, manca wslip .. lascio per compatibilità con versioni prec
-if ~exist('Wslip','var')
-    P_AB = T_AB .* w_AB/p;
-    P_BC = T_BC .* w_BC/p;
-    P_0A = T_0A .* w_0A/p;
-    % Tmax = T_A;
-    % Pmax = max([P_AB P_BC])
-    
-%     PFlim = P ./ (3/2 * n3phase * [V_0A V_AB V_BC] .* [I_0A I_AB I_BC]); %AS
-    PF = interp2(Id,Iq,IPF,id_max,iq_max);
-else
-    w_0A=w_0A-wslip(1:length(w_0A));
-    w_AB=w_AB-wslip(length(w_0A)+1:length([w_0A w_AB]));
-    w_BC=w_BC-wslip(length([w_0A w_AB])+1:end);
-    
-    P_AB = T_AB .* w_AB/p;
-    P_BC = T_BC .* w_BC/p;
-    P_0A = T_0A .* w_0A/p;
-    
-    PF = interp2(Id,Iq,IPF,id_max,iq_max);
-end
+T = [T_0A T_AB T_BC];
+P = T.*wr;
+V = [V_0A V_AB V_BC];
+PF = cos(angle(V) - angle(I));
 
 % save Plim points
 Plim.wr     = wr;
-Plim.n      = wr * 30/pi/p;
+Plim.n      = wr * 30/pi;
 Plim.w      = w;
-Plim.P      = [P_0A P_AB P_BC];
-Plim.V      = [V_0A V_AB V_BC];
-Plim.I      = [I_0A I_AB I_BC];
-Plim.T      = [T_0A T_AB T_BC];
-Plim.F      = F_max;
+Plim.P      = P;
+Plim.V      = abs(V);
+Plim.I      = abs(I);
+Plim.T      = T;
+Plim.F      = abs(F);
 Plim.fd_max = fd_max;
 Plim.fq_max = fq_max;
 Plim.id_max = id_max;
@@ -252,30 +214,30 @@ Plim.PF     = PF;
 
 Plim.id_A   = id_A;
 Plim.iq_A   = iq_A;
-Plim.F_A    = F_A;
+Plim.F_A    = abs(F_AB(1));
 Plim.T_A    = T_A;
 Plim.n_A    = n_A;
 Plim.id_B   = id_B;
 Plim.iq_B   = iq_B;
-Plim.F_B    = F_B;
+Plim.F_B    = abs(F_AB(end));
 Plim.T_B    = T_B;
 Plim.n_B    = n_B;
 Plim.id_C   = id_C;
 Plim.iq_C   = iq_C;
-Plim.F_C    = F_C;
+Plim.F_C    = abs(F_BC(end));
 Plim.T_C    = T_C;
 Plim.n_C    = n_C;
 
-Plim.id_AB  = id_AB;
-Plim.iq_AB  = iq_AB;
-Plim.id_BC  = id_BC;
-Plim.iq_BC  = iq_BC;
+% Plim.id_AB  = id_AB;
+% Plim.iq_AB  = iq_AB;
+% Plim.id_BC  = id_BC;
+% Plim.iq_BC  = iq_BC;
 
-Plim.w_BC = w_BC;
-Plim.I_BC = I_BC;
-Plim.V_BC = V_BC;
-Plim.P_BC = P_BC;
-Plim.T_BC = T_BC;
+% Plim.w_BC = w_BC;
+% Plim.I_BC = I_BC;
+% Plim.V_BC = V_BC;
+% Plim.P_BC = P_BC;
+% Plim.T_BC = T_BC;
 
 
 

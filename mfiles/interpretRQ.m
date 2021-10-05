@@ -21,7 +21,7 @@ function [geo,gamma,mat] = interpretRQ(RQ,geo,mat)
 if not(isempty(geo.RQnames))
     if ~strcmp(mat.LayerMag.MatName,'Air')
         if (strcmp(geo.RotType,'Circular')||strcmp(geo.RotType,'Vtype'))
-            geo.PMdim = -ones(1,geo.nlay);
+            geo.PMdim = -[ones(1,geo.nlay);zeros(1,geo.nlay)];
         elseif (strcmp(geo.RotType,'Seg')||strcmp(geo.RotType,'ISeg'))
             geo.PMdim = -ones(2,geo.nlay);
         else
@@ -37,80 +37,44 @@ if not(isempty(geo.RQnames))
         end
     end
     
-    first_index = 1;
-    if strcmp(geo.RQnames{first_index},'dalpha')
-        last_index = first_index + geo.nlay-1;
-        geo.dalpha_pu = RQ(first_index:last_index);
-    else
-        last_index = 0;
-    end
     
-    % the sum of pu angles is rescaled to one
-    % alpha1 is not rescaled: only the angles from the second barrier onwards
-    if sum(geo.dalpha_pu) > (1-0.05) % 0.05 is the angular space guaranteed for the spider
-        if geo.dalpha_pu(1)>(1-0.05*(geo.nlay)) % max geo.dalpha_pu(1)=1-0.05-0.05*(nlay-1)
-            geo.dalpha_pu(1)=1-0.05*(geo.nlay);
+    
+    flagPM = 0;
+    flagHC = 0;
+    for ii=1:length(geo.RQnames)
+        eval(['geo.' geo.RQnames{ii} ' = ' num2str(RQ(ii)) ';'])
+        if contains(geo.RQnames{ii},'PMdim')
+            flagPM = 1;
         end
-        geo.dalpha_pu(2:end) = geo.dalpha_pu(2:end)/sum(geo.dalpha_pu(2:end))*(1-0.05-geo.dalpha_pu(1));
-    end
-    
-    first_index = last_index + 1;
-    if (length(geo.RQnames)>(last_index+1)||last_index==0)
-        if strcmp(geo.RQnames{first_index},'hc')
-            % hc per unit
-            last_index = first_index + geo.nlay - 1;
-            geo.hc_pu = RQ(first_index:last_index);
-            % debug
-            geo.hc_pu = sort(geo.hc_pu);
+        if contains(geo.RQnames{ii},'FBS')
+            geo.th_FBS = geo.th_FBS*pi/180;
         end
-    end
-    
-    first_index = last_index + 1;
-    if (length(geo.RQnames)>(last_index+1)||last_index==0)
-        if strcmp(geo.RQnames{first_index},'dx')
-            % dx per unit
-            last_index = first_index + geo.nlay - 1;
-            geo.dx = RQ(first_index:last_index);
-        end
-    end
-    
-    first_index = last_index + 1;
-    if length(geo.RQnames)>(last_index+1)
-        if strcmp(geo.RQnames{first_index},'Br')
-            % Br [T]
-            last_index = first_index + geo.nlay - 1;
-            mat.LayerMag.Br = RQ(first_index:last_index);
-        end
-    end
-    
-    first_index = last_index + 1;
-    if length(geo.RQnames)>(last_index+1)
-        if strcmp(geo.RQnames{first_index},'betaPMshape')
-            % Br [T]
-            last_index = first_index + geo.nlay - 1;
-            geo.betaPMshape = RQ(first_index:last_index);
-        end
-    end
-    
-    flagPM=0;
-    if length(geo.RQnames)>(last_index)
-        for k = last_index+1:length(geo.RQnames)
-            eval(['geo.' geo.RQnames{k} ' = ' num2str(RQ(k)) ';'])
-            if strcmp(geo.RQnames{k},'VanglePM')||strcmp(geo.RQnames{k},'th_FBS')
-                eval(['geo.' geo.RQnames{k} ' = ' num2str(RQ(k)) ' *pi/180;']);
-            end
-            if strcmp(geo.RQnames{k},'PMdim(1)')
-                flagPM=1;
-            end
+        if contains(geo.RQnames{ii},'hc_pu')
+            flagHC = 1;
         end
     end
     
     if flagPM
-        geo.PMdim = -geo.PMdim; % PMdim negative to use the per-unit notation (just during optimization)
+        geo.PMdim = -geo.PMdim; % negative during optimization
     end
-
+    
+    if flagHC
+        geo.hc_pu = sort(geo.hc_pu);
+    end
+    
+    if strcmp(geo.RQnames{ii},'gamma')
+        geo = rmfield(geo,'gamma');
+    end
     
 end
+
+if sum(geo.dalpha_pu) > (1-0.05) % 0.05 is the angular space guaranteed for the spider
+    if geo.dalpha_pu(1)>(1-0.05*(geo.nlay)) % max geo.dalpha_pu(1)=1-0.05-0.05*(nlay-1)
+        geo.dalpha_pu(1)=1-0.05*(geo.nlay);
+    end
+    geo.dalpha_pu(2:end) = geo.dalpha_pu(2:end)/sum(geo.dalpha_pu(2:end))*(1-0.05-geo.dalpha_pu(1));
+end
+
 
 geo.dalpha = geo.dalpha_pu*(90/geo.p);  % [mec degrees]
 % current phase angle
@@ -126,6 +90,6 @@ else
     end
 end
 
-if strcmp(geo.RotType,'SPM')&&ismember('hc',geo.RQnames)
+if strcmp(geo.RotType,'SPM')&&ismember('hc(1)',geo.RQnames)
     geo.lm = geo.hc_pu;
 end

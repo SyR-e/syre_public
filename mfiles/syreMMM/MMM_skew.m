@@ -14,12 +14,12 @@
 
 function [motorModel] = MMM_skew(motorModel,skewData,hEdit)
 
-motorModel.AOA         = [];
-motorModel.Inductance  = [];
-motorModel.idiq        = [];
-motorModel.dqtMapF     = [];
+motorModel.controlTrajectories = [];
+motorModel.IncInductanceMap_dq = [];
+motorModel.FluxMapInv_dq       = [];
+motorModel.FluxMapInv_dqt      = [];
 
-motorModel.skew        = skewData;
+motorModel.tmpSkew         = skewData;
 
 % dqtMap   = motorModel.dqtMap;
 
@@ -28,16 +28,16 @@ motorModel.skew        = skewData;
 
 % If dqtMap model is available, skew with dqt rules for flux maps and
 % dqtMap
-if ~isempty(motorModel.dqtMap)
+if ~isempty(motorModel.FluxMap_dqt)
     [dqtMap,fdfq] = skew_dqt(hEdit,motorModel);
 else
     dqtMap = [];
 end
 
-motorModel.fdfq      = fdfq;
-motorModel.dqtMap    = dqtMap;
-motorModel.ironLoss  = ironLoss;
-motorModel.skew      = skewData;
+motorModel.FluxMap_dq       = fdfq;
+motorModel.FluxMap_dqt      = dqtMap;
+motorModel.IronPMLossMap_dq = ironLoss;
+motorModel.tmpSkew          = skewData;
 
 
 

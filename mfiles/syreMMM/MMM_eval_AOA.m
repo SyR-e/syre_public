@@ -16,7 +16,7 @@
 function [AOA] = MMM_eval_AOA(motorModel,method)
 
 %% Load data
-fdfq = motorModel.fdfq;
+fdfq = motorModel.FluxMap_dq;
 axisType = motorModel.data.axisType;
 
 Id   = fdfq.Id;
@@ -31,7 +31,7 @@ PF   = sin(atan2(Iq,Id)-atan2(Fq,Fd));
 %% Extract curves
 
 %MTPA
-[id,iq] = calcOptCtrl(Id,Iq,T,abs(Id+j*Iq));
+[id,iq] = calcOptCtrl(Id,Iq,T,abs(Id+j*Iq),axisType);
 if ((id(1)~=0)&&(iq(1)~=0))
     id = [0 id];
     iq = [0 iq];
@@ -46,56 +46,64 @@ MTPA.iq   = iq;
 % MTPA.dTpp = interp2(Id,Iq,dTpp,id,iq);
 
 % MTPV
-[id,iq] = calcOptCtrl(Id,Iq,T,abs(Fd+j*Fq));
+[id,iq] = calcOptCtrl(Id,Iq,T,abs(Fd+j*Fq),axisType);
 
 MTPV.id = id;
 MTPV.iq = iq;
 
 % MPFPA
-[id,iq] = calcOptCtrl(Id,Iq,PF,abs(Id+j*Iq));
+[id,iq] = calcOptCtrl(Id,Iq,PF,abs(Id+j*Iq),axisType);
 
 MPFPA.id = id;
-MPFPA.iq = id;
+MPFPA.iq = iq;
 
 %% interpolate (if needed)
 
 nPoints = 101;
-nPoly = 7;
+
 
 if strcmp(method,'Fit')
+    ft = fittype('poly8');
     if strcmp(axisType,'SR')
-        p = polyfit(MTPA.id,MTPA.iq,nPoly);
-        MTPA.id = linspace(0,max(MTPA.id),nPoints);
-        MTPA.iq = polyval(p,MTPA.id);
-        
+        opts = fitoptions(...
+            'Method','LinearLeastSquares',...
+            'Lower',[zeros(1,8) 0],...
+            'Upper',[inf*ones(1,8),0]);
+        [xData,yData] = prepareCurveData(MTPA.id,MTPA.iq);
+        fitFun = fit(xData,yData,ft,opts);
+        MTPA.id = linspace(0,max(MTPA.id),nPoints)';
+        MTPA.iq = fitFun(MTPA.id);
         if ~isempty(MTPV.id)
-            p = polyfit(MTPV.id,MTPV.iq,nPoly);
-            MTPV.id = linspace(0,max(MTPV.id),nPoints);
-            MTPV.iq = polyval(p,MTPV.id);
+            opts = fitoptions(...
+                'Method','LinearLeastSquares',...
+                'Lower',[zeros(1,8)],...
+                'Upper',[inf*ones(1,8)]);
+            [xData,yData] = prepareCurveData(MTPV.id,MTPV.iq);
+            fitFun = fit(xData,yData,ft,opts);
+            MTPV.id = linspace(0,max(MTPV.id),nPoints)';
+            MTPV.iq = fitFun(MTPV.id);
         end
-        
-        p = polyfit(MPFPA.id,MPFPA.iq,nPoly);
-        MPFPA.id = linspace(0,max(MPFPA.id),nPoints);
-        MPFPA.iq = polyval(p,MPFPA.id);
     else
-        p = polyfit(MTPA.iq,MTPA.id,nPoly);
-        MTPA.iq = linspace(0,max(MTPA.iq),nPoints);
-        MTPA.id = polyval(p,MTPA.iq);
-        
-        if ~isempty(MTPV.id)
-            p = polyfit(MTPV.iq,MTPV.id,nPoly);
-            MTPV.iq = linspace(0,max(MTPV.iq),nPoints);
-            MTPV.id = polyval(p,MTPV.iq);
+        opts = fitoptions(...
+            'Method','LinearLeastSquares',...
+            'Upper',[zeros(1,8) 0],...
+            'Lower',[-inf*ones(1,8),0]);
+        [xData,yData] = prepareCurveData(MTPA.iq,MTPA.id);
+        fitFun = fit(xData,yData,ft,opts);
+        MTPA.iq = linspace(0,max(MTPA.iq),nPoints)';
+        MTPA.id = fitFun(MTPA.iq);
+        if ~isempty(MTPV.iq)
+            opts = fitoptions(...
+                'Method','LinearLeastSquares',...
+                'Upper',[zeros(1,8)],...
+                'Lower',[-inf*ones(1,8)]);
+            [xData,yData] = prepareCurveData(MTPV.iq,MTPV.id);
+            fitFun = fit(xData,yData,ft,opts);
+            MTPV.iq = linspace(0,max(MTPV.iq),nPoints)';
+            MTPV.id = fitFun(MTPV.iq);
         end
-        
-        p = polyfit(MPFPA.iq,MPFPA.id,nPoly);
-        MPFPA.iq = linspace(0,max(MPFPA.iq),nPoints);
-        MPFPA.id = polyval(p,MPFPA.iq);
-        
     end
-    
     AOA.method = 'Fit';
-    
 else
     AOA.method = 'LUT';
 end

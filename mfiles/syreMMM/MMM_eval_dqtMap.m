@@ -122,42 +122,16 @@ if filename
             Fq = repmat(FqTmp,1,nRep);
             T  = repmat(TTmp,1,nRep);
             
-            switch xdeg
-                case 360
-                    Fa = FaTmp;
-                    Fb = FbTmp;
-                    Fc = FcTmp;
-                    
-                    Ia = IaTmp;
-                    Ib = IbTmp;
-                    Ic = IcTmp;
-                case 60
-                    Fa = [FaTmp -FbTmp FcTmp -FaTmp FbTmp -FcTmp];
-                    Fb = [FbTmp -FcTmp FaTmp -FbTmp FcTmp -FaTmp];
-                    Fc = [FcTmp -FaTmp FbTmp -FcTmp FaTmp -FbTmp];
-                    
-                    Ia = [IaTmp -IbTmp IcTmp -IaTmp IbTmp -IcTmp];
-                    Ib = [IbTmp -IcTmp IaTmp -IbTmp IcTmp -IaTmp];
-                    Ic = [IcTmp -IaTmp IbTmp -IcTmp IaTmp -IbTmp];
-                case 120
-                    Fa = [FaTmp FcTmp FbTmp];
-                    Fb = [FbTmp FaTmp FcTmp];
-                    Fc = [FcTmp FbTmp FaTmp];
-                    
-                    Ia = [IaTmp IcTmp IbTmp];
-                    Ib = [IbTmp IaTmp IcTmp];
-                    Ic = [IcTmp IbTmp IaTmp];
-                case 180
-                    Fa = [FaTmp -FaTmp];
-                    Fb = [FbTmp -FbTmp];
-                    Fc = [FcTmp -FcTmp];
-                    
-                    Ia = [IaTmp -IaTmp];
-                    Ib = [IbTmp -IbTmp];
-                    Ic = [IcTmp -IcTmp];
-                    
-            end
+            Iph = phaseQuantityDecoding(IaTmp,IbTmp,IcTmp,xdeg);
+            Ia = Iph.a(1,:);
+            Ib = Iph.b(1,:);
+            Ic = Iph.c(1,:);
             
+            Fph = phaseQuantityDecoding(FaTmp,FbTmp,FcTmp,xdeg);
+            Fa = Fph.a(1,:);
+            Fb = Fph.b(1,:);
+            Fc = Fph.c(1,:);
+                        
             Id = Id(index);
             Iq = Iq(index);
             Fd = Fd(index);
@@ -200,14 +174,14 @@ if filename
     Fmap.dTpp = max(dqtMap.data.T,[],3)-min(dqtMap.data.T,[],3);
     
     % fdfq_idiq_n256
-    fdfq.Id=linspace(min(min(Fmap.Id)),max(max(Fmap.Id)),256);
-    fdfq.Iq=linspace(min(min(Fmap.Iq)),max(max(Fmap.Iq)),256);
-    [fdfq.Id,fdfq.Iq]=meshgrid(fdfq.Id,fdfq.Iq);
-    fdfq.Fd   = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.Fd',fdfq.Id,fdfq.Iq,'spline');
-    fdfq.Fq   = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.Fq',fdfq.Id,fdfq.Iq,'spline');
-    fdfq.T    = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.T',fdfq.Id,fdfq.Iq,'spline');
-    fdfq.dT   = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.dT',fdfq.Id,fdfq.Iq,'spline');
-    fdfq.dTpp = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.dTpp',fdfq.Id,fdfq.Iq,'spline');
+%     fdfq.Id=linspace(min(min(Fmap.Id)),max(max(Fmap.Id)),256);
+%     fdfq.Iq=linspace(min(min(Fmap.Iq)),max(max(Fmap.Iq)),256);
+%     [fdfq.Id,fdfq.Iq]=meshgrid(fdfq.Id,fdfq.Iq);
+%     fdfq.Fd   = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.Fd',fdfq.Id,fdfq.Iq,'spline');
+%     fdfq.Fq   = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.Fq',fdfq.Id,fdfq.Iq,'spline');
+%     fdfq.T    = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.T',fdfq.Id,fdfq.Iq,'spline');
+%     fdfq.dT   = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.dT',fdfq.Id,fdfq.Iq,'spline');
+%     fdfq.dTpp = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.dTpp',fdfq.Id,fdfq.Iq,'spline');
     
     % Interpolant
     fInt.Id = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Id,'spline');
@@ -219,6 +193,9 @@ if filename
     fInt.Fa = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fa,'spline');
     fInt.Fb = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fb,'spline');
     fInt.Fc = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fc,'spline');
+    fInt.Ia = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ia,'spline');
+    fInt.Ib = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ib,'spline');
+    fInt.Ic = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ic,'spline');
     
     % dqtMap.Fmap=Fmap;
     dqtMap.fInt=fInt;

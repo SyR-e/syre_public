@@ -23,14 +23,14 @@ if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder])
 end
 
-Id     = motorModel.fdfq.Id;
-Iq     = motorModel.fdfq.Iq;
-Fd     = motorModel.fdfq.Fd;
-Fq     = motorModel.fdfq.Fq;
-T      = motorModel.fdfq.T;
-dT     = motorModel.fdfq.dT;
-dTpp   = motorModel.fdfq.dTpp;
-dqtMap = motorModel.dqtMap;
+Id     = motorModel.FluxMap_dq.Id;
+Iq     = motorModel.FluxMap_dq.Iq;
+Fd     = motorModel.FluxMap_dq.Fd;
+Fq     = motorModel.FluxMap_dq.Fq;
+T      = motorModel.FluxMap_dq.T;
+dT     = motorModel.FluxMap_dq.dT;
+dTpp   = motorModel.FluxMap_dq.dTpp;
+dqtMap = motorModel.FluxMap_dqt;
 
 
 %save([pathname resFolder 'dqtMap.mat'],'dqtMap')

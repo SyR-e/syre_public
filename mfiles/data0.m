@@ -36,7 +36,7 @@ per.tempcu = dataIn.TargetCopperTemp;           % Target Copper Temperature [C]
 %     per.Vdc = dataIn.DCVoltage;              % dc-link voltage [V]
 per.overload = dataIn.CurrOverLoad;           % current overload factor used for optimization (1 means Joule loss = per.Loss)
 per.BrPP = dataIn.BrPP;                       % Br used for postprocessing [T]
-    per.tempPP = dataIn.tempPP;                   % PMs temperature in postprocessing [°C]
+per.tempPP = dataIn.tempPP;                   % PMs temperature in postprocessing [°C]
 per.temphous = dataIn.HousingTemp;            % Housing Temperature [C]
 per.tempcuest = dataIn.EstimatedCopperTemp;   % Estimated Copper Temperatue [C]
 
@@ -48,10 +48,12 @@ per.Lend = dataIn.Lend;
 % MOOA goals penalization tresholds
 per.min_exp_torque = dataIn.MinExpTorque;      % minimum expected torque [Nm]
 per.max_exp_ripple = dataIn.MaxRippleTorque;    % maximum expected torque ripple in pu during opimization
-per.max_Cu_mass = dataIn.MaxCuMass;         % maximum expected copper mass [kg]
-per.max_PM_mass= dataIn.MaxPMMass;        % massima massa magneti totale [kg]
-
-per.EvalSpeed = dataIn.EvalSpeed;
+per.max_Cu_mass    = dataIn.MaxCuMass;         % maximum expected copper mass [kg]
+per.max_PM_mass    = dataIn.MaxPMMass;        % massima massa magneti totale [kg]
+per.min_pf         = dataIn.MinExpPowerFactor;
+per.max_fdq0       = dataIn.MaxExpNoLoadFlux;
+% per.max_mechstress = dataIn.MaxExpMechStress;
+per.EvalSpeed      = dataIn.EvalSpeed;
 
 % number of simulated rotor positions
 % MOOA means during the optimization
@@ -87,8 +89,8 @@ geo.RotType = dataIn.TypeOfRotor;
 % 'Vtype'   : Vtype barriers
 % geo.RemoveTMPfile = dataIn.RMVTmp;      % 'ON' of 'OFF' for remuving the motor folders in tmp
 
-geo.RaccBarrier='OFF';
-% geo.DTrasl=0;
+% geo.RaccBarrier='OFF';
+%geo.DTrasl=0;
 
 geo.p  = dataIn.NumOfPolePairs;   % pole pairs
 geo.R  = dataIn.StatorOuterRadius;% stator outer radius [mm]
@@ -102,13 +104,14 @@ geo.q   = dataIn.NumOfSlots;      % stator slots per pole per phase
 geo.lt  = dataIn.ToothLength;    % tooth length [mm]
 geo.acs = dataIn.StatorSlotOpen; % stator slot opening [p.u.]
 geo.wt  = dataIn.ToothWidth;       % tooth width [mm]
+geo.st  = dataIn.SlotWidth;
 
 if dataIn.ParallelSlotCheck
     geo.parallel_slot = 1;
 else
     geo.parallel_slot = 0;
 end
-    
+
 geo.betaPMshape = dataIn.betaPMshape;               % barrier filling factor
 
 geo.ttd = dataIn.ToothTangDepth;   % tooth tang depth [mm]
@@ -124,7 +127,7 @@ else
 end
 
 geo.racc_pont = 1 * geo.pont0;                  % radius of the fillet at the sides of inner bridges (if any) [mm]
-geo.ang_pont0 = geo.pont0 / geo.r * 180/pi;    % span of the arc corresponding to pont0 at the airgap radius [deg]
+% geo.ang_pont0 = geo.pont0 / geo.r * 180/pi;    % span of the arc corresponding to pont0 at the airgap radius [deg]
 geo.hfe_min   = 2*geo.pont0;                      % min tickness of each steel flux guide
 
 % winding description
@@ -141,16 +144,19 @@ else
     geo.win.slot_layer_pos = 'over_under';
 end
 geo.win.Lend = dataIn.Lend; % end turn inductance
+
 % slot model
-geo.win.condType  = dataIn.SlotConductorType;
-geo.win.condIns   = dataIn.SlotConductorInsulation;
-geo.win.condShape = dataIn.SlotConductorShape;
-geo.win.rCond     = dataIn.SlotConductorRadius;
-geo.win.wCond     = dataIn.SlotConductorWidth;
-geo.win.hCond     = dataIn.SlotConductorHeight;
-geo.win.nCond     = dataIn.SlotConductorNumber;
-per.slotModelFreq = dataIn.SlotConductorFrequency;
-per.slotModelTemp = dataIn.SlotConductorTemperature;
+geo.win.condType   = dataIn.SlotConductorType;
+geo.win.condIns    = dataIn.SlotConductorInsulation;
+geo.win.condShape  = dataIn.SlotConductorShape;
+geo.win.rCond      = dataIn.SlotConductorRadius;
+geo.win.wCond      = dataIn.SlotConductorWidth;
+geo.win.hCond      = dataIn.SlotConductorHeight;
+geo.win.nCond      = dataIn.SlotConductorNumber;
+geo.win.pCond      = round(geo.p*geo.q*geo.win.nCond/geo.win.Ns,2);
+geo.win.gapBotCond = dataIn.SlotConductorBottomGap;
+per.slotModelFreq  = dataIn.SlotConductorFrequency;
+per.slotModelTemp  = dataIn.SlotConductorTemperature;
 
 geo.Qs         = dataIn.Qs;                     % number of stator slots in the FEMM simulation
 
@@ -158,6 +164,9 @@ geo.nmax = dataIn.OverSpeed; % overspeed [rpm]
 
 geo.lm = dataIn.ThicknessOfPM;
 geo.phi = dataIn.AngleSpanOfPM;
+
+geo.lend = dataIn.EndWindingsLength;
+
 % direction of magnetization in PMs of SPM with multiple segments of PM
 geo.PMdir = 'p';    % parallel direction
 geo.PMdir = 'r';    % radial direction
@@ -179,16 +188,17 @@ geo.hcShrink = dataIn.CentralShrink;
 % PM sizing
 geo.PMdim     = dataIn.PMdim;
 geo.flagPMFBS = 0;  % PMFBS==0 --> PMs are not deformed during FBS
-                    % PMFBS==1 --> PMs are deformend during FBS according to the barrier area
+% PMFBS==1 --> PMs are deformend during FBS according to the barrier area
 geo.PMclear = dataIn.PMclear;
 % tangential and radial ribs
 geo.pontT = dataIn.TanRibEdit;
 geo.pontR = dataIn.RadRibEdit;
 geo.radial_ribs_eval = dataIn.RadRibCheck;
 geo.radial_ribs_split = dataIn.RadRibSplit;
-geo.RotorFillet = dataIn.RotorFillet;
-geo.pontRang = dataIn.pontRangEdit;
+geo.RotorFilletTan1 = dataIn.RotorFilletTan1;
+geo.RotorFilletTan2 = dataIn.RotorFilletTan2;
 geo.pontRoffset = dataIn.pontRoffsetEdit;
+geo.pontRang = dataIn.pontRangEdit;
 geo.RotorFillet1 = dataIn.RotorFilletIn;
 geo.RotorFillet2 = dataIn.RotorFilletOut;
 
@@ -199,54 +209,7 @@ geo.th_FBS = dataIn.thetaFBS*pi/180;  % th_FBS is the shift angle in mechanical 
 geo.slidingGap = dataIn.slidingGap;
 
 %% bounds: limits of the search space
-% dalpha1 [p.u.]
-bounds_dalpha_1 = [dataIn.Alpha1Bou(1) dataIn.Alpha1Bou(2)];   % first angle [deg]
-% dalpha(2:nlay) [p.u.]
-if geo.nlay == 1
-    bounds_dalpha = [dataIn.DeltaAlphaBou(1) dataIn.DeltaAlphaBou(2)]; % other angles [p.u.]
-else
-    bounds_dalpha = ones(geo.nlay-1,1) * [dataIn.DeltaAlphaBou(1) dataIn.DeltaAlphaBou(2)]; % other angles [p.u.]
-end
 
-if strcmp(geo.RotType, 'SPM')
-    % thickness of PM
-    bounds_hc = geo.lm * [dataIn.hcBou(1) dataIn.hcBou(2)];
-else
-    % barrier ticknesses [p.u.]
-    bounds_hc = ones(geo.nlay,1) * [dataIn.hcBou(1)  dataIn.hcBou(2)];
-end
-% barriers radial offset [p.u.]
-bounds_dx = ones(geo.nlay,1) * [dataIn.DfeBou(1) dataIn.DfeBou(2)];
-% remanence of the PMs
-bounds_Br = ones(geo.nlay,1) * [dataIn.BrBou(1) dataIn.BrBou(2)];
-% airgap
-bounds_g = [dataIn.GapBou(1)  dataIn.GapBou(2)];
-% Rotor radius
-bounds_xr = [dataIn.GapRadiusBou(1) dataIn.GapRadiusBou(2)];
-% Tooth width [mm]
-bounds_wt = [dataIn.ToothWiBou(1) dataIn.ToothWiBou(2)];
-% Tooth length [mm]
-bounds_lt = [dataIn.ToothLeBou(1) dataIn.ToothLeBou(2)];
-% stator slot opening [p.u.]
-bounds_acs = [dataIn.StatorSlotOpenBou(1) dataIn.StatorSlotOpenBou(2)];
-% tooth tang depth [mm]
-bounds_ttd = [dataIn.ToothTangDepthBou(1) dataIn.ToothTangDepthBou(2)];
-% phase angle of the current vector
-bounds_gamma = [dataIn.PhaseAngleCurrBou(1) dataIn.PhaseAngleCurrBou(2)];
-% FBS
-bounds_thFBS = [dataIn.ThetaFBSBou(1) dataIn.ThetaFBSBou(2)];
-% PM shape
-bounds_beta = ones(geo.nlay,1) * [dataIn.BetaPMshapeBou(1) dataIn.BetaPMshapeBou(2)];
-% PMdim
-if (strcmp(dataIn.TypeOfRotor,'Seg')||strcmp(dataIn.TypeOfRotor,'ISeg'))
-    indexPM = [1:1:geo.nlay;geo.nlay+(1:1:geo.nlay)];
-elseif (strcmp(dataIn.TypeOfRotor,'Circular')||strcmp(dataIn.TypeOfRotor,'Vtype'))
-    indexPM = 1:1:geo.nlay;geo.nlay;
-else
-    indexPM = zeros(1,geo.nlay);
-end
-
-bounds_PMdim = indexPM(:)./indexPM(:) * [dataIn.PMdimBou(1) dataIn.PMdimBou(2)];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% SETTINGS OF MODE
@@ -254,52 +217,109 @@ bounds_PMdim = indexPM(:)./indexPM(:) * [dataIn.PMdimBou(1) dataIn.PMdimBou(2)];
 
 %% RQ and bounds
 % RQ: vector of the n optimization inputs
-% bounds: n x 2 vector containing the boundaries of each input
-yes_vector = ones(geo.nlay,1);
-no_vector  = zeros(geo.nlay,1);
-% Added case Vtype - rev.Gallo
-if (strcmp(geo.RotType,'Fluid') || strcmp(geo.RotType,'Seg') || strcmp(geo.RotType,'Circular') || strcmp(geo.RotType,'Vtype'))
-    flag_dx = yes_vector*dataIn.DxBouCheck;
-else
-    flag_dx = no_vector*dataIn.DxBouCheck;
+% bounds: n x 2 vector containing the boundaries of each input and the flag
+% if enabled (third column used just in the creation, then filtered and
+% deleted)
+
+rr = 1;
+for ii=1:geo.nlay
+    RQnames{rr} = ['dalpha_pu(' int2str(ii) ')'];
+    if ii==1
+        bounds(rr,:) = [dataIn.Alpha1Bou dataIn.Dalpha1BouCheck];
+    else
+        bounds(rr,:) = [dataIn.DeltaAlphaBou dataIn.DalphaBouCheck];
+    end
+    rr=rr+1;
 end
-% Re-define bounds case nlay=1 - rev.Gallo
-if geo.nlay == 1
-    bounds = [
-        bounds_dalpha_1 dataIn.Dalpha1BouCheck
-        bounds_dalpha   yes_vector(1)*dataIn.DalphaBouCheck
-        bounds_hc       dataIn.hcBouCheck
-        bounds_dx       flag_dx
-        bounds_Br       dataIn.BrBouCheck
-        bounds_beta     dataIn.BetaPMshapeBouCheck
-        bounds_g        dataIn.GapBouCheck
-        bounds_xr       dataIn.AirgapRadiusBouCheck
-        bounds_wt       dataIn.ToothWidthBouCheck
-        bounds_lt       dataIn.ToothLengthBouCheck
-        bounds_acs      dataIn.StatorSlotOpenBouCheck
-        bounds_ttd      dataIn.ToothTangDepthBouCheck
-        bounds_thFBS    dataIn.ThetaFBSBouCheck
-        bounds_PMdim    dataIn.PMdimBouCheck*(indexPM(:)./indexPM(:))
-        bounds_gamma    dataIn.GammaBouCheck];
-else
-    bounds = [
-        bounds_dalpha_1 dataIn.Dalpha1BouCheck
-        bounds_dalpha   yes_vector(1:end-1)*dataIn.DalphaBouCheck
-        bounds_hc       yes_vector*dataIn.hcBouCheck
-        bounds_dx       flag_dx
-        bounds_Br       yes_vector*dataIn.BrBouCheck
-        bounds_beta     yes_vector*dataIn.BetaPMshapeBouCheck
-        bounds_g        dataIn.GapBouCheck
-        bounds_xr       dataIn.AirgapRadiusBouCheck
-        bounds_wt       dataIn.ToothWidthBouCheck
-        bounds_lt       dataIn.ToothLengthBouCheck
-        bounds_acs      dataIn.StatorSlotOpenBouCheck
-        bounds_ttd      dataIn.ToothTangDepthBouCheck
-        bounds_thFBS    dataIn.ThetaFBSBouCheck
-        bounds_PMdim    dataIn.PMdimBouCheck*(indexPM(:)./indexPM(:))
-        bounds_gamma    dataIn.GammaBouCheck];
-    
+for ii=1:geo.nlay
+    RQnames{rr} = ['hc_pu(' int2str(ii) ')'];
+    if strcmp(geo.RotType,'SPM')
+        bounds(rr,:) = [geo.lm*dataIn.hcBou dataIn.hcBouCheck];
+    else
+        bounds(rr,:) = [dataIn.hcBou dataIn.hcBouCheck];
+    end
+    rr=rr+1;
 end
+for ii=1:geo.nlay
+    RQnames{rr} = ['dx(' int2str(ii) ')'];
+    bounds(rr,:) = [dataIn.DfeBou dataIn.DxBouCheck];
+    if ~(strcmp(geo.RotType,'Fluid') || strcmp(geo.RotType,'Seg') || strcmp(geo.RotType,'Circular') || strcmp(geo.RotType,'Vtype'))
+        bounds(rr,3) = 0; % dx not included for SPM and ISeg
+    end
+    rr=rr+1;
+end
+for ii=1:geo.nlay
+    RQnames{rr} = ['Br(' int2str(ii) ')'];
+    bounds(rr,:) = [dataIn.BrBou dataIn.BrBouCheck];
+    rr=rr+1;
+end
+
+RQnames{rr} = 'g';          % airgap
+bounds(rr,:) = [dataIn.GapBou dataIn.GapBouCheck];
+rr = rr+1;
+RQnames{rr} = 'r';          % rotor radius
+bounds(rr,:) = [dataIn.GapRadiusBou dataIn.AirgapRadiusBouCheck];
+rr = rr+1;
+RQnames{rr} = 'wt';         % tooth width
+bounds(rr,:) = [dataIn.ToothWiBou dataIn.ToothWidthBouCheck];
+rr = rr+1;
+RQnames{rr} = 'lt';         % tooth length
+bounds(rr,:) = [dataIn.ToothLeBou dataIn.ToothLengthBouCheck];
+rr = rr+1;
+RQnames{rr} = 'acs';        % stator slot opening [p.u.]
+bounds(rr,:) = [dataIn.StatorSlotOpenBou dataIn.StatorSlotOpenBouCheck];
+rr = rr+1;
+RQnames{rr} = 'ttd';        % tooth tang depth [mm]
+bounds(rr,:) = [dataIn.ToothTangDepthBou dataIn.ToothTangDepthBouCheck];
+rr = rr+1;
+RQnames{rr} = 'th_FBS';     % flux barrier shift [mech deg]
+bounds(rr,:) = [dataIn.ThetaFBSBou dataIn.ThetaFBSBouCheck];
+rr = rr+1;
+
+for ii=1:geo.nlay
+    RQnames{rr} = ['betaPMshape(' int2str(ii) ')'];
+    bounds(rr,:) = [dataIn.BetaPMshapeBou dataIn.BetaPMshapeBouCheck];
+    rr=rr+1;
+end
+
+for ii=1:length(geo.PMdim(:))
+    RQnames{rr} = ['PMdim(' int2str((ii)) ')'];
+    bounds(rr,:) = [dataIn.PMdimBou dataIn.PMdimBouCheck];
+    if (strcmp(geo.RotType,'Circular')||strcmp(geo.RotType,'Vtype'))
+        if rem(ii,2)==0
+            bounds(rr,3) = 0; % just central PM for Circular and Vtype
+        end
+    end
+    rr=rr+1;
+end
+
+for ii=1:geo.nlay
+    RQnames{rr} = ['pontR(' int2str(ii) ')'];
+    bounds(rr,:) = [dataIn.RadRibBou dataIn.RadRibBouCheck];
+    rr=rr+1;
+end
+
+for ii=1:geo.nlay
+    RQnames{rr} = ['pontT(' int2str(ii) ')'];
+    bounds(rr,:) = [dataIn.TanRibBou dataIn.TanRibBouCheck];
+    rr=rr+1;
+end
+
+for ii=1:geo.nlay
+    RQnames{rr} = ['hcShrink(' int2str(ii) ')'];
+    bounds(rr,:) = [dataIn.CentralShrinkBou dataIn.CentralShrinkBouCheck];
+    rr=rr+1;
+end
+
+for ii=1:geo.nlay
+    RQnames{rr} = ['dxIB(' int2str(ii) ')'];
+    bounds(rr,:) = [dataIn.RadShiftInnerBou dataIn.RadShiftInnerBouCheck];
+    rr=rr+1;
+end
+
+RQnames{rr} = 'gamma';
+bounds(rr,:) = [dataIn.PhaseAngleCurrBou dataIn.GammaBouCheck];
+
 
 filt_bounds = (bounds(:,3)==1);
 if geo.nlay == 1
@@ -307,13 +327,19 @@ if geo.nlay == 1
     bounds(2,:) = [];
 end
 bounds = bounds(filt_bounds,1:2);
+RQnames = RQnames(filt_bounds);
+geo.RQnames = RQnames;
 
 %% OBJECTIVES
 objs = [
-    per.min_exp_torque  dataIn.TorqueOptCheck
-    per.max_exp_ripple  dataIn.TorRipOptCheck
-    per.max_Cu_mass     dataIn.MassCuOptCheck
-    per.max_PM_mass     dataIn.MassPMOptCheck];
+    per.min_exp_torque  dataIn.TorqueOptCheck           0
+    per.max_exp_ripple  dataIn.TorRipOptCheck           0
+    per.max_Cu_mass     dataIn.MassCuOptCheck           0
+    per.max_PM_mass     dataIn.MassPMOptCheck           0
+    per.min_pf          dataIn.PowerFactorOptCheck      0.1
+    per.max_fdq0        dataIn.NoLoadFluxOptCheck       0
+    ];
+per.MechStressOptCheck =  0;
 
 filt_objs = (objs(:,2)==1);
 objs = objs(objs(:,2)==1,:);
@@ -321,68 +347,21 @@ per.objs=objs;
 
 % end
 
-% names of the variables in RQ
-RQnames{1} = 'dalpha';
-if geo.nlay > 1
-    for k = 2:geo.nlay
-        RQnames{k} = 'dalpha';
-    end
-    kend = k;
-    for k = kend+1:kend+geo.nlay
-        RQnames{k} = 'hc';
-    end
-    kend = k;
-    for k = kend+1:kend+geo.nlay
-        RQnames{k} = 'dx';
-    end
-    kend = k;
-    for k = kend+1:kend+geo.nlay
-        RQnames{k} = 'Br';
-    end
-    kend = k;
-    for k = kend+1:kend+geo.nlay
-        RQnames{k} = 'betaPMshape';
-    end
-else
-    RQnames{2} = 'hc';
-    RQnames{3} = 'dx';
-    RQnames{4} = 'Br';
-    RQnames{5} = 'betaPMshape';
-    k = 5;
-end
-RQnames{k+1} = 'g';         % airgap
-RQnames{k+2} = 'r';         % rotor radius
-RQnames{k+3} = 'wt';        % tooth width
-RQnames{k+4} = 'lt';        % tooth length
-RQnames{k+5} = 'acs';       % stator slot opening [p.u.]
-RQnames{k+6} = 'ttd';       % tooth tang depth [mm]
-RQnames{k+7} = 'th_FBS';    % flux barrier shift [mech deg]
-
-k=k+8;
-
-for ii=1:numel(indexPM)
-    RQnames{k} = ['PMdim(' int2str(indexPM(ii)) ')'];
-    k=k+1;
-end
-
-RQnames{k} = 'gamma';     % idq current phase angle
-
-% eliminate unnecessary RQnames
-RQnames = RQnames(filt_bounds);
-geo.RQnames = RQnames;
-
 % names of the MODE objectives
 OBJnames{1} = 'Torque';
 OBJnames{2} = 'TorRip';
 OBJnames{3} = 'MassCu';
 OBJnames{4} = 'MassPM';
+OBJnames{5} = 'PF';
+OBJnames{6} = 'Fdq0';
+% OBJnames{7} = 'MechStress';
 
 % eliminate unnecessary OBJnames
 OBJnames = OBJnames(filt_objs);
 geo.OBJnames = OBJnames;
 
-% Machine periodicity
-Q = 6*geo.q*geo.p*geo.win.n3phase;          % number of slots
+%% Machine periodicity
+Q = round(6*geo.q*geo.p*geo.win.n3phase);          % number of slots
 geo.t = gcd(Q,geo.p);    % number of periods
 t2=gcd(Q,2*geo.p);
 QsCalc=Q/t2;

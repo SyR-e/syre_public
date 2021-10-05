@@ -43,10 +43,9 @@ AngularSpanPP = dataIn.AngularSpanPP;
 NumGrid = dataIn.NumGrid;
 tempPP = dataIn.tempPP;
 
-% Iron Loss Input
-% if dataIn.LossEvaluationCheck == 1
 per.EvalSpeed = dataIn.EvalSpeed;
-% end
+
+MapQuadrants = dataIn.MapQuadrants;
 
 clc;
 
@@ -62,8 +61,30 @@ per.tempPP          = tempPP;
 % iAmp = dataIn.SimulatedCurrent;
 
 % flux map over a rectangular grid of (id,iq) combinations
-switch length(SimulatedCurrent)
-    case 1  % square domain
+% switch length(SimulatedCurrent)
+%     case 1  % square domain
+%         if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
+%             idvect = linspace(-SimulatedCurrent,0,NumGrid);
+%             iqvect = linspace(0,SimulatedCurrent,NumGrid);
+%         else
+%             idvect = linspace(0,SimulatedCurrent,NumGrid);
+%             iqvect = linspace(0,SimulatedCurrent,NumGrid);
+%         end
+%     case 2  % rectangular domain
+%         if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
+%             idvect = linspace(-SimulatedCurrent(1),0,NumGrid);
+%             iqvect = linspace(0,SimulatedCurrent(2),NumGrid);
+%         else
+%             idvect = linspace(0,SimulatedCurrent(1),NumGrid);
+%             iqvect = linspace(0,SimulatedCurrent(2),NumGrid);
+%         end
+%     case 4  % CurrLoPP = [IdMin IdMax IqMin IqMax]
+%         idvect=linspace(SimulatedCurrent(1),SimulatedCurrent(2),NumGrid);
+%         iqvect=linspace(SimulatedCurrent(3),SimulatedCurrent(4),NumGrid);
+% end
+
+switch MapQuadrants
+    case 1
         if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
             idvect = linspace(-SimulatedCurrent,0,NumGrid);
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
@@ -71,18 +92,24 @@ switch length(SimulatedCurrent)
             idvect = linspace(0,SimulatedCurrent,NumGrid);
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
         end
-    case 2  % rectangular domain
+    case 2
         if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
-            idvect = linspace(-SimulatedCurrent(1),0,NumGrid);
-            iqvect = linspace(0,SimulatedCurrent(2),NumGrid);
+            idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
+            iqvect = linspace(0,SimulatedCurrent,NumGrid);
         else
-            idvect = linspace(0,SimulatedCurrent(1),NumGrid);
-            iqvect = linspace(0,SimulatedCurrent(2),NumGrid);
+            idvect = linspace(0,SimulatedCurrent,NumGrid);
+            iqvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
         end
-    case 4  % CurrLoPP = [IdMin IdMax IqMin IqMax]
-        idvect=linspace(SimulatedCurrent(1),SimulatedCurrent(2),NumGrid);
-        iqvect=linspace(SimulatedCurrent(3),SimulatedCurrent(4),NumGrid);
+    case 4
+        if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
+            idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
+            iqvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
+        else
+            idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
+            iqvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
+        end
 end
+
 
 [Id,Iq] = meshgrid(idvect,iqvect);
 
@@ -197,7 +224,7 @@ if ~exist([pathname resFolder],'dir')
 end
 
 % NewDir = [pathname resFolder filemot(1:end-4) '_F_map_' Idstr 'x' Iqstr '_' int2str(per.tempPP) 'deg'];
-NewDir = [pathname resFolder 'F_map_' Idstr 'x' Iqstr '_' int2str(per.tempPP) 'deg'];
+NewDir = [pathname resFolder 'F_map_' Idstr 'x' Iqstr '_' int2str(per.tempPP) 'deg_' int2str(MapQuadrants) 'Q'];
 if exist('Pfes_h')
     nStr = int2str(per.EvalSpeed);
     nStr = strrep(nStr,'.','rpm');

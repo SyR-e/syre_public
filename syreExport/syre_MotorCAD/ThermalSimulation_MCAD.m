@@ -90,19 +90,21 @@ if tmp == 2
     
     switch th_eval_type
         case char('Transient')
-            
+
             %Whole machine at specified temperature
             invoke(mcad,'SetVariable','InitialTransientTemperatureOption',3);
-            %dataSet.MachineTemperature = 80;
-            tmp = dataSet.MachineTemperature;
+            tmp = dataSet.InitTemp;
             tmp = num2str(tmp);
             tmp(tmp=='.')=',';
             invoke(mcad,'SetVariable','Initial_Machine_Temperature',tmp);
+            
+            invoke(mcad,'SetVariable','Ambient_Temperature',dataSet.AmbTemp);
             
             tmp=dataSet.TransientPeriod;
             tmp=num2str(tmp);
             tmp(tmp=='.')=',';
             invoke(mcad,'SetVariable','Transient_Time_Period',tmp);
+            
             
             %Setting number of Point
             tmp=dataSet.TransientTimeStep;
@@ -149,9 +151,9 @@ if tmp == 2
             end
             
             Time = [0 ;Time];
-            WindingTemp_Average_Transient = [ dataSet.MachineTemperature; WindingTemp_Average_Transient];
-            WindingTemp_Coolspot_Transient = [ dataSet.MachineTemperature; WindingTemp_Coolspot_Transient];
-            WindingTemp_Hotspot_Transient = [ dataSet.MachineTemperature; WindingTemp_Hotspot_Transient];
+            WindingTemp_Average_Transient  = [ dataSet.InitTemp; WindingTemp_Average_Transient];
+            WindingTemp_Coolspot_Transient = [ dataSet.InitTemp; WindingTemp_Coolspot_Transient];
+            WindingTemp_Hotspot_Transient  = [ dataSet.InitTemp; WindingTemp_Hotspot_Transient];
             
             outTherm.timeTransient = Time;
             outTherm.WindingTempTransient = WindingTemp_Average_Transient;

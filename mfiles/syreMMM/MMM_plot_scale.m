@@ -14,21 +14,21 @@
 
 function MMM_plot_scale(hax,motorModel,ls,name)
 
-Id = motorModel.fdfq.Id;
-Iq = motorModel.fdfq.Iq;
-Fd = motorModel.fdfq.Fd;
-Fq = motorModel.fdfq.Fq;
+Id = motorModel.FluxMap_dq.Id;
+Iq = motorModel.FluxMap_dq.Iq;
+Fd = motorModel.FluxMap_dq.Fd;
+Fq = motorModel.FluxMap_dq.Fq;
 
 % flusso d
 idPlot = unique(Id(:));
 iqPlot = min(abs(Iq(:)),[],'all')*ones(size(idPlot));
 fdPlot = interp2(Id,Iq,Fd,idPlot,iqPlot);
-plot(hax,idPlot,fdPlot,ls,'DisplayName',[name ' - D'])
+plot(hax,idPlot,fdPlot,ls,'Linewidth',1.5,'DisplayName',[name ' - D'])
 % flusso q
 iqPlot = unique(Iq(:));
 idPlot = min(abs(Id(:)))*ones(size(iqPlot));
 fqPlot = interp2(Id,Iq,Fq,idPlot,iqPlot);
-plot(hax,iqPlot,fqPlot,ls,'DisplayName',[name ' - Q'])
+plot(hax,iqPlot,fqPlot,ls,'Linewidth',1.5,'DisplayName',[name ' - Q'])
 
 legend(hax,'off')
 legend(hax,'show','Location','best')

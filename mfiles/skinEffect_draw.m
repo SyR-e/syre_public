@@ -19,14 +19,15 @@ function [dataSet] = skinEffect_draw(dataSet)
 clc
 % read slot conductor data from dataSet
 
-kcu        = dataSet.SlotFillFactor;
-condType   = dataSet.SlotConductorType;
-condIns    = dataSet.SlotConductorInsulation;
-condShape  = dataSet.SlotConductorShape;
-condRadius = dataSet.SlotConductorRadius;
-condWidth  = dataSet.SlotConductorWidth;
-condHeight = dataSet.SlotConductorHeight;
-condNumber = dataSet.SlotConductorNumber;
+kcu           = dataSet.SlotFillFactor;
+condType      = dataSet.SlotConductorType;
+condIns       = dataSet.SlotConductorInsulation;
+condShape     = dataSet.SlotConductorShape;
+condRadius    = dataSet.SlotConductorRadius;
+condWidth     = dataSet.SlotConductorWidth;
+condHeight    = dataSet.SlotConductorHeight;
+condNumber    = dataSet.SlotConductorNumber;
+condBottomGap = dataSet.SlotConductorBottomGap;
 
 % draw stator model (from GUI_APP_DrawMachine)
 [~, ~, geo,per,mat] = data0(dataSet);
@@ -49,16 +50,17 @@ dataSet.SlotConductorRadius     = condRadius;
 dataSet.SlotConductorWidth      = condWidth;
 dataSet.SlotConductorHeight     = condHeight;
 dataSet.SlotConductorNumber     = condNumber;
+dataSet.SlotConductorBottomGap  = condBottomGap;
 
-geo.win.kcu       = kcu;
-geo.win.condType  = condType;
-geo.win.condIns   = condIns;
-geo.win.condShape = condShape;
-geo.win.rCond     = condRadius;
-geo.win.wCond     = condWidth;
-geo.win.hCond     = condHeight;
-geo.win.nCond     = condNumber;
-
+geo.win.kcu        = kcu;
+geo.win.condType   = condType;
+geo.win.condIns    = condIns;
+geo.win.condShape  = condShape;
+geo.win.rCond      = condRadius;
+geo.win.wCond      = condWidth;
+geo.win.hCond      = condHeight;
+geo.win.nCond      = condNumber;
+geo.win.GapBotCond = condBottomGap;
 
 materialCodes;  % load material codes
 
@@ -83,7 +85,7 @@ n3ph   = geo.win.n3phase;
 
 alphaSlot = 2*pi/(6*p*q*n3ph);   % slot pitch [rad]
 
-if (~isnan(kcu) & strcmp(condType,'Round')) % conductor size computed from kCu
+if (~isnan(kcu) && strcmp(condType,'Round')) % conductor size computed from kCu
     Acond = Aslot*kcu/nCondIn;
 %     if strcmp(condType,'Round')
         rCond = (Acond/pi)^0.5;
@@ -210,7 +212,7 @@ rc = rCond;
 
 for xx=1:1:nh
     if xx==1
-        x0 = x2-tol-hCond/2;
+        x0 = x2-tol-hCond/2-condBottomGap;
         xMin = x0-hCond;
         % xMax = x0+hCond;
         yLim = m*xMin+q;

@@ -9,7 +9,7 @@ function MMM_SIMplot(motorModel)
     Torque_obs          = motorModel.SyreDrive.simOut.Outputs.T_elt.Data;
     Torque_load         = motorModel.SyreDrive.simOut.Out_M.T_load.Data;
     Speed               = motorModel.SyreDrive.simOut.Out_M.n_m.Data;
-    Speed_obs           = motorModel.SyreDrive.simOut.Outputs.omega_elt.Data;
+    Speed_obs           = motorModel.SyreDrive.simOut.Outputs.wr.Data;
     Speed_ref           = motorModel.SyreDrive.simOut.Outputs.wr_ref.Data;
     pos_err             = motorModel.SyreDrive.simOut.Outputs.pos_err_real.Data;
     pos_err_signal      = motorModel.SyreDrive.simOut.Outputs.pos_err.Data;
@@ -27,7 +27,7 @@ function MMM_SIMplot(motorModel)
     iA                  = motorModel.SyreDrive.simOut.Outputs.iA.Data;
     iB                  = motorModel.SyreDrive.simOut.Outputs.iB.Data;
     iC                  = motorModel.SyreDrive.simOut.Outputs.iC.Data;
-    theta_elt           = motorModel.SyreDrive.simOut.Out_M.theta_elt.Data*180/pi;
+    theta_elt           = motorModel.SyreDrive.simOut.Outputs.theta_elt_meas.Data;
     
     %----------------Mechanical Quantities------------------------------
     
@@ -182,25 +182,30 @@ function MMM_SIMplot(motorModel)
     subplot(4,1,2)
     yyaxis left;
     plot(Time,id)
-    xlim([t1 Time(end)])
+    xlim([t1 Time(end)]);
+    ylim([min(id(Time>t1))-1 max(id(Time>t1))+2]);
     ylabel('$i_d$ (A)')
     yyaxis right;
     plot(Time,iq);
     ylabel('$i_q$ (A)')
     xlabel('t (s)')
-    xlim([t1 Time(end)])
+    xlim([t1 Time(end)]);
+    ylim([min(iq(Time>t1))-2 max(iq(Time>t1))+1]);
     grid on
     title('dq Currents')
-
+    
+    
     subplot(4,1,3)
     yyaxis left;
     plot(Time,lambdad)
     ylabel('$\lambda_d$ (Vs)')
-    xlim([t1 Time(end)])
+    xlim([t1 Time(end)]);
+    ylim([min(lambdad(Time>t1))-0.1 max(lambdad(Time>t1))+0.2]);
     yyaxis right;
     plot(Time,lambdaq);
     ylabel('$\lambda_q$ (Vs)')
-    xlim([t1 Time(end)])
+    xlim([t1 Time(end)]);
+    ylim([min(lambdaq(Time>t1))-0.2 max(lambdaq(Time>t1))+0.1]);
     xlabel('t (s)')
     grid on
     title('dq Fluxes')

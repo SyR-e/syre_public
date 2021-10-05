@@ -23,64 +23,109 @@ function dataSet = DrawAndSaveMachine(dataSet,filename,pathname)
 %     dataSet=app.dataSet;
 % end
 
-if nargin==1
-    [filename,pathname] = uiputfile(['newmachine.fem'],'input machine name and location');
-    if ~filename
-        error('No file name selected');
-    end
-else
-    filename = strrep(filename,'.mat','.fem');
+nameIn  = dataSet.currentfilename;
+nameIn  = strrep(nameIn,'.mat','.fem');
+pathIn  = dataSet.currentpathname;
+fileIn  = [pathIn nameIn];
+
+if dataSet.custom
+    button = questdlg('Save custom machine?','SELECT','Yes','Cancel','Yes');
+
 end
 
-[~, ~, geo, per, mat] = data0(dataSet);
-RQ = dataSet.RQ;
+if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom)) 
+    if nargin==1
+        [filename,pathname] = uiputfile(['newmachine.fem'],'input machine name and location');
+        if ~filename
+            error('No file name selected');
+        end
+    else
+        filename = strrep(filename,'.mat','.fem');
+    end
+    
+    [~, ~, geo, per, mat] = data0(dataSet);
+    RQ = dataSet.RQ;
+    
+    fileans   = strrep(filename,'.fem','.ans');
+    
+    geo.custom = dataSet.custom;
 
-%% ==== FIRST PART FROM FEMMFitnessX ======================================
-% currentDir = pwd;
-
-% RQ defines the candidate machine 
-% [geo,gamma,mat] = interpretRQ(RQ,geo,mat);
-
-% FemmProblem.ProbInfo.Frequency = 0;
-% FemmProblem.ProbInfo.Precision = 1e-8;
-% FemmProblem.ProbInfo.MinAngle = 15;
-% FemmProblem.ProbInfo.LengthUnits = 'millimeters';
-% FemmProblem.ProbInfo.Depth = geo.l;
-% FemmProblem.Segments = [];
-% FemmProblem.ArcSegments = [];
-% FemmProblem.Nodes = [];
-% FemmProblem.BoundaryProps = [];
-% FemmProblem.Circuits = [];
-% FemmProblem.BlockLabels = [];
-% FemmProblem.PointProps = [];
-eval_type = 'singt';
+    %% ==== FIRST PART FROM FEMMFitnessX ======================================
+    % currentDir = pwd;
+    
+    % RQ defines the candidate machine
+    % [geo,gamma,mat] = interpretRQ(RQ,geo,mat);
+    
+    % FemmProblem.ProbInfo.Frequency = 0;
+    % FemmProblem.ProbInfo.Precision = 1e-8;
+    % FemmProblem.ProbInfo.MinAngle = 15;
+    % FemmProblem.ProbInfo.LengthUnits = 'millimeters';
+    % FemmProblem.ProbInfo.Depth = geo.l;
+    % FemmProblem.Segments = [];
+    % FemmProblem.ArcSegments = [];
+    % FemmProblem.Nodes = [];
+    % FemmProblem.BoundaryProps = [];
+    % FemmProblem.Circuits = [];
+    % FemmProblem.BlockLabels = [];
+    % FemmProblem.PointProps = [];
+    eval_type = 'singt';
+end
 
 % FEMM
-[geo,mat] = draw_motor_in_FEMM(geo,mat, pathname, filename);
-mi_close, closefemm
 
-geo.RQ = RQ;
+if dataSet.custom
+    if isequal(button,'Yes')
+        
+        [geo,mat] = draw_motor_in_FEMM(geo,mat, pathname, filename);
+        mi_close, closefemm
+        
+%         if ~strcmp(fileIn,[pathname filename])
+            fileTmp = [cd '\tmp\' filename];  
+            copyfile(fileIn , fileTmp);
+            copyfile(fileTmp,[pathname filename])
+            delete ([fileTmp])
+%         end
+                
+        if isfile([pathname fileans])
+            delete ([pathname fileans])
+        end
+        
+        [geo,mat] = draw_motor_in_FEMM(geo,mat, pathname, filename);
+        mi_close, closefemm
+        
+        
+    else
+        disp('Custom machine not saved')
+    end
+    
+else
+    [geo,mat] = draw_motor_in_FEMM(geo,mat, pathname, filename);
+    mi_close, closefemm
+end
 
-filename = strrep(filename,'fem','mat');
-dataSet.currentpathname = [pathname '\'];
-dataSet.currentfilename = filename;
-dataSet.slidingGap      = 1; % R347
-
-% refresh GUI display data
-% if flagGUI
-%     set(app.currentMotFileName,'Value',filename);  % update display
-% %     load([pathname filename]);
-
-
-% end
-dataSet.RQ = round(dataSet.RQ,4);
-dataSet.currentpathname = pathname;
-dataSet.currentfilename = filename;
-
-geo = orderfields(geo);
-per = orderfields(per);
-dataSet = orderfields(dataSet);
-mat = orderfields(mat);
-save([pathname filename],'geo','per','dataSet','mat');
-
+if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom)) 
+    geo.RQ = RQ;
+    
+    filename = strrep(filename,'fem','mat');
+    dataSet.currentpathname = [pathname '\'];
+    dataSet.currentfilename = filename;
+    dataSet.slidingGap      = 1; % R347
+    
+    % refresh GUI display data
+    % if flagGUI
+    %     set(app.currentMotFileName,'Value',filename);  % update display
+    % %     load([pathname filename]);
+    
+    
+    % end
+    dataSet.RQ = round(dataSet.RQ,4);
+    dataSet.currentpathname = pathname;
+    dataSet.currentfilename = filename;
+    
+    geo = orderfields(geo);
+    per = orderfields(per);
+    dataSet = orderfields(dataSet);
+    mat = orderfields(mat);
+    save([pathname filename],'geo','per','dataSet','mat');
+end
 % cd(currentDir);

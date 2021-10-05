@@ -1,5 +1,3 @@
-function setupPath()
-
 % Copyright 2014
 %
 %    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,24 +12,31 @@ function setupPath()
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
+function setupPath(flagInfo)
+
+if nargin==0
+    flagInfo=0;
+end
+
 % add the required directories to the path
 syreDirectory = fileparts(which('GUI_Syre.mlapp'));
 
-clc
+% clc
 
 %if isoctave
 %    thisfilepath = fileparts(canonicalize_file_name(thisfilepath));
 %    endfileName = '\';
 %end
-addpath ('C:\femm42\mfiles');
-addpath (fullfile(syreDirectory));
-addpath (fullfile(syreDirectory,'mfiles'));
-addpath (fullfile(syreDirectory,'mfiles','MODE'));
-addpath (fullfile(syreDirectory,'mfiles','syrmDesign'));
-addpath (fullfile(syreDirectory,'mfiles','DemagAnalysis'));
-addpath (fullfile(syreDirectory,'mfiles','MaterialLibraryFunctions'));
-addpath (fullfile(syreDirectory,'mfiles','StructuralPDE'));
-addpath (fullfile(syreDirectory,'mfiles','syreMMM'));
+addpath('C:\femm42\mfiles');
+addpath(fullfile(syreDirectory));
+addpath(fullfile(syreDirectory,'mfiles'));
+addpath(fullfile(syreDirectory,'mfiles','MODE'));
+addpath(fullfile(syreDirectory,'mfiles','syrmDesign'));
+addpath(fullfile(syreDirectory,'mfiles','DemagAnalysis'));
+addpath(fullfile(syreDirectory,'mfiles','MaterialLibraryFunctions'));
+addpath(fullfile(syreDirectory,'mfiles','StructuralPDE'));
+addpath(fullfile(syreDirectory,'mfiles','syreMMM'));
+addpath(fullfile(syreDirectory,'mfiles','OctaveFunctions'));
 
 addpath (fullfile(syreDirectory,'materialLibrary'));
 addpath (fullfile(syreDirectory,'motorExamples'));
@@ -43,19 +48,24 @@ addpath (fullfile (syreDirectory,'syreExport'));
 addpath(genpath(fullfile(syreDirectory,'syreExport\syre_Dxf')));
 addpath(genpath(fullfile(syreDirectory,'syreExport\syre_MagNet')));
 addpath(genpath(fullfile(syreDirectory,'syreExport\syre_MotorCAD')));
+addpath(genpath(fullfile(syreDirectory,'syreExport\syre_AnsysMaxwell')));
 
 % check additional features (custom functions)
 addpath(fullfile(syreDirectory,'syreCustomFeatures'));
 addon = dir([syreDirectory '\syreCustomFeatures\']);
 if length(addon)>2
-    disp('Custom features added:')
+    if flagInfo
+        disp('Custom features added:')
+    end
     for ii=3:length(addon)
         addpath(genpath([syreDirectory '\syreCustomFeatures\' addon(ii).name]));
-        disp(['- ' addon(ii).name]);
+        if flagInfo
+            disp(['- ' addon(ii).name]);
+        end
     end
 end
 
-savepath
+% savepath
 
 % check for missing folders
 if ~exist([cd '\results'],'dir')

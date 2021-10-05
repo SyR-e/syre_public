@@ -35,6 +35,8 @@ prompt = {...
     'Skew slices',...                   % 14
     'd-axis extra inductance [H]',...   % 15
     'q-axis extra inductance [H]',...   % 16
+    'Stator outer radius [mm]',...      % 17
+    'End-winding length [mm]',...       % 18
     };
 name = 'Motor Ratings';
 numlines = 1;
@@ -55,10 +57,10 @@ answers = {
     '1',...
     '0',...
     '0',...
+    '0',...
+    '100',...
     };
 answers = inputdlg(prompt,name,numlines,answers);
-
-
 
 
 data.pathname  = pathname;
@@ -77,8 +79,11 @@ data.tempCu    = eval(answers{10});
 data.tempPM    = 20;
 data.Ns        = eval(answers{12});
 data.l         = eval(answers{11});
+data.lend      = eval(answers{18});
+data.R         = eval(answers{17});
 data.axisType  = answers{4};
 data.motorType = answers{3};
+data.J         = 0;
 
 data.nCurr = 4;
 
@@ -86,16 +91,12 @@ scaleFactors.Lld = eval(answers{15});
 scaleFactors.Llq = eval(answers{16});
 scaleFactors.Ns  = data.Ns;
 scaleFactors.l   = data.l;
+scaleFactors.R   = data.R;
 
 skewData.thSkw   = eval(answers{13});
 skewData.nSlice  = eval(answers{14});
 skewData.nPoints = 51;
 % data.skew = skewData;
-
-dqtElab.harmonic  = 6*[1 2 3];
-dqtElab.CurrLoad  = 1;
-dqtElab.CurrAmpl  = dqtElab.CurrLoad*data.i0;
-dqtElab.CurrAngle = 45;
 
 Tw.nmin             = 0;
 Tw.nmax             = data.nmax;
@@ -113,17 +114,34 @@ Tw.PMLossFlag       = 'No';
 Tw.PMLossFactor     = 1;
 Tw.Control          = 'Maximum efficiency';
 
+SyreDrive.Ctrl_type    = 'Torque control';
+SyreDrive.FMapsModel   = 'dq Model';
+SyreDrive.Converter.V0 = 0;
+SyreDrive.Converter.Rd = 1e-4;
+SyreDrive.Converter.dT = 1;
+SyreDrive.SS_on = 'Off';
+SyreDrive.SS_settings.inj_waveform = 'Sinusoidal';
+SyreDrive.SS_settings.dem = 'Current';
+SyreDrive.SS_settings.HS_ctrl = 'APP';
 
-motorModel.data        = data;
-motorModel.fdfq        = [];
-motorModel.dqtMap      = [];
-motorModel.ironLoss    = [];
-motorModel.skinEffect  = [];
-motorModel.AOA         = [];
-motorModel.Inductance  = [];
-motorModel.idiq        = [];
-motorModel.dqtMapF     = [];
-motorModel.scale       = scaleFactors;
-motorModel.skew        = skewData;
-motorModel.dqtElab     = dqtElab;
-motorModel.Tw          = Tw;
+WaveformSetup.CurrLoad  = 1;
+WaveformSetup.CurrAmpl  = data.i0;
+WaveformSetup.CurrAngle = 45;
+WaveformSetup.EvalSpeed = data.n0;
+WaveformSetup.nCycle    = 1;
+
+
+motorModel.data                = data;
+motorModel.FluxMap_dq          = [];
+motorModel.FluxMap_dqt         = [];
+motorModel.IronPMLossMap_dq    = [];
+motorModel.acLossFactor        = [];
+motorModel.controlTrajectories = [];
+motorModel.IncInductanceMap_dq = [];
+motorModel.FluxMapInv_dq       = [];
+motorModel.FluxMapInv_dqt      = [];
+motorModel.tmpScale            = scaleFactors;
+motorModel.tmpSkew             = skewData;
+motorModel.TnSetup             = Tw;
+motorModel.SyreDrive           = SyreDrive;
+motorModel.WaveformSetup       = WaveformSetup;

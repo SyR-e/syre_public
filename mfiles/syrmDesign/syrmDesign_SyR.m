@@ -37,6 +37,9 @@ if nargin==1
 
     flag_ks=1;      % flag_ks=0 --> no saturation factor used
                     % flag_ks=1 --> saturation factor enabled
+    
+    flag_i0=0;      % flag_i0=0 --> kj=constant
+                    % flag_i0=1 --> J=constant
 else
     flag_kw = flags.kw;
     flag_pb = flags.pb;
@@ -44,11 +47,14 @@ else
     flag_ks = flags.ks;
 end
 
-mu0 = 4e-7*pi;                  % air permeability
-Bs = 2.0;                       % ribs flux density [T]
-Bfe = dataSet.Bfe;              % steel loading (yoke flux density [T])
-kj  = dataSet.ThermalLoadKj;    % thermal loading (copper loss/stator outer surface [W/m^2])
-kt  = dataSet.kt;               % kt = wt/wt_unsat
+mu0    = 4e-7*pi;                           % air permeability
+Bs     = 2.0;                               % ribs flux density [T]
+Bfe    = dataSet.Bfe;                       % steel loading (yoke flux density [T])
+kj     = dataSet.ThermalLoadKj;             % thermal loading (copper loss/stator outer surface [W/m^2])
+kt     = dataSet.kt;                        % kt = wt/wt_unsat
+J      = dataSet.CurrentDensity*sqrt(2);    % J= slot current density, expressed in [Apk/mm^2]
+loadpu = dataSet.CurrLoPP;                  % current load in p.u. of i0
+
 
 [~, ~, geo, per, mat] = data0(dataSet);
 
@@ -70,6 +76,8 @@ pont0 = geo.pont0;
 pont  = geo.pont0;%+min(geo.pont);
 n3ph  = geo.win.n3phase;
 
+Nbob  = Ns/p/q/2;                                                   % conductors in slot per layer
+
 tempcu = per.tempcu;
 
 % design domain according to b and x
@@ -81,7 +89,13 @@ x = linspace(dataSet.xRange(1),dataSet.xRange(2),n);                % rotor/stat
 % parametric analysis: design domain (x,b)
 [xx,bb] = meshgrid(x,b);
 
-[xGap,yGap,kf1,kfm] = evalBgapSyrmDesign(q,kt);                     % airgap induction shape, first harmonic factor, mean value factor
+if q>=1
+    [~,~,kf1,kfm] = evalBgapSyrmDesign(q,kt);                     % airgap induction shape, first harmonic factor, mean value factor
+else
+    kf1 = 1;
+    kfm = 2/pi;
+end
+
 
 r = R*xx;                                                           % rotor radius [m]
 rocu = 17.8*(234.5 + tempcu)/(234.5+20)*1e-9;                       % resistivity of copper [Ohm m]
@@ -138,8 +152,6 @@ d1 = zeros(m,n);
 c0 = zeros(m,n);
 c1 = zeros(m,n);
 c2 = zeros(m,n);
-% copper temperature
-dTempCu = zeros(m,n);
 % additional ribs
 pontR = zeros(m,n);
 
@@ -271,15 +283,6 @@ for rr=1:m
         % q-axis flow-through inductance [pu]
         Lfqpu(rr,cc) = 4/pi*p*g*kc(rr,cc)/(xx(rr,cc)*R)*(sum((dfQ).^2.*(sk{rr,cc}./hc{rr,cc})));
         
-        % copper overtemperature
-        geo0=geo;
-        geo0.r  = geo.R*xx(rr,cc);
-        geo0.wt = wt(rr,cc);
-        geo0.lt = lt(rr,cc);
-        geo0.ly = ly(rr,cc);
-        
-        dTempCu(rr,cc) = temp_est_simpleMod(geo0,per);
-        
         % radial ribs (high speed motors)
         temp.B1k=B1k;
         temp.B2k=B2k;
@@ -299,8 +302,6 @@ for rr=1:m
         
     end
 end
-
-dTempCu=dTempCu-per.temphous;
 
 %%
 % d axis
@@ -338,15 +339,26 @@ else
     lend = 2*lt+(0.5*pi*(R-ly+r)/p);                                % end turn length (x,b) [mm]
 end
 
-% calculate slot area and rated current
-% Aslots = 2 * area_half_slot *6*p*q;
 
-%kj = Loss/(2*pi*R*l)*1e6;                                           % specific loss (x,b) [W/m2]
-K = sqrt(kcu*kj/rocu*l./(l+lend));                                  % factor K [] (x,b)
+% Rated current computation (from kj or J)
 
-i0 = pi/(3*Ns)*(R/1000)^1.5*K.*sqrt(Aslots/(pi*R^2));               % rated current i0 [A] pk
+if flag_i0==0
+    % compute the rated current from kj (kj=constant)
+    i0 = 1/Ns.*(kj.*kcu./rocu.*l./(l+lend).*pi.*(R/1000).*(Aslots/1e6)/9).^0.5;   % rated current i0 [Apk]
+    
+    kj = kj*ones(size(xx));
+    J  = 2*Nbob*real(i0)./(Aslots/(q*6*p)*kcu);                                     % current density in copper [A/mm2] pk
+%     %kj = Loss/(2*pi*R*l)*1e6;                                           % specific loss (x,b) [W/m2]
+%     K = sqrt(kcu*kj/rocu*l./(l+lend));                                  % factor K [] (x,b)
+%     
+%     i0 = pi/(3*Ns)*(R/1000)^1.5*K.*sqrt(Aslots/(pi*R^2));               % rated current i0 [A] pk
+elseif flag_i0==1
+    i0 = J*Aslots/(6*p*q*n3ph).*kcu./(2*Nbob);  % rated current i0 [Apk]
+    J  = J*ones(size(xx));
+    kj = (J*1e6).^2.*(kcu*Aslots/1e6)/4.*rocu.*(l+lend)./l*(1000/pi/R);
+end
+
 i0=real(i0);
-loadpu = dataSet.CurrLoPP;                                          % current load in p.u. of i0
 
 id(id>loadpu*i0)=loadpu*i0(id>loadpu*i0);
 gamma=acos(id./(loadpu*i0));
@@ -355,9 +367,29 @@ iq=loadpu*i0.*sin(gamma);                                           % q-axis cur
 %iq = sqrt((loadpu*i0).^2 - id.^2); iq = real(iq);                  % q-axis current [A] pk
 Am = Aslots.* id./(loadpu*i0);                                      % slots area dedicated to id [mm2]
 
-Nbob  = Ns/p/q/2;                                                   % conductors in slot per layer
-J = 2*Nbob * loadpu*i0 ./ (Aslots/(q*6*p)*kcu);                     % current density in copper [A/mm2] pk
+
 A = 2*Nbob * loadpu*i0 ./ (r*2*pi/(q*6*p));                         % linear current density [A/mm] pk
+
+kj = kj*loadpu;
+J  = J*loadpu;
+
+% copper overtemperature computation
+dTempCu = zeros(m,n);
+for rr=1:m
+    for cc=1:n
+        % slot area evaluation
+        geo0.r  = geo.R*xx(rr,cc);
+        geo0.wt = wt(rr,cc);
+        geo0.lt = lt(rr,cc);
+        geo0.ly = ly(rr,cc);
+        per0 = per;
+        per0.overload = 1;
+        per0.Loss = kj(rr,cc)*(2*pi*R/1000*l/1000);
+        
+        dTempCu(rr,cc) = temp_est_simpleMod(geo0,per0);
+    end
+end
+dTempCu=dTempCu-per.temphous;
 
 % tangential ribs effect
 Lrib = 4/pi*kw*Ns*((2*pont+pontR)*1e-3)*(l*1e-3)*Bs./iq;
@@ -428,6 +460,7 @@ map.flag_pb = flag_pb;
 map.flag_dx = flag_dx;
 map.A       = A;
 map.J       = J;
+map.kj      = kj;
 map.kf1     = kf1*ones(size(xx));
 map.kfm     = kfm*ones(size(xx));
 map.iAmp    = i0*loadpu;

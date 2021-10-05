@@ -56,5 +56,5 @@ else
     clear alpha
 end
 
-Mass=rhoCu*geo.Aslot/1e6*(geo.l+lend)/1000*(6*geo.p*geo.q*geo.win.n3phase); % [kg]
+Mass=rhoCu*geo.Aslot/1e6*(geo.l+lend)/1000*(6*geo.p*geo.q*geo.win.n3phase)*geo.win.kcu; % [kg]
 

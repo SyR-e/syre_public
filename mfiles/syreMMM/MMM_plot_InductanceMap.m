@@ -16,12 +16,12 @@
 function MMM_plot_InductanceMap(motorModel)
 
 % load data
-Id  = motorModel.fdfq.Id;
-Iq  = motorModel.fdfq.Iq;
-Ldd = motorModel.Inductance.Ldd;
-Ldq = motorModel.Inductance.Ldq;
-Lqd = motorModel.Inductance.Lqd;
-Lqq = motorModel.Inductance.Lqq;
+Id  = motorModel.FluxMap_dq.Id;
+Iq  = motorModel.FluxMap_dq.Iq;
+Ldd = motorModel.IncInductanceMap_dq.Ldd;
+Ldq = motorModel.IncInductanceMap_dq.Ldq;
+Lqd = motorModel.IncInductanceMap_dq.Lqd;
+Lqq = motorModel.IncInductanceMap_dq.Lqq;
 
 pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;
@@ -59,7 +59,7 @@ for ii=1:length(figNames)
             zlabel('$l_{qq}$ [H]')
             set(gca,'ZLim',[min(Lqq,[],'all') max(Lqq,[],'all')]);
         case 5
-            zlabel('$l_{dd}/l_{qq}$ [H]')
+            zlabel('$l_{dd}/l_{qq}$')
             set(gca,'ZLim',[min(Ldd./Lqq,[],'all') max(Ldd./Lqq,[],'all')]);
     end
 end

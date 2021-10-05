@@ -18,12 +18,13 @@ acs  = geo.acs;         % slot opening [pu]
 avv  = geo.win.avv;     % widing matrix
 lt   = geo.lt;          % tooth length [mm]
 wt   = geo.wt;          % tooth width [mm]
+%st   = geo.st;         % slot width [mm]
 p    = geo.p;           % pole pairs number
 q    = geo.q;           % slot per pole per phase
 R    = geo.R;           % stator outer radius [mm]
 r    = geo.r;           % rotor outer radius [mm]
 g    = geo.g;           % airgap length [mm]
-% ns  = geo.ns;   % number of stator slot per pole pair
+% ns  = geo.ns;         % number of stator slot per pole pair
 ttd  = geo.ttd;         % tooth shoe thickness [mm]
 tta  = geo.tta;         % tooth shoe angle [°]
 SFR  = geo.SFR;         % fillet radius at the slot bottom [mm]
@@ -38,19 +39,36 @@ RSI        = r+g;           % r traferro statore
 RSE        = R;             % r esterno statore
 RS5        = r+g+lt;        % r esterno cave
 
+slot_open_ang = acs*2*pi/(6*q*p*n3ph)/2;
+
+
 % r eq for middle of slot computation
 mr = tan(alpha_slot/2);
-x0 = RSI*cos(alpha_slot/2);
-y0 = RSI*sin(alpha_slot/2);
+% x0 = RSI*cos(alpha_slot/2);
+% y0 = RSI*sin(alpha_slot/2);
+
+% if geo.parallel_slot
+%  x2  = RSI+ttd;
+%  y2  = x2*tan(slot_open_ang);
+%  m23 = tan(pi/2-tta*pi/180);
+%  q23 = y2-m23*x2;
+%  x3 = (st/2-q23)/m23;
+%  y3 = st/2;
+%  %  [a23,b23,c23] = retta_mq2abc(m23,q23,nan);
+% %  [x3,y3]= intersezione_tra_rette(0,0,y2,a23,b23,c23);
+%  wt = abs(y3-mr*x3)/(1+mr^2)*2;
+% end
+
 % tooth side computation
 % design like a line parallel to r, case of trapezoidal slot r2: y=m2x+q2
 % explicit form
 m2 = mr;
 q2 = -wt/2*sqrt(1+mr^2);
 
+
 [x1t,y1t]=intersezione_retta_circonferenza(0,0,RSI,m2,q2);
 
-slot_open_ang = acs*2*pi/(6*q*p*n3ph)/2;
+
 [x1,y1]=intersezione_retta_circonferenza(0,0,RSI,tan(slot_open_ang),0);
 if (tan(y1./x1)>tan(y1t./x1t))
     x1=x1t;
@@ -65,6 +83,8 @@ qtta=y2-mtta*x2;
 % ytta=mtta*xx+qtta;
 [x3,y3]=intersezione_tra_rette(mtta,-1,qtta,m2,-1,q2);
 
+st = y3*2;
+
 % end of the slot
 x6 = RSI+lt;
 y6 = 0;
@@ -75,6 +95,7 @@ if geo.parallel_slot
     q2 = y3;
     m2 = 0;
 end
+
 [xLT2,yLT2]=intersezione_retta_circonferenza(0,0,(RSI+lt),m2,q2);
 % bottom slot radius
 [xRacSlot,yRacSlot,x5,y5,x4,y4]=cir_tg_2rette(x6,y6,xLT2,yLT2,xLT2,yLT2,x3,y3,SFR);
@@ -229,7 +250,6 @@ else
 end
 
 
-
 xFe = (RSE+RS5)/2;
 yFe = 0;
 
@@ -245,6 +265,8 @@ slotMat     = rotateMatrix(slotMat,alpha_slot/2);
 %% OUTPUT DATA
 geo.Aslot = Aslot;
 geo.SFR   = SFR;
+% geo.wt = round(wt,2);
+geo.st = round(st,2);
 
 temp.xCu     = xCu;
 temp.yCu     = yCu;

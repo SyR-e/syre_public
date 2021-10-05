@@ -15,8 +15,8 @@
 
 function MMM_plot_ironLoss(motorModel)
 
-fdfq     = motorModel.fdfq;
-ironLoss = motorModel.ironLoss;
+fdfq     = motorModel.FluxMap_dq;
+ironLoss = motorModel.IronPMLossMap_dq;
 
 pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;

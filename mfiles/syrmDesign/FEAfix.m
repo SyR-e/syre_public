@@ -32,6 +32,8 @@ else
 end
 
 
+gammaFix = 0;
+
 FEAfixN = dataSet.FEAfixN;
 clc
 disp('FEAfix calibration...')
@@ -115,7 +117,7 @@ if strcmp(geo.RotType,'SPM')
     RQnames{5}='gamma';
 elseif strcmp(geo.RotType,'Vtype')
     RQnames{1}='dalpha';
-    RQnames{2}='hc';
+    RQnames{2}='hc_pu';
     RQnames{3}='r';
     RQnames{4}='wt';
     RQnames{5}='lt';
@@ -125,11 +127,11 @@ elseif strcmp(geo.RotType,'Vtype')
 else
     index=0;
     for ii=1:geo.nlay
-        RQnames{index+ii}='hc';
+        RQnames{index+ii}=['hc_pu(' int2str(ii) ')'];
     end
     index=length(RQnames);
     for ii=1:geo.nlay
-        RQnames{index+ii}='dx';
+        RQnames{index+ii}=['dx(' int2str(ii) ')'];
     end
     index=length(RQnames);
     RQnames{index+1}='r';
@@ -159,7 +161,7 @@ end
 
 OBJnames{1} = 'Torque';
 geo.OBJnames=OBJnames;
-per.objs = [per.min_exp_torque 1];
+per.objs = [per.min_exp_torque 1 0];
 
 per.nsim_singt      = 6;
 per.delta_sim_singt = 60;
@@ -242,6 +244,7 @@ for mot=1:length(xRaw)
         % model flux linkages
         fdMod(mot) = interp2(xx,bb,map.fd,geo.x,geo.b); % fd [Vs]
         fqMod(mot) = interp2(xx,bb,map.fq,geo.x,geo.b); % fq [Vs]
+        gMod(mot)  = gamma; % gamma [degrees]
         if strcmp(geo.RotType,'Vtype')
             f0Mod(mot) = interp2(xx,bb,map.fM-map.Lbase.*(map.Ldpu+map.Lspu).*map.iAmp,geo.x,geo.b);
         else
@@ -264,19 +267,18 @@ save('dataSet','dataSet');
 filemot = [dataSet.currentpathname dataSet.currentfilename];
 filemot = strrep(filemot,'.mat','.fem');
 
+
+
 if ~isempty(RQ)
-    
     ppState=parallelComputingCheck();
-    
     if ppState==0 && FEAfixN==1000
         parpool();
         ppState=parallelComputingCheck();
     end
-    
     if ppState<1
         for mot=1:length(xRaw)
             disp([' - FEA simulation ' int2str(mot) ' of ' int2str(length(xRaw))])
-            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot);
+            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix);
             fdFEA(mot) = FEA.fd;
             fqFEA(mot) = FEA.fq;
             fMFEA(mot) = FEA.fM;
@@ -284,11 +286,12 @@ if ~isempty(RQ)
             BgFEA(mot) = FEA.Bg;
             BtFEA(mot) = FEA.Bt;
             ByFEA(mot) = FEA.By;
+            gFEA(mot)  = atan2(FEA.iq,FEA.id)*180/pi;
         end
     else
         parfor mot=1:length(xRaw)
             disp([' - FEA simulation ' int2str(mot) ' of ' int2str(length(xRaw))])
-            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot);
+            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix);
             fdFEA(mot) = FEA.fd;
             fqFEA(mot) = FEA.fq;
             fMFEA(mot) = FEA.fM;
@@ -296,6 +299,7 @@ if ~isempty(RQ)
             BgFEA(mot) = FEA.Bg;
             BtFEA(mot) = FEA.Bt;
             ByFEA(mot) = FEA.By;
+            gFEA(mot)  = atan2(FEA.iq,FEA.id)*180/pi;
         end
     end
 else
@@ -321,25 +325,35 @@ else
     k0Raw = zeros(size(fdFEA));
 end
 
+if gammaFix
+    kgRaw = gFEA./gMod;
+else
+    kgRaw = ones(size(kdRaw));
+end
+
 kdRaw = kdRaw(~errorFlag);
 kqRaw = kqRaw(~errorFlag);
 kmRaw = kmRaw(~errorFlag);
 k0Raw = k0Raw(~errorFlag);
+kgRaw = kgRaw(~errorFlag);
 
 if FEAfixN==1
     kd = kdRaw*ones(size(xx));
     kq = kqRaw*ones(size(xx));
     km = kmRaw*ones(size(xx));
     k0 = k0Raw*ones(size(xx));
+    kg = kgRaw*ones(size(xx));
 else
     kd = scatteredInterpolant(xRaw',bRaw',kdRaw','linear');
     kq = scatteredInterpolant(xRaw',bRaw',kqRaw','linear');
     km = scatteredInterpolant(xRaw',bRaw',kmRaw','linear');
     k0 = scatteredInterpolant(xRaw',bRaw',k0Raw','linear');
+    kg = scatteredInterpolant(xRaw',bRaw',kgRaw','linear');
     kd = kd(xx,bb);
     kq = kq(xx,bb);
     km = km(xx,bb);
     k0 = k0(xx,bb);
+    kg = kg(xx,bb);
 end
 
 disp('End of FEAfix calibration')
@@ -350,8 +364,10 @@ FEAfixOut.kd   = kd;
 FEAfixOut.kq   = kq;
 FEAfixOut.km   = km;
 FEAfixOut.k0   = k0;
+FEAfixOut.kg   = kg;
 FEAfixOut.xRaw = xRaw;
 FEAfixOut.bRaw = bRaw;
+
 if strcmp(eval_type,'flxdn')
     FEAfixOut.Bg = BgFEA;
     FEAfixOut.Bt = BtFEA;

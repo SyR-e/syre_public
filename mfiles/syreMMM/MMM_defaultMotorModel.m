@@ -30,10 +30,12 @@ data.tempCu     = 20;
 data.tempPM     = [];
 data.Ns         = 1;
 data.l          = 0;
+data.lend       = 0;
 data.axisType   = 'SR';
 data.motorType  = 'SR';
 data.J          = 0;
 data.tempVectPM = [];
+data.R          = 0;
 
 
 data.nCurr = 4;
@@ -42,16 +44,12 @@ scaleFactors.Lld = 0;
 scaleFactors.Llq = 0;
 scaleFactors.Ns  = data.Ns;
 scaleFactors.l   = data.l;
+scaleFactors.R   = data.R;
 
 skewData.thSkw   = 0;
 skewData.nSlice  = 1;
 skewData.nPoints = 51;
 % data.skew = skewData;
-
-dqtElab.harmonic  = 6*[1 2 3];
-dqtElab.CurrLoad  = 1;
-dqtElab.CurrAmpl  = dqtElab.CurrLoad*data.i0;
-dqtElab.CurrAngle = 45;
 
 Tw.nCurrent         = 2;
 Tw.nmin             = 0;
@@ -70,24 +68,33 @@ Tw.PMLossFlag       = 'No';
 Tw.PMLossFactor     = 1;
 Tw.Control          = 'Maximum efficiency';
 
-SyreDrive.Ctrl_type = 'Current control';
-SyreDrive.FMapsModel = 'dq Model';
+SyreDrive.Ctrl_type    = 'Torque control';
+SyreDrive.FMapsModel   = 'dq Model';
 SyreDrive.Converter.V0 = 0;
 SyreDrive.Converter.Rd = 1e-4;
-SyreDrive.Converter.dT = 1e-6;
+SyreDrive.Converter.dT = 1;
+SyreDrive.SS_on = 'Off';
+SyreDrive.SS_settings.inj_waveform = 'Sinusoidal';
+SyreDrive.SS_settings.dem = 'Current';
+SyreDrive.SS_settings.HS_ctrl = 'APP';
 
+WaveformSetup.CurrLoad  = 1;
+WaveformSetup.CurrAmpl  = data.i0;
+WaveformSetup.CurrAngle = 45;
+WaveformSetup.EvalSpeed = data.n0;
+WaveformSetup.nCycle    = 1;
 
-motorModel.data        = data;
-motorModel.fdfq        = [];
-motorModel.dqtMap      = [];
-motorModel.ironLoss    = [];
-motorModel.skinEffect  = [];
-motorModel.AOA         = [];
-motorModel.Inductance  = [];
-motorModel.idiq        = [];
-motorModel.dqtMapF     = [];
-motorModel.scale       = scaleFactors;
-motorModel.skew        = skewData;
-motorModel.dqtElab     = dqtElab;
-motorModel.Tw          = Tw;
-motorModel.SyreDrive   = SyreDrive;
+motorModel.data                = data;
+motorModel.FluxMap_dq          = [];
+motorModel.FluxMap_dqt         = [];
+motorModel.IronPMLossMap_dq    = [];
+motorModel.acLossFactor        = [];
+motorModel.controlTrajectories = [];
+motorModel.IncInductanceMap_dq = [];
+motorModel.FluxMapInv_dq       = [];
+motorModel.FluxMapInv_dqt      = [];
+motorModel.tmpScale            = scaleFactors;
+motorModel.tmpSkew             = skewData;
+motorModel.TnSetup             = Tw;
+motorModel.SyreDrive           = SyreDrive;
+motorModel.WaveformSetup       = WaveformSetup;

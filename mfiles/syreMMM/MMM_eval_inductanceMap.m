@@ -17,10 +17,10 @@ function [Inductance] = MMM_eval_inductanceMap(motorModel)
 
 % Computation of the incremental inductances
 
-Id = motorModel.fdfq.Id;
-Iq = motorModel.fdfq.Iq;
-Fd = motorModel.fdfq.Fd;
-Fq = motorModel.fdfq.Fq;
+Id = motorModel.FluxMap_dq.Id;
+Iq = motorModel.FluxMap_dq.Iq;
+Fd = motorModel.FluxMap_dq.Fd;
+Fq = motorModel.FluxMap_dq.Fq;
 
 [dFdd,dFdq] = gradient(Fd);
 [dFqd,dFqq] = gradient(Fq);
@@ -31,51 +31,6 @@ Ldd = dFdd./dIdd;
 Ldq = dFdq./dIqq;
 Lqd = dFqd./dIdd;
 Lqq = dFqq./dIqq;
-
-% [dFdd,dFdq] = gradient(Fd);
-% [dFqd,dFqq] = gradient(Fq);
-% [dIdd,~]    = gradient(Id);
-% [~,dIqq]    = gradient(Iq);
-
-% Ldd = dFdd./dIdd;
-% Ldq = dFdq./dIqq;
-% Lqq = dFqq./dIqq;
-% Lqd = dFqd./dIdd;
-
-% elaboration from C_ldlq_idiq.m
-% ldd = diff(Fd,1,2)./diff(Id,1,2);
-% ldq = diff(Fd,1,1)./diff(Iq,1,1);
-%
-% lqq = diff(Fq,1,1)./diff(Iq,1,1);
-% lqd = diff(Fq,1,2)./diff(Id,1,2);
-
-
-% % debug
-% figure()
-% figSetting()
-% view(3)
-% surf(Id(2:end,2:end),Iq(2:end,2:end),ldd(2:end,:),'FaceColor','r','EdgeColor','none');
-% surf(Id,Iq,Ldd,'FaceColor','none','EdgeColor','b')
-%
-% figure()
-% figSetting()
-% view(3)
-% surf(Id(2:end,2:end),Iq(2:end,2:end),ldq(:,2:end),'FaceColor','r','EdgeColor','none');
-% surf(Id,Iq,Ldq,'FaceColor','none','EdgeColor','b')
-%
-% figure()
-% figSetting()
-% view(3)
-% surf(Id(2:end,2:end),Iq(2:end,2:end),lqd(2:end,:),'FaceColor','r','EdgeColor','none');
-% surf(Id,Iq,Lqd,'FaceColor','none','EdgeColor','b')
-%
-% figure()
-% figSetting()
-% view(3)
-% surf(Id(2:end,2:end),Iq(2:end,2:end),lqq(:,2:end),'FaceColor','r','EdgeColor','none');
-% surf(Id,Iq,Lqq,'FaceColor','none','EdgeColor','b')
-%
-% % end debug
 
 % output data
 Inductance.Id = Id;

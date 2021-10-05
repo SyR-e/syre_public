@@ -15,7 +15,7 @@
 
 function MMM_eval_OperatingPoint_dqtMap(motorModel)
 
-dqtMap    = motorModel.dqtMap;
+dqtMap    = motorModel.FluxMap_dqt;
 iAmp      = motorModel.WaveformSetup.CurrAmpl;
 gamma     = motorModel.WaveformSetup.CurrAngle;
 motorName = motorModel.data.motorName;
@@ -32,7 +32,7 @@ for ii=1:length(id)
     if ~contains(gammaStr,'d')
         gammaStr=[gammaStr 'd'];
     end
-    resFolder=[motorName '_results\MMM results\' 'T_eval' iStr '_' gammaStr ' - ' int2str(motorModel.data.tempPM) 'deg\'];
+    resFolder=[motorName '_results\MMM results\' 'T_eval_' iStr '_' gammaStr ' - ' int2str(motorModel.data.tempPM) 'deg\'];
     mkdir(pathname,resFolder);
     SOL.th = dqtMap.th;
     SOL.id = id(ii)*ones(size(SOL.th));
@@ -40,6 +40,25 @@ for ii=1:length(id)
     SOL.fd = dqtMap.fInt.Fd(SOL.id,SOL.iq,SOL.th);
     SOL.fq = dqtMap.fInt.Fq(SOL.id,SOL.iq,SOL.th);
     SOL.T  = dqtMap.fInt.T(SOL.id,SOL.iq,SOL.th);
+    if isfield(dqtMap.fInt,'Fa')
+        SOL.fa = dqtMap.fInt.Fa(SOL.id,SOL.iq,SOL.th);
+        SOL.fb = dqtMap.fInt.Fb(SOL.id,SOL.iq,SOL.th);
+        SOL.fc = dqtMap.fInt.Fc(SOL.id,SOL.iq,SOL.th);
+    else
+        SOL.fa = nan(size(SOL.th));
+        SOL.fb = nan(size(SOL.th));
+        SOL.fc = nan(size(SOL.th));
+    end
+    if isfield(dqtMap.fInt,'Ia')
+        SOL.ia = dqtMap.fInt.Ia(SOL.id,SOL.iq,SOL.th);
+        SOL.ib = dqtMap.fInt.Ib(SOL.id,SOL.iq,SOL.th);
+        SOL.ic = dqtMap.fInt.Ic(SOL.id,SOL.iq,SOL.th);
+    else
+        SOL.ia = nan(size(SOL.th));
+        SOL.ib = nan(size(SOL.th));
+        SOL.ic = nan(size(SOL.th));
+    end
+    
     
     out.id   = id(ii);
     out.iq   = iq(ii);
@@ -52,8 +71,21 @@ for ii=1:length(id)
     out.IPF  = abs(sin(atan2(out.iq,out.id)-atan2(out.fq,out.fd)));
     out.SOL  = SOL;
     
+    if ~isempty(motorModel.IronPMLossMap_dq)
+        fdfq = motorModel.FluxMap_dq;
+        ironLoss = motorModel.IronPMLossMap_dq;
+        FreqElet=motorModel.WaveformSetup.EvalSpeed/60*motorModel.data.p;
+        [~,Pfes_h,Pfes_c,Pfer_h,Pfer_c,Ppm] = calcIronLoss(ironLoss,fdfq,FreqElet);
+        out.Pfes_h = interp2(fdfq.Id,fdfq.Iq,Pfes_h,id(ii),iq(ii));
+        out.Pfes_c = interp2(fdfq.Id,fdfq.Iq,Pfes_c,id(ii),iq(ii));
+        out.Pfer_h = interp2(fdfq.Id,fdfq.Iq,Pfer_h,id(ii),iq(ii));
+        out.Pfer_c = interp2(fdfq.Id,fdfq.Iq,Pfer_c,id(ii),iq(ii));
+        out.Ppm    = interp2(fdfq.Id,fdfq.Iq,Ppm,id(ii),iq(ii));
+        out.velDim = motorModel.WaveformSetup.EvalSpeed;
+    end
+    
 %     save([pathname resFolder motorName '_T_eval_' iStr '_' gammaStr '.mat'],'out');
-    save([pathname resFolder 'out.mat'],'out');
+    save([pathname resFolder 'out.mat'],'out','motorModel');
     
     figure()
     figSetting()
@@ -89,11 +121,32 @@ for ii=1:length(id)
     
     saveas(gcf,[pathname resFolder 'singt_' iStr '_' gammaStr '_plot_Flux.fig'])
     
+    figure()
+    figSetting()
+    subplot(2,1,1)
+    set(gca,'XLim',[0 360],'XTick',0:60:360);
+    xlabel('$\theta$ [elt deg]')
+    ylabel('$\lambda_{abc}$ [Vs]')
+    title(['Phase flux linkages'])
+    plot(SOL.th,SOL.fa);
+    plot(SOL.th,SOL.fb);
+    plot(SOL.th,SOL.fc);
+    subplot(2,1,2)
+    set(gca,'XLim',[0 360],'XTick',0:60:360);
+    xlabel('$\theta$ [elt deg]')
+    ylabel('$i_{abc}$ [A]')
+    title(['Phase currents'])
+    plot(SOL.th,SOL.ia);
+    plot(SOL.th,SOL.ib);
+    plot(SOL.th,SOL.ic);
+    
+    saveas(gcf,[pathname resFolder 'singt_' iStr '_' gammaStr '_plot_Phase.fig'])
+    
     output{ii}=out;
 end
 
 if length(id)>1
-    resFolder=[motorName '_results\MMM results\' motorName '_singT - ' int2str(motorModel.data.tempPM) 'deg\'];
+    resFolder=[motorName '_results\MMM results\senseOut - ' int2str(motorModel.data.tempPM) 'deg - ' datestr(now,30) '\'];
     mkdir(pathname,resFolder);
     %save([pathname resFolder 'senseResults.mat'],'output')
     

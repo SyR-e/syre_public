@@ -16,13 +16,13 @@
 function MMM_plot_fdfq(motorModel)
 
 % load data
-Id   = motorModel.fdfq.Id;
-Iq   = motorModel.fdfq.Iq;
-Fd   = motorModel.fdfq.Fd;
-Fq   = motorModel.fdfq.Fq;
-T    = motorModel.fdfq.T;
-dT   = motorModel.fdfq.dT;
-dTpp = motorModel.fdfq.dTpp;
+Id   = motorModel.FluxMap_dq.Id;
+Iq   = motorModel.FluxMap_dq.Iq;
+Fd   = motorModel.FluxMap_dq.Fd;
+Fq   = motorModel.FluxMap_dq.Fq;
+T    = motorModel.FluxMap_dq.T;
+dT   = motorModel.FluxMap_dq.dT;
+dTpp = motorModel.FluxMap_dq.dTpp;
 
 pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;

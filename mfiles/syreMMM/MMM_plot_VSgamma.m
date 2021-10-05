@@ -16,12 +16,12 @@
 function MMM_plot_VSgamma(motorModel)
 
 % load data
-Id   = motorModel.fdfq.Id;
-Iq   = motorModel.fdfq.Iq;
-Fd   = motorModel.fdfq.Fd;
-Fq   = motorModel.fdfq.Fq;
-T    = motorModel.fdfq.T;
-dTpp = motorModel.fdfq.dTpp;
+Id   = motorModel.FluxMap_dq.Id;
+Iq   = motorModel.FluxMap_dq.Iq;
+Fd   = motorModel.FluxMap_dq.Fd;
+Fq   = motorModel.FluxMap_dq.Fq;
+T    = motorModel.FluxMap_dq.T;
+dTpp = motorModel.FluxMap_dq.dTpp;
 
 nCurr = motorModel.data.nCurr;
 i0    = motorModel.data.i0;
@@ -81,11 +81,17 @@ for ii=1:length(figNames)
     end
 end
 
-if length(nCurr)==1
-    Ivect = (1/nCurr:1/nCurr:1)*Imax;
-else
-    Ivect = nCurr*i0;
-end
+% if length(nCurr)==1
+%     if nCurr==1
+%         Ivect = i0;
+%     else
+%         Ivect = (1/nCurr:1/nCurr:1)*Imax;
+%     end
+% else
+%     Ivect = nCurr*i0;
+% end
+
+Ivect = nCurr*i0;
 
 % Ivect = Ivect(Ivect<=Imax);
 

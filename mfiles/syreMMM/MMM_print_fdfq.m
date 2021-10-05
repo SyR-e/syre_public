@@ -23,7 +23,7 @@ if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder]);
 end
 
-fdfq = motorModel.fdfq;
+fdfq = motorModel.FluxMap_dq;
 Id = fdfq.Id;
 Iq = fdfq.Iq;
 Fd = fdfq.Fd;

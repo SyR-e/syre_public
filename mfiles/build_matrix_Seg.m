@@ -210,7 +210,7 @@ for ii=1:nlay
                 end
                 
                 % end
-                if (any(isfinite(geo.RotorFillet(1,:))) && (strcmp(geo.RotType,'Seg')))
+                if ((isfinite(geo.RotorFilletTan1(ii))) && (strcmp(geo.RotType,'Seg')))
 
                     if flag_ext(ii)==1
                         rotore = [rotore
@@ -313,7 +313,7 @@ for ii=1:nlay
     
     
     %% second section of the layer: arms and barrier edges, from (XpBar2,YpBar2) to (XpBar1,YpBar1)
-    if (any(isfinite(geo.RotorFillet(1,:))) && (strcmp(geo.RotType,'Seg')))
+    if ((isfinite(geo.RotorFilletTan1(ii))) && (strcmp(geo.RotType,'Seg')))
         if pontR(ii)~=0
              if splitRib(ii)==1
             rotore = [rotore
@@ -325,11 +325,11 @@ for ii=1:nlay
                 ];
              elseif  flag_segV(ii)==0 
             rotore = [rotore
-%                 XpBar2(ii)              YpBar2(1,ii)            xC4k(ii)                yC4k(ii)                NaN      NaN      0 codMatAirRot indexEle
+                XpBar2(ii)              YpBar2(1,ii)            xC4k(ii)                yC4k(ii)                NaN      NaN      0 codMatAirRot indexEle
                 xC02k(ii)               yC02k(ii)               xC4k(ii)                yC4k(ii)                xC3k(ii) yC3k(ii) 1 codMatAirRot indexEle
                 xC3k(ii)                yC3k(ii)                xC2k(ii)                yC2k(ii)                NaN      NaN      0 codMatAirRot indexEle
                 xC01k(ii)               yC01k(ii)               xC2k(ii)                yC2k(ii)                xC1k(ii) yC1k(ii) 1 codMatAirRot indexEle
-%                 xC1k(ii)                yC1k(ii)                XpBar1(ii)              YpBar1(ii)   NaN      NaN      0 codMatAirRot indexEle
+                xC1k(ii)                yC1k(ii)                XpBar1(ii)              YpBar1(ii)   NaN      NaN      0 codMatAirRot indexEle
                 ];
             elseif flag_segV(ii)==1
            rotore = [rotore

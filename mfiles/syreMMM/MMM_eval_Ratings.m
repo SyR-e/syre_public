@@ -24,15 +24,17 @@ Vdc   = motorModel.data.Vdc;
 
 Plim{1} = OpLimEval(motorModel,i0,Vdc*0.9);
 
-if isfield(motorModel,'ironLoss')
+if ~isempty(motorModel.IronPMLossMap_dq)
     % approximated: subtract iron loss at nominal conditions (A)
     id = Plim{1}.id_A;
     iq = Plim{1}.iq_A;
-    data = motorModel.ironLoss;
-    Pfe_A = (Plim{1}.n_A/data.n0)^data.expH *(interp2(data.Id,data.Iq,data.Pfes_h,id,iq)+interp2(data.Id,data.Iq,data.Pfer_h,id,iq)) + ...
-        (Plim{1}.n_A/data.n0)^data.expC *(interp2(data.Id,data.Iq,data.Pfes_c,id,iq)+interp2(data.Id,data.Iq,data.Pfer_c,id,iq)) + ...
-        (Plim{1}.n_A/data.n0)^data.expPM*(interp2(data.Id,data.Iq,data.Ppm,id,iq));
+    ironLoss = motorModel.IronPMLossMap_dq;
+    Pfe_A = (Plim{1}.n_A/ironLoss.n0)^ironLoss.expH *(interp2(ironLoss.Id,ironLoss.Iq,ironLoss.Pfes_h,id,iq)+interp2(ironLoss.Id,ironLoss.Iq,ironLoss.Pfer_h,id,iq)) + ...
+        (Plim{1}.n_A/ironLoss.n0)^ironLoss.expC *(interp2(ironLoss.Id,ironLoss.Iq,ironLoss.Pfes_c,id,iq)+interp2(ironLoss.Id,ironLoss.Iq,ironLoss.Pfer_c,id,iq)) + ...
+        (Plim{1}.n_A/ironLoss.n0)^ironLoss.expPM*(interp2(ironLoss.Id,ironLoss.Iq,ironLoss.Ppm,id,iq));
     Tloss = Pfe_A/(Plim{1}.n_A*pi/30);
+else
+    Tloss = 0;
 end
 
 if flagPlot

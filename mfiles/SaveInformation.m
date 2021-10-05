@@ -47,6 +47,13 @@ else
     dataSet.HCpu =            round(dataSet.HCpu,2);
     dataSet.DepthOfBarrier =  geo.dx;    % the depth of the barriers radial-wise in per unit or number of segments for SPM
     dataSet.DepthOfBarrier =  round(dataSet.DepthOfBarrier,2);
+    dataSet.TanRibEdit     = geo.pontT;
+    dataSet.TanRibBouCheck     = 0;
+    dataSet.RadRibEdit     = geo.pontR;
+    dataSet.RadRibEditBouCheck     = 0;
+    dataSet.CentralShrink  = geo.hcShrink;
+    dataSet.CentralShrinkBouCheck  = 0;
+    dataSet.RadShiftInner  = geo.dxIB;
     dataSet.RQ =              geo.RQ;
 end
 

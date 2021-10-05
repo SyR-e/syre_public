@@ -36,16 +36,16 @@ YpontRadSx    = temp.YpontRadSx;
 XpontRadSx    = temp.XpontRadSx;
 YpontRadDx    = temp.YpontRadDx;
 XpontRadDx    = temp.XpontRadDx;
-XpontRadBarDx = temp.XpontRadBarDx;
-YpontRadBarDx = temp.YpontRadBarDx;
-XpontRadBarSx = temp.XpontRadBarSx;
-YpontRadBarSx = temp.YpontRadBarSx;
+XpontRadBarDx = abs(temp.XpontRadBarDx);
+YpontRadBarDx = abs(temp.YpontRadBarDx);
+XpontRadBarSx = abs(temp.XpontRadBarSx);
+YpontRadBarSx = abs(temp.YpontRadBarSx);
 
 % Split Rad Rib
-XpontSplitBarSx = temp.XpontSplitBarSx;
-YpontSplitBarSx = temp.YpontSplitBarSx;
-XpontSplitBarDx = temp.XpontSplitBarDx;
-YpontSplitBarDx = temp.YpontSplitBarDx;
+XpontSplitBarSx = abs(temp.XpontSplitBarSx);
+YpontSplitBarSx = abs(temp.YpontSplitBarSx);
+XpontSplitBarDx = abs(temp.XpontSplitBarDx);
+YpontSplitBarDx = abs(temp.YpontSplitBarDx);
 XpontSplitDx    = temp.XpontSplitDx;
 YpontSplitDx    = temp.YpontSplitDx;
 XpontSplitSx    = temp.XpontSplitSx;
@@ -72,6 +72,12 @@ deltaFBS  = geo.delta_FBS;
 PMclearC  = geo.PMclear(1,:);
 PMclearE  = geo.PMclear(2,:);
 
+% if ~isempty(geo.RQnames)
+%     PMdimC(2*PMdimC<hc & geo.radial_ribs_split) = 0;
+%     PMdimC(PMdimC<hc & ~geo.radial_ribs_split) = 0;
+%     PMdimE(PMdimE<hc) = 0;
+% end
+
 %ang_rib   = geo.ang_rib;
 
 % initialize variables for PM area.
@@ -95,10 +101,13 @@ b2 = zeros(1,nlay);
 % b(flagDx==1) = YpontSplitBarDx(2,flagDx==1)-YpontRadBarDx(flagDx==1)-pont0/4;
 % b(flagDx==0) = YpontSplitBarSx(2,flagDx==0)-YpontRadBarSx(flagDx==0)-pont0/4;
 
-b1 = YpontSplitBarDx(2,:)-YpontRadBarDx-pont0/4;
-b2 = YpontSplitBarSx(2,:)-YpontRadBarSx-pont0/4;
+% b1 = YpontSplitBarDx(2,:)-YpontRadBarDx-pont0/4;
+% b2 = YpontSplitBarSx(2,:)-YpontRadBarSx-pont0/4;
 
-b=min(b1,b2);
+b_start = max(YpontRadBarDx,YpontRadBarSx);
+b_end   = min(YpontSplitBarDx(2,:),YpontSplitBarSx(2,:));
+b = b_end - b_start;
+% b=min(b1,b2);
 
 %if pont!!
 % index_PM1= flag_cent==1 & flag_shiftUP==0;
@@ -136,7 +145,7 @@ end
 
 PMdimC(PMdimC>b)=b(PMdimC>b);
 PMdimC(PMdimC<0)=0;
-PMdimC=floor(PMdimC*100)/100;
+% PMdimC=floor(PMdimC*100)/100;
 
 AreaC = PMdimC.*hc;
 
@@ -276,6 +285,8 @@ yPME1b = yPME1b+PMclearE.*sin(pi/2/p-pi/2+deltaFBS/2+hcAngle);
 b1 = calc_distanza_punti([xPME1b' yPME1b'],[xxD1k' yyD1k'])';
 b2 = calc_distanza_punti([xPME2b' yPME2b'],[xxD2k' yyD2k'])';
 b  = min([b1;b2],[],1)-pont0/4;
+b(b<3*pont0) = 0;
+
 % b(1) = 0;
 AreaE = b.*hc;
 if FBS>0
@@ -290,6 +301,12 @@ end
 
 if min(PMdimE)<0
     PMdimE = -PMdimE.*b;
+end
+
+if ~isempty(geo.RQnames)
+    PMdimC(2*PMdimC<hc & geo.radial_ribs_split) = 0;
+    PMdimC(PMdimC<hc & ~geo.radial_ribs_split) = 0;
+    PMdimE(PMdimE<hc) = 0;
 end
 
 PMdimE(PMdimE>b)=b(PMdimE>b);
@@ -325,8 +342,10 @@ xc(indexZone==2) = xc(indexZone==2).*(PMdimE./abs(PMdimE));
 
 xmag(indexZone==1) = ones(1,nlay);
 ymag(indexZone==1) = zeros(1,nlay);
-xmag(indexZone==2) = cos(pi/2/p-pi/2)*ones(1,nlay);
-ymag(indexZone==2) = sin(pi/2/p-pi/2)*ones(1,nlay);
+% xmag(indexZone==2) = cos(pi/2/p-pi/2)*ones(1,nlay);
+% ymag(indexZone==2) = sin(pi/2/p-pi/2)*ones(1,nlay);
+xmag(indexZone==2) = cos(hcAngle+pi/2/p-pi/2);
+ymag(indexZone==2) = sin(hcAngle+pi/2/p-pi/2);
 
 Br(indexZone==1) = mat.LayerMag.Br;
 Br(indexZone==2) = mat.LayerMag.Br;
@@ -373,21 +392,22 @@ temp.xmag     = xmag;
 temp.ymag     = ymag;
 temp.zmag     = zeros(size(xmag));
 
-temp.xPMC1b = xPMC1b;
-temp.yPMC1b = yPMC1b;
-temp.xPMC1t = xPMC1t;
-temp.yPMC1t = yPMC1t;
-temp.xPMC2b = xPMC2b;
-temp.yPMC2b = yPMC2b;
-temp.xPMC2t = xPMC2t;
-temp.yPMC2t = yPMC2t;
-temp.xPME1b = xPME1b;
-temp.yPME1b = yPME1b;
-temp.xPME1t = xPME1t;
-temp.yPME1t = yPME1t;
-temp.xPME2b = xPME2b;
-temp.yPME2b = yPME2b;
-temp.xPME2t = xPME2t;
-temp.yPME2t = yPME2t;
+temp.xPMC1b  = xPMC1b;
+temp.yPMC1b  = yPMC1b;
+temp.xPMC1t  = xPMC1t;
+temp.yPMC1t  = yPMC1t;
+temp.xPMC2b  = xPMC2b;
+temp.yPMC2b  = yPMC2b;
+temp.xPMC2t  = xPMC2t;
+temp.yPMC2t  = yPMC2t;
+temp.xPME1b  = xPME1b;
+temp.yPME1b  = yPME1b;
+temp.xPME1t  = xPME1t;
+temp.yPME1t  = yPME1t;
+temp.xPME2b  = xPME2b;
+temp.yPME2b  = yPME2b;
+temp.xPME2t  = xPME2t;
+temp.yPME2t  = yPME2t;
+temp.hcAngle = hcAngle;
 
 mat.LayerMag.Br = [Br Br];

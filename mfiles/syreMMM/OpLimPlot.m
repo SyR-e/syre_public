@@ -23,15 +23,15 @@ pathnameOut = [pathname resFolder];
 nmax = motorModel.data.nmax;
 p    = motorModel.data.p;
 
-Id = motorModel.fdfq.Id;
-Iq = motorModel.fdfq.Iq;
-Fd = motorModel.fdfq.Fd;
-Fq = motorModel.fdfq.Fq;
-T  = motorModel.fdfq.T;
+Id = motorModel.FluxMap_dq.Id;
+Iq = motorModel.FluxMap_dq.Iq;
+Fd = motorModel.FluxMap_dq.Fd;
+Fq = motorModel.FluxMap_dq.Fq;
+T  = motorModel.FluxMap_dq.T;
 PF = sin(atan2(Iq,Id)-atan2(Fq,Fd));
 
-MTPA = motorModel.AOA.MTPA;
-MTPV = motorModel.AOA.MTPV;
+MTPA = motorModel.controlTrajectories.MTPA;
+MTPV = motorModel.controlTrajectories.MTPV;
 
 
 % create figures
@@ -82,8 +82,7 @@ set(hfig(7),'FileName',[pathname resFolder 'DQplane.fig'])
 clabel(c,h)
 [c,h] = contour(Id,Iq,T,'-b','DisplayName','$T$');
 clabel(c,h)
-% [c,h] = contour(Id,Iq,abs(Fd+j*Fq),'-r','DisplayName','$\lambda$');
-% clabel(c,h)
+
 plot(MTPA.id,MTPA.iq,'--k','DisplayName','MTPA')
 plot(MTPV.id,MTPV.iq,':k','DisplayName','MTPV')
 
@@ -99,7 +98,7 @@ for ii=1:length(Plim)
     plot(hax(4),Plim{ii}.n,Plim{ii}.I,'DisplayName',iName);
     plot(hax(5),Plim{ii}.n,Plim{ii}.PF,'DisplayName',iName);
     plot(hax(6),Plim{ii}.n,Plim{ii}.F,'DisplayName',iName);
-    plot(hax(7),Plim{ii}.id_max,Plim{ii}.iq_max,'DisplayName',iName);
+    plot(hax(7),Plim{ii}.id_max(Plim{ii}.n>0),Plim{ii}.iq_max(Plim{ii}.n>0),'DisplayName',iName);
     
     % Point A
     for jj=1:length(hax)
@@ -124,8 +123,7 @@ for ii=1:length(Plim)
     plot(hax(5),Plim{ii}.n_B,interp2(Id,Iq,PF,Plim{ii}.id_B,Plim{ii}.iq_B),'d','DisplayName','B')
     plot(hax(6),Plim{ii}.n_B,Plim{ii}.F_B,'d','DisplayName','B')
     plot(hax(7),Plim{ii}.id_B,Plim{ii}.iq_B,'d','DisplayName','B')
-    
-    
+
     % Max speed
     if max(Plim{ii}.n)>=nmax
         for jj=1:length(hax)
@@ -140,10 +138,7 @@ for ii=1:length(Plim)
         iqVect = iqVect(index);
         id_M = interp1(nVect,idVect,nmax);
         iq_M = interp1(nVect,iqVect,nmax);
-        
-        % id_M = interp1(Plim{ii}.n(~isnan(Plim{ii}.n)),Plim{ii}.id_max(~isnan(Plim{ii}.n)),nmax);
-        % iq_M = interp1(Plim{ii}.n(~isnan(Plim{ii}.n)),Plim{ii}.iq_max(~isnan(Plim{ii}.n)),nmax);
-        
+                
         plot(hax(1),nmax,interp2(Id,Iq,T,id_M,iq_M),'p','DisplayName','M');
         plot(hax(2),nmax,interp2(Id,Iq,T,id_M,iq_M)*nmax*pi/30,'p','DisplayName','M');
         plot(hax(3),nmax,interp2(Id,Iq,abs(Fd+j*Fq),id_M,iq_M)*nmax*p*pi/30*sqrt(3),'p','DisplayName','M')
@@ -154,8 +149,4 @@ for ii=1:length(Plim)
     end
 end
 
-% legend
-% for ii=1:length(hax)
-%     hleg(ii) = legend(hax(ii),'show','Location','best');
-% end
 

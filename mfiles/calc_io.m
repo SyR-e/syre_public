@@ -35,7 +35,7 @@ l = geo.l/1e3; % [m]
 kcu = geo.win.kcu;
 N=geo.win.Ns;
 % rocu = 17.8*(234.5+per.tempcuest)/(234.5+20)*1e-9;
-rocu = 17.8*(234.5+per.tempcu)/(234.5+20)*1e-9;
+rocu = (1.7241e-08)*(234.5+per.tempcu)/(234.5+20);
 n3phase=geo.win.n3phase; %AS
 Aslots = geo.Aslot*(6*geo.p*geo.q*n3phase)/1e6; % [m^2]
 
@@ -78,6 +78,8 @@ kj=loss/(2*pi*R*l);
 i0 = (kj*kcu/rocu*l/(l+lend)*2*pi*R*2*Aslots/(4*(n3phase*3)^2)/N^2)^0.5; %AS
 
 Rs = loss/(n3phase*3/2*i0^2); %AS
+
+geo.lend = lend*1e3;
 
 
 

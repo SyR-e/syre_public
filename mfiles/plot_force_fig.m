@@ -33,8 +33,10 @@ plot(hax(2),Ft(:,1),Ft(:,2:end));
 
 for ii=1:2
     hchild=get(hax(ii),'Children');
+    format long
     for jj=1:length(hchild)
-        set(hchild(end-jj+1),'DisplayName',['$\theta= ' num2str(out.SOL.th(jj)-geo.th0,2) '^\circ$']);
+%         set(hchild(end-jj+1),'DisplayName',['$\theta= ' num2str(out.SOL.th(jj)-geo.th0(1),2) '^\circ$']);
+        set(hchild(end-jj+1),'DisplayName',['$\theta= ' sprintf('%1.0f',out.SOL.th(jj)-geo.th0(1)) '^\circ$']);
     end
     legend(hax(ii),'show');
     set(hax(ii),'XLim',[min(Fr(:,1)) max(Fr(:,1))]);
@@ -82,7 +84,8 @@ set(hax(2),'YLim',rMax*[-1 1],'YTick',linspace(-rMax,rMax,11));
 for ii=1:2
     hchild=get(hax(ii),'Children');
     for jj=1:length(hchild)
-        set(hchild(end-jj+1),'DisplayName',['$\theta= ' num2str(out.SOL.th(jj)-geo.th0,2) '^\circ$']);
+        %         set(hchild(end-jj+1),'DisplayName',['$\theta= ' num2str(out.SOL.th(jj)-geo.th0(1),2) '^\circ$']);
+        set(hchild(end-jj+1),'DisplayName',['$\theta= ' sprintf('%1.0f',out.SOL.th(jj)-geo.th0(1)) '^\circ$']);        
     end
     legend(hax(ii),'show');
     %set(hax(ii),'XLim',[min(Fr(:,1)) max(Fr(:,1))]);

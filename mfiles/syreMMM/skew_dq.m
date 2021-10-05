@@ -22,13 +22,13 @@ Lld       = motorModel.data.Lld;
 Llq       = motorModel.data.Llq;
 
 
-fdfq     = motorModel.fdfq;
-ironLoss = motorModel.ironLoss;
+fdfq     = motorModel.FluxMap_dq;
+ironLoss = motorModel.IronPMLossMap_dq;
 
 % new current limits
-ang_sk_m = motorModel.skew.thSkw;
-nSlice   = motorModel.skew.nSlice;
-nPoints  = motorModel.skew.nPoints;
+ang_sk_m = motorModel.tmpSkew.thSkw;
+nSlice   = motorModel.tmpSkew.nSlice;
+nPoints  = motorModel.tmpSkew.nPoints;
 
 ang_sk = ang_sk_m*p*pi/180; % elt rad
 k = 1:1:nSlice;

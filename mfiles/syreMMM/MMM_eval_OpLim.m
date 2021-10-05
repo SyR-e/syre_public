@@ -20,12 +20,17 @@ Imax  = motorModel.data.Imax;
 i0    = motorModel.data.i0;
 Vdc   = motorModel.data.Vdc;
 
+% if length(nCurr)==1
+%     if nCurr==1
+%         Ivect = i0;
+%     else
+%         Ivect = (1/nCurr:1/nCurr:1)*Imax;
+%     end
+% else
+%     Ivect = nCurr*i0;
+% end
 
-if length(nCurr)==1
-    Ivect = (1/nCurr:1/nCurr:1)*Imax;
-else
-    Ivect = nCurr*i0;
-end
+Ivect = nCurr*i0;
 
 Plim = cell(size(Ivect));
 

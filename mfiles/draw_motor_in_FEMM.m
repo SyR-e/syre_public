@@ -145,5 +145,9 @@ else
     mat.LayerMag.Br = unique(mat.LayerMag.Br,'stable');   % reset geo.Br to input value (either scalar or size = nlay)
 end
 
+if ~isfield(geo,'custom')||(geo.custom==0)
+%    filename = strrep(filename,'.fem','Syre.fem');
+     mi_saveas([pathname filename]);
+end
 % mi_saveas([pathname strrep(filename,'.mat','.fem')]);
-mi_saveas([pathname filename]);
+% mi_saveas([pathname filename]);

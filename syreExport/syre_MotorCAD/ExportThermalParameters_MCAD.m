@@ -48,7 +48,7 @@ if tmp == 2
             invoke(mcad,'SetVariable','WJ_Channel-Lam',5);
             invoke(mcad,'SetVariable','WJ_Channel_Height',5);
             
-            dataSet.FlowRate = 6;
+            
             tmp = dataSet.FlowRate/(5.988*10^4);
             tmp = num2str(tmp);
             tmp(tmp=='.')=',';
@@ -92,7 +92,7 @@ if tmp == 2
             invoke(mcad,'SetVariable','WJ_Channel_Height',5);
             
             
-            dataSet.FlowRate = 6;
+            
             tmp = dataSet.FlowRate/(5.988*10^4);
             tmp = num2str(tmp);
             tmp(tmp=='.')=',';

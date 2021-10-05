@@ -146,10 +146,9 @@ for ii = 1:length(SimulatedCurrent)
     end
     
     % plot and save figs
-    klength = 1; kturns = 1;
     delta_sim_singt = per.delta_sim_singt;
     
-    plot_singt(out,klength,kturns,delta_sim_singt,newDir,filemot);
+    plot_singt(out,delta_sim_singt,newDir,filemot);
     
     switch eval_type
         case 'flxdn'

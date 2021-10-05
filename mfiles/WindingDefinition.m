@@ -38,7 +38,7 @@ cd(path);
 win1 = MatrixWin();
 
 % align the win matrix with the phase 1 all at the beginning
-if q>1
+if rem(q,2)==0
     tmp  = sum(win1(1,1:q)~=ones(1,q));
     win1 = [win1(:,end-tmp+1:end) win1(:,1:end-tmp)];
 end
@@ -57,7 +57,7 @@ Q1s = Q1/t2;
 win = zeros(nL,n3ph*nS);
 Qs = Q1s*n3ph;
 
-if q>1
+if rem(q,2)==0
     indexBase = 1:1:q;
     indexSet  = zeros(1,nS);
     for ii=1:nS/q

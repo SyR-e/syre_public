@@ -20,13 +20,15 @@ end
 
 flag = 0;
 
-if ~isfield(motorModel.Tw,'PMLossFlag')
-    motorModel.Tw.PMLossFlag = 'No';
-    motorModel.Tw.PMLossFactor = 1;
-    
-    flag = 1;
-    if Dflag
-        disp('- Added PM loss and PM loss factor');
+if isfield(motorModel,'Tw')
+    if ~isfield(motorModel.Tw,'PMLossFlag')
+        motorModel.Tw.PMLossFlag = 'No';
+        motorModel.Tw.PMLossFactor = 1;
+
+        flag = 1;
+        if Dflag
+            disp('- Added PM loss and PM loss factor');
+        end
     end
 end
 
@@ -86,17 +88,91 @@ if ~isfield(motorModel,'WaveformSetup')
     motorModel.WaveformSetup.CurrAngle = motorModel.dqtElab.CurrAngle;
     motorModel.WaveformSetup.EvalSpeed = motorModel.data.n0;
     motorModel.WaveformSetup.nCycle    = 1;
-    motorModel = rmfield(motorModel,'dqtElab');
+%     motorModel = rmfield(motorModel,'dqtElab');
     flag = 1;
     if Dflag
         disp('- Added waveform tab and removed dqtMap tab');
     end
 end
 
+if ~isfield(motorModel.data,'R')
+    motorModel.data.R  = motorModel.dataSet.StatorOuterRadius;
+    motorModel.scale.R = motorModel.dataSet.StatorOuterRadius;
+    flag = 1;
+    if Dflag
+        disp('- Added radial scaling');
+    end
+end
+
+if ~isfield(motorModel.data,'lend')
+    motorModel.data.lend  = motorModel.dataSet.EndWindingsLength;
+    flag = 1;
+    if Dflag
+        disp('- Added end-winding input');
+    end
+end
+
+% Update motorModel fields name and remove the wrong names
+modFlag=0;
+
+oldNames{1}  = 'fdfq';
+oldNames{2}  = 'dqtMap';
+oldNames{3}  = 'ironLoss';
+oldNames{4}  = 'skinEffect';
+oldNames{5}  = 'AOA';
+oldNames{6}  = 'Inductance';
+oldNames{7}  = 'idiq';
+oldNames{8}  = 'dqtMapF';
+oldNames{9}  = 'scale';
+oldNames{10} = 'skew';
+oldNames{11} = 'Tw';
+
+newNames{1}  = 'FluxMap_dq';
+newNames{2}  = 'FluxMap_dqt';
+newNames{3}  = 'IronPMLossMap_dq';
+newNames{4}  = 'acLossFactor';
+newNames{5}  = 'controlTrajectories';
+newNames{6}  = 'IncInductanceMap_dq';
+newNames{7}  = 'FluxMapInv_dq';
+newNames{8}  = 'FluxMapInv_dqt';
+newNames{9}  = 'tmpScale';
+newNames{10} = 'tmpSkew';
+newNames{11} = 'TnSetup';
+
+for ii=1:length(oldNames)
+    if isfield(motorModel,oldNames{ii})
+        command = ['motorModel.' newNames{ii} ' = motorModel.' oldNames{ii} ';'];
+        eval(command);
+        motorModel = rmfield(motorModel,oldNames{ii});
+        modFlag=1;
+    end
+end
+
+if modFlag
+    if Dflag
+        disp('- updated names of motorModel fields');
+    end
+    flag=1;
+end
+
+
+if ~isfield(motorModel,'Thermal')
+    motorModel.Thermal.TempCuLimit = 180;
+    motorModel.Thermal.TempPmLimit = 150;
+    motorModel.Thermal.nmin        = 0;
+    motorModel.Thermal.nmax        = motorModel.data.nmax;
+    motorModel.Thermal.NumSpeed    = 6;
+    flag = 1;
+    if Dflag
+        disp('- Added thermal section');
+    end
+end
+
+
 % message in command window if some data are added
 if flag && Dflag
     msg = 'This project was created with an older version of SyR-e: proceed to SAVE MACHINE to update to latest version';
-    title = 'WARNING';
+%     title = 'WARNING';
 %     f = warndlg(msg,title,'modal');
     warning(msg);
 end

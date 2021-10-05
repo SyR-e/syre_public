@@ -141,7 +141,7 @@ for n=1:generations
     OUT.PSet           = PSet;     % Pareto Set
     OUT.PFront         = PFront;   % Pareto Front
     OUT.MatrixPset{n}  = PSet;
-    OUT.MatrixPFront{n}   = PFront;
+    OUT.MatrixPFront{n}= PFront;
     OUT.Param          = options;  % MODE Parameters
     OUT.eval_type      = options.eval_type;
     options.CounterGEN = n;
@@ -230,8 +230,7 @@ if strcmp(options.SaveResults,'yes')
 %    save('-mat7-binary', filename,'OUT','per','geo0','dataSet','mat'); %Results are saved
 %    else
     filename=fullfile(thisfilepath,'results',['OUT_' datestr(now,30)]);
-    save(filename,'OUT','per','geo0','dataSet','mat'); %Results are saved
-%    end
+    save(filename,'OUT','per','geo0','dataSet','mat');
     
     clear geo0 per
 end
@@ -245,17 +244,23 @@ if strcmp(options.SaveResults,'yes')
 end
 disp('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
 
-F=OUT.PFront;
+F = OUT.PFront;
 
 if options.NOBJ==3
+    figure
+    figSetting
     plot3(F(:,1),F(:,2),F(:,3),'dk','MarkerFaceColor','k');
     grid on;
     hold on;
 elseif options.NOBJ==2
+    figure
+    figSetting
     plot(F(:,1),F(:,2),'dk','MarkerFaceColor','k');
     grid on;
     hold on;
 elseif options.NOBJ==1
+    figure
+    figSetting
     plot(options.CounterGEN,log(min(F(:,1))),'dk','MarkerFaceColor','k');
     grid on;
     hold on;
@@ -296,15 +301,18 @@ if mod(Dat.CounterGEN,1)==0
         stem3(OUT.PFront(:,1),OUT.PFront(:,2),OUT.PFront(:,3),'*r');
         grid on; hold on; drawnow
     elseif Dat.NOBJ==2
+        figSetting
         plot(OUT.PFront(:,1),OUT.PFront(:,2),'*r');
         grid on; hold on; drawnow
     elseif Dat.NOBJ==1
+        figSetting
         plot(Dat.CounterGEN,log(min(OUT.PFront(:,1))),'*r');
         grid on; hold on; drawnow
-    else
-        plot(OUT.PFront(:,1),OUT.PFront(:,2),'*r');
-        grid on; hold on; drawnow
-        title('Pareto front on the first two objs only')
+%     else
+%         figSetting
+%         plot(OUT.PFront(:,1),OUT.PFront(:,2),'*r');
+%         grid on; hold on; drawnow
+%         title('Pareto front on the first two objs only')
     end
 end
 

@@ -28,7 +28,8 @@ dxIB   = geo.dxIB;
 kOB    = geo.kOB;
 delta_FBS   = geo.delta_FBS;    % flux barrier shift angle
 hfe_min     = geo.hfe_min;
-RotorFillet = geo.RotorFillet;
+RotorFilletTan1 = geo.RotorFilletTan1;
+RotorFilletTan2 = geo.RotorFilletTan2;
 hcShrink = geo.hcShrink;
 
 %% Initialitation
@@ -206,9 +207,14 @@ end
 m = tan(pi/2/p+delta_FBS/2)*ones(1,nlay);
 q = yTraf2 - m.*xTraf2;
 XpBar2_lim = -q./m;
-ii = B2k<XpBar2_lim;
+ii = B2k<XpBar2_lim+pont0;
 B2k(ii) = XpBar2_lim(ii);
 B1k(ii) = B2k(ii)-hc(ii);
+hcShrink(ii)=1;
+flag_V = zeros(1,nlay);
+flag_Vkdx = zeros(1,nlay);
+flag_Vkdx(ii) = 1;
+flag_V(ii) = 1;
 
 % Check if xpont<B2k
 ii = (xpont<B2k);
@@ -240,8 +246,9 @@ hcShrink_val(hcShrink_val<0) = 0;
 YpBar2_old = YpBar2;
 YpBar2(ii) = YpBar2(ii) - hcShrink_val(ii);
 
-flag_V = zeros(1,nlay);
+%flag_V = zeros(1,nlay);
 flag_V(YpBar2<=geo.pontR+pont0 & hcShrink_val~=0) = 1;
+flag_V(hcShrink_val==YpBar2_old)=1;
 YpBar2(flag_V==1) = 0;
 [a,b,c] = retta_per_2pti(XpBar2,YpBar2,xTraf2,yTraf2);
 [m,q,~] = retta_abc2mq(a,b,c);
@@ -283,6 +290,7 @@ end
 
 flag_V = zeros(1,nlay);
 flag_V(YpBar2<=geo.pontR+pont0 & hcShrink_val~=0) = 1;
+flag_V(hcShrink_val==YpBar2_old)=1;
 [a,b,c] = retta_per_2pti(XpBar2,YpBar2,xTraf2,yTraf2);
 [m,q,~] = retta_abc2mq(a,b,c);
 hcAngle = atan(m);
@@ -344,18 +352,31 @@ if (xxD2k(1)<xpont(1) && yyD2k(1)>=ypont(1))
     yyD2k(1)=YpBar2(1);
 end
 
-if any(hcShrink_val)
-    hcShrink = round((YpBar2_old - YpBar2)./YpBar2_old,2);
-else
-    hcShrink(hcShrink_val==0) = 0;
-end
+%if any(hcShrink_val) & any(flag_Vkdx==0)
+ii = ((hcShrink_val>0) & (flag_Vkdx==0));
+    hcShrink(ii) = round((YpBar2_old(ii) - YpBar2(ii))./YpBar2_old(ii),2);
+%else
+%hcShrink(hcShrink<0)=0;
+    %hcShrink(ii==0) = 0;
+%end
 %% No Vagati's Finger
 
-if isfinite(RotorFillet)
-    if sum(RotorFillet>hc/2)
+RotorFilletTan2(isfinite(RotorFilletTan1) & ~isfinite(RotorFilletTan2)) =   RotorFilletTan1(isfinite(RotorFilletTan1) & ~isfinite(RotorFilletTan2));
+RotorFilletTan1(isfinite(RotorFilletTan2) & ~isfinite(RotorFilletTan1)) =   RotorFilletTan2(isfinite(RotorFilletTan2) & ~isfinite(RotorFilletTan1));
+
+
+
+if any(isfinite(RotorFilletTan1))
+    pont0_nlay = pont0*ones(1,nlay);
+    RotorFilletTan1(~isfinite(RotorFilletTan1)) = 2*pont0_nlay(~isfinite(RotorFilletTan1));
+    RotorFilletTan2(~isfinite(RotorFilletTan2)) = 2*pont0_nlay(~isfinite(RotorFilletTan2));
+%     
+    
+    if sum(RotorFilletTan1+RotorFilletTan2>hc)
         disp('Rotor Fillet limited');
-        RotorFillet(1,RotorFillet>hc/2) = floor(hc(RotorFillet>hc/2)/2*10^2)/10^2;
-        RotorFillet(2,RotorFillet>hc/2) = floor(hc(RotorFillet>hc/2)/2*10^2)/10^2;
+        RotorFilletTan1(RotorFilletTan1>hc/2) = floor(hc(RotorFilletTan1>hc/2)/2*10^2)/10^2;
+        RotorFilletTan2(RotorFilletTan2>hc/2) = floor(hc(RotorFilletTan2>hc/2)/2*10^2)/10^2;
+%         RotorFillet(2,RotorFillet>hc/2) = floor(hc(RotorFillet>hc/2)/2*10^2)/10^2;
     end
 
     m1 = (YpBar1-yyD1k)./(XpBar1-xxD1k);
@@ -371,9 +392,9 @@ if isfinite(RotorFillet)
     q3 = yyD2k-m1.*xxD2k;
     
     %tangential rib superior arc starts in C1k and ends in C2k with center in C01k
-    xC2k = (sqrt(1+m1.*m1).*RotorFillet-q1+q2)./(m1-m2);
+    xC2k = (sqrt(1+m1.*m1).*RotorFilletTan1-q1+q2)./(m1-m2);
     yC2k = m2.*xC2k+q2;
-    xC1k = (sqrt(1+m2.*m2).*RotorFillet-q2+q1)./(m2-m1);
+    xC1k = (sqrt(1+m2.*m2).*RotorFilletTan1-q2+q1)./(m2-m1);
     yC1k = m1.*xC1k+q1;
     q11 = yC1k-m1perp.*xC1k;
     q22 = yC2k-m2perp.*xC2k;
@@ -381,9 +402,9 @@ if isfinite(RotorFillet)
     yC01k = m2perp.*xC01k+q22;
     
     %tangential rib inferior arc starts in C3k and ends in C4k with center in C02k
-    xC3k=(sqrt(1+m1.*m1).*RotorFillet+q3-q2)./(m2-m1);
+    xC3k=(sqrt(1+m1.*m1).*RotorFilletTan2+q3-q2)./(m2-m1);
     yC3k=m2.*xC3k+q2;
-    xC4k=(sqrt(1+m2.*m2).*RotorFillet-q2+q3)./(m2-m1);
+    xC4k=(sqrt(1+m2.*m2).*RotorFilletTan2-q2+q3)./(m2-m1);
     yC4k=m1.*xC4k+q3;
     q33=yC3k-m2perp.*xC3k;
     q44=yC4k-m1perp.*xC4k;
@@ -400,6 +421,13 @@ if isfinite(RotorFillet)
         xC3k(index)=(sqrt(1+m1(index).*m1(index)).*RotorFilletLimited+q3(index)-q2(index))./(m2(index)-m1(index));
         yC3k(index)=m2(index).*xC3k(index)+q2(index);
     end
+    
+    
+    xxD1k = xC1k;
+    yyD1k = yC1k;
+    xxD2k = xC4k;
+    yyD2k = yC4k;
+    
     
     %save nodes
     temp.xC1k = xC1k;
@@ -503,12 +531,15 @@ geo.lfe      = sum(geo.hf)/geo.r;
 geo.ly       = (geo.R - (geo.r + geo.g + geo.lt))/geo.r;
 geo.B1k      = B1k;
 geo.B2k      = B2k;
+geo.xpont    = xpont;
+geo.ypont    = ypont;
 geo.YpBar1   = YpBar1;
 geo.hc       = hc;
 geo.dxIB     = dxIB;
 geo.kOB      = kOB;
 geo.hcShrink = hcShrink;
+geo.RotorFilletTan1 = RotorFilletTan1;
+geo.RotorFilletTan2 = RotorFilletTan2;
 
 geo.CentBarLength = temp.YpontSplitBarSx(2,:)*2;
 geo.hrheight      = temp.XpontSplitDx(2,:)-temp.XpontSplitSx(2,:);
-geo.RotorFillet   = RotorFillet;

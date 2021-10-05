@@ -16,17 +16,17 @@ function MMM_GUI_SetParameters(app)
 
 motorModel = app.motorModel;
 data = motorModel.data;
-Tw   = motorModel.Tw;
+Tw   = motorModel.TnSetup;
 motorModelUnScale = app.motorModelUnScale;
 motorModelUnSkew  = app.motorModelUnSkew;
 
 
 
 % main data
-set(app.CurrentPathEditField,...
-    'Value',motorModel.data.pathname,...
-    'Enable','on',...
-    'Editable','off');
+% set(app.CurrentPathEditField,...
+%     'Value',motorModel.data.pathname,...
+%     'Enable','on',...
+%     'Editable','off');
 % set(app.ModelSavedCheckBox,...
 %     'Enable','off',...
 %     'Value',motorModel.data.flagSave);
@@ -38,7 +38,7 @@ set(app.Numberof3phasesetsEditField,...
     'Enable','on',...
     'Editable','off');
 set(app.MotortypeEditField,'Value',data.motorType);
-set(app.AxistypeEditField,'Value',data.axisType);
+set(app.AxistypeDropDown,'Value',data.axisType);
 set(app.RatedpowerEditField,'Value',num2str(data.P0));
 set(app.RatedcurrentEditField,'Value',num2str(data.i0));
 set(app.MaximumcurrentEditField,'Value',num2str(data.Imax));
@@ -47,6 +47,9 @@ set(app.RatedspeedEditField,'Value',num2str(data.n0));
 set(app.MaximumspeedEditField,'Value',num2str(data.nmax));
 set(app.PhaseresistanceEditField,'Value',num2str(data.Rs));
 set(app.WindingtemperatureEditField,'Value',num2str(data.tempCu));
+set(app.EndwindinglengthEditField,'Value',num2str(data.lend));
+
+
 % set(app.PMtemperatureEditField,'Value',num2str(data.tempPM),...
 %     'Enable','on',...
 %     'Editable','off');
@@ -74,7 +77,7 @@ set(app.InertiaEditField,'Value',num2str(data.J));
 
 % Main
 % model loaded
-if ~isempty(motorModel.fdfq)
+if ~isempty(motorModel.FluxMap_dq)
     set(app.dqModelCheckBox,...
         'Enable','on',...
         'Value',1);
@@ -103,7 +106,7 @@ else
     set(app.EvaluateShortCircuitTorqueButton,'Enable','off')
     set(app.WaveformShortCircuitButton,'Enable','off')
 end
-if ~isempty(motorModel.dqtMap)
+if ~isempty(motorModel.FluxMap_dqt)
     set(app.dqtMapModelCheckBox,...
         'Enable','on',...
         'Value',1);
@@ -120,7 +123,7 @@ else
     set(app.EvalInverseDQTButton,'Enable','off')
     set(app.WaveformSingPointButton,'Enable','off')
 end
-if ~isempty(motorModel.ironLoss)
+if ~isempty(motorModel.IronPMLossMap_dq)
     set(app.IronLossModelCheckBox,...
         'Enable','on',...
         'Value',1);
@@ -133,7 +136,7 @@ else
     set(app.PlotIronLossModelButton,'Enable','off')
     set(app.SaveIronLossModelButton,'Enable','off')
 end
-if ~isempty(motorModel.skinEffect)
+if ~isempty(motorModel.acLossFactor)
     set(app.SkinEffectModelCheckBox,...
         'Enable','on',...
         'Value',1);
@@ -147,14 +150,14 @@ else
     set(app.SaveSkinEffectButton,'Enable','off')
 end
 % AOA (Admitted Operating Area) MTPA/MTPV
-if ~isempty(motorModel.AOA)
+if ~isempty(motorModel.controlTrajectories)
     set(app.AOACheckBox,...
         'Enable','on',...
         'Value',1);
     set(app.PlotMTPAButton,'Enable','on')
     set(app.SaveMTPAButton,'Enable','on')
     set(app.PrintMTPAButton,'Enable','on')
-    set(app.MTPAmethodDropDown,'Value',motorModel.AOA.method)
+    set(app.MTPAmethodDropDown,'Value',motorModel.controlTrajectories.method)
     set(app.OpLimPush,'Enable','on')
     set(app.RatingsEvalPush,'Enable','on')
 else
@@ -169,7 +172,7 @@ else
     set(app.RatingsEvalPush,'Enable','off')
 end
 % inductance map
-if ~isempty(motorModel.Inductance)
+if ~isempty(motorModel.IncInductanceMap_dq)
     set(app.InductanceMapsCheckBox,...
         'Enable','on',...
         'Value',1);
@@ -185,7 +188,7 @@ end
 % Current angle curves
 set(app.NumCurrLevelTgammaEditField,'Value',mat2str(data.nCurr));
 % inverse models
-if ~isempty(motorModel.idiq)
+if ~isempty(motorModel.FluxMapInv_dq)
     set(app.InversedqCheckBox,...
         'Enable','on',...
         'Value',1);
@@ -198,7 +201,7 @@ else
     set(app.PlotInverseDQButton,'Enable','off')
     set(app.SaveInverseDQButton,'Enable','off')
 end
-if ~isempty(motorModel.dqtMapF)
+if ~isempty(motorModel.FluxMapInv_dqt)
     set(app.InversedqtMapCheckBox,...
         'Enable','on',...
         'Value',1);
@@ -241,15 +244,16 @@ end
 
 % Scale & Skew
 % Scale
-set(app.NewTurnsEditField,'Value',int2str(motorModel.scale.Ns));
-set(app.NewLengthEditField,'Value',num2str(motorModel.scale.l));
-set(app.NewLldEditField,'Value',num2str(motorModel.scale.Lld));
-set(app.NewLlqEditField,'Value',num2str(motorModel.scale.Llq));
+set(app.NewTurnsEditField,'Value',int2str(motorModel.tmpScale.Ns));
+set(app.NewLengthEditField,'Value',num2str(motorModel.tmpScale.l));
+set(app.NewStatorRadiusEditField,'Value',num2str(motorModel.tmpScale.R));
+set(app.NewLldEditField,'Value',num2str(motorModel.tmpScale.Lld));
+set(app.NewLlqEditField,'Value',num2str(motorModel.tmpScale.Llq));
 
 % Skew
-set(app.SkewAngleEditField,'Value',num2str(motorModel.skew.thSkw));
-set(app.SkewSliceEditField,'Value',int2str(motorModel.skew.nSlice));
-set(app.SkewPointsEditField,'Value',int2str(motorModel.skew.nPoints));
+set(app.SkewAngleEditField,'Value',num2str(motorModel.tmpSkew.thSkw));
+set(app.SkewSliceEditField,'Value',int2str(motorModel.tmpSkew.nSlice));
+set(app.SkewPointsEditField,'Value',int2str(motorModel.tmpSkew.nPoints));
 set(app.dqtMapskewingevaluationEditField,...
     'Value','0%',...
     'Enable','on',...
@@ -260,6 +264,7 @@ if ~isempty(motorModelUnScale)
     set(app.NewLengthEditField,'Enable','on');
     set(app.NewLldEditField,'Enable','on');
     set(app.NewLlqEditField,'Enable','on');
+    set(app.NewStatorRadiusEditField,'Enable','on');
     set(app.ScaleModelPush,'Enable','on');
     set(app.UnscaleModelPush,'Enable','on');
     set(app.SkewAngleEditField,'Enable','off');
@@ -272,6 +277,7 @@ elseif ~isempty(motorModelUnSkew)
     set(app.NewLengthEditField,'Enable','off');
     set(app.NewLldEditField,'Enable','off');
     set(app.NewLlqEditField,'Enable','off');
+    set(app.NewStatorRadiusEditField,'Enable','off');
     set(app.ScaleModelPush,'Enable','off');
     set(app.UnscaleModelPush,'Enable','off');
     set(app.SkewAngleEditField,'Enable','on');
@@ -284,6 +290,7 @@ else
     set(app.NewLengthEditField,'Enable','on');
     set(app.NewLldEditField,'Enable','on');
     set(app.NewLlqEditField,'Enable','on');
+    set(app.NewStatorRadiusEditField,'Enable','on');
     set(app.ScaleModelPush,'Enable','off');
     set(app.UnscaleModelPush,'Enable','off');
     set(app.SkewAngleEditField,'Enable','on');
@@ -357,7 +364,7 @@ set(app.InjectedsignalDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.
 set(app.DemodulationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.dem));
 set(app.PositionerrorestimationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.HS_ctrl));
 
-if (isempty(motorModel.data)||isempty(motorModel.AOA)||isempty(motorModel.Inductance)||isempty(motorModel.dqtMapF)||isempty(motorModel.idiq))
+if (isempty(motorModel.data)||isempty(motorModel.controlTrajectories)||isempty(motorModel.IncInductanceMap_dq)||isempty(motorModel.FluxMapInv_dqt)||isempty(motorModel.FluxMapInv_dq))
     set(app.RUNButton,'Enable','off')
 else
     set(app.RUNButton,'Enable','on')
@@ -373,6 +380,17 @@ set(app.WaveformCurrentEditField,...
     'Value',mat2str(motorModel.WaveformSetup.CurrAmpl))
 set(app.WaveformSpeedEditField,'Value',mat2str(motorModel.WaveformSetup.EvalSpeed))
 set(app.WaveformPeriodsEditField,'Value',mat2str(motorModel.WaveformSetup.nCycle))
+
+% Thermal
+set(app.CopperTempLimitEditField,'Value',mat2str(motorModel.Thermal.TempCuLimit))
+set(app.MagnetTempLimitEditField,'Value',mat2str(motorModel.Thermal.TempPmLimit))
+set(app.ThTwMinSpeedEditField,'Value',mat2str(motorModel.Thermal.nmin))
+set(app.ThTwMaxSpeedEditField,'Value',mat2str(motorModel.Thermal.nmax))
+set(app.ThTwNumSpeedEditField,'Value',mat2str(motorModel.Thermal.NumSpeed))
+
+
+
+
 
 
 

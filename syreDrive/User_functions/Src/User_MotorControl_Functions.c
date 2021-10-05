@@ -29,6 +29,8 @@ void PIReg(XPIRegPars *par,XPIRegVars *var)
     var->out=var->prop+var->intg;
 }
 
+//----------------------------------------------------------------------------------------------------//
+
 void PWMduty(Xabc vsabc_ref, float vdc, Xabc* duty_abc) {
     
 		float tmp1, tmp2, tmp3, vdc_inv, vzs;
@@ -61,7 +63,7 @@ void PWMduty(Xabc vsabc_ref, float vdc, Xabc* duty_abc) {
 		duty_abc->c = 0.5f + (vsabc_ref.c + vzs)*vdc_inv;;  
 }
 
-
+//----------------------------------------------------------------------------------------------------//
 
 void speed_compute_sc(Xsc sincos, Xsc *sincos_old, float* omega) { 
     
@@ -78,6 +80,7 @@ void speed_compute_sc(Xsc sincos, Xsc *sincos_old, float* omega) {
    
 }
 
+//----------------------------------------------------------------------------------------------------//
 
 void DTComp1(Xabc isabc, float amp_dt, Xabc *duty_abc) {
     
@@ -92,6 +95,7 @@ void DTComp1(Xabc isabc, float amp_dt, Xabc *duty_abc) {
     
 }
 
+//----------------------------------------------------------------------------------------------------//
 
 void DTComp2(Xabc isabc, float amp_dt_V, Xabc *vsabc) {
     
@@ -105,6 +109,8 @@ void DTComp2(Xabc isabc, float amp_dt_V, Xabc *vsabc) {
     else vsabc->c += amp_dt_V;
     
 }
+
+//----------------------------------------------------------------------------------------------------//
 
 void DTComp(Xabc duty, Xabc duty_km1, Xabc isabc,float vdc,float dt, Xabc *vsabc) 
 {
@@ -154,6 +160,8 @@ void DTComp(Xabc duty, Xabc duty_km1, Xabc isabc,float vdc,float dt, Xabc *vsabc
 		duty_km1.c = duty.c;
 }
 
+//----------------------------------------------------------------------------------------------------//
+
 //Current control loops
 void Current_loop(float vdc, float Imax, Xdq isdq_ref, Xdq  isdq, XPIRegPars* id_par, XPIRegVars* id_var, XPIRegPars* iq_par, XPIRegVars* iq_var,Xdq* vsdq_ref) {
 	
@@ -184,7 +192,7 @@ void Current_loop(float vdc, float Imax, Xdq isdq_ref, Xdq  isdq, XPIRegPars* id
     
 }
 
-
+//----------------------------------------------------------------------------------------------------//
 
 // General formulation for a low pass filter with only one coefficient
 // sarebbe da sostituire con una macro
@@ -196,6 +204,7 @@ void Current_loop(float vdc, float Imax, Xdq isdq_ref, Xdq  isdq, XPIRegPars* id
 //    return xf_k;
 //}
 
+//----------------------------------------------------------------------------------------------------//
 
 //Reference angle generation (V/Hz, I-Hz)
 void Gen_theta_ref(float omega_ref_ramp, float* theta_ref, Xsc* SinCos_ref )
@@ -207,6 +216,8 @@ void Gen_theta_ref(float omega_ref_ramp, float* theta_ref, Xsc* SinCos_ref )
     SinCos_ref->sin = sinf(*theta_ref);
     SinCos_ref->cos = cosf(*theta_ref);
 }
+
+//----------------------------------------------------------------------------------------------------//
 
 void CurrentProtection(Xabc isabc, int* State, int* pwm_stop) {
     
@@ -226,6 +237,7 @@ void CurrentProtection(Xabc isabc, int* State, int* pwm_stop) {
     
 }
 
+//----------------------------------------------------------------------------------------------------//
 
 void ramp(float target, float delta, float *output) {
     
@@ -241,6 +253,7 @@ void ramp(float target, float delta, float *output) {
     }
 }
 
+//----------------------------------------------------------------------------------------------------//
 
 void HF_position_detect2(Xalphabeta isab, int commiss_counter,int* counter ,float* theta_hf,Xalphabeta* vsab_ref) {
     //==========================================================================
@@ -290,6 +303,7 @@ void HF_position_detect2(Xalphabeta isab, int commiss_counter,int* counter ,floa
     }
 }
 
+//----------------------------------------------------------------------------------------------------//
 
 void  ReadLut(float *tab0, float Xin, float Xmax,float Xmin, float DX, float inv_DX, float* Yout)
 {
@@ -309,6 +323,7 @@ void  ReadLut(float *tab0, float Xin, float Xmax,float Xmin, float DX, float inv
     
 }
 
+//----------------------------------------------------------------------------------------------------//
 
 // Read a 2 dimensional look-up-table (matrix)
 void interp2d(float *P, float x, float y, float Dx, float invDx, float Dy, float invDy, float Xmax, float Xmin, float Ymax , float Ymin, int Npointx, float*  V) {
@@ -342,6 +357,47 @@ void interp2d(float *P, float x, float y, float Dx, float invDx, float Dy, float
     
 }
 
+//----------------------------------------------------------------------------------------------------//
+
+// Read a 2 dimensional look-up-table (matrix)
+void ReadLut2d(float *tab0,float x,float y,float Dx,float invDx,float Dy,float invDy,float Xmax,float Xmin,float Ymax,float Ymin,int Npointx,float* V)
+{
+    float ix, iy;
+    float rx, ry;
+    float V1, V2;
+    int delta;
+   
+	//Limit input range
+	if (x > Xmax) {x=Xmax-0.1f*Dx;}
+    if (x < Xmin) {x=Xmin+0.1f*Dx;}
+    if (y > Ymax) {y=Ymax-0.1f*Dy;}
+    if (y < Ymin) {y=Ymin+0.1f*Dy;}
+    //Select element 0 for x and y
+    rx=(x-Xmin)*invDx;
+	ry=(y-Ymin)*invDy;
+
+    // indexes of element 0
+    ix=floor(rx);
+    iy=floor(ry);
+    // distance from element 0
+    rx=rx-ix;
+    ry=ry-iy;
+    //address of element 0
+	delta=(ix)+(iy)*Npointx;
+   
+    tab0=tab0+delta;
+    //interpolate on x
+	//V1 is exact on x and FLOOR along y
+    V1=*tab0+(*(tab0+1)-*tab0)*rx;
+	//V2 is exact on x and CEIL along y
+    tab0=tab0+Npointx;
+    V2=*tab0+(*(tab0+1)-*tab0)*rx;
+	// interpolate on y
+    *V=V1+(V2-V1)*ry;
+}
+
+//----------------------------------------------------------------------------------------------------//
+
 float sgn(float i)
 {
  float sgn;
@@ -352,6 +408,8 @@ float sgn(float i)
 
  return (sgn);
 }
+
+//----------------------------------------------------------------------------------------------------//
 
 // Bandpass Fitler
 
