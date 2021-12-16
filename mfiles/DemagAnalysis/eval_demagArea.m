@@ -29,6 +29,23 @@ per.EvalSpeed = dataIn.EvalSpeed;
 
 clc;
 
+if ~isfield(dataSet,'axisType')
+    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
+        dataSet.axisType = 'PM';
+    else
+        dataSet.axisType = 'SR';
+    end
+end
+
+if ~strcmp(dataSet.axisType,dataIn.axisType)
+    if strcmp(dataSet.axisType,'PM')
+        geo.th0 = geo.th0 + 90;
+    else
+        geo.th0 = geo.th0 - 90;
+    end
+end
+
+
 per.overload = CurrLoPP;
 per.i0       = RatedCurrent;
 per.BrPP     = BrPP;
@@ -139,7 +156,7 @@ for ii=1:nsim
     
     for jj=1:length(vTmp(1,:))
         fill(hax(ii),real(vTmp(:,jj)),imag(vTmp(:,jj)),'r');
-%         plot(hax(ii),real(cTmp(jj)),imag(cTmp(jj)),'r.');
+        %         plot(hax(ii),real(cTmp(jj)),imag(cTmp(jj)),'r.');
     end
 end
 

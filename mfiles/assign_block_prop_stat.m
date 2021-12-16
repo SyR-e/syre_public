@@ -33,9 +33,12 @@ for ii=0:(n3phase-1)
 end 
 
 % avv=geo.defaultavv;  %AS
-avv=geo.win.avv;
+% avv=geo.win.avv;
 ss=1; %slot index
 ll=1; %layer index
+
+avv = windingCheck(geo);
+
 
 for kk=1:length(BLKLABELSstat.xy(:,1))
     if BLKLABELSstat.xy(kk,3)==2 %Air

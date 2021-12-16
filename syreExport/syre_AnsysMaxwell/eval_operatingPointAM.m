@@ -55,6 +55,15 @@ per.BrPP            = BrPP;
 per.corelossflag    = strcmp(eval_type,'singtIron');
 per.save_fields     = 0;               %activate and save fields every # step (0 deactiveted) must be < nsim_singt
 
+%custom current
+if dataIn.CustomCurrentEnable
+    per.custom_ia         = dataIn.CustomCurrentA;
+    per.custom_ib         = dataIn.CustomCurrentB;
+    per.custom_ic         = dataIn.CustomCurrentC;
+    per.custom_time       = dataIn.CustomCurrentTime;
+    per.custom_act        = dataIn.CustomCurrentEnable;
+    per.custom_ansyscount = dataIn.CustomCurrentAnsysCounter;
+end
 
 overload_temp = CurrLoPP;   % current to be simulated
 gamma_temp    = GammaPP;    % current phase angle
@@ -96,11 +105,11 @@ for ii = 1:length(SimulatedCurrent)
     xdeg = output{ii}.xdeg;
     
     if per.corelossflag==1
-        CoreLoss          = output{ii}.CoreLoss;
-        CoreLossAvg       = output{ii}.CoreLossAvg;
-        HysteresisLossAvg = output{ii}.HysteresisLossAvg;
-        EddyLossAvg       = output{ii}.EddyLossAvg;
-        ExcessLossAvg     = output{ii}.ExcessLossAvg;
+        CoreLoss   = output{ii}.CoreLoss;
+        CoreLoss_s = output{ii}.CoreLoss_s;
+        CoreLoss_r = output{ii}.CoreLoss_r;
+%         EddyLossAvg       = output{ii}.EddyLossAvg;
+%         ExcessLossAvg     = output{ii}.ExcessLossAvg;
         per.savefield     = 0;
     end
     
@@ -183,9 +192,9 @@ for ii = 1:length(SimulatedCurrent)
     title(['Mean $\lambda_q$ = ' num2str(mean(fq))]);
     grid on
     %set(hq1,'LineWidth',2);
-    xl_hq=xlabel('$\theta$ [Electrical degrees]');
+    xl_hq = xlabel('$\theta$ [Electrical degrees]');
     %set(xl_hq,'Rotation',0,'FontName',FontName,'Fontsize',FontSize); %'FontWeight','Bold');
-    yl_hq=ylabel('$\lambda_q$ [Wb]');
+    yl_hq = ylabel('$\lambda_q$ [Wb]');
     %set(yl_hq,'Rotation',90,'FontName',FontName,'Fontsize',FontSize); %,'FontWeight','Bold');
     xlim([0 Theta(end)]);
     %set(gca,'FontSize',FontSize); %,'FontWeight','Bold');
@@ -197,52 +206,49 @@ for ii = 1:length(SimulatedCurrent)
     %CoreLoss
     if per.corelossflag==1
         hl = figure;
-        figSetting()
+        figSetting(12,8,12)
         set(hl,'FileName',[resFolder 'PlossVsTime.fig'])
-        pl = plot(Theta,CoreLoss); grid on
+        plot(Theta,CoreLoss)
         title(['Mean Core Loss = ' num2str(mean(CoreLoss(ceil(6*end/7)+1:end)))]);
-        set(pl,'LineWidth',[2]);
         xlim([0 Theta(end)]), %ylim([ymin ymax]),
-        set(gca,'FontName',FontName,'FontSize',FontSize);
         ti = 0:60:xdeg*nrep; set(gca,'XTick',ti);
-        xl = xlabel('$\theta$ - [degrees]'); set(xl,'Rotation',[0],'Fontsize',FontSize);
-        yl = ylabel('Core Loss [W]');
-        set(yl,'Rotation',[90],'FontName',FontName,'Fontsize',FontSize);
+        xlabel('$\theta$ - [degrees]'); 
+        ylabel('Core Loss [W]');
         savePrintFigure(hl)
         
-        Pfe_tot = CoreLossAvg(1); 
-        Pfes_tot = CoreLossAvg(2); 
-        Pfer_tot = CoreLossAvg(3);
-        Pfe_h = HysteresisLossAvg(1); 
-        Pfes_h = HysteresisLossAvg(2); 
-        Pfer_h = HysteresisLossAvg(3);
-        Pfe_c = EddyLossAvg(1);
-        Pfes_c = EddyLossAvg(2);
-        Pfer_c = EddyLossAvg(3);
-        Pfe_ex = ExcessLossAvg(1); 
-        Pfes_ex = ExcessLossAvg(2); 
-        Pfer_ex = ExcessLossAvg(3);
+%         Pfe_tot = CoreLossAvg(1); 
+%         Pfes_tot = CoreLossAvg(2); 
+%         Pfer_tot = CoreLossAvg(3);
+%         Pfe_h = HysteresisLossAvg(1); 
+%         Pfes_h = HysteresisLossAvg(2); 
+%         Pfer_h = HysteresisLossAvg(3);
+%         Pfe_c = EddyLossAvg(1);
+%         Pfes_c = EddyLossAvg(2);
+%         Pfer_c = EddyLossAvg(3);
+%         Pfe_ex = ExcessLossAvg(1); 
+%         Pfes_ex = ExcessLossAvg(2); 
+%         Pfer_ex = ExcessLossAvg(3);
         
-        c = categorical({'Stat Hys','Stat Eddy','Stat Exc','Rot Hys','Rot Eddy','Rot Exc','Total Loss'},'Ordinal',true);
-        Pfe = [Pfes_h,Pfes_c,Pfes_ex,Pfer_h,Pfer_c,Pfer_ex,Pfe_tot];
-        Pfe(isnan(Pfe)) = 0;
- 
-        
-        % Plot
-        br=figure();
-        figSetting(10,10,8)
-        set(br,'FileName',[resFolder 'Ploss.fig'])
-        set(gca,'YLim',[0 Pfe_tot*1.1])
-        b = bar(c,Pfe,0.8);
-        xtips1 = (b(1).XEndPoints);
-        ytips1 = (b(1).YEndPoints);
-        labels1 = string(round(b(1).YData));
-        text(xtips1,ytips1,labels1,'HorizontalAlignment','center',...
-            'VerticalAlignment','bottom')
-        %legend ('Ansys')
-        title('Iron Loss')
-        ylabel('P [W]')
-        save([resFolder 'Data.mat'], 'Pfe');
-        savePrintFigure(br)
+%         c = categorical({'Stat Hys','Stat Eddy','Stat Exc','Rot Hys','Rot Eddy','Rot Exc','Total Loss'},'Ordinal',true);
+%         Pfe = [Pfes_h,Pfes_c,Pfes_ex,Pfer_h,Pfer_c,Pfer_ex,Pfe_tot];
+%         Pfe(isnan(Pfe)) = 0;
+%  
+%         
+%         % Plot
+%         br=figure();
+%         figSetting(10,10,8)
+%         set(br,'FileName',[resFolder 'Ploss.fig'])
+%         set(gca,'YLim',[0 Pfe_tot*1.1])
+%         b = bar(c,Pfe,0.8);
+%         xtips1 = (b(1).XEndPoints);
+%         ytips1 = (b(1).YEndPoints);
+%         labels1 = string(round(b(1).YData));
+%         text(xtips1,ytips1,labels1,'HorizontalAlignment','center',...
+%             'VerticalAlignment','bottom')
+%         %legend ('Ansys')
+%         title('Iron Loss')
+%         ylabel('P [W]')
+%         save([resFolder 'Data.mat'], 'Pfe');
+%         savePrintFigure(br)
     end
 end

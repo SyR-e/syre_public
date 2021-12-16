@@ -17,28 +17,14 @@ function MMM_MaxTw(motorModel,hax)
 % load data
 Id  = motorModel.FluxMap_dq.Id;
 Iq  = motorModel.FluxMap_dq.Iq;
-Fd  = motorModel.FluxMap_dq.Fd;
-Fq  = motorModel.FluxMap_dq.Fq;
 Tem = motorModel.FluxMap_dq.T;
 
 TwData = motorModel.TnSetup;
 
-p         = motorModel.data.p;
-axisType  = motorModel.data.axisType;
 motorType = motorModel.data.motorType;
-temp0     = motorModel.data.tempCu;
-Rs0       = motorModel.data.Rs;
-n3phase   = motorModel.data.n3phase;
-Imax      = motorModel.data.Imax;
-Vdc       = motorModel.data.Vdc;
-l         = motorModel.data.l;
-lend      = motorModel.data.lend;
 
 nVect = linspace(TwData.nmin,TwData.nmax,TwData.nstep);
 TVect = linspace(TwData.Tmin,TwData.Tmax,TwData.Tstep);
-
-I = Id+j*Iq;
-F = Fd+j*Fq;
 
 % Initialize matrix results
 [nmap,Tmap] = meshgrid(nVect,TVect);
@@ -101,216 +87,45 @@ hg=plot(hax,0,0,'g.','LineWidth',1.5);
 disp('Map evaluation in progress...')
 
 for ii=1:numel(TwMap.n)
-    % 1) stator frequency evaluation
-    if strcmp(motorType,'IM')
-        Wslip=IM.Wslip*(1+0.004*(TwData.temperature-temp0));
-        FreqElet=(sign(Tmap(ii))*Wslip+TwMap.n(ii)*p*pi/30)/(2*pi);
-    else
-        FreqElet=(TwMap.n(ii)*p*pi/30)/(2*pi);
-    end
     
-    % 2) Iron loss evaluation
-    if strcmp(TwData.IronLossFlag,'Yes')
-        [~,Pfes_h,Pfes_c,Pfer_h,Pfer_c,Ppm] = calcIronLoss(motorModel.IronPMLossMap_dq,motorModel.FluxMap_dq,FreqElet);
-        if strcmp(TwData.PMLossFlag,'Yes')
-            Ppm = Ppm*TwData.PMLossFactor;
-        else
-            Ppm = Ppm*0;
-        end
-    else
-        Pfes_h = zeros(size(Id));
-        Pfes_c = zeros(size(Id));
-        Pfer_h = zeros(size(Id));
-        Pfer_c = zeros(size(Id));
-        Ppm    = zeros(size(Id));
-    end
-    Pfes = TwData.IronLossFactor*(Pfes_h+Pfes_c);
-    Pfer = TwData.IronLossFactor*(Pfer_h+Pfer_c);
-    Pfe  = (Pfes+Pfer+Ppm);
-    
-    % 3) Joule rotor loss (IM only)
-    if strcmp(motorType,'IM')
-        Prot=3/2*IM.RR.*IM.Ir.^2;
-        Prot=Prot*(1+0.004*(TwData.temperature-temp0));
-    else
-        Prot=zeros(size(Id));
-    end
-    
-    % 4) Back-emf computation
-    if Tmap(ii)>=0
-        Vind=1j*2*pi*FreqElet.*F;
-    else
-        if strcmp(motorType,'PM')
-            if strcmp(axisType,'SR')
-                Vind=1j*2*pi*FreqElet.*(-j.*conj(j*F));
-            else
-                Vind=1j*2*pi*FreqElet.*conj(F);
-            end
-        else
-            Vind=1j*2*pi*FreqElet.*conj(F);
-        end
-    end
-    
-    % 5) Current component representing Fe and PM loss and total current
-    Ife=2/3*Pfe./conj(Vind);
-    Ife(Pfe==0)=0;
-    
-    if Tmap(ii)>=0
-        Io=I+Ife;
-    else
-        if strcmp(motorType,'PM')
-            if strcmp(axisType,'SR') % invert the d-axis
-                Io=-j*conj(j*I)+Ife;
-            else    %invert q-axis
-                Io=conj(I)+Ife;
-            end
-        else    % invert q-axis
-            Io=conj(I)+Ife;
-        end
-    end
-    
-    % 6) Phase resistance computation (with temperature and skin effect)
-    if strcmp(TwData.SkinEffectFlag,'Yes')
-        kAC = calcSkinEffect(motorModel.acLossFactor,FreqElet,TwData.temperature,TwData.SkinEffectMethod);
-    else
-        kAC = 1;
-    end
-%      kAC = 2;
-    Rs0 = Rs0.*(kAC*l/(lend+l)+lend/(lend+l));         % applying the kac just to the active length
-    Rs  = Rs0.*(1+0.004*(TwData.temperature-temp0)).*ones(size(Id));
-    
-    % 7) Voltage computation
-    Vof = Vind+Rs.*Io;  % phase voltage
-    Voc = Vof*sqrt(3);  % line voltage
-    
-    cosfi = cos(angle(Io)-angle(Vof));
-    
-    % 8) Mechanical loss computation
-    Pmech = polyval(TwData.MechLoss,abs(nmap(ii)));
-    
-    % 9) Total loss map computation
-    Ploss = Pfe+Prot+3/2*Rs*n3phase.*abs(Io).^2+Pmech;
-    
-    % 10) Voltage and current limits
-    Io_m = abs(Io);
-    Voc_m = abs(Voc);
-    
-    lim = ones(size(Id));
-    lim(Voc_m>Vdc) = NaN;
-    lim(Io_m>Imax) = NaN;
-    
-    Ploss = Ploss.*lim;
-    
-    % 11) Mechanical torque computation
-    if Tmap(ii)>=0
-        T = Tem-(Pmech)./(TwMap.n(ii)*p*pi/30);
-    else
-        T = Tem+(Pmech)./(TwMap.n(ii)*p*pi/30);
-    end
-    
-    T(isnan(T)) = Tem(isnan(T)); % avoid error for zero speed
-    
-    if abs(TwMap.T(ii))<=max(max(T))
-        % Extract (id,iq) curve @ T=cost
-        c = contourc(unique(Id),unique(Iq),T,abs(TwMap.T(ii)*[1 1]));
-        idIso = c(1,2:end);
-        iqIso = c(2,2:end);
-        if strcmp(TwData.Control,'Maximum efficiency')
-            PlossIso = interp2(Id,Iq,Ploss,idIso,iqIso);
-        elseif strcmp(TwData.Control,'MTPA')
-            PlossIso = interp2(Id,Iq,3/2*Rs.*Io_m.^2.*lim,idIso,iqIso);
-        end
-        idIso    = idIso(~isnan(PlossIso));
-        iqIso    = iqIso(~isnan(PlossIso));
-        PlossIso = PlossIso(~isnan(PlossIso));
-        [~,index] = min(PlossIso);
-        if isempty(index)
-            id = NaN;
-            iq = NaN;
-            limIso = NaN;
-        else
-            id = idIso(index);
-            iq = iqIso(index);
-            limIso = 1;
-        end
-    else
-        limIso = NaN;
-    end
+    [out] = calcTnPoint(motorModel,Tmap(ii),nmap(ii));
     
     % update figure and matrices
-    if ~isnan(limIso)
+    if ~isnan(out.T)
         xdata = [get(hg,'XData') nmap(ii)];
         ydata = [get(hg,'YData') Tmap(ii)];
         set(hg,'XData',xdata,'YData',ydata);
         drawnow();
-%         pause(0.01);
         
-        if Tmap(ii)<0
-            if strcmp(motorType,'PM')
-                if strcmp(axisType,'SR') % invert d current for generator (PM on -q)
-                    IdMin = -id;
-                    FdMin = -interp2(Id,Iq,Fd,id,iq);
-                    IqMin = +iq;
-                    FqMin = +interp2(Id,Iq,Fq,id,iq);
-                else % invert q current for generator (PM on d axis)
-                    IdMin = +id;
-                    FdMin = +interp2(Id,Iq,Fd,id,iq);
-                    IqMin = -iq;
-                    FqMin = -interp2(Id,Iq,Fq,id,iq);
-                end
-                IqMin = iq;
-                FqMin = interp2(Id,Iq,Fq,id,iq);
-            else    % SyR motor: invert q current for generator
-                IdMin = +id;
-                FdMin = +interp2(Id,Iq,Fd,id,iq);
-                IqMin = -iq;
-                FqMin = -interp2(Id,Iq,Fq,id,iq);
-            end
-        else
-            IdMin = +id;
-            FdMin = +interp2(Id,Iq,Fd,id,iq);
-            IqMin = +iq;
-            FqMin = +interp2(Id,Iq,Fq,id,iq);
-        end
-        
-        TwMap.Tout(ii)  = Tmap(ii);
-        TwMap.Id(ii)    = IdMin;
-        TwMap.Iq(ii)    = IqMin;
-        TwMap.Fd(ii)    = FdMin;
-        TwMap.Fq(ii)    = FqMin;
-        TwMap.Tem(ii)   = interp2(Id,Iq,Tem,id,iq);
-        TwMap.Vo(ii)    = interp2(Id,Iq,Voc_m,id,iq);
-        TwMap.Io(ii)    = interp2(Id,Iq,Io_m,id,iq);
-        TwMap.Im(ii)    = IdMin+j*IqMin;
-        TwMap.Iph(ii)   = interp2(Id,Iq,Io,id,iq);
-        TwMap.Vph(ii)   = interp2(Id,Iq,Vof,id,iq);
-        TwMap.PF(ii)    = interp2(Id,Iq,cosfi,id,iq);
-        TwMap.P(ii)     = Tmap(ii)*nmap(ii)*pi/30;
-        TwMap.Ploss(ii) = interp2(Id,Iq,Ploss,id,iq);
-        TwMap.Pjs(ii)   = interp2(Id,Iq,3/2*Rs*n3phase.*Io_m.^2,id,iq);
-        TwMap.PjDC(ii)  = interp2(Id,Iq,3/2*Rs*n3phase.*Io_m.^2./(kAC*l/(lend+l)+lend/(lend+l)),id,iq);
-        TwMap.PjAC(ii)  = TwMap.Pjs(ii)-TwMap.PjDC(ii);
-        TwMap.Pfe(ii)   = interp2(Id,Iq,Pfe,id,iq);
-        TwMap.Pfes(ii)  = interp2(Id,Iq,Pfes,id,iq);
-        TwMap.Pfer(ii)  = interp2(Id,Iq,Pfer,id,iq);
-        TwMap.Ppm(ii)   = interp2(Id,Iq,Ppm,id,iq);
-        TwMap.Pjr(ii)   = interp2(Id,Iq,Prot,id,iq);
-        TwMap.Pmech(ii) = Pmech;
-        TwMap.Eo(ii)    = interp2(Id,Iq,Vind,id,iq);
-        TwMap.Ife(ii)   = interp2(Id,Iq,Ife,id,iq);
-        if strcmp(motorType,'IM')
-            TwMap.slip(ii)  = interp2(Id,Iq,Wslip./(2*pi*FreqElet),id,iq);
-            TwMap.Ir(ii)    = interp2(Id,Iq,IM.Ir,id,iq);
-        else
-            TwMap.slip(ii)  = NaN;
-            TwMap.Ir(ii)    = NaN;
-        end
-        TwMap.Rs(ii)    = interp2(Id,Iq,Rs,id,iq);
-        if Tmap(ii)>0
-            TwMap.eff(ii) = TwMap.P(ii)/(TwMap.P(ii)+TwMap.Ploss(ii));
-        else
-            TwMap.eff(ii) = -TwMap.P(ii)/(-TwMap.P(ii)+TwMap.Ploss(ii));
-        end
+        TwMap.Tout(ii)  = out.T;
+        TwMap.Id(ii)    = out.Id;
+        TwMap.Iq(ii)    = out.Iq;
+        TwMap.Fd(ii)    = out.Fd;
+        TwMap.Fq(ii)    = out.Fq;
+        TwMap.Tem(ii)   = out.Tem;
+        TwMap.Vo(ii)    = out.Vo;
+        TwMap.Io(ii)    = out.Io;
+        TwMap.Im(ii)    = out.Im;
+        TwMap.Iph(ii)   = out.Iph;
+        TwMap.Vph(ii)   = out.Vph;
+        TwMap.PF(ii)    = out.PF;
+        TwMap.P(ii)     = out.P;
+        TwMap.Ploss(ii) = out.Ploss;
+        TwMap.Pjs(ii)   = out.Pjs;
+        TwMap.PjDC(ii)  = out.PjDC;
+        TwMap.PjAC(ii)  = out.PjAC;
+        TwMap.Pfe(ii)   = out.Pfe;
+        TwMap.Pfes(ii)  = out.Pfes;
+        TwMap.Pfer(ii)  = out.Pfer;
+        TwMap.Ppm(ii)   = out.Ppm;
+        TwMap.Pjr(ii)   = out.Pjr;
+        TwMap.Pmech(ii) = out.Pmech;
+        TwMap.Eo(ii)    = out.Eo;
+        TwMap.Ife(ii)   = out.Ife;
+        TwMap.slip(ii)  = out.slip;
+        TwMap.Ir(ii)    = out.Ir;
+        TwMap.Rs(ii)    = out.Rs;
+        TwMap.eff(ii)   = out.eff;
     else
         xdata = [get(hr,'XData') nmap(ii)];
         ydata = [get(hr,'YData') Tmap(ii)];

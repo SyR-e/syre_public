@@ -38,8 +38,20 @@ fem = dimMesh(geo,eval_type);
 phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %first slot in 360/(6pq)/2 position
 
 if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
-    phase1_offset = phase1_offset-90;   % valid for d axis on PM direction
+    if strcmp(geo.axisType,'PM')
+        phase1_offset = phase1_offset - 90;   % valid for d axis on PM direction
+    else
+        phase1_offset = phase1_offset - 180;  % valid for -q axis on PM direction
+    end
+else
+    if strcmp(geo.axisType,'PM')
+        phase1_offset = phase1_offset + 90;   % valid for d axis on PM direction
+    else
+        phase1_offset = phase1_offset;
+    end
 end
+
+%%% Axis type da A ad a - commenta gamma+90 - verifica spm to sr - 
 
 geo.th0 = - phase1_offset;  % d- to alpha-axis offset [elt deg]
 

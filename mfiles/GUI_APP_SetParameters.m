@@ -34,9 +34,49 @@ set(app.xRangeEdit,'Value',mat2str(dataSet.xRange));
 
 set(app.BfeEdit,'Value',num2str(dataSet.Bfe));
 set(app.ktEdit,'Value',num2str(dataSet.kt));
+set(app.RotoryokefactorpuEditField,'Value',num2str(dataSet.RotorYokeFactor));
 set(app.FEAfixPopUp,'Value',int2str(dataSet.FEAfixN));
 set(app.CurrLoXBEdit,'Value',num2str(dataSet.CurrLoPP));
 
+f = dataSet.syrmDesignFlag;
+switch f.hc
+    case 0
+        set(app.BarrierDesignDropDow,'Value','Constant flux barrier thickness');
+    case 1
+        set(app.BarrierDesignDropDow,'Value','Constant flux barrier permeance');
+    case 2
+        set(app.BarrierDesignDropDow,'Value','Lfq minimization');
+end
+
+switch f.dx
+    case 0
+        set(app.CarrierDesignDropDown,'Value','No flux carrier design');
+    case 1
+        set(app.CarrierDesignDropDown,'Value','Constant flux carrier thickness');
+    case 2
+        set(app.CarrierDesignDropDown,'Value','Flux carrier thickness proportional to d-flux');
+end
+
+switch f.ks
+    case 0
+        set(app.SaturationFactorDropDown,'Value','Neglect saturation factor');
+    case 1
+        set(app.SaturationFactorDropDown,'Value','Compute saturation factor');
+end
+
+switch f.i0
+    case 0
+        set(app.syrmDesignThermalInputDropDown,'Value','Constant thermal loading kj');
+    case 1
+        set(app.syrmDesignThermalInputDropDown,'Value','Constant current density J');
+end
+
+switch f.gf
+    case 0
+        set(app.syrmDesignGammaFixDropDown,'Value','Current angle imposed');
+    case 1
+        set(app.syrmDesignGammaFixDropDown,'Value','FEAfix MTPA correction');
+end
 
 %% Stator panel
 set(app.ToothLengEdit,'Value',num2str(dataSet.ToothLength));
@@ -153,11 +193,10 @@ else
         set(app.RadialRibsOffsetEditField,'Enable','off','Value',mat2str(dataSet.pontRoffsetEdit));
     end
     
-%     if strcmp(dataSet.TypeOfRotor,'Seg')
-%         set(app.RotorFilletTangEditField,'Enable','on','Value',mat2str(dataSet.RotorFillet));
-%     else
-%         set(app.RotorFilletTangEditField,'Enable','off','Value','0');
-%     end
+    if (strcmp(dataSet.TypeOfRotor,'Circular') &&  dataSet.TanRibCheck)
+        set(app.RotorFilletTan1EditField,'Enable','on','Value',mat2str(dataSet.RotorFilletTan1,3));
+        set(app.RotorFilletTan2EditField,'Enable','on','Value',mat2str(dataSet.RotorFilletTan2,3));
+    end
     
     set(app.RadRibCheck,'Enable','on','Value',dataSet.RadRibCheck);
     if dataSet.RadRibCheck
@@ -186,8 +225,8 @@ set(app.CopperTempEdit,'Value',num2str(dataSet.TargetCopperTemp));
 set(app.HousingTempEdit,'Value',num2str(dataSet.HousingTemp));
 set(app.EstimatedCoppTemp,'Enable','on','Value',num2str(dataSet.EstimatedCopperTemp),'Editable','off');
 set(app.CalculatedRatedCurrent,'Enable','on','Value',num2str(dataSet.RatedCurrent),'Editable','off');
-set(app.JouleLossesEdit,'Enable','on','Value',num2str(dataSet.AdmiJouleLosses),'Editable','off');
-set(app.CurrentdensityEdit,'Enable','on','Value',num2str(dataSet.CurrentDensity),'Editable','off');
+set(app.JouleLossesEdit,'Value',num2str(dataSet.AdmiJouleLosses));
+set(app.CurrentdensityEdit,'Value',num2str(dataSet.CurrentDensity));
 set(app.Rsedit,'Enable','on','Value',num2str(dataSet.Rs),'Editable','off');
 set(app.OverSpeedEdit,'Value',num2str(dataSet.OverSpeed));
 set(app.MeshEdit,'Value',num2str(dataSet.Mesh));
@@ -513,7 +552,6 @@ app.TanRibBouEdit.Value          = mat2str(dataSet.TanRibBou);
 app.CentralShrinkBouEdit.Value   = mat2str(dataSet.CentralShrinkBou);
 app.RadShiftInnerBouEdit.Value   = mat2str(dataSet.RadShiftInnerBou);
 
-
 % opt objectives
 set(app.TorqueOptCheck,'Value',dataSet.TorqueOptCheck);
 if dataSet.TorqueOptCheck
@@ -598,6 +636,10 @@ switch dataSet.MapQuadrants
         set(app.MapQuadrantsPopUp,'Value','4 quadrants');
 end
 
+%Custom Current
+set(app.CustomCurrentFile,'Value',dataSet.CustomCurrentFilename);
+
+
 switch dataSet.EvalType
     case 'singt'
         set(app.EvalTypePopUp,'Value','Single Point');
@@ -625,6 +667,8 @@ switch dataSet.EvalType
         set(app.StartPProMagnetPush,'Enable','on');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','on');
+        
+        set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
     case 'demagArea'
         set(app.EvalTypePopUp,'Value','Demagnetization Analysis');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -638,6 +682,8 @@ switch dataSet.EvalType
         set(app.StartPProMagnetPush,'Enable','off');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','off');
+        
+        set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
     case 'idemag'
         set(app.EvalTypePopUp,'Value','Demagnetization Curve');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -651,6 +697,8 @@ switch dataSet.EvalType
         set(app.StartPProMagnetPush,'Enable','off');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','off');
+        
+        set(app.CustomCurrentSwitch,'Value','Off');    % no custom current
     case 'ichval'
         set(app.EvalTypePopUp,'Value','Characteristic Current');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -664,6 +712,8 @@ switch dataSet.EvalType
         set(app.StartPProMagnetPush,'Enable','off');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','off');
+        
+        set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
     case 'flxdn'
         set(app.EvalTypePopUp,'Value','Flux Density Analysis');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -677,6 +727,8 @@ switch dataSet.EvalType
         set(app.StartPProMagnetPush,'Enable','off');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','off');
+        
+        set(app.CustomCurrentSwitch,'Value','Off');    % no custom current
     case 'izero'
         set(app.EvalTypePopUp,'Value','Current Offset');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -690,6 +742,8 @@ switch dataSet.EvalType
         set(app.StartPProMagnetPush,'Enable','off');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','off');
+        
+        set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
     case 'force'
         set(app.EvalTypePopUp,'Value','Airgap Force');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -703,6 +757,8 @@ switch dataSet.EvalType
         set(app.StartPProMagnetPush,'Enable','off');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','off');
+        
+        set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
     case 'singtIron'
         set(app.EvalTypePopUp,'Value','Iron Loss - Single Point');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -729,6 +785,8 @@ switch dataSet.EvalType
         set(app.StartPProMagnetPush,'Enable','on');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','on');
+        
+        set(app.CustomCurrentSwitch,'Value','Off');   % no custom current
     case 'structural'
         set(app.EvalTypePopUp,'Value','Structural Analysis');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -755,7 +813,12 @@ switch dataSet.EvalType
         set(app.StartPProMagnetPush,'Enable','off');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','off');
+        
+        set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
 end
+
+  
+
 
 %% Motor-CAD
 %Build Thermal
@@ -846,6 +909,14 @@ else
     set(app.EvalSlotModelPush,'Enable','on');
     set(app.OptimizePush,'Enable','on');
     
+    if strcmp(app.CustomCurrentSwitch.Value,'On')
+        set(app.StartPProPush,'Enable','on');
+        set(app.StartPProMagnetPush,'Enable','off');
+        set(app.StartPProAnsysPush,'Enable','on');
+        set(app.CurrLoPPEdit,'Enable','off');
+        set(app.GammaPPEdit,'Enable','off');
+    end
+
     children = get(app.PreliminaryDesignPanel,'Children');
     set(children,'Enable','on');
     children = get(app.StatorParametersPanel,'Children');

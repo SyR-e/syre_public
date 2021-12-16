@@ -231,6 +231,10 @@ if strcmp(options.SaveResults,'yes')
 %    else
     filename=fullfile(thisfilepath,'results',['OUT_' datestr(now,30)]);
     save(filename,'OUT','per','geo0','dataSet','mat');
+%     if per.MechStressOptCheck
+%         save(filename,'structModel','sVonMises','-append');
+%     end%Results are saved
+%    end
     
     clear geo0 per
 end

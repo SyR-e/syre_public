@@ -18,7 +18,7 @@ function [motorModel] = MMM_scale(motorModel,scaleFactors)
 
 kN  = scaleFactors.Ns/motorModel.data.Ns;
 kL  = scaleFactors.l/motorModel.data.l;
-kD  = 1;
+kD  = scaleFactors.R/motorModel.data.R;
 Lld = scaleFactors.Lld;
 Llq = scaleFactors.Llq;
 
@@ -66,7 +66,7 @@ if ~isempty(motorModel.IronPMLossMap_dq)
         ironLoss.Pfes_c = ironLoss.Pfes_c*kD^2;
         ironLoss.Pfer_h = ironLoss.Pfer_h*kD^2;
         ironLoss.Pfer_c = ironLoss.Pfer_c*kD^2;
-        ironLoss.Ppm    = ironLoss.Ppm*kD^4;
+        ironLoss.Ppm    = ironLoss.Ppm*kD^2;
         
         motorModel.IronPMLossMap_dq = ironLoss;
     else
@@ -152,7 +152,7 @@ motorModel.data.l  = motorModel.data.l*kL;
 motorModel.data.R  = motorModel.data.R*kD;
 
 
-[motorModel.dataSet] = back_compatibility(motorModel.dataSet,motorModel.geo,motorModel.per,0);
+[motorModel.dataSet,~,motorModel.per,~] = back_compatibility(motorModel.dataSet,motorModel.geo,motorModel.per,0);
 
 %Radial scaling
 motorModel.dataSet.StatorOuterRadius    =   motorModel.data.R;
@@ -175,6 +175,10 @@ motorModel.dataSet.Mesh                 =   motorModel.dataSet.Mesh*kD;
 motorModel.dataSet.Mesh_MOOA            =   motorModel.dataSet.Mesh_MOOA*kD;
 motorModel.dataSet.MinMechTol           =   motorModel.dataSet.MinMechTol*kD ;
 motorModel.dataSet.PMdim                =   motorModel.dataSet.PMdim*kD;
+
+motorModel.dataSet.ThermalLoadKj        =   NaN;
+motorModel.dataSet.AdmiJouleLosses      =   NaN;
+motorModel.dataSet.CurrentDensity       =   motorModel.dataSet.CurrentDensity/kD;
 
 motorModel.geo.R                        =   motorModel.dataSet.StatorOuterRadius;
 motorModel.geo.Ar                       =   motorModel.dataSet.ShaftRadius;
@@ -200,33 +204,38 @@ motorModel.geo.PMdim                    =   motorModel.dataSet.PMdim;
 motorModel.geo.Aslot                    =   motorModel.geo.Aslot*kD^2;
 motorModel.geo.win.Ns                   =   motorModel.geo.win.Ns*kN;
 motorModel.geo.l                        =   motorModel.geo.l*kL;
+[~,motorModel.geo]                      =   calc_endTurnLength(motorModel.geo);
 
 motorModel.per.tempcu                   =   motorModel.data.tempCu;
+motorModel.per.kj                       =   NaN;
+motorModel.per.Loss                     =   NaN;
+motorModel.per.J                        =   motorModel.per.J/kD;
+
 
 geo = motorModel.geo;
 per = motorModel.per;
-per.Loss = per.Loss*kD*kL;
+% per.Loss = per.Loss*kD*kL;
 % geo.l = geo.l*kL;
 % geo.win.Ns = geo.win.Ns*kN;
 % geo.R = geo.R*kD;
 % geo.Aslot = geo.Aslot*kD^2;
 
-[i0,Rs] = calc_io(geo,per);
-motorModel.data.i0 = i0;
-motorModel.data.Rs = Rs;
+per = calc_i0(geo,per);
+motorModel.data.i0 = per.i0;
+motorModel.data.Rs = per.Rs;
 
 motorModel.dataSet.StackLength   = motorModel.data.l;
 motorModel.dataSet.TurnsInSeries = motorModel.data.Ns;
-motorModel.dataSet.RatedCurrent  = i0;
-motorModel.dataSet.Rs            = Rs;
+motorModel.dataSet.RatedCurrent  = per.i0;
+motorModel.dataSet.Rs            = per.Rs;
 % motorModel.geo.l                 = motorModel.data.l;
 % motorModel.geo.win.Ns            = motorModel.data.Ns;
-motorModel.per.Rs                = Rs;
-motorModel.per.i0                = i0;
+motorModel.per.Rs                = per.Rs;
+motorModel.per.i0                = per.i0;
 
 
-motorModel.data.Imax = motorModel.data.Imax/kN*kD;
-motorModel.data.Vdc  = motorModel.data.Vdc*kN*kL*kD;
+% motorModel.data.Imax = motorModel.data.Imax/kN*kD;
+% motorModel.data.Vdc  = motorModel.data.Vdc*kN*kL*kD;
 
 
 
@@ -249,6 +258,7 @@ motorModel.dataSet.MassStatorIron = motorModel.geo.mFeS;
 motorModel.dataSet.MassRotorIron  = motorModel.geo.mFeR;
 motorModel.dataSet.RotorInertia   = motorModel.geo.J;
 motorModel.data.J                 = motorModel.geo.J;
+motorModel.data.lend              = motorModel.geo.lend;
 
 
 

@@ -40,6 +40,12 @@ sigma_max = mat.Rotor.sigma_max;    % snervamento materiale [MPa]
 rhoFE = mat.Rotor.kgm3;             % densità del ferro di rotore [kg/m3]
 rhoPM = mat.LayerMag.kgm3;          % densità magneti [kg/m3]
 
+RotorFilletTan1 = geo.RotorFilletTan1;
+RotorFilletTan2 = geo.RotorFilletTan2;
+RotorFilletTan1(~isfinite(RotorFilletTan2)) =  NaN;
+RotorFilletTan2(~isfinite(RotorFilletTan1)) =  NaN;
+
+
 XcRibTraf1=zeros(1,nlay);
 XcRibTraf2=zeros(1,nlay);
 YcRibTraf1=zeros(1,nlay);
@@ -112,6 +118,11 @@ for ii=1:nlay
 end
 
 % Barriers tips nodes (points 1 and 2 + centers)
+RotorFilletTan1 (RotorFilletTan1<pont0*ones(1,nlay) & isfinite(RotorFilletTan1)) = pont0;
+RotorFilletTan2 (RotorFilletTan2<pont0*ones(1,nlay) & isfinite(RotorFilletTan2)) = pont0;
+RotorFilletTan1 (RotorFilletTan1>geo.hc/2 & isfinite(RotorFilletTan1)) = geo.hc(RotorFilletTan1>geo.hc/2 & isfinite(RotorFilletTan1))/2;
+RotorFilletTan2 (RotorFilletTan2>geo.hc/2 & isfinite(RotorFilletTan2)) = geo.hc(RotorFilletTan2>geo.hc/2 & isfinite(RotorFilletTan2))/2;
+
 for ii=1:nlay
     if LowDimBarrier(ii)==1
         xxD1k(ii)=B1k(ii);
@@ -119,16 +130,50 @@ for ii=1:nlay
         xxD2k(ii)=B2k(ii);
         yyD2k(ii)=0;
     else
-        [xt,yt,xc,yc,rc]=cir_tg_2cir(xpont(ii),ypont(ii),r-pontT(ii),x0,0,x0-B1k(ii));
-        xxD1k(ii)=xt;      % D1: end of outer semi arc
-        yyD1k(ii)=yt;
-        XcRibTraf1(ii)=xc; % center of semi arc 1
-        YcRibTraf1(ii)=yc;
-        [xt,yt,xc,yc,rc]=cir_tg_2cir(xpont(ii),ypont(ii),r-pontT(ii),x0,0,x0-B2k(ii));
-        xxD2k(ii)=xt;      % D2: end of inner semi arc
-        yyD2k(ii)=yt;
-        XcRibTraf2(ii)=xc; % center of semi arc 2 
-        YcRibTraf2(ii)=yc;
+
+        if ~(isfinite(RotorFilletTan1(ii)) & isfinite(RotorFilletTan2(ii)))
+            [xt,yt,xc,yc,rc]=cir_tg_2cir(xpont(ii),ypont(ii),r-pontT(ii),x0,0,x0-B1k(ii));
+            xxD1k(ii)=xt;      % D1: end of outer semi arc
+            yyD1k(ii)=yt;
+            XcRibTraf1(ii)=xc; % center of semi arc 1
+            YcRibTraf1(ii)=yc;
+            [xt,yt,xc,yc,rc]=cir_tg_2cir(xpont(ii),ypont(ii),r-pontT(ii),x0,0,x0-B2k(ii));
+            xxD2k(ii)=xt;      % D2: end of inner semi arc
+            yyD2k(ii)=yt;
+            XcRibTraf2(ii)=xc; % center of semi arc 2
+            YcRibTraf2(ii)=yc;
+            
+        else
+            [xtemp,ytemp] = calc_intersezione_cerchi(r-pontT(ii)-RotorFilletTan1(ii),x0-B1k(ii)-RotorFilletTan1(ii),x0);
+            xcRac1(ii) = real(xtemp);
+            ycRac1(ii) = real(ytemp);
+            [xtemp,ytemp]=intersezione_cerchi(xcRac1(ii),ycRac1(ii),RotorFilletTan1(ii),x0,0,x0-B1k(ii));
+            xxD1k(ii)=real(xtemp(2));
+            yyD1k(ii)=real(ytemp(2));
+            [xtemp,ytemp]=intersezione_cerchi(xcRac1(ii),ycRac1(ii),RotorFilletTan1(ii),0,0,r-pontT(ii));
+            xxE1k(ii)=real(xtemp(2));
+            yyE1k(ii)=real(ytemp(2));
+
+            [xtemp,ytemp] = calc_intersezione_cerchi(r-pontT(ii)-RotorFilletTan2(ii),x0-B2k(ii)+RotorFilletTan2(ii),x0);
+            xcRac2(ii) = real(xtemp);
+            ycRac2(ii) = real(ytemp);
+            [xtemp,ytemp]=intersezione_cerchi(xcRac2(ii),ycRac2(ii),RotorFilletTan2(ii),x0,0,x0-B2k(ii));
+            xxD2k(ii)=real(xtemp(2));
+            yyD2k(ii)=real(ytemp(2));
+            [xtemp,ytemp]=intersezione_cerchi(xcRac2(ii),ycRac2(ii),RotorFilletTan2(ii),0,0,r-pontT(ii));
+            xxE2k(ii)=real(xtemp(2));
+            yyE2k(ii)=real(ytemp(2));
+
+            temp.xcRac1 = xcRac1;
+            temp.ycRac1 = ycRac1;
+            temp.xxE1k = xxE1k;
+            temp.yyE1k = yyE1k;
+            temp.xcRac2 = xcRac2;
+            temp.ycRac2 = ycRac2;
+            temp.xxE2k = xxE2k;
+            temp.yyE2k = yyE2k;
+
+        end
     end
 end
 
@@ -193,4 +238,6 @@ geo.yyD1k=yyD1k;
 geo.xxD2k=xxD2k;
 geo.yyD2k=yyD2k;
 geo.hc=hc;
+geo.RotorFilletTan1 = RotorFilletTan1;
+geo.RotorFilletTan2 = RotorFilletTan2;
 

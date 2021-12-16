@@ -23,14 +23,14 @@ evalSpeed = simSetup.evalSpeed;
 % load data from input structures
 rotor = geo.rotor;
 % nmax  = geo.nmax;
-meshSize = 'coarse';
+% meshSize = 'coarse';
 
 switch meshSize
     case 'coarse'
         Hmax  = 5*geo.pont0/1e3;%2/1e3;
         Hmin  = geo.pont0/1e3/2;
         Hgrad = 1.1;
-        warning('Corarse mesh selected!!!')
+        warning('Coarse mesh selected!!!')
     case 'fine'
         Hmax = geo.pont0/1e3/2;
         Hmin = geo.pont0/1e3/10;

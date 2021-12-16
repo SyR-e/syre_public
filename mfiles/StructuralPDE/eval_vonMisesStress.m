@@ -46,8 +46,6 @@ simSetup.meshSize  = 'fine';    % fine or coarse
 simSetup.flagFull  = 0;         % 0-->Qs simulation / 1-->full motor simulation
 simSetup.shaftBC   = 0;         % 1-->locked shaft / 0-->free shaft
 
-
-
 warning('off')
 disp(['Creation of the PDE model...'])
 tic
@@ -80,6 +78,8 @@ disp(['PDE model solved in ' num2str(tEnd) ' s'])
 save([newDir filename(1:end-4) '_structModel.mat'],'structModel','sVonMises','R','dataSet','geo','per','mat');
 
 [out] = eval_maxStress(structModel,sVonMises,geo,mat);
+
+save([newDir filename(1:end-4) '_structModel.mat'],'out','-append');
 
 figure();
 figSetting();
@@ -124,8 +124,8 @@ if ~isempty(out.x_over)
     rotorplot(:,end-1)=1;
     GUI_Plot_Machine(hax,rotorplot);
     
-    plot(x_over,y_over,'r.','MarkerSize',5,'DisplayName', '$Stress Exceeded$');
-    plot(x_max,y_max,'bo','MarkerSize',5.5,'DisplayName', '$Max Stress$')
+    plot(x_over,y_over,'r.','MarkerSize',5,'DisplayName', 'Stress Exceeded');
+    plot(x_max,y_max,'bo','MarkerSize',5.5,'DisplayName', 'Max Stress')
     grid off
     %legend ('Location','northwest')
     saveas(gcf,[newDir 'VonMisesStressLimit.fig'])

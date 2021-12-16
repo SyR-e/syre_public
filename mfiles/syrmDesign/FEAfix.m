@@ -32,7 +32,7 @@ else
 end
 
 
-gammaFix = 0;
+gammaFix = dataSet.syrmDesignFlag.gf;
 
 FEAfixN = dataSet.FEAfixN;
 clc
@@ -105,8 +105,7 @@ switch FEAfixN
     otherwise
         error('Put a correct number!!!')
 end
-kdRaw=ones(size(xRaw));
-kqRaw=ones(size(xRaw));
+
 errorFlag=zeros(size(xRaw));
 
 if strcmp(geo.RotType,'SPM')
@@ -137,7 +136,12 @@ else
     RQnames{index+1}='r';
     RQnames{index+2}='wt';
     RQnames{index+3}='lt';
-    RQnames{index+4}='gamma';
+    index = index+3;
+    for ii=1:numel(geo.PMdim)
+        RQnames{index+ii} = ['PMdim(' int2str(ii) ')'];
+    end
+    index=length(RQnames);
+    RQnames{index+1}='gamma';
 end
 
 geo.RQnames=RQnames;
@@ -151,6 +155,7 @@ fdMod = zeros(1,length(xRaw));
 fqMod = zeros(1,length(xRaw));
 fMMod = zeros(1,length(xRaw));
 f0Mod = zeros(1,length(xRaw));
+i0    = zeros(1,length(xRaw));
 
 if strcmp(eval_type,'flxdn')
     BtFEA = zeros(1,length(xRaw));
@@ -168,6 +173,15 @@ per.delta_sim_singt = 60;
 per.overload        = dataSet.CurrLoPP;
 geo.mesh_K          = 5;
 geo.mesh_K_MOOA     = 10;
+
+if dataSet.syrmDesignFlag.i0==0
+    per.J = NaN;
+    per.Loss = NaN;
+else
+    per.kj = NaN;
+    per.Loss = NaN;
+end
+
 
 for mot=1:length(xRaw)
     %disp([' - Machine design ' int2str(mot) ' of ' int2str(length(xRaw))])
@@ -238,7 +252,9 @@ for mot=1:length(xRaw)
                 end
                 % fill RQ
                 per.i0 = interp2(map.xx,map.bb,map.i0,geo.x,geo.b);
-                RQ(:,mot)=[geo.hc_pu geo.dx r wt lt gamma]';
+                PMdim = dataSet.PMdimPU;
+
+                RQ(:,mot)=[geo.hc_pu geo.dx r wt lt PMdim(:)' gamma]';
         end
         
         % model flux linkages

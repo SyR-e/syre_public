@@ -42,6 +42,17 @@ if geo.ps==2*geo.p
     flagSG=0;
 end
 
+if isfield(per,'custom_act')
+    Ia         = per.custom_ia;
+    Ib         = per.custom_ib;
+    Ic         = per.custom_ic;
+    %time       = per.custom_time;
+    custom_act = per.custom_act;
+else
+    custom_act = 0;
+end
+
+
 switch eval_type
     case 'MO_OA' % optimization
         nsim = per.nsim_MOOA;
@@ -96,7 +107,7 @@ switch eval_type
         % initialize the additional variables for flux densities
         angIni  = 0;
         angFin  = 360/(2*p)*ps;
-        angRes  = 1002;
+        angRes  = 1000/(2*p)*ps+2;
         angVect = linspace(angIni,angFin,angRes);
         angVect = angVect(2:end-1); % the first and the last point must be avoided because they are on the boundary
         
@@ -150,6 +161,8 @@ switch eval_type
         Ft = zeros(angRes-1,nsim+1);
         Fr(:,1) = angRef';
         Ft(:,1) = angRef';
+        Fx(:,1) = angRef';
+        Fy(:,1) = angRef';
     case {'singtIron','singmIron'} % simulation with iron loss
         xdeg = per.delta_sim_singt;
         nsim = round(per.nsim_singt*xdeg/per.delta_sim_singt);
@@ -171,6 +184,7 @@ end
 
 iAmpCoil = iAmp*Nbob;
 iOffCoil = iOff*Nbob;
+
 
 id = iAmpCoil * cos(gamma * pi/180);
 iq = iAmpCoil * sin(gamma * pi/180);
@@ -200,6 +214,39 @@ SOL.fc = zeros(n3phase,nsim);   % phase c flux linkage
 phase_name = cell(n3phase*3,1);
 phase_name_neg = cell(n3phase*3,1);
 
+%% Custom Current
+if custom_act
+    sim_range = round(xdeg/360*length(Ia(1,:)));
+    
+    Ia_i = zeros(n3phase,nsim);
+    Ib_i = zeros(n3phase,nsim);
+    Ic_i = zeros(n3phase,nsim);
+    
+    for ik=1:(n3phase)
+        Ia_i(ik,:) = interp1(1:sim_range,Ia(ik,1:sim_range),linspace(1,sim_range,nsim));
+        Ib_i(ik,:) = interp1(1:sim_range,Ib(ik,1:sim_range),linspace(1,sim_range,nsim));
+        Ic_i(ik,:) = interp1(1:sim_range,Ic(ik,1:sim_range),linspace(1,sim_range,nsim));
+    end
+    
+    figure
+    figSetting
+    title('Phase A - Current')
+     for ik=1:(n3phase)
+    plot(linspace(0,xdeg,nsim),Ia_i(ik,:),'DisplayName',['Interpolated - ' num2str(ik) ' 3phase set'] )
+    plot(linspace(0,xdeg,sim_range),Ia(ik,1:sim_range),'DisplayName',['Input - ' num2str(ik) ' 3phase set']')
+    %plot(linspace(0,xdeg,sim_range),Ib(1,1:sim_range),'DisplayName','B')
+    %plot(linspace(0,xdeg,sim_range),Ic(1,1:sim_range),'DisplayName','C')
+    end
+    axis([0 xdeg -1.2*max(max(Ia)) 1.2*max(max(Ia))])
+    legend show
+    
+    %%% Nbob rescaling
+    Ia_i = Ia_i*Nbob;
+    Ib_i = Ib_i*Nbob;
+    Ic_i = Ic_i*Nbob;
+end
+
+%% Simulation
 for jj = 1:nsim
     % assign the phase current values to the FEMM circuits
     for ik=0:(n3phase-1)
@@ -207,10 +254,16 @@ for jj = 1:nsim
             % healthy winding set
             %             i123 = dq2abc(id,iq,thetaPark(jj)*pi/180,n3phase,ik);
             %             i123 = dq2abc(id,iq,(thetaPark(jj)-ik*60/n3phase)*pi/180); % AS version
-            i123 = dq2abc(id,iq,(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);             % each 3phase set has its own offset angle
-            i_tmp((3*ik)+1,jj) = i123(1)+iOffCoil;
-            i_tmp((3*ik)+2,jj) = i123(2)+iOffCoil;
-            i_tmp((3*ik)+3,jj) = i123(3)+iOffCoil;
+            if custom_act
+                i_tmp((3*ik)+1,jj) = Ia_i(ik+1,jj);
+                i_tmp((3*ik)+2,jj) = Ib_i(ik+1,jj);
+                i_tmp((3*ik)+3,jj) = Ic_i(ik+1,jj);
+            else
+                i123 = dq2abc(id,iq,(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
+                i_tmp((3*ik)+1,jj) = i123(1)+iOffCoil;
+                i_tmp((3*ik)+2,jj) = i123(2)+iOffCoil;
+                i_tmp((3*ik)+3,jj) = i123(3)+iOffCoil;
+            end
         else
             % open-circuit winding set
             if geo.win.avv_flag((3*ik)+1)==0 && geo.win.avv_flag((3*ik)+2)==0 && geo.win.avv_flag((3*ik)+3)==0
@@ -257,10 +310,14 @@ for jj = 1:nsim
         mi_modifyboundprop('AGap',10,theta_r);  % modify inner boundary angle
     else
         % before sliding gap was introduced - delete the airgap arc prior to moving the rotor
-        mi_selectgroup(20), mi_deleteselectedarcsegments;
+%         mi_selectgroup(20), mi_deleteselectedarcsegments;
         % rotate the rotor
         tmp = geo.PMdim(:);
-        nPM = geo.ps*numel(tmp(tmp~=0))*2;
+        if strcmp(geo.RotType,'Circular')
+            nPM = geo.ps*numel(tmp(tmp~=0))*2*2;
+        else
+            nPM = geo.ps*numel(tmp(tmp~=0))*2;
+        end
         indexPM = 200+(1:1:nPM);
         mi_selectgroup(22), mi_selectgroup(2);
         for kk=1:length(indexPM)
@@ -275,7 +332,7 @@ for jj = 1:nsim
         if (ps<2*p)
             draw_airgap_arc_with_mesh(geo,theta_r,geo.mesh_res)
         else
-            draw_airgap_arc_with_mesh_fullMachine(geo,theta_r,geo.mesh_res)
+%             draw_airgap_arc_with_mesh_fullMachine(geo,theta_r,geo.mesh_res)
         end
     end
     
@@ -396,12 +453,16 @@ for jj = 1:nsim
                 fa = atan2(fy,fx);
                 Fr(ff,jj+1) = fm*cos(fa-angRef(ff)*pi/180);
                 Ft(ff,jj+1) = fm*sin(fa-angRef(ff)*pi/180);
+                Fx(ff,jj+1) = fx;
+                Fy(ff,jj+1) = fy;
                 mo_clearcontour();
             end
             
             SOL.Fr = Fr;
             SOL.Ft = Ft;
-            
+            SOL.Fx = Fx;
+            SOL.Fy = Fy;
+
         case {'idemag','idemagmap','demagArea'}
             if (jj == nsim)
                 Br = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,per.tempPP);

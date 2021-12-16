@@ -303,12 +303,6 @@ if min(PMdimE)<0
     PMdimE = -PMdimE.*b;
 end
 
-if ~isempty(geo.RQnames)
-    PMdimC(2*PMdimC<hc & geo.radial_ribs_split) = 0;
-    PMdimC(PMdimC<hc & ~geo.radial_ribs_split) = 0;
-    PMdimE(PMdimE<hc) = 0;
-end
-
 PMdimE(PMdimE>b)=b(PMdimE>b);
 PMdimE(PMdimE<0)=0;
 PMdimE=floor(PMdimE*100)/100;

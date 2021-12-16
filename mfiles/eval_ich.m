@@ -13,9 +13,9 @@
 %    limitations under the License.
 
 function [ichOut,ich]=eval_ich(setup)
-% 
+%
 % [ichOut,ich]=eval_ich(setup)
-% 
+%
 % Compute the characteristic current of the selected machine using FEMM
 %
 % There are three ways to use this function:
@@ -94,6 +94,22 @@ else
         dataSet.currentfilename = setup.currentfilename;
         dataSet.currentpathname = setup.currentpathname;
         
+        if ~isfield(dataSet,'axisType')
+            if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
+                dataSet.axisType = 'PM';
+            else
+                dataSet.axisType = 'SR';
+            end
+        end
+        
+        if ~strcmp(dataSet.axisType,dataIn.axisType)
+            if strcmp(dataSet.axisType,'PM')
+                geo.th0 = geo.th0 + 90;
+            else
+                geo.th0 = geo.th0 - 90;
+            end
+        end
+        
         tempVect = dataSet.tempPP;
         pathname = dataSet.currentpathname;
         filename = dataSet.currentfilename;
@@ -132,7 +148,7 @@ for tt=1:length(tempVect)
     ichTest{tt} = nan(1,MaxIter);
     FmTest{tt}  = nan(1,MaxIter);
     
-
+    
     disp(['Temperature ' int2str(tt) ' of ' int2str(length(tempVect)) ' - ' int2str(tempVect(tt)) ' Celsius degree'])
     
     done=0;
@@ -202,10 +218,10 @@ if flagSave
     if ~exist([pathname outFolder],'dir')
         mkdir([pathname outFolder]);
     end
-
+    
     resFolder = [pathname outFolder 'charCurr - ' datestr(now,30) '\'];
     mkdir(resFolder)
-
+    
     save([resFolder 'ichOut.mat'],'ich','ichOut');
     
     figure()

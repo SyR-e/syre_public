@@ -49,6 +49,23 @@ MapQuadrants = dataIn.MapQuadrants;
 
 clc;
 
+if ~isfield(dataSet,'axisType')
+    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
+        dataSet.axisType = 'PM';
+    else
+        dataSet.axisType = 'SR';
+    end
+end
+
+if ~strcmp(dataSet.axisType,dataIn.axisType)
+    if strcmp(dataSet.axisType,'PM')
+        geo.th0 = geo.th0 + 90;
+    else
+        geo.th0 = geo.th0 - 90;
+    end
+end
+
+
 eval_type = dataIn.EvalType;
 
 per.overload        = CurrLoPP;

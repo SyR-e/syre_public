@@ -85,7 +85,7 @@ data.axisType  = answers{4};
 data.motorType = answers{3};
 data.J         = 0;
 
-data.nCurr = 4;
+data.nCurr = 1;
 
 scaleFactors.Lld = eval(answers{15});
 scaleFactors.Llq = eval(answers{16});

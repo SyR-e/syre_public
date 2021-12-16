@@ -1,4 +1,4 @@
-# syre_public
+# SyR-e
 
 SyR-e stands for Synchronous Reluctance – evolution. It is an open-source code developed in Matlab/Octave under the Apache Version 2.0 license.
 

@@ -64,7 +64,7 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     data.Lld = 0;
     data.Llq = 0;
     
-    data.nCurr = 4;
+    data.nCurr = 1;
     
     data.tempVectPM = data.tempPM;
     

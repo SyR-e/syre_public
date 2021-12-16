@@ -14,7 +14,6 @@
 
 function app = GUI_APP_DrawMachine(app)
 
-
 % flag_plot = 'Y';
 h = app.AxisGeometry;
 dataSet = app.dataSet;
@@ -56,21 +55,58 @@ end
 set(h,'XLim',[xMin xMax]);
 
 % end winding inductance
-Lend = calc_Lend(geo);
-dataSet.Lend = Lend;
+per.Lend = calc_Lend(geo);
+dataSet.Lend = per.Lend;
+
+geo.lend = calc_endTurnLength(geo);
 
 % Rated current computation (thermal model)
 if  isnan(dataSet.SimIth0)
-    dataSet.AdmiJouleLosses = dataSet.ThermalLoadKj*(2*pi*dataSet.StatorOuterRadius*dataSet.StackLength*1e-6);
-    per.Loss = dataSet.AdmiJouleLosses;
+%     if ~isnan(dataSet.ThermalLoadKj)
+%         dataSet.AdmiJouleLosses = dataSet.ThermalLoadKj*(2*pi*dataSet.StatorOuterRadius*dataSet.StackLength*1e-6);
+%         per.Loss = dataSet.AdmiJouleLosses;
+%         [i0,~,~] = calc_io(geo,per);
+%         dataSet.CurrentDensity = i0*geo.win.Nbob*2/(sqrt(2)*geo.Aslot*geo.win.kcu);
+%     elseif ~isnan(dataSet.AdmiJouleLosses)
+%         dataSet.ThermalLoadKj = dataSet.AdmiJouleLosses/(2*pi*dataSet.StatorOuterRadius*dataSet.StackLength*1e-6);
+%         [i0,~,~] = calc_io(geo,per);
+%         dataSet.CurrentDensity = i0*geo.win.Nbob*2/(sqrt(2)*geo.Aslot*geo.win.kcu);
+%     elseif ~isnan(dataSet.CurrentDensity)
+%         [~,~,geo0] = calc_io(geo,per);
+%         lend = geo0.lend;
+%         rocu = (1.7241e-08)*(234.5+per.tempcu)/(234.5+20);
+%         dataSet.ThermalLoadKj = (dataSet.CurrentDensity*sqrt(2)*1e6)^2*(geo.win.kcu*6*geo.p*geo.q*geo.win.n3phase*geo.Aslot/1e6)/4*rocu*(geo.l+lend)/geo.l/(pi*dataSet.StatorOuterRadius/1000);
+%         dataSet.AdmiJouleLosses = dataSet.ThermalLoadKj*(2*pi*dataSet.StatorOuterRadius*dataSet.StackLength*1e-6);
+%     else
+%         error('Wrong thermal parameters input')
+%     end
+    per = calc_i0(geo,per);
     per.tempcuest = temp_est_simpleMod(geo,per);
+    
+    dataSet.AdmiJouleLosses     = per.Loss;
+    dataSet.ThermalLoadKj       = per.kj;
+    dataSet.CurrentDensity      = per.J;
+    dataSet.RatedCurrent        = per.i0;
+    dataSet.Rs                  = per.Rs;
+    dataSet.SimulatedCurrent    = per.overload*per.i0;
     dataSet.EstimatedCopperTemp = per.tempcuest;
-    [dataSet.RatedCurrent,dataSet.Rs,geo] = calc_io(geo,per);
-    dataSet.SimulatedCurrent = dataSet.RatedCurrent * dataSet.CurrLoPP;
-end
 
+
+
+%     per.kj = dataSet.ThermalLoadKj;
+%     per.Loss = dataSet.AdmiJouleLosses;
+%     per.tempcuest = temp_est_simpleMod(geo,per);
+%     dataSet.EstimatedCopperTemp = per.tempcuest;
+%     [dataSet.RatedCurrent,dataSet.Rs,geo] = calc_io(geo,per);
+%     dataSet.SimulatedCurrent = dataSet.RatedCurrent * dataSet.CurrLoPP;
+%     dataSet.EstimatedCopperTemp = per.tempcuest;
+end
+geo.lend = calc_endTurnLength(geo);
 per.i0 = dataSet.RatedCurrent;
+per.Lend = calc_Lend(geo);
 dataSet.EndWindingsLength = geo.lend;
+dataSet.Lend = per.Lend;
+
 
 % Mass and Inertia computation
 geo.mCu = calcMassCu(geo,mat);
@@ -90,11 +126,8 @@ dataSet.SlotConductorParallel = geo.win.pCond;
 dataSet.DepthOfBarrier = round(geo.dx,2);
 dataSet.HCpu = round(geo.hc_pu,2);
 dataSet.betaPMshape = round(geo.betaPMshape,2);
-if  isnan(dataSet.SimIth0)
-    dataSet.EstimatedCopperTemp = temp_est_simpleMod(geo,per);
-end
 
-dataSet.CurrentDensity = per.i0*geo.win.Nbob*2/(sqrt(2)*geo.Aslot*geo.win.kcu);
+% dataSet.CurrentDensity = per.i0*geo.win.Nbob*2/(sqrt(2)*geo.Aslot*geo.win.kcu);
 %dataSet.CurrentDensity = per.i0/(sqrt(2)*geo.Aslot*geo.win.kcu*geo.win.pCond);
 
 dataSet.pontRangEdit = geo.pontRang;
@@ -106,6 +139,7 @@ dataSet.RadShiftInner = geo.dxIB;
 dataSet.NarrowFactor = geo.kOB;
 
 dataSet.CentralShrink = geo.hcShrink;
+
 % dalpha = geo.dalpha;            % barriers ends (deg)
 % hc = geo.hc;                    % barriers hieghts (mm)
 
@@ -130,6 +164,12 @@ dataSet.ShaftRadius = floor(geo.Ar*100)/100;
 
 dataSet.PMdim = geo.PMdim;
 dataSet.PMclear = geo.PMclear;
+if isfield(geo,'AreaC')
+    dataSet.PMdimPU = [geo.AreaC;geo.AreaE]./[geo.AreaCMax;geo.AreaEMax];
+    dataSet.PMdimPU(isnan(dataSet.PMdimPU))=0;
+else
+    dataSet.PMdimPU = nan(2,geo.nlay);
+end
 
 app.dataSet = dataSet;
 

@@ -134,7 +134,9 @@ if simdata["n_PM"]!=0:
 
 ####### Setup Core Loss Part ######
 if simdata['corelossflag']==1:
-	rotorindex=3+5*simdata["q"]*3+2*(simdata["nlay"]+simdata["radial_ribs_split"])+simdata["n_PM"]
+	#rotorindex=3+5*simdata["q"]*3+2*(simdata["nlay"]+simdata["radial_ribs_split"])+simdata["n_PM"]
+	#rotorindex=3+5*simdata["q"]*3+2*(simdata["nlay"]+simdata["radial_ribs_split"])+simdata["n_PM"]
+	rotorindex= 41;
 	rotorplate="2_%d" %(rotorindex)
 	oModule.SetCoreLoss([statplate,rotorplate], False)
 	#if shaft!="ShaftAir":
@@ -354,6 +356,19 @@ if simdata['corelossflag']==1:
 	oModule.AddTraceCharacteristics("Excess Loss", "avg", [], ["Specified", "60/(%s*%s)s"%(simdata['EvalSpeed'],simdata['p']), "60/(%s*%s*360/%s) s"%(simdata['EvalSpeed'],simdata['p'],simdata["xdeg"])])
 	oModule.ChangeProperty(["NAME:AllTabs",["NAME:Scaling",["NAME:PropServers","Excess Loss:AxisY1"],["NAME:ChangedProps",["NAME:Auto Units",	"Value:=", False],["NAME:Units","Value:=", "W"]]]])
 
+oModule.CreateReport("SolidLoss", "Transient", "Rectangular Plot", "Setup1 : Transient", 
+		[
+			"Domain:="		, "Sweep"
+		], 
+		[
+			"Time:="		, ["All"]
+		], 
+		[
+			"X Component:="		, "Time",
+			"Y Component:="		, ["SolidLoss"]
+		])
+	#oModule.AddTraceCharacteristics("SolidLoss", "avg", [], ["Specified", "60/(%s*%s)s"%(simdata['EvalSpeed'],simdata['p']), "60/(%s*%s*360/%s) s"%(simdata['EvalSpeed'],simdata['p'],simdata["xdeg"])])
+	#oModule.ChangeProperty(["NAME:AllTabs",["NAME:Scaling",["NAME:PropServers","SolidLoss:AxisY1"],["NAME:ChangedProps",["NAME:Auto Units",	"Value:=", False],["NAME:Units","Value:=", "W"]]]])
 
 
 ########### Initial Mesh Settings ################
@@ -392,12 +407,12 @@ oModule.ExportToFile("Mechanical Position", "%s/PositionData.csv"%(resultspath),
 if simdata['corelossflag']==1:
 	#first graph value
 	oModule.ExportToFile("Core Loss", "%s/CoreLossData.csv"%(resultspath), False)
+	oModule.ExportToFile("SolidLoss", "%s/MagnetLossData.csv"%(resultspath), False)
 	#avg value
-	oModule.ExportTableToFile("Core Loss", "%s/CoreLossAvg.csv"%(resultspath), "Legend")
-	oModule.ExportTableToFile("Hysteresis Loss", "%s/HysteresisLossAvg.csv"%(resultspath), "Legend")
-	oModule.ExportTableToFile("Eddy Currents Loss", "%s/EddyCurrentsLossAvg.csv"%(resultspath), "Legend")
-	oModule.ExportTableToFile("Excess Loss", "%s/ExcessLossAvg.csv"%(resultspath), "Legend")
-
+	#oModule.ExportTableToFile("Core Loss", "%s/CoreLossAvg.txt"%(resultspath), "Legend")
+	#oModule.ExportTableToFile("Hysteresis Loss", "%s/HysteresisLossAvg.txt"%(resultspath), "Legend")
+	#oModule.ExportTableToFile("Eddy Currents Loss", "%s/EddyCurrentsLossAvg.txt"%(resultspath), "Legend")
+	#oModule.ExportTableToFile("Excess Loss", "%s/ExcessLossAvg.txt"%(resultspath), "Legend")
 
 
 sys.exit()

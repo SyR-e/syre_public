@@ -77,8 +77,7 @@ lineslotairgaps=""
 slotairgaps=""
 statplate="1_1"
 
-for ii in range(geo["q"]*3):  
-
+for ii in range(geo["q"]*3):    
 	slotindex=2+ii*4
 	lineindex=slotindex+1
 	slot="1_%d" %(slotindex)

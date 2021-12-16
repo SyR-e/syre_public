@@ -11,8 +11,8 @@ geodata={
 "radial_ribs_split":0, #area added by split barrier
 "n_PM":4, #number of permanent magnet (number of magnetic segments)
 "l":156.000000, #stack length
-"filepath":"C:/Users/paolo.ragazzo/Desktop/syre/motorExamples/Aimo/", #motor"s folder
-"filename":"VGB_Aimo_IronLoss.mat", #motor"s file mat name
+"filepath":"C:/Users/paolo.ragazzo/Desktop/syre/motorExamples/Eldor/", #motor"s folder
+"filename":"VGB_HS.mat", #motor"s file mat name
 }
 #struct material names
 material={
@@ -34,7 +34,7 @@ oProject = oDesktop.NewProject()
 oProject.InsertDesign("Maxwell 2D", "Maxwell2DDesign1", "Transient", "")
 oDesign = oProject.SetActiveDesign("Maxwell2DDesign1")
 oEditor = oDesign.SetActiveEditor("3D Modeler")
-oProject.SaveAs("C:/Users/paolo.ragazzo/Desktop/syre/motorExamples/Aimo/VGB_Aimo_IronLoss.aedt", True)
+oProject.SaveAs("C:/Users/paolo.ragazzo/Desktop/syre/motorExamples/Eldor/VGB_HS.aedt", True)
 oDesktop.ClearMessages("", "",3)
 #########Add materials to library
 #########Air##########

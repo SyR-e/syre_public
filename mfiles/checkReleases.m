@@ -25,6 +25,7 @@ disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 % Matlab
 disp('Check Matlab release...')
 disp('   minimum requirement      : 2016b (9.1)')
+disp('   suggested release        : 2021b (9.11)')
 
 tmp = ver('matlab');
 vMatlab = eval(tmp.Version);

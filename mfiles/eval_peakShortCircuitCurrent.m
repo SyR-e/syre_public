@@ -22,6 +22,22 @@ end
 
 load([dataIn.currentpathname dataIn.currentfilename])
 
+if ~isfield(dataSet,'axisType')
+    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
+        dataSet.axisType = 'PM';
+    else
+        dataSet.axisType = 'SR';
+    end
+end
+
+if ~strcmp(dataSet.axisType,dataIn.axisType)
+    if strcmp(dataSet.axisType,'PM')
+        geo.th0 = geo.th0 + 90;
+    else
+        geo.th0 = geo.th0 - 90;
+    end
+end
+
 % update loaded dataSet fields with GUI dataSet (dataIn) fields
 dataSet.RatedCurrent     = dataIn.RatedCurrent;
 dataSet.CurrLoPP         = dataIn.CurrLoPP;

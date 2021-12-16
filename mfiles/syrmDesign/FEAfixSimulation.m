@@ -23,7 +23,7 @@ if ~gammaFix
     OUT.iq = out.iq;
 else
     deltaGamma = 3;
-    numSim     = 5;
+    numSim     = 7;
     
     gVect = (0:deltaGamma:deltaGamma*(numSim-1));
     gVect = gVect-mean(gVect);

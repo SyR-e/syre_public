@@ -28,7 +28,8 @@ if nargin<1
             'Number of current levels',...
             };
     name='Demagnetization input';
-    [i0,~]=calc_io(geo,per);
+    i0 = per.i0;
+    %[i0,~]=calc_io(geo,per);
     if ~isfield(mat.LayerMag,'temp')
         error('No thermal properties for the selected PMs. Please select another PMs or update the material properties')
     end
@@ -47,7 +48,6 @@ end
 
 load([dataSet.currentpathname dataSet.currentfilename],'geo','per','mat');
 
-%[i0,~]=calc_io(geo,per);
 
 i0 = dataSet.SimulatedCurrent(end)/dataSet.CurrLoPP(end);
 

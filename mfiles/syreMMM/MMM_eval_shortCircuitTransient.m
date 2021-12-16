@@ -247,10 +247,10 @@ fInt.T  = scatteredInterpolant(data.Fd,data.Fq,data.T,'linear','linear');
 
 for ii=1:length(hleg)
     switch ii
-        case {1,3,4,5}
+        case {3,4,5}
         set(hleg(ii),'NumColumns',2,'Location','southoutside');
-        case {2}
-            set(hleg(ii),'Location','northeastoutside');
+        case {1,2}
+            set(hleg(ii),'NumColumns',2,'Location','south');
     end
 end
 

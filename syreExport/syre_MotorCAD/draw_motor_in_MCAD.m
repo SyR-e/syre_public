@@ -53,12 +53,12 @@ invoke(mcad,'SetVariable','DXFImportType',1);
 invoke(mcad,'SaveToFile',[pathname file_mot]);
 
 %Save workspace
-save([pathname,filename],'dataSet','geo','per','mat');
+% save([pathname,filename],'dataSet','geo','per','mat');
 
 disp('Motor-CAD file saved in:')
 disp([pathname file_mot])
 disp(' ')
-disp('Syr-e file saved in:')
-disp([pathname filename])
-disp(' ')
+% disp('Syr-e file saved in:')
+% disp([pathname filename])
+% disp(' ')
 end

@@ -18,6 +18,9 @@ x0    = geo.x0;
 PMdim = geo.PMdim(1,:);
 nlay  = geo.nlay;
 
+RotorFilletTan1 = geo.RotorFilletTan1;
+RotorFilletTan2 = geo.RotorFilletTan2;
+
 xpont      = temp.xpont;
 ypont      = temp.ypont;
 xxD1k      = temp.xxD1k;
@@ -54,6 +57,17 @@ xPME2b = temp.xPME2b;
 yPME2b = temp.yPME2b;
 xPME2t = temp.xPME2t;
 yPME2t = temp.yPME2t;
+
+if isfield(temp,'xcRac1')
+    xcRac1 = temp.xcRac1;
+    ycRac1 = temp.ycRac1;
+    xxE1k =temp.xxE1k;
+    yyE1k =temp.yyE1k;
+    xcRac2 = temp.xcRac2;
+    ycRac2 = temp.ycRac2;
+    xxE2k =temp.xxE2k;
+    yyE2k =temp.yyE2k;
+end
 
 
 % This function build the rotor matrix (defining the geometry). Each half
@@ -99,15 +113,31 @@ for ii=1:nlay
             ];
     end
     
-    rotore = [rotore
-        x0             0              XpontRadBarDx(ii) YpontRadBarDx(ii) xxD2k(ii)         yyD2k(ii)         -1 codMatAirRot indexEle
-        XcRibTraf2(ii) YcRibTraf2(ii) xxD2k(ii)         yyD2k(ii)         xpont(ii)         ypont(ii)         +1 codMatAirRot indexEle
-        XcRibTraf1(ii) YcRibTraf1(ii) xpont(ii)         ypont(ii)         xxD1k(ii)         yyD1k(ii)         +1 codMatAirRot indexEle
-        x0             0              xxD1k(ii)         yyD1k(ii)         XpontRadBarSx(ii) YpontRadBarSx(ii) +1 codMatAirRot indexEle
-        ];
-    
-    indexEle = indexEle+1;
-    
+    if ~(isfinite(RotorFilletTan1(ii)) & isfinite(RotorFilletTan2(ii)))
+        rotore = [rotore
+            x0             0              XpontRadBarDx(ii) YpontRadBarDx(ii) xxD2k(ii)         yyD2k(ii)         -1 codMatAirRot indexEle
+            XcRibTraf2(ii) YcRibTraf2(ii) xxD2k(ii)         yyD2k(ii)         xpont(ii)         ypont(ii)         +1 codMatAirRot indexEle
+            XcRibTraf1(ii) YcRibTraf1(ii) xpont(ii)         ypont(ii)         xxD1k(ii)         yyD1k(ii)         +1 codMatAirRot indexEle
+            x0             0              xxD1k(ii)         yyD1k(ii)         XpontRadBarSx(ii) YpontRadBarSx(ii) +1 codMatAirRot indexEle
+            ];
+
+        indexEle = indexEle+1;
+
+    else
+
+        % Rotor fillet
+        rotore = [rotore
+            x0             0              XpontRadBarDx(ii) YpontRadBarDx(ii) xxD2k(ii)         yyD2k(ii)         -1 codMatAirRot indexEle
+            xcRac2(ii)     ycRac2(ii)     xxD2k(ii)         yyD2k(ii)         xxE2k(ii)         yyE2k(ii)         +1 codMatAirRot indexEle
+            xxE2k(ii)      yyE2k(ii)      xxE1k(ii)         yyE1k(ii)         NaN               NaN                0 codMatAirRot indexEle
+            xcRac1(ii)     ycRac1(ii)     xxE1k(ii)         yyE1k(ii)         xxD1k(ii)         yyD1k(ii)         +1 codMatAirRot indexEle
+            x0             0              xxD1k(ii)         yyD1k(ii)         XpontRadBarSx(ii) YpontRadBarSx(ii) +1 codMatAirRot indexEle
+
+            ];
+
+        indexEle = indexEle+1;
+    end
+
     % Magnets
     if PMdim(ii)>0
         Mag = [Mag

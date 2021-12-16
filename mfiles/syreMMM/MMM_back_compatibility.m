@@ -54,7 +54,7 @@ if ~isfield(motorModel,'SyreDrive')
     motorModel.SyreDrive.Converter.V0 = 0;
     motorModel.SyreDrive.Converter.Rd = 1e-4;
     motorModel.SyreDrive.Converter.dT = 1;
-   
+
     flag = 1;
     if Dflag
         disp('- Added Syre Drive');
@@ -66,7 +66,7 @@ if ~isfield(motorModel.SyreDrive,'SS_on')
     motorModel.SyreDrive.SS_settings.inj_waveform = 'Sinusoidal';
     motorModel.SyreDrive.SS_settings.dem = 'Current';
     motorModel.SyreDrive.SS_settings.HS_ctrl = 'APP';
-    
+
     flag = 1;
     if Dflag
         disp('- Added sensorless toggle');
@@ -75,7 +75,7 @@ end
 
 if ~isfield(motorModel.data,'tempVectPM')
     motorModel.data.tempVectPM = motorModel.data.tempPM;
-    
+
     flag = 1;
     if Dflag
         disp('- Multiple PM temperature extension');
@@ -88,7 +88,7 @@ if ~isfield(motorModel,'WaveformSetup')
     motorModel.WaveformSetup.CurrAngle = motorModel.dqtElab.CurrAngle;
     motorModel.WaveformSetup.EvalSpeed = motorModel.data.n0;
     motorModel.WaveformSetup.nCycle    = 1;
-%     motorModel = rmfield(motorModel,'dqtElab');
+    %     motorModel = rmfield(motorModel,'dqtElab');
     flag = 1;
     if Dflag
         disp('- Added waveform tab and removed dqtMap tab');
@@ -105,6 +105,9 @@ if ~isfield(motorModel.data,'R')
 end
 
 if ~isfield(motorModel.data,'lend')
+    if ~isfield(motorModel.dataSet,'EndWindingsLength')
+        motorModel.dataSet.EndWindingsLength = calc_endTurnLength(motorModel.geo);
+    end
     motorModel.data.lend  = motorModel.dataSet.EndWindingsLength;
     flag = 1;
     if Dflag
@@ -172,8 +175,8 @@ end
 % message in command window if some data are added
 if flag && Dflag
     msg = 'This project was created with an older version of SyR-e: proceed to SAVE MACHINE to update to latest version';
-%     title = 'WARNING';
-%     f = warndlg(msg,title,'modal');
+    %     title = 'WARNING';
+    %     f = warndlg(msg,title,'modal');
     warning(msg);
 end
 

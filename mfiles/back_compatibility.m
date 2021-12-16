@@ -419,7 +419,9 @@ end
 
 % Simulated current in post-processing tab
 if ~isfield(dataSet,'SimulatedCurrent')
-    dataSet.SimulatedCurrent = dataSet.CurrLoPP*calc_io(geo,per);
+    per0 = calc_i0(geo,per);
+    dataSet.RatedCurrent = per0.i0;
+    dataSet.SimulatedCurrent = dataSet.CurrLoPP*dataSet.RatedCurrent;
     if Dflag
         disp('rev355 - added simulated current')
     end
@@ -737,7 +739,7 @@ if ~isfield(dataSet,'SlotConductorBottomGap')
 end
 
 % Double tangential rotor fillet  
-if ~isfield(geo,'RotorFilletTan1')
+if ~isfield(dataSet,'RotorFilletTan1')
     dataSet.RotorFilletTan1  = nan(1,dataSet.NumOfLayers);
     dataSet.RotorFilletTan2  = nan(1,dataSet.NumOfLayers);
     dataSet.TanRibCheck = 0; 
@@ -771,8 +773,7 @@ end
 
 % End windigs
 if ~isfield(dataSet,'EndWindingsLength')
-    [~,~,geo] = calc_io(geo,per);
-    dataSet.EndWindingsLength = geo.lend;
+    dataSet.EndWindingsLength = calc_endTurnLength(geo);
     if Dflag
         disp('2021 06 14 - Added End-windings length')
     end
@@ -808,12 +809,82 @@ end
 
 % Display the number of parallel
 if ~isfield(dataSet,'SlotConductorParallel')
-    dataSet.SlotConductorParallel = round(geo.p*geo.q*geo.win.nCond/geo.win.Ns,2);    
+    dataSet.SlotConductorParallel = round(dataSet.NumOfPolePairs*dataSet.NumOfSlots*dataSet.SlotConductorNumber/dataSet.TurnsInSeries,2);    
     if Dflag
         disp('2021 08 30 - Added the number of parallel display')
     end
     flag=1;
 end
+
+% syrmDesign flags
+if ~isfield(dataSet,'syrmDesignFlag')
+    dataSet.syrmDesignFlag.hc = 1;
+    dataSet.syrmDesignFlag.dx = 1;
+    dataSet.syrmDesignFlag.ks = 1;
+    dataSet.syrmDesignFlag.i0 = 0;
+    dataSet.syrmDesignFlag.gf = 0;
+    if Dflag
+        disp('2021 10 05 - Added syrmDesign flags')
+    end
+    flag=1;
+end
+
+% Rotor yoke factor (syrmDesign)
+if ~isfield(dataSet,'RotorYokeFactor')
+    dataSet.RotorYokeFactor = 1;
+    if Dflag
+        disp('2021 12 01 - Added rotor yoke factor to syrmDesign')
+    end
+    flag=1;
+end
+
+% Max PM area
+if ~isfield(dataSet,'PMdimPU')
+    dataSet.PMdimPU = dataSet.PMdim./dataSet.PMdim;
+    dataSet.PMdimPU(isnan(dataSet.PMdimPU)) = 0;
+    if Dflag
+        disp('2021 12 01 - Added max available PM area')
+    end
+    flag=1;
+end
+
+% Custom Current Simulation - Ansys Maxwell
+if ~isfield(dataSet,'CustomCurrentA')
+    dataSet.CustomCurrentA = nan(1,1);
+    dataSet.CustomCurrentB = nan(1,1);
+    dataSet.CustomCurrentC = nan(1,1);
+    dataSet.CustomCurrentTime  = nan(1,1);
+    dataSet.CustomCurrentEnable = 0;
+    dataSet.CustomCurrentAnsysCounter = 1;
+    dataSet.CustomCurrentFilename = " - ";
+    if Dflag
+        disp('2021 12 09 - Added Custom Current Simulation')
+    end
+    flag=1;
+end
+
+% Select PM and SR axis from the simulation tab
+if ~isfield(dataSet,'axisType')
+    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
+        dataSet.axisType = 'PM';
+    else
+        dataSet.axisType = 'SR';
+    end
+    if Dflag
+        disp('2021 12 14 - Added the axis type option in the simulation tab')
+    end
+    flag=1;
+end
+ 
+%%% Remove V-type geometry
+% if strcmp(geo.RotType,'V-type')
+%     geo.RotType = 'Seg';
+%     dataSet.CentralShrink = zeros(1,dataSet.NumOfLayers);
+%     if Dflag
+%         disp('2021 12 14 - Outdated: for V-type we recommend to use the Seg barriers with the shrink parameter set to 1')
+%     end
+%     flag=1;
+% end
 
 %% remove old fields of dataSet
 flagClear = 0;
@@ -883,7 +954,7 @@ if isfield(dataSet,'RotorFillet')
     flagClear = 1;
 end
 
-if flagClear
+if flagClear && Dflag
     disp('Removed old dataSet fields')
 end
 

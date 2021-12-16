@@ -45,13 +45,13 @@ subplot(2,1,1)
 set(gca,'XLim',[0 360],'XTick',0:60:360);
 xlabel('$\theta$ [elt deg]')
 ylabel('[Nm]')
-title(['Mean Torque = ' num2str(mean(T)) ' Nm'])
+title(['Mean Torque = ' num2str(out.T) ' Nm'])
 plot(th,T);
 subplot(2,1,2)
 set(gca,'XLim',[0 360],'XTick',0:60:360);
 xlabel('$\theta$ [elt deg]')
 ylabel('IPF')
-title(['Mean IPF = ' num2str(mean(IPF))])
+title(['Mean IPF = ' num2str(out.IPF)])
 plot(th,IPF);
 if isoctave()
     fig_name=strcat(newDir, filemot(1:end-4), '_T_gamma');
@@ -66,13 +66,13 @@ subplot(2,1,1)
 set(gca,'XLim',[0 360],'XTick',0:60:360);
 xlabel('$\theta$ [elt deg]')
 ylabel('$\lambda_d$ [Vs]')
-title(['Mean $\lambda_d$ = ' num2str(mean(fd)) ' Vs'])
+title(['Mean $\lambda_d$ = ' num2str(out.fd) ' Vs'])
 plot(th,fd);
 subplot(2,1,2)
 set(gca,'XLim',[0 360],'XTick',0:60:360);
 xlabel('$\theta$ [elt deg]')
 ylabel('$\lambda_q$ [Vs]')
-title(['Mean $\lambda_q$ = ' num2str(mean(fq)) ' Vs'])
+title(['Mean $\lambda_q$ = ' num2str(out.fq) ' Vs'])
 plot(th,fq);
 if isoctave()
     fig_name=strcat(newDir, filemot(1:end-4), '_plot_flux');
@@ -97,9 +97,12 @@ if ~sum(isnan(fa))
     xlabel('$\theta$ [elt deg]')
     ylabel('$i_{abc}$ [A]')
     title(['Phase currents'])
-    plot(th,ia);
-    plot(th,ib);
-    plot(th,ic);
+    plot(th,ia,'DisplayName','$i_a$');
+    plot(th,ib,'DisplayName','$i_b$');
+    plot(th,ic,'DisplayName','$i_c$');
+    if length(ia(:,1))<2
+        legend show
+    end
     if isoctave()
         fig_name=strcat(newDir, filemot(1:end-4), '_plot_phase');
         hgsave(hfig(3),[fig_name]);

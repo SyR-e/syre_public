@@ -31,9 +31,9 @@ function [bounds, objs, geo, per, mat] = data0(dataIn)
 %% READ INPUTS FROM THE GUI
 
 % main performance target
-per.Loss = dataIn.AdmiJouleLosses;             % admitted Joule loss [W]
-per.tempcu = dataIn.TargetCopperTemp;           % Target Copper Temperature [C]
-%     per.Vdc = dataIn.DCVoltage;              % dc-link voltage [V]
+per.Loss = dataIn.AdmiJouleLosses;            % admitted Joule loss [W]
+per.tempcu = dataIn.TargetCopperTemp;         % Target Copper Temperature [C]
+%     per.Vdc = dataIn.DCVoltage;             % dc-link voltage [V]
 per.overload = dataIn.CurrOverLoad;           % current overload factor used for optimization (1 means Joule loss = per.Loss)
 per.BrPP = dataIn.BrPP;                       % Br used for postprocessing [T]
 per.tempPP = dataIn.tempPP;                   % PMs temperature in postprocessing [°C]
@@ -44,6 +44,15 @@ per.kj = dataIn.ThermalLoadKj;
 per.i0 = dataIn.RatedCurrent;
 per.Rs = dataIn.Rs;
 per.Lend = dataIn.Lend;
+per.J = dataIn.CurrentDensity;
+
+%Custom current
+per.custom_ia         = dataIn.CustomCurrentA;
+per.custom_ib         = dataIn.CustomCurrentB;
+per.custom_ic         = dataIn.CustomCurrentC;
+per.custom_time       = dataIn.CustomCurrentTime;
+per.custom_act        = dataIn.CustomCurrentEnable;
+per.custom_ansyscount = dataIn.CustomCurrentAnsysCounter;
 
 % MOOA goals penalization tresholds
 per.min_exp_torque = dataIn.MinExpTorque;      % minimum expected torque [Nm]
@@ -54,6 +63,7 @@ per.min_pf         = dataIn.MinExpPowerFactor;
 per.max_fdq0       = dataIn.MaxExpNoLoadFlux;
 % per.max_mechstress = dataIn.MaxExpMechStress;
 per.EvalSpeed      = dataIn.EvalSpeed;
+
 
 % number of simulated rotor positions
 % MOOA means during the optimization
@@ -79,7 +89,9 @@ geo.BLKLABELSmaterials = {
 geo.pont0 = dataIn.MinMechTol;  % thickness of the structural bridges at the airgap [mm]
 
 % Geometry
-geo.RotType = dataIn.TypeOfRotor;
+geo.RotType  = dataIn.TypeOfRotor;
+geo.axisType = dataIn.axisType;
+
 % 'Circular' is the Circular barrier type of rotor, for any number of barriers
 % 'ISeg' draws a rotor with the external I-shaped barrier and other
 %        Segmented (U-shaped) barriers
@@ -119,7 +131,6 @@ geo.tta = dataIn.ToothTangAngle;   % tooth tang angle (mech degree)
 geo.SFR = dataIn.FilletCorner;     % fillet at the back corner of the slot [mm]
 
 % rotor
-
 if strcmp(geo.RotType,'SPM')
     geo.nlay = 1;
 else
@@ -145,6 +156,9 @@ else
 end
 geo.win.Lend = dataIn.Lend; % end turn inductance
 
+[~,geo] = calc_endTurnLength(geo); % end-winding length [mm]
+
+
 % slot model
 geo.win.condType   = dataIn.SlotConductorType;
 geo.win.condIns    = dataIn.SlotConductorInsulation;
@@ -165,7 +179,25 @@ geo.nmax = dataIn.OverSpeed; % overspeed [rpm]
 geo.lm = dataIn.ThicknessOfPM;
 geo.phi = dataIn.AngleSpanOfPM;
 
-geo.lend = dataIn.EndWindingsLength;
+% calc winding factor (kavv) and rotor offset (phase1_offset)
+[~,phase1_offset] = calcKwTh0(geo);
+phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %first slot in 360/(6pq)/2 position
+
+if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+    if strcmp(geo.axisType,'PM')
+        phase1_offset = phase1_offset - 90;   % valid for d axis on PM direction
+    else
+        phase1_offset = phase1_offset + 180;        % valid for -q axis on PM direction
+    end
+else
+    if strcmp(geo.axisType,'PM')
+        phase1_offset = phase1_offset + 90;   % valid for d axis on PM direction
+    else
+        phase1_offset = phase1_offset;        % valid for -q axis on PM direction
+    end
+end
+
+geo.th0 = - phase1_offset;  % d- to alpha-axis offset [elt deg]
 
 % direction of magnetization in PMs of SPM with multiple segments of PM
 geo.PMdir = 'p';    % parallel direction
@@ -339,7 +371,7 @@ objs = [
     per.min_pf          dataIn.PowerFactorOptCheck      0.1
     per.max_fdq0        dataIn.NoLoadFluxOptCheck       0
     ];
-per.MechStressOptCheck =  0;
+per.MechStressOptCheck =  dataIn.MechStressOptCheck;
 
 filt_objs = (objs(:,2)==1);
 objs = objs(objs(:,2)==1,:);

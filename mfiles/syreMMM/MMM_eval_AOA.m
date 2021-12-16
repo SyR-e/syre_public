@@ -32,6 +32,44 @@ PF   = sin(atan2(Iq,Id)-atan2(Fq,Fd));
 
 %MTPA
 [id,iq] = calcOptCtrl(Id,Iq,T,abs(Id+j*Iq),axisType);
+
+% Check MTPA
+if strcmp(motorModel.data.axisType,'SR')
+    index = find(id==max(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(id==min(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==max(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==min(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+else
+    % index = find(id==max(Id,[],'all'));
+    % id(index) = NaN;
+    % iq(index) = NaN;
+    index = find(id==min(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==max(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==min(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+end
+
+index = ~isnan(id);
+id = id(index);
+iq = iq(index);
+
+index = ~isnan(iq);
+id = id(index);
+iq = iq(index);
+
 if ((id(1)~=0)&&(iq(1)~=0))
     id = [0 id];
     iq = [0 iq];
@@ -47,6 +85,43 @@ MTPA.iq   = iq;
 
 % MTPV
 [id,iq] = calcOptCtrl(Id,Iq,T,abs(Fd+j*Fq),axisType);
+
+% Check MTPV
+if strcmp(motorModel.data.axisType,'SR')
+    index = find(id==max(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(id==min(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==max(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==min(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+else
+    index = find(id==max(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(id==min(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==max(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==min(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+end
+
+index = ~isnan(id);
+id = id(index);
+iq = iq(index);
+
+index = ~isnan(iq);
+id = id(index);
+iq = iq(index);
 
 MTPV.id = id;
 MTPV.iq = iq;

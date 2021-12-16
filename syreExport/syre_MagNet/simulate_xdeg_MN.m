@@ -440,6 +440,16 @@ SOL.fd = Fluxd';
 SOL.fq = Fluxq';
 SOL.T = (mean([-Torque_1sim(:,1) Torque_1sim(:,2)],2))';
 
+tmp = dq2abc(SOL.id,SOL.iq,theta(1:end-1)');
+SOL.ia = tmp(1,:);
+SOL.ib = tmp(2,:);
+SOL.ic = tmp(3,:);
+
+tmp = dq2abc(SOL.fd,SOL.fq,theta(1:end-1)');
+SOL.fa = tmp(1,:);
+SOL.fb = tmp(2,:);
+SOL.fc = tmp(3,:);
+
 CloseMagnet(h);
 
 

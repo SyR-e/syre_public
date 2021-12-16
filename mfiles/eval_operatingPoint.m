@@ -45,6 +45,22 @@ per.EvalSpeed = dataIn.EvalSpeed;
 
 clc;
 
+if ~isfield(dataSet,'axisType')
+    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
+        dataSet.axisType = 'PM';
+    else
+        dataSet.axisType = 'SR';
+    end
+end
+
+if ~strcmp(dataSet.axisType,dataIn.axisType)
+    if strcmp(dataSet.axisType,'PM')
+        geo.th0 = geo.th0 + 90;
+    else
+        geo.th0 = geo.th0 - 90;
+    end
+end
+
 eval_type = dataIn.EvalType;
 
 per.overload=CurrLoPP;
@@ -53,6 +69,15 @@ per.BrPP=BrPP;
 
 per.nsim_singt = NumOfRotPosPP;       % # simulated positions
 per.delta_sim_singt = AngularSpanPP;  % angular span of simulation
+
+%custom current
+if dataIn.CustomCurrentEnable
+    per.custom_ia         = dataIn.CustomCurrentA;
+    per.custom_ib         = dataIn.CustomCurrentB;
+    per.custom_ic         = dataIn.CustomCurrentC;
+    per.custom_time       = dataIn.CustomCurrentTime;
+    per.custom_act        = dataIn.CustomCurrentEnable;
+end
 
 % single point or array of points simulation
 performance = cell(1,length(CurrLoPP));
@@ -74,8 +99,8 @@ end
 
 fileMotWithPath=[pathname filemot];
 
-geo0=geo;
-mat0=mat;
+geo0 = geo;
+mat0 = mat;
 % evaluation
 if ppState<1
     for ii = 1:length(CurrLoPP)
@@ -107,8 +132,13 @@ for ii = 1:length(SimulatedCurrent)
         gammaStr = [gammaStr 'd'];
     end
     
-    FILENAME = ['T_eval_',iStr,'_',gammaStr '_' int2str(dataIn.tempPP) 'deg'];
-%     FILENAME = [filemot(1:end-4) '_T_eval_',iStr,'_',gammaStr];
+    if dataIn.CustomCurrentEnable
+        FILENAME = ['T_eval_CustomCurrent_' datestr(now,30)];
+    else
+        FILENAME = ['T_eval_',iStr,'_',gammaStr '_' int2str(dataIn.tempPP) 'deg'];
+        %     FILENAME = [filemot(1:end-4) '_T_eval_',iStr,'_',gammaStr];
+    end
+    
     switch eval_type
         case 'flxdn'
             FILENAME = [FILENAME '_flxdn'];

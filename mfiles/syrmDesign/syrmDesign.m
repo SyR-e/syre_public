@@ -70,19 +70,19 @@ elseif strcmp(dataSet.TypeOfRotor,'Vtype')
     map.fd  = map.fM.*map.km+(map.fd-map.fM).*map.kd;
     map.fq  = map.fq.*map.kq;
     map.fM  = map.fM.*map.km;
-    map.T   = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
-    map.ich = map.ich.*map.km./map.k0;
     map.gamma = map.gamma.*map.kg;
     map.id = map.iAmp.*cos(map.gamma*pi/180);
     map.iq = map.iAmp.*sin(map.gamma*pi/180);
+    map.T   = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
+    map.ich = map.ich.*map.km./map.k0;
 else
     map.fd = map.fd.*map.kd;
     map.fq = map.fq.*map.kq;
-    map.T  = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
-    map.PF = abs(sin(atan(map.iq./map.id)-atan(map.fq./map.fd)));
     map.gamma = map.gamma.*map.kg;
     map.id = map.iAmp.*cos(map.gamma*pi/180);
     map.iq = map.iAmp.*sin(map.gamma*pi/180);
+    map.T  = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
+    map.PF = abs(sin(atan(map.iq./map.id)-atan(map.fq./map.fd)));
 end
 
 % if isfield(map,'ich')
@@ -177,7 +177,7 @@ while isequal(button,'Yes')
         
         % hc evaluation - flux barriers design
         geo.alpha=cumsum(geo.dalpha);
-        switch map.flag_pb
+        switch dataSet.syrmDesignFlag.hc
             case 0 % hc = cost
                 disp('flux barrier design: hc = cost')
             case 1 % pb = cost
@@ -186,7 +186,7 @@ while isequal(button,'Yes')
                 disp('flux barrier design: hc/(df*sk^0.5) = cost')
         end
         
-        switch map.flag_dx
+        switch dataSet.syrmDesignFlag.dx
             case 0 % dx=0
                 disp('flux carrier design: dx=0')
             case 1 % constant iron
@@ -221,6 +221,30 @@ while isequal(button,'Yes')
     temp_id = interp2(map.xx,map.bb,map.id,geo.x,geo.b);  % id [A]
     temp_iq = interp2(map.xx,map.bb,map.iq,geo.x,geo.b);  % iq [A]
     dataSet.GammaPP=round(atan2(temp_iq,temp_id)*180/pi*100)/100;
+    dataSet.ThermalLoadKj = interp2(map.xx,map.bb,map.kj,geo.x,geo.b);
+    dataSet.CurrentDensity = interp2(map.xx,map.bb,map.J,geo.x,geo.b);
+    dataSet.AdmiJouleLosses = dataSet.ThermalLoadKj*(2*pi*dataSet.StatorOuterRadius/1000*dataSet.StackLength/1000);
+
+    switch dataSet.syrmDesignFlag.i0
+        case 0
+            dataSet.AdmiJouleLosses = NaN;
+            dataSet.CurrentDensity  = NaN;
+        case 1
+            dataSet.AdmiJouleLosses = NaN;
+            dataSet.ThermalLoadKj = NaN;
+    end
+    per.Loss = dataSet.AdmiJouleLosses;
+    per.kj   = dataSet.ThermalLoadKj;
+    per.J    = dataSet.CurrentDensity;
+
+    Aslots = interp2(map.xx,map.bb,map.Aslots,geo.x,geo.b);
+    geo.Aslot = Aslots/(6*geo.p*geo.q*geo.win.n3phase);
+    geo.lend = interp2(map.xx,map.bb,map.lend,geo.x,geo.b);
+
+    [per] = calc_i0(geo,per);
+%     dataSet.AdmiJouleLosses = per.Loss;
+%     dataSet.ThermalLoadKj   = per.kj;
+%     dataSet.CurrentDensity  = per.J;
     
     % adjourn dataSet
     dataSet.AirGapRadius=round(geo.r*100)/100;

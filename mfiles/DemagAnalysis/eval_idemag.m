@@ -29,7 +29,7 @@ if nargin==0
     name='Demag detection';
     numlines=1;
     answer={mat2str(mat.LayerMag.temp.temp),...
-                   '1'};
+        '1'};
     
     answer=inputdlg(prompt,name,numlines,answer);
     
@@ -38,7 +38,7 @@ if nargin==0
     setup.tempVect = eval(answer{1});
     setup.figFlag  = eval(answer{2});
 else
-
+    
     temp = setup;
     clear setup
     setup.filename = temp.currentfilename;
@@ -48,7 +48,21 @@ else
     clear temp
     
     load([setup.pathname setup.filename]);
-
+    if ~isfield(dataSet,'axisType')
+        if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
+            dataSet.axisType = 'PM';
+        else
+            dataSet.axisType = 'SR';
+        end
+    end
+    
+    if ~strcmp(dataSet.axisType,dataIn.axisType)
+        if strcmp(dataSet.axisType,'PM')
+            geo.th0 = geo.th0 + 90;
+        else
+            geo.th0 = geo.th0 - 90;
+        end
+    end
 end
 
 pathname = setup.pathname;
@@ -153,15 +167,15 @@ for tt=1:length(tempVect)
                 per.overload=0;
             end
         elseif ii==2
-%             if tt==1
-                per.overload=1;
-%             else
-%                 BrOld = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt-1));
-%                 BrNew = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt));
-%                 BdOld = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt-1));
-%                 BdNew = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt));
-%                 per.overload=IdemagVect(tt-1)/i0*(BrNew/BrOld)*(1-BdNew/BdOld);
-%             end
+            %             if tt==1
+            per.overload=1;
+            %             else
+            %                 BrOld = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt-1));
+            %                 BrNew = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt));
+            %                 BdOld = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt-1));
+            %                 BdNew = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt));
+            %                 per.overload=IdemagVect(tt-1)/i0*(BrNew/BrOld)*(1-BdNew/BdOld);
+            %             end
         else
             per.overload = (Iiter(ii-2)+(Bd-Biter(ii-2))*(Iiter(ii-1)-Iiter(ii-2))/(Biter(ii-1)-Biter(ii-2)))/i0;
             if isnan(per.overload)
@@ -170,7 +184,7 @@ for tt=1:length(tempVect)
             if per.overload<0
                 per.overload=-0;
             end
-%             per.overload = Iiter(ii-2)/i0;
+            %             per.overload = Iiter(ii-2)/i0;
         end
         
         for pp=1:nsim
@@ -201,7 +215,7 @@ for tt=1:length(tempVect)
         elseif ((Iiter(ii)==0)&&Biter(ii)<Bd) % PMs demagnetized at zero current
             done = 1;
             Iiter(ii) = 0;
-%             Biter(ii) = NaN;
+            %             Biter(ii) = NaN;
         elseif ii==maxIter % max number of iteration reached
             done=1;
         elseif ((ii>2)&&(Iiter(ii)==Iiter(ii-1)))
@@ -212,15 +226,15 @@ for tt=1:length(tempVect)
             done = 0;
             ii = ii+1;
         end
-%         if ii==maxIter+1
-%             done=1;
-%             Iiter(ii-1) = NaN;
-%             Biter(ii-1) = NaN;
-%         end        
+        %         if ii==maxIter+1
+        %             done=1;
+        %             Iiter(ii-1) = NaN;
+        %             Biter(ii-1) = NaN;
+        %         end
     end
     
-%     Iiter=Iiter(Biter>Bd);
-%     Biter=Biter(Biter>Bd);
+    %     Iiter=Iiter(Biter>Bd);
+    %     Biter=Biter(Biter>Bd);
     Biter=Biter(~isnan(Iiter));
     Iiter=Iiter(~isnan(Iiter));
     if ~isempty(Iiter)

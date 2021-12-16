@@ -30,6 +30,10 @@ if nargin<4
     else
         magneti = [];
     end
+elseif isempty(stator)
+    tmp = load([pathname filename]);
+    stator = tmp.geo.stator;
+    rotor  = tmp.geo.rotor;
 end
 
 %%%%%%%%
@@ -45,5 +49,7 @@ avvolgimento=[];
 magneti=[];
 
 DXFconv(raggi,avvolgimento,rotor,stator,magneti,[pathname_DXF filename(1:end-4),'.dxf']);
+
+
 
 

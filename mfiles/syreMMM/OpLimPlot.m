@@ -21,14 +21,14 @@ resFolder = [motName '_results\MMM results\' 'OpLim_' datestr(now,30) '\'];
 pathnameOut = [pathname resFolder];
 
 nmax = motorModel.data.nmax;
-p    = motorModel.data.p;
+% p    = motorModel.data.p;
 
 Id = motorModel.FluxMap_dq.Id;
 Iq = motorModel.FluxMap_dq.Iq;
 Fd = motorModel.FluxMap_dq.Fd;
 Fq = motorModel.FluxMap_dq.Fq;
 T  = motorModel.FluxMap_dq.T;
-PF = sin(atan2(Iq,Id)-atan2(Fq,Fd));
+% PF = sin(atan2(Iq,Id)-atan2(Fq,Fd));
 
 MTPA = motorModel.controlTrajectories.MTPA;
 MTPV = motorModel.controlTrajectories.MTPV;
@@ -66,6 +66,7 @@ for ii=1:6
             ylabel('$\lambda$ [Vs]')
             title('Flux linkage')
             set(hfig(6),'FileName',[pathname resFolder 'FluxLinkage.fig'])
+        case 7
     end
 end
 
@@ -75,8 +76,8 @@ hax(7) = axes('OuterPosition',[0 0 1 1],...
     'DataAspectRatio',[1 1 1],...
     'XLim',[min(Id,[],'all') max(Id,[],'all')],...
     'YLim',[min(Iq,[],'all') max(Iq,[],'all')]);
-xlabel('$i_d$ [$A$]')
-ylabel('$i_q$ [$A$]')
+xlabel('$i_d$ [A]')
+ylabel('$i_q$ [A]')
 set(hfig(7),'FileName',[pathname resFolder 'DQplane.fig'])
 [c,h] = contour(Id,Iq,abs(Id+j*Iq),'-k','DisplayName','$I$');
 clabel(c,h)
@@ -91,14 +92,19 @@ for ii=1:length(Plim)
     for jj=1:length(hax)
         set(hax(jj),'ColorOrderIndex',ii);
     end
-    iName = ['$I=' num2str(round(Ivect(ii),2)) '\,A$'];
-    plot(hax(1),Plim{ii}.n,Plim{ii}.T,'DisplayName',iName);
-    plot(hax(2),Plim{ii}.n,Plim{ii}.P,'DisplayName',iName);
-    plot(hax(3),Plim{ii}.n,Plim{ii}.V*sqrt(3),'DisplayName',iName);
-    plot(hax(4),Plim{ii}.n,Plim{ii}.I,'DisplayName',iName);
-    plot(hax(5),Plim{ii}.n,Plim{ii}.PF,'DisplayName',iName);
-    plot(hax(6),Plim{ii}.n,Plim{ii}.F,'DisplayName',iName);
-    plot(hax(7),Plim{ii}.id_max(Plim{ii}.n>0),Plim{ii}.iq_max(Plim{ii}.n>0),'DisplayName',iName);
+    iName = ['$I=' num2str(round(Ivect(ii),2)) '$ A'];
+    index = Plim{ii}.n<=nmax;
+    plot(hax(1),Plim{ii}.n(index),Plim{ii}.T(index),'DisplayName',iName);
+    plot(hax(2),Plim{ii}.n(index),Plim{ii}.P(index),'DisplayName',iName);
+    plot(hax(3),Plim{ii}.n(index),Plim{ii}.V(index)*sqrt(3),'DisplayName',iName);
+    set(hax(3),'ColorOrderIndex',ii);
+    plot(hax(3),Plim{ii}.n(index),Plim{ii}.E(index)*sqrt(3),'--','DisplayName',iName);
+    plot(hax(4),Plim{ii}.n(index),Plim{ii}.I(index),'DisplayName',iName);
+    plot(hax(5),Plim{ii}.n(index),Plim{ii}.PF(index),'DisplayName',iName);
+    set(hax(5),'ColorOrderIndex',ii);
+    plot(hax(5),Plim{ii}.n(index),Plim{ii}.IPF(index),'--','DisplayName',iName);
+    plot(hax(6),Plim{ii}.n(index),Plim{ii}.F(index),'DisplayName',iName);
+    plot(hax(7),Plim{ii}.id(index),Plim{ii}.iq(index),'DisplayName',iName);
     
     % Point A
     for jj=1:length(hax)
@@ -106,47 +112,49 @@ for ii=1:length(Plim)
     end
     plot(hax(1),Plim{ii}.n_A,Plim{ii}.T_A,'o','DisplayName','A');
     plot(hax(2),Plim{ii}.n_A,Plim{ii}.T_A*Plim{ii}.n_A*pi/30,'o','DisplayName','A')
-    plot(hax(3),Plim{ii}.n_A,Plim{ii}.F_A*Plim{ii}.n_A*p*pi/30*sqrt(3),'o','DisplayName','A')
+    plot(hax(3),Plim{ii}.n_A,interp1(Plim{ii}.n,Plim{ii}.V,Plim{ii}.n_A)*sqrt(3),'o','DisplayName','A')
+    set(hax(3),'ColorOrderIndex',ii);
+    plot(hax(3),Plim{ii}.n_A,interp1(Plim{ii}.n,Plim{ii}.E,Plim{ii}.n_A)*sqrt(3),'o','DisplayName','A')
     plot(hax(4),Plim{ii}.n_A,abs(Plim{ii}.id_A+j*Plim{ii}.iq_A),'o','DisplayName','A')
-    plot(hax(5),Plim{ii}.n_A,interp2(Id,Iq,PF,Plim{ii}.id_A,Plim{ii}.iq_A),'o','DisplayName','A')
-    plot(hax(6),Plim{ii}.n_A,Plim{ii}.F_A,'o','DisplayName','A')
+    plot(hax(5),Plim{ii}.n_A,interp1(Plim{ii}.n,Plim{ii}.PF,Plim{ii}.n_A),'o','DisplayName','A')
+    set(hax(5),'ColorOrderIndex',ii);
+    plot(hax(5),Plim{ii}.n_A,interp1(Plim{ii}.n,Plim{ii}.IPF,Plim{ii}.n_A),'o','DisplayName','A')
+    plot(hax(6),Plim{ii}.n_A,interp1(Plim{ii}.n,Plim{ii}.F,Plim{ii}.n_A),'o','DisplayName','A')
     plot(hax(7),Plim{ii}.id_A,Plim{ii}.iq_A,'o','DisplayName','A')
-    
-    % Point B
-    for jj=1:length(hax)
-        set(hax(jj),'ColorOrderIndex',ii);
-    end
-    plot(hax(1),Plim{ii}.n_B,Plim{ii}.T_B,'d','DisplayName','B');
-    plot(hax(2),Plim{ii}.n_B,Plim{ii}.T_B*Plim{ii}.n_B*pi/30,'d','DisplayName','B')
-    plot(hax(3),Plim{ii}.n_B,Plim{ii}.F_B*Plim{ii}.n_B*p*pi/30*sqrt(3),'d','DisplayName','B')
-    plot(hax(4),Plim{ii}.n_B,abs(Plim{ii}.id_B+j*Plim{ii}.iq_B),'d','DisplayName','B')
-    plot(hax(5),Plim{ii}.n_B,interp2(Id,Iq,PF,Plim{ii}.id_B,Plim{ii}.iq_B),'d','DisplayName','B')
-    plot(hax(6),Plim{ii}.n_B,Plim{ii}.F_B,'d','DisplayName','B')
-    plot(hax(7),Plim{ii}.id_B,Plim{ii}.iq_B,'d','DisplayName','B')
 
-    % Max speed
-    if max(Plim{ii}.n)>=nmax
+    % Point B
+    if Plim{ii}.n_B<Plim{ii}.n_M
         for jj=1:length(hax)
             set(hax(jj),'ColorOrderIndex',ii);
         end
-        nVect  = Plim{ii}.n(~isnan(Plim{ii}.n));
-        idVect = Plim{ii}.id_max(~isnan(Plim{ii}.n));
-        iqVect = Plim{ii}.iq_max(~isnan(Plim{ii}.n));
-        [~,index,~] = unique(nVect);
-        nVect  = nVect(index);
-        idVect = idVect(index);
-        iqVect = iqVect(index);
-        id_M = interp1(nVect,idVect,nmax);
-        iq_M = interp1(nVect,iqVect,nmax);
-                
-        plot(hax(1),nmax,interp2(Id,Iq,T,id_M,iq_M),'p','DisplayName','M');
-        plot(hax(2),nmax,interp2(Id,Iq,T,id_M,iq_M)*nmax*pi/30,'p','DisplayName','M');
-        plot(hax(3),nmax,interp2(Id,Iq,abs(Fd+j*Fq),id_M,iq_M)*nmax*p*pi/30*sqrt(3),'p','DisplayName','M')
-        plot(hax(4),nmax,abs(id_M+j*iq_M),'p','DisplayName','M')
-        plot(hax(5),nmax,interp2(Id,Iq,PF,id_M,iq_M),'p','DisplayName','M')
-        plot(hax(6),nmax,interp2(Id,Iq,abs(Fd+j*Fq),id_M,iq_M),'p','DisplayName','M')
-        plot(hax(7),id_M,iq_M,'p','DisplayName','M')
+        plot(hax(1),Plim{ii}.n_B,Plim{ii}.T_B,'d','DisplayName','B');
+        plot(hax(2),Plim{ii}.n_B,Plim{ii}.T_B*Plim{ii}.n_B*pi/30,'d','DisplayName','B')
+        plot(hax(3),Plim{ii}.n_B,interp1(Plim{ii}.n,Plim{ii}.V,Plim{ii}.n_B)*sqrt(3),'d','DisplayName','B')
+        set(hax(3),'ColorOrderIndex',ii);
+        plot(hax(3),Plim{ii}.n_B,interp1(Plim{ii}.n,Plim{ii}.E,Plim{ii}.n_B)*sqrt(3),'d','DisplayName','B')
+        plot(hax(4),Plim{ii}.n_B,abs(Plim{ii}.id_B+j*Plim{ii}.iq_B),'d','DisplayName','B')
+        plot(hax(5),Plim{ii}.n_B,interp1(Plim{ii}.n,Plim{ii}.PF,Plim{ii}.n_B),'d','DisplayName','B')
+        set(hax(5),'ColorOrderIndex',ii);
+        plot(hax(5),Plim{ii}.n_B,interp1(Plim{ii}.n,Plim{ii}.IPF,Plim{ii}.n_B),'d','DisplayName','B')
+        plot(hax(6),Plim{ii}.n_B,interp1(Plim{ii}.n,Plim{ii}.F,Plim{ii}.n_B),'d','DisplayName','B')
+        plot(hax(7),Plim{ii}.id_B,Plim{ii}.iq_B,'d','DisplayName','B')
     end
+
+    % Max speed
+    for jj=1:length(hax)
+        set(hax(jj),'ColorOrderIndex',ii);
+    end
+    plot(hax(1),Plim{ii}.n_M,Plim{ii}.T_M,'p','DisplayName','M');
+    plot(hax(2),Plim{ii}.n_M,Plim{ii}.T_M*Plim{ii}.n_M*pi/30,'p','DisplayName','M')
+    plot(hax(3),Plim{ii}.n_M,interp1(Plim{ii}.n,Plim{ii}.V,Plim{ii}.n_M)*sqrt(3),'p','DisplayName','M')
+    set(hax(3),'ColorOrderIndex',ii);
+    plot(hax(3),Plim{ii}.n_M,interp1(Plim{ii}.n,Plim{ii}.E,Plim{ii}.n_M)*sqrt(3),'p','DisplayName','M')
+    plot(hax(4),Plim{ii}.n_M,abs(Plim{ii}.id_M+j*Plim{ii}.iq_M),'p','DisplayName','M')
+    plot(hax(5),Plim{ii}.n_M,interp1(Plim{ii}.n,Plim{ii}.PF,Plim{ii}.n_M),'p','DisplayName','M')
+    set(hax(5),'ColorOrderIndex',ii);
+    plot(hax(5),Plim{ii}.n_M,interp1(Plim{ii}.n,Plim{ii}.IPF,Plim{ii}.n_M),'p','DisplayName','M')
+    plot(hax(6),Plim{ii}.n_M,interp1(Plim{ii}.n,Plim{ii}.F,Plim{ii}.n_M),'p','DisplayName','M')
+    plot(hax(7),Plim{ii}.id_M,Plim{ii}.iq_M,'p','DisplayName','M')
 end
 
 

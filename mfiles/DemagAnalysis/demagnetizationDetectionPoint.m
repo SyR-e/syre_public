@@ -25,14 +25,13 @@ if nargin<1
     [filename,pathname,~]=uigetfile([cd '\.mat'],'Select a PM machine');
     load([pathname filename]);
     
-    [i0,~]=calc_io(geo,per);
+    i0 = per.i0;
     
     prompt={'Maximum current [A]',...
         'Number of current levels',...
         'PM temperature',...
         'plot figures? (yes=1/no=0)'};
     name='Demagnetization input';
-    [i0,~]=calc_io(geo,per);
     defaultanswer={ num2str(i0),...
         num2str(dataSet.NumGrid),...
         num2str(20),...
@@ -68,7 +67,7 @@ end
 
 filename = setup.filename;
 pathname = setup.pathname;
-[i0,~]=calc_io(geo,per);
+i0 = per.i0;
 % xdeg     = 360/(6*geo.p*geo.q)*geo.p;
 % nsim     = 2;
 Imax     = max(per.overload*i0);

@@ -60,3 +60,6 @@ if dispFlag
     end
 end
 
+if nargout()==0
+    clear ppState;
+end

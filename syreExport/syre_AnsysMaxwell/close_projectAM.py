@@ -4,4 +4,4 @@ sys.path.append(r"C:/Program Files/AnsysEM/AnsysEM20.1/Win64/PythonFiles/Desktop
 import ScriptEnv
 ScriptEnv.Initialize("Ansoft.ElectronicsDesktop")
 oDesktop.RestoreWindow()
-oDesktop.CloseProject("VGB_Aimo_IronLoss")
+oDesktop.CloseProject("VGB_HS")

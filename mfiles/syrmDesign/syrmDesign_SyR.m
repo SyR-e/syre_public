@@ -23,22 +23,23 @@ function [map] = syrmDesign_SyR(dataSet,flags)
 % input
 if nargin==1
     %flags for SyRM design
+    f = dataSet.syrmDesignFlag;
     flag_kw=1;      % flag_kw=0 --> use Vagati's equations, with kw=pi/(2*sqrt(3))
                     % flag_kw=1 --> use the winding factor
 
-    flag_pb=1;      % flag_pb=0 --> hc             = constant (useful for adding PMs)
+    flag_pb=f.hc;   % flag_pb=0 --> hc             = constant (useful for adding PMs)
                     % flag_pb=1 --> sk/hc          = constant (reduce harmonic content)
                     % flag_pb=2 --> hc/(df*sk^0.5) = constant (reduce Lfq)
 
-    flag_dx=1;      % flag_dx=0 --> dx=0
+    flag_dx=f.dx;   % flag_dx=0 --> dx=0
                     % flag_dx=1 --> constant rotor carrier width
                     % flag_dx=2 --> rotor carrier width proportional to sine integral
                     % flag_dx=3 --> rotor carrier width proportional to flux of d-axis staircase (kt needed)
 
-    flag_ks=1;      % flag_ks=0 --> no saturation factor used
+    flag_ks=f.ks;   % flag_ks=0 --> no saturation factor used
                     % flag_ks=1 --> saturation factor enabled
     
-    flag_i0=0;      % flag_i0=0 --> kj=constant
+    flag_i0=f.i0;   % flag_i0=0 --> kj=constant
                     % flag_i0=1 --> J=constant
 else
     flag_kw = flags.kw;
@@ -47,13 +48,16 @@ else
     flag_ks = flags.ks;
 end
 
-mu0    = 4e-7*pi;                           % air permeability
-Bs     = 2.0;                               % ribs flux density [T]
-Bfe    = dataSet.Bfe;                       % steel loading (yoke flux density [T])
-kj     = dataSet.ThermalLoadKj;             % thermal loading (copper loss/stator outer surface [W/m^2])
-kt     = dataSet.kt;                        % kt = wt/wt_unsat
-J      = dataSet.CurrentDensity*sqrt(2);    % J= slot current density, expressed in [Apk/mm^2]
-loadpu = dataSet.CurrLoPP;                  % current load in p.u. of i0
+mu0    = 4e-7*pi;                   % air permeability
+Bs     = 2.0;                       % ribs flux density [T]
+Bfe    = dataSet.Bfe;               % steel loading (yoke flux density [T])
+kj     = dataSet.ThermalLoadKj;     % thermal loading (copper loss/stator outer surface [W/m^2])
+kt     = dataSet.kt;                % kt = wt/wt_unsat
+J      = dataSet.CurrentDensity;    % J= slot current density, expressed in [Apk/mm^2]
+loadpu = dataSet.CurrLoPP;          % current load in p.u. of i0
+kyr    = dataSet.RotorYokeFactor;   % kyr = lyr/lys = increase factor for rotor yoke length compared to stator yoke
+% ky     = dataSet.StatorYokeFactor;  % ky = ly/ly_ideal
+ky = 1;
 
 
 [~, ~, geo, per, mat] = data0(dataSet);
@@ -92,19 +96,20 @@ x = linspace(dataSet.xRange(1),dataSet.xRange(2),n);                % rotor/stat
 if q>=1
     [~,~,kf1,kfm] = evalBgapSyrmDesign(q,kt);                     % airgap induction shape, first harmonic factor, mean value factor
 else
-    kf1 = 1;
-    kfm = 2/pi;
+    kf1 = 2/sqrt(3);    % ratio between peak arigap flux density and peak fundamental
+    kfm = 1;
 end
 
 
-r = R*xx;                                                           % rotor radius [m]
-rocu = 17.8*(234.5 + tempcu)/(234.5+20)*1e-9;                       % resistivity of copper [Ohm m]
-ssp = r * pi/(3*p*q);                                               % stator slot pitch (x,b)
-sso = ssp * acs;                                                    % stator slot opening (x,b)
-kc = ssp./(ssp-2/pi*g*(sso/g.*atan(sso/(2*g))-log(1+(sso/(2*g)).^2)));   % Carter coefficient (x,b)
-ly = pi/2*R/p*xx.*bb*kfm;                                           % yoke or back iron (x,b) [mm]
-%ly = R/p*xx.*bb;                                                   % yoke [mm], do not depend on kt
-wt = 2*pi*R/(6*p*q*n3ph)*xx.*bb.*kt;                                     % tooth width (x,b) [mm]
+r = R*xx;                                                               % rotor radius [m]
+rocu = 17.8*(234.5 + tempcu)/(234.5+20)*1e-9;                           % resistivity of copper [Ohm m]
+ssp = r * pi/(3*p*q);                                                   % stator slot pitch (x,b)
+sso = ssp * acs;                                                        % stator slot opening (x,b)
+kc = ssp./(ssp-2/pi*g*(sso/g.*atan(sso/(2*g))-log(1+(sso/(2*g)).^2)));  % Carter coefficient (x,b)
+ly = pi/2*R/p*xx.*bb*kfm;                                              % yoke or back iron (x,b) [mm]
+%ly = R/p*xx.*bb;                                                       % yoke [mm], do not depend on kt
+%ly = 4/9*(1+sqrt(3))*R/p*xx.*bb*ky;                                     % yoke or back iron (x,b) [mm]
+wt = 2*pi*R/(6*p*q*n3ph)*xx.*bb.*kt;                                    % tooth width (x,b) [mm]
 cos_x0 = cos(pi/2/p);
 sin_x0 = sin(pi/2/p);
 Ar = geo.R*xx*(1/cos_x0-sqrt(((1-cos_x0^2)/cos_x0)^2+sin_x0^2));    % (max) shaft radius (x,b) [mm]
@@ -122,7 +127,7 @@ geo.dalpha = geo.dalpha_pu*(90/p);                                  % [mec degre
 beta_temp = atand(r*sind(geo.dalpha(1))./(x0 - r * cosd(geo.dalpha(1))));
 rbeta = (x0 - r*cosd(geo.dalpha(1)))./(cosd(beta_temp));            % radius of barrier circle
 % 2) 1st carrier takes 1-cos(p*alpha1) p.u. flux
-la = (x0 - rbeta - Ar - ly*cosd(p*geo.dalpha(1)))*nlay/(nlay-0.5);
+la = (x0 - rbeta - Ar - ly*kyr*cosd(p*geo.dalpha(1)))*nlay/(nlay-0.5);
 %%
 % rotor design + slot evaluation + Lfqpu + Lcqpu
 alpha = cumsum(geo.dalpha);                                         % alpha in syre coordinates (mech deg, zero is axis Q)
@@ -152,8 +157,16 @@ d1 = zeros(m,n);
 c0 = zeros(m,n);
 c1 = zeros(m,n);
 c2 = zeros(m,n);
+ws = zeros(m,n);
 % additional ribs
 pontR = zeros(m,n);
+BrPrime = cell(m,n);
+
+Br.mean = zeros(m,n);
+Br.max  = zeros(m,n);
+Br.min  = zeros(m,n);
+
+Abar = zeros(m,n);  %total barriers area (estimation for PMs volume)
 
 dfQ=fliplr(df); % df using syre conventions (alpha=0 is the q-axis)
 
@@ -172,12 +185,14 @@ for rr=1:m
             c0(rr,cc) = tmp2.c0;
             c1(rr,cc) = tmp2.c1;
             c2(rr,cc) = tmp2.c2;
+            ws(rr,cc) = tmp1.st;
         catch
             d1(rr,cc) = NaN;
             c0(rr,cc) = NaN;
             c1(rr,cc) = NaN;
             c2(rr,cc) = NaN;
             Aslots(rr,cc) = NaN;
+            ws(rr,cc) = NaN;
         end
         
         % rotor design
@@ -194,6 +209,7 @@ for rr=1:m
             Bx0=x0(rr,cc)-(rpont_x0);
             mo=1;
             y=ypont+mo*(Bx0-xpont);
+            y = y-geo.hcShrink.*y;
             xBmk=Bx0;
             yBmk=y;
             skv{rr,cc}=calc_distanza_punti_altern(xBmk,yBmk,Bx0,zeros(size(Bx0)));
@@ -299,6 +315,15 @@ for rr=1:m
         [~,geo0] = calc_ribs_rad_fun(geo0,mat,temp);
         
         pontR(rr,cc) = mean(geo0.pontR);
+
+        % BrPrime for PM-assistance (ribs saturation)
+        BrPrime{rr,cc} = Bs*(geo0.pontR/2+geo0.pontT)./(sk{rr,cc}-geo0.pontR/2-geo0.pontT);
+        
+        BrAvg(rr,cc) = mean(BrPrime{rr,cc});
+        BrMax(rr,cc) = max(BrPrime{rr,cc});
+        BrMin(rr,cc) = min(BrPrime{rr,cc});
+
+        Abar(rr,cc) = sum(2*sk{rr,cc}.*hc{rr,cc});
         
     end
 end
@@ -342,23 +367,36 @@ end
 
 % Rated current computation (from kj or J)
 
+per0 = per;
+geo0 = geo;
+
+geo0.r = R*xx;
+geo0.Aslot = Aslots./(6*p*q*n3ph);
+geo0.wt = wt;
+geo0.lt = lt;
+
+lend = calc_endTurnLength(geo0);
+geo0.lend = lend;
+
 if flag_i0==0
     % compute the rated current from kj (kj=constant)
-    i0 = 1/Ns.*(kj.*kcu./rocu.*l./(l+lend).*pi.*(R/1000).*(Aslots/1e6)/9).^0.5;   % rated current i0 [Apk]
-    
-    kj = kj*ones(size(xx));
-    J  = 2*Nbob*real(i0)./(Aslots/(q*6*p)*kcu);                                     % current density in copper [A/mm2] pk
-%     %kj = Loss/(2*pi*R*l)*1e6;                                           % specific loss (x,b) [W/m2]
-%     K = sqrt(kcu*kj/rocu*l./(l+lend));                                  % factor K [] (x,b)
-%     
-%     i0 = pi/(3*Ns)*(R/1000)^1.5*K.*sqrt(Aslots/(pi*R^2));               % rated current i0 [A] pk
+    per0.J    = NaN;
+    per0.kj   = kj;
+    per0.Loss = NaN;
 elseif flag_i0==1
-    i0 = J*Aslots/(6*p*q*n3ph).*kcu./(2*Nbob);  % rated current i0 [Apk]
-    J  = J*ones(size(xx));
-    kj = (J*1e6).^2.*(kcu*Aslots/1e6)/4.*rocu.*(l+lend)./l*(1000/pi/R);
+    per0.kj = NaN;
+    per0.Loss = NaN;
+    per0.J = J;
 end
 
-i0=real(i0);
+
+per0 = calc_i0(geo0,per0);
+
+Rs = per0.Rs;
+
+i0 = real(per0.i0);
+kj = per0.kj.*ones(size(xx));
+J  = per0.J.*ones(size(xx));
 
 id(id>loadpu*i0)=loadpu*i0(id>loadpu*i0);
 gamma=acos(id./(loadpu*i0));
@@ -370,8 +408,8 @@ Am = Aslots.* id./(loadpu*i0);                                      % slots area
 
 A = 2*Nbob * loadpu*i0 ./ (r*2*pi/(q*6*p));                         % linear current density [A/mm] pk
 
-kj = kj*loadpu;
-J  = J*loadpu;
+% kj = kj*loadpu;
+% J  = J*loadpu;
 
 % copper overtemperature computation
 dTempCu = zeros(m,n);
@@ -382,6 +420,8 @@ for rr=1:m
         geo0.wt = wt(rr,cc);
         geo0.lt = lt(rr,cc);
         geo0.ly = ly(rr,cc);
+        geo0.Aslot = Aslots(rr,cc)/(6*p*q*n3ph);
+        geo0.lend  = lend(rr,cc);
         per0 = per;
         per0.overload = 1;
         per0.Loss = kj(rr,cc)*(2*pi*R/1000*l/1000);
@@ -439,6 +479,7 @@ map.iq      = iq;
 map.fd      = Ld.*id;
 map.fq      = Lq.*iq;
 map.wt      = wt;
+map.ws      = ws;
 map.lt      = lt;
 map.la      = la;
 map.Ar      = Ar;
@@ -456,14 +497,18 @@ map.Lrpu    = Lrib./Lbase;
 map.kdq     = kdq;
 map.dTempCu = dTempCu;
 map.Aslots  = Aslots;
-map.flag_pb = flag_pb;
-map.flag_dx = flag_dx;
 map.A       = A;
 map.J       = J;
 map.kj      = kj;
-map.kf1     = kf1*ones(size(xx));
-map.kfm     = kfm*ones(size(xx));
+% map.kf1     = kf1*ones(size(xx));
+% map.kfm     = kfm*ones(size(xx));
 map.iAmp    = i0*loadpu;
 map.i0      = i0;
 map.gamma   = atan2(map.iq,map.id)*180/pi;
+map.lend    = lend;
+map.BrAvg   = BrAvg;
+map.BrMax   = BrMax;
+map.BrMin   = BrMin;
+map.Abar    = Abar;
+map.Rs      = Rs;
 map.dataSet = dataSet;

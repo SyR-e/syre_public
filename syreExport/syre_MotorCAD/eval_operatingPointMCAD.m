@@ -146,7 +146,7 @@ if tmp == 2
         delta_sim_singt = geo.delta_sim_singt;
         
         if dataIn.MCADFEMM==0
-            plot_singtMCAD(out,klength,kturns,delta_sim_singt,newDir,filemot);
+            plot_singtMCAD(out,delta_sim_singt,newDir,filemot);
         end
         
     end

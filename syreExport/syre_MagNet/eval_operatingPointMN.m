@@ -97,12 +97,12 @@ for ii = 1:length(SimulatedCurrent)
     end
     
     FILENAME = ['T_eval_',iStr,'_',gammaStr '_' int2str(dataIn.tempPP) 'deg' '_' nStr '_MN'];
-
+    
     mkdir([pathname resFolder],FILENAME);
     newDir=[pathname resFolder FILENAME '\'];
-
-%     copyfile([dirName filemot],[newDir filemot]);
-%     save([newDir filemot],'geo','per','mat','out','-append');
+    
+    %     copyfile([dirName filemot],[newDir filemot]);
+    %     save([newDir filemot],'geo','per','mat','out','-append');
     save([newDir filemot],'geo','per','mat','out');
     copyfile([dirName strrep(filemot,'.mat','.mn')],[newDir strrep(filemot,'.mat','.mn')]);
     

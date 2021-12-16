@@ -44,20 +44,33 @@ plot(f',k','-o','DisplayName','LUT model')
 
 if isfield(skinEffect,'T')
     T = skinEffect.T;
-    hfig(1) = figure();
+    tempVect = unique(T);
+    hfig(2) = figure();
     figSetting()
     hax(2) = axes('OuterPosition',[0 0 1 1],...
         'XLim',[0 max(f(:))],...
         'YLim',[min(T(:)),max(T(:))],...
         'ZLim',[1 max(k(:))]);
-    view(3)
+    view(hax(2),3)
     xlabel('$f$ [Hz]')
     ylabel('$\Theta_{Cu}$ [$^\circ$C]')
     zlabel('$k_{AC} = \frac{R_{AC}}{R_{DC}}$')
-    set(hfig,'FileName',[pathname resFolder 'skinEffectModel2D.fig'])
+    set(hfig(2),'FileName',[pathname resFolder 'skinEffectModel2D.fig'])
     
-    surf(f,T,k,'FaceColor','interp','EdgeColor','k');
+    surf(hax(2),f,T,k,'FaceColor','interp','EdgeColor','k');
     plot3(f(:),T(:),k(:),'bo');
+
+    cla(hax(1));
+%     hax(1) = axes('OuterPosition',[0 0 1 1],...
+%         'XLim',[0 max(f(:))],...
+%         'YLim',[1 max(k(:))]);
+    for ii=1:length(tempVect)
+        plot(hax(1),f(ii,:),k(ii,:),'-o','DisplayName',['$\Theta_{Cu}=' int2str(tempVect(ii)) '^\circ$C'])
+    end
+    legend(hax(1),'show','Location','northwest');
+
+
+
 end
 
 %% Save figures
