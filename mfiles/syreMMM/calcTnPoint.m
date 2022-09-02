@@ -44,6 +44,9 @@ SkinEffectMethod = motorModel.TnSetup.SkinEffectMethod;
 MechLoss         = motorModel.TnSetup.MechLoss;
 Control          = motorModel.TnSetup.Control;
 
+if strcmp(motorType,'IM')
+    IM = motorModel.FluxMap_dq.IM;
+end
 
 I = Id+j*Iq;
 F = Fd+j*Fq;
@@ -51,7 +54,7 @@ F = Fd+j*Fq;
 
 % 1) stator frequency evaluation
 if strcmp(motorType,'IM')
-    Wslip=IM.Wslip*(1+0.004*(temp-temp0));
+    Wslip=IM.wslip*(1+0.004*(temp-temp0));
     FreqElet=(sign(Tref)*Wslip+nref*p*pi/30)/(2*pi);
 else
     FreqElet=(nref*p*pi/30)/(2*pi);
@@ -78,7 +81,7 @@ Pfe  = (Pfes+Pfer+Ppm);
 
 % 3) Joule rotor loss (IM only)
 if strcmp(motorType,'IM')
-    Prot=3/2*IM.RR.*IM.Ir.^2;
+    Prot=3/2*IM.Rr.*IM.Ir.^2;
     Prot=Prot*(1+0.004*(temp-temp0));
 else
     Prot=zeros(size(Id));
@@ -119,7 +122,7 @@ end
 
 % 6) Phase resistance computation (with temperature and skin effect)
 if strcmp(SkinEffectFlag,'Yes')
-    kAC = calcSkinEffect(motorModel.acLossFactor,FreqElet,temp,SkinEffectMethod);
+    kAC = calcSkinEffect(motorModel.acLossFactor,abs(FreqElet),temp,SkinEffectMethod);
 else
     kAC = 1;
 end

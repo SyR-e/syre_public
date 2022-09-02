@@ -1,7 +1,6 @@
 function [dataSet] = SaveInformation(geo,mat,dataSet)
 %% ========================================================================
 %% This function is used to make order in data saved in temporary folders
-%%
 %% ========================================================================
 if isoctave()            %OCT
     dataSet.AirGapThickness = geo.g; % airgap thickness
@@ -56,4 +55,13 @@ else
     dataSet.RadShiftInner  = geo.dxIB;
     dataSet.RQ =              geo.RQ;
 end
+
+dataSet.RQ =              geo.RQ;
+
+
+
+
+
+
+
 

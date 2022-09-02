@@ -207,6 +207,16 @@ data.Id = fdfq.Id(:);
 data.Iq = fdfq.Iq(:);
 data.T  = fdfq.T(:);
 
+filt = ones(1,length(data.Id));
+filt(isnan(data.Fd)) = 0;
+filt(isnan(data.Fq)) = 0;
+
+data.Fd(filt==0) = [];
+data.Fq(filt==0) = [];
+data.Id(filt==0) = [];
+data.Iq(filt==0) = [];
+data.T(filt==0)  = [];
+
 fInt.Id = scatteredInterpolant(data.Fd,data.Fq,data.Id,'linear','none');
 fInt.Iq = scatteredInterpolant(data.Fd,data.Fq,data.Iq,'linear','none');
 fInt.T  = scatteredInterpolant(data.Fd,data.Fq,data.T,'linear','none');
@@ -248,14 +258,16 @@ fInt.T  = scatteredInterpolant(data.Fd,data.Fq,data.T,'linear','linear');
 for ii=1:length(hleg)
     switch ii
         case {3,4,5}
-        set(hleg(ii),'NumColumns',2,'Location','southoutside');
+            set(hleg(ii),'NumColumns',2,'Location','southoutside');
         case {1,2}
             set(hleg(ii),'NumColumns',2,'Location','south');
     end
 end
 
+disp('Transient short-circuit computation...')
+fprintf(' %06.2f%%',0)
 
-tic
+% tic
 %% transient solution
 for tt=2:length(time)
     dFd = (+w*fqVect(tt-1)-Rs*idVect(tt-1))*dt;
@@ -269,7 +281,10 @@ for tt=2:length(time)
     intVect = ~isnan(TVect);
     intVect = double(intVect);
     intVect(intVect==0) = NaN;
-    
+
+    fprintf('\b\b\b\b\b\b\b\b')
+    fprintf(' %06.2f%%',tt/length(time)*100)
+
     if flagPlot
         set(hp1(1),'YData',idVect);
         set(hp1(2),'YData',iqVect);
@@ -296,7 +311,10 @@ for tt=2:length(time)
     end
 end
 
-toc
+%toc
+
+disp(' ')
+disp('Transient short-circuit computed!')
 
 if ~flagPlot
     set(hp1(1),'YData',idVect);
@@ -331,7 +349,7 @@ SCresults.id      = idVect;
 SCresults.iq      = iqVect;
 SCresults.fd      = fdVect;
 SCresults.fq      = fqVect;
-SCresults.T       = TVect;
+SCresults.T       = TVectExt;
 SCresults.intFilt = intVect;
 SCresults.idInf   = idInf;
 SCresults.iqInf   = iqInf;

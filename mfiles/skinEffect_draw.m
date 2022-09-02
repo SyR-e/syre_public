@@ -31,7 +31,7 @@ condBottomGap = dataSet.SlotConductorBottomGap;
 
 % draw stator model (from GUI_APP_DrawMachine)
 [~, ~, geo,per,mat] = data0(dataSet);
-[geo,~,mat] = interpretRQ(dataSet.RQ,geo,mat);
+[geo,~,mat] = interpretRQ(geo.RQ,geo,mat);
 geo.x0 = geo.r/cos(pi/2/geo.p);
 fem.res = 0;
 fem.res_traf = 0;

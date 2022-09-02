@@ -30,6 +30,10 @@ Rs        = motorModel.data.Rs;
 
 Vmax = Vdc/sqrt(3);
 
+if strcmp(motorType,'IM')
+    IM = motorModel.FluxMap_dq.IM;
+end
+
 % id_MTPA = motorModel.controlTrajectories.MTPA.id;
 % iq_MTPA = motorModel.controlTrajectories.MTPA.iq;
 % T_MTPA  = motorModel.controlTrajectories.MTPA.T;
@@ -123,11 +127,11 @@ w_C = calcLimitPulsation(id_C,iq_C,fd_C,fq_C,Rs,Vmax);
 
 
 
-if exist('Wslip','var')
-    wslip_A = interp2(Id,Iq,Wslip,id_A,iq_A,'cubic');
-    wslip_B = interp2(Id,Iq,Wslip,id_B,iq_B,'cubic');
-    wslip_C = interp2(Id,Iq,Wslip,id_C,iq_C,'cubic');
-    wrLim = (wLim-Wslip)/p;
+if strcmp(motorType,'IM')
+    wslip_A = interp2(Id,Iq,IM.wslip,id_A,iq_A,'cubic');
+    wslip_B = interp2(Id,Iq,IM.wslip,id_B,iq_B,'cubic');
+    wslip_C = interp2(Id,Iq,IM.wslip,id_C,iq_C,'cubic');
+    wrLim = (wLim-IM.wslip)/p;
 else
     wslip_A = 0;
     wslip_B = 0;
@@ -196,8 +200,8 @@ if isnan(w(end))
 end
 
 
-if exist('Wslip','var')
-    wSlip = interp2(Id,Iq,Wslip,id,iq,'cubic');
+if strcmp(motorType,'IM')
+    wSlip = interp2(Id,Iq,IM.wslip,id,iq,'cubic');
     wr = (w-wSlip)/p;
 else
     wr = w/p;
@@ -205,6 +209,13 @@ end
 
 n = wr*30/pi;
 
+% filt NaN in speed (problem with IM, if the axis are not included in the map)
+
+indexFilt = ~isnan(n);
+id = id(indexFilt);
+iq = iq(indexFilt);
+w  = w(indexFilt);
+n  = n(indexFilt);
 
 if nmax<n(end)
     id_M = interp1(n,id,nmax);
@@ -225,8 +236,10 @@ if n_B==n_M
     flagAdd=0;
 end
 if ~isempty(n_C)
-    if n_C==n_M
-        flagAdd=1;
+    if ~isnan(n_C)
+        if n_C==n_M
+            flagAdd=0;
+        end
     end
 end
 
@@ -257,10 +270,6 @@ id = id(index);
 iq = iq(index);
 
 
-
-
-
-
 % other quantities profiles
 fd = interp2(Id,Iq,Fd,id,iq);
 fq = interp2(Id,Iq,Fq,id,iq);
@@ -269,8 +278,8 @@ I  = abs(id+j*iq);
 T  = interp2(Id,Iq,T,id,iq);
 wr = n*pi/30;
 
-if exist('Wslip','var')
-    wSlip = interp2(Id,Iq,Wslip,id,iq);
+if strcmp(motorType,'IM')
+    wSlip = interp2(Id,Iq,IM.wslip,id,iq);
     w = p*wr+wSlip;
 else
     w = p*wr;

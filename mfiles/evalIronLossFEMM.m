@@ -63,13 +63,29 @@ br      = SOL.br;
 groNo   = SOL.groNo;
 am      = SOL.am;
 
-nsim    = length(SOL.th);
+% from 180° data to 360°
+switch per.delta_sim_singt
+    case 360
+        th = SOL.th;
+        bs = SOL.bs;
+        br = SOL.br;
+        am = SOL.am;
+    case 180
+        th = [SOL.th SOL.th+180];
+        bs = [bs; -bs];
+        br = [br; br];
+        am = [am; am];
+    otherwise
+        error('FEA simulation span not correct!!!')
+end
+
+nsim    = length(th);
 
 EleNo   = length(groNo);
 numPM   = max(groNo)-200;
 f0      = speed*p/60; % fundamental frequency in Hz
 
-
+%% Cases
 switch method
     case 0        % FEMM method: harmonic decomposition and sum
         
@@ -128,8 +144,8 @@ switch method
         psh = zeros(1,EleNo);
         
         for ii=1:nS
-            x = SOL.th;
-            y = SOL.bs(:,index(ii));
+            x = th;
+            y = bs(:,index(ii));
             [major,minor] = minorLoopDetection(x,y);
             if ~isempty(major.y)
                 dt = (major.x(2)-major.x(1))*(pi/180)/(2*pi*f0);
@@ -162,8 +178,8 @@ switch method
         prh = zeros(1,EleNo);
         
         for ii=1:nR
-            x = SOL.th;
-            y = SOL.br(:,index(ii));
+            x = th;
+            y = br(:,index(ii));
             [major,minor] = minorLoopDetection(x,y);
             if ~isempty(major.x)
                 dt = (major.x(2)-major.x(1))*(pi/180)/(2*pi*f0);
@@ -236,10 +252,10 @@ switch method
     case 2 % iGSE+eddy current, both axis, no correction factor
         % hysteresis with minor loops
         
-        th = linspace(0,2*pi,1001);
+        th1 = linspace(0,2*pi,1001);
         
-        kiS = khS/((2*pi)^(alphaS-1)*trapz(th,abs(cos(th)).^alphaS*2^(betaS-alphaS)));
-        kiR = khR/((2*pi)^(alphaR-1)*trapz(th,abs(cos(th)).^alphaR*2^(betaR-alphaR)));
+        kiS = khS/((2*pi)^(alphaS-1)*trapz(th1,abs(cos(th1)).^alphaS*2^(betaS-alphaS)));
+        kiR = khR/((2*pi)^(alphaR-1)*trapz(th1,abs(cos(th1)).^alphaR*2^(betaR-alphaR)));
         
         % stator
         index = 1:1:EleNo;
@@ -248,10 +264,12 @@ switch method
         
         psh = zeros(1,EleNo);
         
+        
+
         for ii=1:nS
             for dd=1:2
-                x = SOL.th;
-                y = SOL.bs(:,index(ii));
+                x = th;
+                y = bs(:,index(ii));
                 % detection of the main/quadrature flux density axis
                 ang = angle(y);
                 ang(ang<0) = ang(ang<0)+pi;
@@ -276,13 +294,17 @@ switch method
                             dB = diff([minor(mm).y minor(mm).y(1)]);
                             DB = max(minor(mm).y)-min(minor(mm).y);
                             Pminor(mm) = 1/(dt*length(minor(mm).x))*trapz(dt*(0:1:numel(minor(mm).x)-1),kiS*abs(dB/dt).^alphaS*DB^(betaS-alphaS));
+                            kdc_min = 0.65*mean(abs(minor(mm).y))^2.1+1;
+                            Pminor(mm) = Pminor(mm)*kdc_min;
                             Tminor(mm) = dt*length(minor(mm).x);
                         end
                     else
                         Pminor = 0;
                         Tminor = 0;
                     end
-                    psh(index(ii)) = psh(index(ii))+sum([Pmajor Pminor].*[Tmajor Tminor])/sum([Tmajor Tminor]);
+                    %%dc bias
+                    kdc_maj = 0.65*mean(abs(bs(:,index(ii))))^2.1+1;
+                    psh(index(ii)) = psh(index(ii))+sum([Pmajor*kdc_maj Pminor].*[Tmajor Tminor])/sum([Tmajor Tminor]);  
                 end
             end
         end
@@ -296,8 +318,8 @@ switch method
         
         for ii=1:nR
             for dd=1:2
-                x = SOL.th;
-                y = SOL.br(:,index(ii));
+                x = th;
+                y = br(:,index(ii));
                 % detection of the main/quadrature flux density axis
                 ang = angle(y);
                 ang(ang<0) = ang(ang<0)+pi;
@@ -322,13 +344,16 @@ switch method
                             dB = diff([minor(mm).y minor(mm).y(1)]);
                             DB = max(minor(mm).y)-min(minor(mm).y);
                             Pminor(mm) = 1/(dt*length(minor(mm).x))*trapz(dt*(0:1:numel(minor(mm).x)-1),kiR*abs(dB/dt).^alphaR*DB^(betaR-alphaR));
+                            kdc_min = 0.65*mean(abs(minor(mm).y))^2.1+1;
+                            Pminor(mm) = Pminor(mm)*kdc_min;
                             Tminor(mm) = dt*length(minor(mm).x);
                         end
                     else
                         Pminor = 0;
                         Tminor = 0;
                     end
-                    prh(index(ii)) = prh(index(ii))+sum([Pmajor Pminor].*[Tmajor Tminor])/sum([Tmajor Tminor]);
+                    kdc_maj = 0.65*mean(abs(bs(:,index(ii))))^2.1+1;
+                    prh(index(ii)) = prh(index(ii))+sum([Pmajor*kdc_maj Pminor].*[Tmajor Tminor])/sum([Tmajor Tminor]);
                 end
             end
         end
@@ -346,6 +371,7 @@ switch method
         Br = (brx.^2+bry.^2).^0.5;
         
         freq = (0:1:(nsim-1))*f0;   % frequency associated to each harmonic component
+        %freq = (1:1:nsim)*f0;   % frequency associated to each harmonic component
         freq(floor(nsim/2):end) = 0;
         freq = repmat(freq.',1,EleNo);
         vol  = repmat(vol,nsim,1);
@@ -363,8 +389,17 @@ switch method
         prc = sum(prc,1);
         
         % permanent magnet (as FEMM)
-        Jm = (fft(am))*2/nsim;
+        Jm = fft(am)*2/nsim;
         Jo = zeros(size(Jm));
+        
+%         L = 360;
+%         Fs = 11499*4/6*360;
+%         YI = fft(am);
+%         J2 = abs(YI/L);
+%         J1 = J2(1:floor(L/2+1),:);
+%         J1(2:end-1,:) = 2*J1(2:end-1,:);
+%         fJ = Fs*(0:(L/2))/L;
+
         for mm=1:numPM
             index = 1:1:EleNo;
             index = index(groNo==(200+mm));
@@ -375,19 +410,30 @@ switch method
             Jm(:,index) = Jm(:,index)-Jo(:,index);
         end
         
-        index = 1:1:EleNo;
-        ppm = 1/2*mat.LayerMag.sigmaPM*(2*pi*freq(:,index)).^2.*abs(Jm(:,index)).^2.*vol(:,index);
+%         index = 1:1:EleNo;
+        ppm = 1/2*mat.LayerMag.sigmaPM*(2*pi*freq).^2.*(abs(Jm)).^2.*vol;
+        %ppm = 1/2*(2*pi*freq(:,index)).^2*abs(Jm(:,index)).^2*vol(:,index);
+        %ppm = ppm0(2:end,:);
         
+
+%         figure
+%         figSetting(13,7,10)
+%         %yyaxis left
+%         %ylabel('Current')
+%         %bar(freq(1:(nsim/2)-1,5990)/1000,abs(Jm(1:(nsim/2)-1,5980)/max(Jm(1:(nsim/2)-1,5980))),0.5)
+%         bar(freq(1:(nsim/2)-1,5900)/1000,ppm(1:(nsim/2)-1,5900),0.5)
+%         bar(freq(1:(nsim/2)-1,5800)/1000,ppm(1:(nsim/2)-1,5800),0.5)
+       
     case 3 % iGSE+eddy current, both axis, correction factor on hysteresis loss from 2004-Bottauscio-Additional Loss
         % hysteresis with minor loops
         
         Rh.x = [0.0000 0.0929 0.1908 0.2887 0.3866 0.4845 0.5824 0.6803 0.7782 0.8760 0.9739 1.0718 1.1697 1.2676 1.3655 1.4634 1.5613 1.6592 1.7571 1.8550 2.0000];
         Rh.y = [2.3750 2.2325 2.0900 1.9475 1.8525 1.7575 1.6625 1.5675 1.5200 1.5010 1.4725 1.4630 1.4250 1.3775 1.2825 1.2065 1.0735 0.9111 0.7144 0.4807 0.0000];
         
-        th = linspace(0,2*pi,1001);
+        th1 = linspace(0,2*pi,1001);
         
-        kiS = khS/((2*pi)^(alphaS-1)*trapz(th,abs(cos(th)).^alphaS*2^(betaS-alphaS)));
-        kiR = khR/((2*pi)^(alphaR-1)*trapz(th,abs(cos(th)).^alphaR*2^(betaR-alphaR)));
+        kiS = khS/((2*pi)^(alphaS-1)*trapz(th1,abs(cos(th1)).^alphaS*2^(betaS-alphaS)));
+        kiR = khR/((2*pi)^(alphaR-1)*trapz(th1,abs(cos(th1)).^alphaR*2^(betaR-alphaR)));
         
         % stator
         index = 1:1:EleNo;
@@ -398,8 +444,8 @@ switch method
         
         for ii=1:nS
             for dd=1:2
-                x = SOL.th;
-                y = SOL.bs(:,index(ii));
+                x = th;
+                y = bs(:,index(ii));
                 % detection of the main/quadrature flux density axis
                 ang = angle(y);
                 ang(ang<0) = ang(ang<0)+pi;
@@ -448,8 +494,8 @@ switch method
         
         for ii=1:nR
             for dd=1:2
-                x = SOL.th;
-                y = SOL.br(:,index(ii));
+                x = th;
+                y = br(:,index(ii));
                 % detection of the main/quadrature flux density axis
                 ang = angle(y);
                 ang(ang<0) = ang(ang<0)+pi;

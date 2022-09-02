@@ -60,7 +60,7 @@ if geoCheck
     Br = dataSet0.PMdesign.Br12;
     fM = dataSet0.PMdesign.fM12;
     
-    per = calc_i0(geo,per);
+    per = calc_i0(geo,per,mat);
     i0 = per.i0;
     if dataSet0.PMdesign.iq0 == dataSet.CurrPM*i0
         disp('FEA simulation #3 already done for this current')

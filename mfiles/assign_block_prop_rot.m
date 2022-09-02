@@ -30,7 +30,8 @@ elseif strcmp(geo.RotType,'SPM')
     Br = mat.LayerMag.Br(1)*ones(size(BLKLABELSrot.xy(:,1)));
 end
 
-kk=1; % tiene conto di quale magnete sto assegnando
+kk = 1; % tiene conto di quale magnete sto assegnando
+bb = 1; % tiene conto di quale barra di rotore sto assegnando
 for ii=1:length(BLKLABELSrot.xy(:,1))
     switch BLKLABELSrot.xy(ii,3)
         case 1  % Aria
@@ -70,6 +71,20 @@ for ii=1:length(BLKLABELSrot.xy(:,1))
                 mi_setblockprop(mat.Shaft.MatName, 0, fem.res,'None', 0, group, 0);
             end
             mi_clearselected;
+        case 8 % rotor bar
+            barName = ['bar' int2str(bb)];
+            mi_addcircprop(barName,0,1);
+            mi_addblocklabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
+            mi_selectlabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
+            mi_setblockprop(mat.BarCond.MatName,0,fem.res,barName,0,200+bb,1);
+            mi_clearselected;
+            bb = bb+1;
+        case 9 % sleeve
+            mi_addblocklabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
+            mi_selectlabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
+            mi_setblockprop(mat.Sleeve.MatName,0,fem.res_traf,'None',0,300,0);
+            mi_clearselected;
+
     end
 end
 

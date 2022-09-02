@@ -33,6 +33,7 @@ syz = 0;
 szx = 0;
 szy = 0;
 szz = 0;
+
 sVonMises = sqrt( 0.5*( (sxx-syy).^2 + (syy -szz).^2 +(szz-sxx).^2) + 3*(sxy.^2 + syz.^2 + szx.^2));
 
 sVM_max = max(sVonMises);

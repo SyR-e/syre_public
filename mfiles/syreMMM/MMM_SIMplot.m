@@ -24,9 +24,12 @@ function MMM_SIMplot(motorModel)
     lambdad             = motorModel.SyreDrive.simOut.Out_M.lambda_dq.Data(:,1);
     lambdaq             = motorModel.SyreDrive.simOut.Out_M.lambda_dq.Data(:,2);
     f_w                 = motorModel.SyreDrive.simOut.Outputs.f_w.Data;
-    iA                  = motorModel.SyreDrive.simOut.Outputs.iA.Data;
-    iB                  = motorModel.SyreDrive.simOut.Outputs.iB.Data;
-    iC                  = motorModel.SyreDrive.simOut.Outputs.iC.Data;
+%     iA                  = motorModel.SyreDrive.simOut.Outputs.iA.Data;
+%     iB                  = motorModel.SyreDrive.simOut.Outputs.iB.Data;
+%     iC                  = motorModel.SyreDrive.simOut.Outputs.iC.Data;
+    iA                  = motorModel.SyreDrive.simOut.Out_M.Iabc.Data(:,1);
+    iB                  = motorModel.SyreDrive.simOut.Out_M.Iabc.Data(:,2);
+    iC                  = motorModel.SyreDrive.simOut.Out_M.Iabc.Data(:,3);
     theta_elt           = motorModel.SyreDrive.simOut.Outputs.theta_elt_meas.Data;
     
     %----------------Mechanical Quantities------------------------------
@@ -172,10 +175,11 @@ function MMM_SIMplot(motorModel)
     figure
     figSetting
     subplot(4,1,1)
-    plot(Time,iA,Time,iB,Time,iC)
+    TimeIabc = motorModel.SyreDrive.simOut.Out_M.Iabc.Time;
+    plot(TimeIabc,iA,TimeIabc,iB,TimeIabc,iC)
     xlabel('t (s)')
     ylabel('$i_{dq}$ (A)')
-    xlim([t1 Time(end)])
+    xlim([t1 TimeIabc(end)])
     grid on
     title('abc Currents')
     

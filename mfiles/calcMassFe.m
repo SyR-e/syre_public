@@ -27,7 +27,7 @@ l       = geo.l;
 Qs      = geo.Qs;
 Ar      = geo.Ar;
 
-area = pi*(Ro^2-Ri^2)*ps/(2*p);
+areaS = pi*(Ro^2-Ri^2)*ps/(2*p);
 
 % Compure the area of just one slot (+slot air) and then subctract to the
 % annulus portion area (iron)
@@ -59,9 +59,16 @@ Y = [Y Y(1)];
 
 areaAir = polyarea(X,Y);
 
-area = (area-Qs*(areaSlot+areaAir))*2*p/ps;
+areaS = (areaS-Qs*(areaSlot+areaAir))*2*p/ps;
 
-mFeS = area/1e6*l/1e3*kgm3;
+mFeS = areaS/1e6*l/1e3*kgm3;
+
+if geo.pShape.flag
+    areaS = area(geo.pShape.stator);
+    mFeS = areaS/1e6*l/1e3*kgm3*2*p/ps;
+end
+
+
 
 
 %% rotor
@@ -82,6 +89,14 @@ for ii=1:nEle
 end
 
 mFeR = mFeR*2*p/ps;
+
+if geo.pShape.flag
+    areaR = area(geo.pShape.rotor);
+    mFeR = areaR/1e6*l/1e3*kgm3*2*p/ps;
+end
+
+
+
 
 
 

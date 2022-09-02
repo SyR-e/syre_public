@@ -29,19 +29,20 @@ per.EvalSpeed = dataIn.EvalSpeed;
 
 clc;
 
-if ~isfield(dataSet,'axisType')
-    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
-        dataSet.axisType = 'PM';
+if ~isfield(geo,'axisType')
+    if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+        geo.axisType = 'PM';
     else
-        dataSet.axisType = 'SR';
+        geo.axisType = 'SR';
     end
 end
 
-if ~strcmp(dataSet.axisType,dataIn.axisType)
-    if strcmp(dataSet.axisType,'PM')
-        geo.th0 = geo.th0 + 90;
-    else
+if ~strcmp(geo.axisType,dataIn.axisType)
+    geo.axisType = dataIn.axisType;
+    if strcmp(geo.axisType,'PM')
         geo.th0 = geo.th0 - 90;
+    else
+        geo.th0 = geo.th0 + 90;
     end
 end
 
@@ -70,7 +71,7 @@ resFolder = [pathname outFolder resFolder];
 
 eval_type    = 'demagArea';
 
-if (strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'Vtype'))
+if strcmp(geo.axisType,'PM')
     per.gamma = 180;
 else
     per.gamma = 90;

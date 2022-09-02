@@ -369,7 +369,7 @@ temp.yyD2k=yyD2k;
 
 geo.hc=hc;
 
-[temp,geo] = calc_ribs_rad_fun(geo,mat,temp);
+[temp,geo] = calc_ribs_rad_Seg(geo,mat,temp);
 
 %calc_ribs_rad;
 

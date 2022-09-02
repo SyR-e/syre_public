@@ -29,6 +29,8 @@ colorCode{4} = [0 0 0]; % Fe stator
 colorCode{5} = [0 0 0]; % Fe rotor
 colorCode{6} = [1 0 0]; % PM
 colorCode{7} = [0 0 0]; % Shaft
+colorCode{8} = [0 0 0]; % Rotor bar conductor
+colorCode{9} = [0 0 0]; % Rotor sleeve
 
 if ncol==7
     Mat=[Mat ones(nrig,2)];
@@ -36,9 +38,6 @@ end
 
 
 for ii = 1 : nrig
-    if debug
-        keyboard
-    end
     if Mat(ii,7) == 0
         
         % draw lines
@@ -128,6 +127,9 @@ for ii = 1 : nrig
         y = [y1 y_n y2];
         %grid on
         plot(h,x,y,'Linewidth',2,'Color',colorCode{Mat(ii,8)});
+    end
+    if debug
+        keyboard
     end
 end
 %hold off % Perchè???

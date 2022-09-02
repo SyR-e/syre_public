@@ -202,6 +202,7 @@ BoundLAT=[
 
 %% OUTPUT
 geo.stator = stator;
+geo.ly     = geo.R-geo.r-geo.g-geo.lt;
 
 BLKLABELSstat.xy             = xyLabel;
 BLKLABELSstat.names.air_slot = nome_air_slot;

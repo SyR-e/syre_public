@@ -20,7 +20,7 @@
 % Dat [IN] : Parameters defined in NNCparam.m
 %
 %% Main call
-function [J]=evaluateF(X,Dat)
+function [J,G]=evaluateF(X,Dat)
 
 %numberOfIndividuals = Dat.XPOP;
 numberOfIndividuals = size(X,1);
@@ -30,7 +30,7 @@ f=Dat.CostProblem;
 
     parfor i=1:numberOfIndividuals
         disp(['Evaluating ' num2str(i) '/' num2str(numberOfIndividuals) ' solution.'])
-        J(i,:)=f(X(i,:)');
+        [J(i,:),G{i}]=f(X(i,:)');
     end
 end
 

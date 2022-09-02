@@ -69,6 +69,11 @@ if isfield(temp,'xcRac1')
     yyE2k =temp.yyE2k;
 end
 
+xS01k = temp.xS01k;
+yS01k = temp.yS01k;
+xS02k = temp.xS02k;
+yS02k = temp.yS02k;
+
 
 % This function build the rotor matrix (defining the geometry). Each half
 % barrier and PM is composed clockwise, from the bottom-left corner.
@@ -102,10 +107,15 @@ indexEle = 1;
 for ii=1:nlay
     % rotor matrix
     if (YpontRadSx(ii)~=0)
+%         rotore = [rotore
+%             XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)    NaN NaN 0 codMatAirRot indexEle
+%             XpontRadSx(ii)    YpontRadSx(ii)    XpontRadDx(ii)    YpontRadDx(ii)    NaN NaN 0 codMatAirRot indexEle
+%             XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) NaN NaN 0 codMatAirRot indexEle
+%             ];
         rotore = [rotore
-            XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)    NaN NaN 0 codMatAirRot indexEle
-            XpontRadSx(ii)    YpontRadSx(ii)    XpontRadDx(ii)    YpontRadDx(ii)    NaN NaN 0 codMatAirRot indexEle
-            XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) NaN NaN 0 codMatAirRot indexEle
+            xS01k(ii)         yS01k(ii)      XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadSx(ii)    YpontRadSx(ii)    1 codMatAirRot indexEle
+            XpontRadSx(ii)    YpontRadSx(ii) XpontRadDx(ii)    YpontRadDx(ii)    NaN               NaN               0 codMatAirRot indexEle
+            xS02k(ii)         yS02k(ii)      XpontRadDx(ii)    YpontRadDx(ii)    XpontRadBarDx(ii) YpontRadBarDx(ii) 1 codMatAirRot indexEle
             ];
     else
         rotore = [rotore
@@ -113,7 +123,7 @@ for ii=1:nlay
             ];
     end
     
-    if ~(isfinite(RotorFilletTan1(ii)) & isfinite(RotorFilletTan2(ii)))
+    if ~(isfinite(RotorFilletTan1(ii)) && isfinite(RotorFilletTan2(ii)))
         rotore = [rotore
             x0             0              XpontRadBarDx(ii) YpontRadBarDx(ii) xxD2k(ii)         yyD2k(ii)         -1 codMatAirRot indexEle
             XcRibTraf2(ii) YcRibTraf2(ii) xxD2k(ii)         yyD2k(ii)         xpont(ii)         ypont(ii)         +1 codMatAirRot indexEle
@@ -129,7 +139,7 @@ for ii=1:nlay
         rotore = [rotore
             x0             0              XpontRadBarDx(ii) YpontRadBarDx(ii) xxD2k(ii)         yyD2k(ii)         -1 codMatAirRot indexEle
             xcRac2(ii)     ycRac2(ii)     xxD2k(ii)         yyD2k(ii)         xxE2k(ii)         yyE2k(ii)         +1 codMatAirRot indexEle
-            xxE2k(ii)      yyE2k(ii)      xxE1k(ii)         yyE1k(ii)         NaN               NaN                0 codMatAirRot indexEle
+            0              0              xxE2k(ii)         yyE2k(ii)         xxE1k(ii)         yyE1k(ii)         +1 codMatAirRot indexEle
             xcRac1(ii)     ycRac1(ii)     xxE1k(ii)         yyE1k(ii)         xxD1k(ii)         yyD1k(ii)         +1 codMatAirRot indexEle
             x0             0              xxD1k(ii)         yyD1k(ii)         XpontRadBarSx(ii) YpontRadBarSx(ii) +1 codMatAirRot indexEle
 

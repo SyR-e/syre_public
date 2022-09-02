@@ -50,6 +50,19 @@ for ii=1:nEle
     end
 end
 
+if geo.pShape.flag
+    M(1) = area(geo.pShape.rotor)/1e9*rhoPM;
+    [x,y] = centroid(geo.pShape.rotor,1);
+    r(1) = (x^2+y^2)^0.5;
+    M(2) = area(geo.pShape.magnet)/1e9*rhoPM;
+    if geo.pShape.magnet.NumRegions~=0 
+        [x,y] = centroid(geo.pShape.magnet,1);
+        r(2) = (x^2+y^2)^0.5;
+    else
+        r(2) = 0;
+    end
+end
+
 r = r/1e3;
 
 J = sum(M.*r.^2)*2*p/ps;

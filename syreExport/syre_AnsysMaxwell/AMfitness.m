@@ -45,6 +45,7 @@ if per.corelossflag==1
     out.CoreLoss   = SOL.CoreLoss;
     out.CoreLoss_s = SOL.CoreLoss_s;
     out.CoreLoss_r = SOL.CoreLoss_r;
+    out.PMloss     = SOL.PMloss;
     
     %  out.CoreLossAvg = SOL.CoreLossAvg{1,15};
     %  out.HysteresisLossAvg = SOL.HysteresisLossAvg{1,15};

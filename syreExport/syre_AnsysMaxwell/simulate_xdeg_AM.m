@@ -55,6 +55,7 @@ switch eval_type
         nsim = per.nsim_singt; %Simulation Points
         xdeg = per.delta_sim_singt; %Angular Excursion
     case 'singtIron'
+        per.nsim_singt = 420;
         nsim = per.nsim_singt; %Simulation Points
         xdeg = 420; %Angular Excursion
         %xdeg = 360; %Angular Excursion
@@ -62,8 +63,8 @@ switch eval_type
         error('Ansys Maxwell Simulations not available for the selected evaluation type!');
 end
 
-resFolder = [filepath,filename(1:end-4),'_results\FEA results\Ansys_', eval_type , '_', num2str(round(iAmp,2)), 'A'];
-mkdir(resFolder);
+%resFolder = [filepath,filename(1:end-4),'_results\FEA results\Ansys_', eval_type , '_', num2str(round(iAmp,2)), 'A'];
+%mkdir(resFolder);
 
 % evaluation of the phase current values for all positions to be simulated
 % id = iAmp * cos(gamma_);
@@ -189,7 +190,12 @@ if status ~= 0
     fprintf('an error occurred - program aborted - \n %s \n',cmdout)
 end
 
-outdatafolder = strcat(filepath,filename(1:end-4),'_results\FEA results\Ansys_', eval_type , '_', num2str(round(iAmp,2)), 'A');
+if per.custom_act
+    outdatafolder = [filepath,filename(1:end-4),'_results\FEA results\Ansys_', eval_type , '_', num2str(ansysCount)];
+else
+    outdatafolder = strcat(filepath,filename(1:end-4),'_results\FEA results\Ansys_', eval_type , '_', num2str(round(iAmp,2)), 'A');
+end
+
 addpath(outdatafolder);
 opts = detectImportOptions('FluxesPlotData.csv','NumHeaderLines',1);
 opts.VariableNamesLine = 1;
@@ -223,7 +229,10 @@ if corelossflag==1
     SOL.CoreLoss   = CoreLoss;
     SOL.CoreLoss_s = CoreLoss_s;
     SOL.CoreLoss_r = CoreLoss_r;
-     
+    
+    tmp = readtable('MagnetLossData.csv',opts);
+    SOL.PMloss   = table2array(tmp(:,2)); 
+
 %     opts = detectImportOptions('CoreLossAvg.txt','NumHeaderLines',1);
 %     opts.VariableNamesLine     = 1;
 %     opts.PreserveVariableNames = 1;

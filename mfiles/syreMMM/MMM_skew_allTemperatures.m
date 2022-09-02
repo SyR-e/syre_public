@@ -40,7 +40,7 @@ for ii=1:length(tempVectPM)
     else
         disp(['  skewing map...'])
         load([pathnameOld motorNameOld '_results\MMM results\tempModels\motorModel_' int2str(tempVectPM(ii)) 'deg.mat'],'motorModel');
-        motorModel = MMM_skew(motorModel,motorModelNew.skew,[]);
+        motorModel = MMM_skew(motorModel,motorModelNew.tmpSkew,[]);
         motorModel.data.pathname  = pathnameNew;
         motorModel.data.motorName = motorNameNew;
         save([pathnameNew motorNameNew '_results\MMM results\tempModels\motorModel_' int2str(tempVectPM(ii)) 'deg.mat'],'motorModel')

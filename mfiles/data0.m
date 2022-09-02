@@ -30,6 +30,10 @@ function [bounds, objs, geo, per, mat] = data0(dataIn)
 
 %% READ INPUTS FROM THE GUI
 
+% materials
+mat = assign_mat_prop(dataIn);
+
+
 % main performance target
 per.Loss = dataIn.AdmiJouleLosses;            % admitted Joule loss [W]
 per.tempcu = dataIn.TargetCopperTemp;         % Target Copper Temperature [C]
@@ -112,10 +116,10 @@ geo.g  = dataIn.AirGapThickness;  % airgap [mm]
 geo.l  = dataIn.StackLength;      % stack length [mm]
 
 % stator
-geo.q   = dataIn.NumOfSlots;      % stator slots per pole per phase
+geo.q   = dataIn.NumOfSlots;     % stator slots per pole per phase
 geo.lt  = dataIn.ToothLength;    % tooth length [mm]
 geo.acs = dataIn.StatorSlotOpen; % stator slot opening [p.u.]
-geo.wt  = dataIn.ToothWidth;       % tooth width [mm]
+geo.wt  = dataIn.ToothWidth;     % tooth width [mm]
 geo.st  = dataIn.SlotWidth;
 
 if dataIn.ParallelSlotCheck
@@ -129,6 +133,7 @@ geo.betaPMshape = dataIn.betaPMshape;               % barrier filling factor
 geo.ttd = dataIn.ToothTangDepth;   % tooth tang depth [mm]
 geo.tta = dataIn.ToothTangAngle;   % tooth tang angle (mech degree)
 geo.SFR = dataIn.FilletCorner;     % fillet at the back corner of the slot [mm]
+
 
 % rotor
 if strcmp(geo.RotType,'SPM')
@@ -155,9 +160,7 @@ else
     geo.win.slot_layer_pos = 'over_under';
 end
 geo.win.Lend = dataIn.Lend; % end turn inductance
-
-[~,geo] = calc_endTurnLength(geo); % end-winding length [mm]
-
+per.flag3phaseSet = dataIn.Active3PhaseSets;
 
 % slot model
 geo.win.condType   = dataIn.SlotConductorType;
@@ -174,13 +177,37 @@ per.slotModelTemp  = dataIn.SlotConductorTemperature;
 
 geo.Qs         = dataIn.Qs;                     % number of stator slots in the FEMM simulation
 
+% [kw,th0] = calcKwTh0(geo);
+% geo.win.kw = kw;
+% th0 = th0+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p; %first slot in 360/(6pq)/2 position
+% geo.th0 = -th0;
+
+% IM rotor
+geo.IM.Nbars  = dataIn.NumOfRotorBars;
+
+geo.IM.k = 1/(2*sin(2*pi*geo.p/2/geo.IM.Nbars)); % =Iend/Ibar || =(Zwye/Zdelta)^0.5
+
+geo.IM.lt        = dataIn.RotorToothLength;
+geo.IM.wt        = dataIn.RotorToothWidth/2;
+geo.IM.acr       = dataIn.RotorSlotOpen;
+geo.IM.ttd       = dataIn.RotorToothTangDepth;
+geo.IM.filletTop = dataIn.RotorSlotFilletTop/5;
+geo.IM.filletBot = dataIn.RotorSlotFilletBottom/5;
+[per.IM.Rring,per.IM.Lring] = calc_IMringParameters(geo,per,mat);
+
+[~,geo] = calc_endTurnLength(geo); % end-winding length [mm]
+
+
 geo.nmax = dataIn.OverSpeed; % overspeed [rpm]
+
+geo.hs = dataIn.SleeveThickness; % sleeve thickness [mm]
+
 
 geo.lm = dataIn.ThicknessOfPM;
 geo.phi = dataIn.AngleSpanOfPM;
 
 % calc winding factor (kavv) and rotor offset (phase1_offset)
-[~,phase1_offset] = calcKwTh0(geo);
+[kw,phase1_offset] = calcKwTh0(geo);
 phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %first slot in 360/(6pq)/2 position
 
 if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
@@ -198,6 +225,12 @@ else
 end
 
 geo.th0 = - phase1_offset;  % d- to alpha-axis offset [elt deg]
+    
+geo.IM.kturns = (6*kw*geo.win.Ns)/geo.IM.Nbars; % 3-ph / bar turn ratio
+% geo.IM.thR    = 360/geo.IM.Nbars/2*geo.p;       % electrical position of the rotor winding
+geo.IM.thR = 0;                                 % electrical position of the rotor winding
+geo.IM.th     = -((-geo.th0-90)-360/geo.IM.Nbars/2*geo.p);                  % electrical position of rotor flux (dq reference)
+geo.IM.offset = geo.IM.th-geo.IM.thR;           % electrical offset between stator and rotor winding (rotor-stator)
 
 % direction of magnetization in PMs of SPM with multiple segments of PM
 geo.PMdir = 'p';    % parallel direction
@@ -205,34 +238,35 @@ geo.PMdir = 'r';    % radial direction
 
 % Mesh ratio (all_motor/air-gap)
 geo.mesh_K_MOOA = dataIn.Mesh_MOOA;    % optimization
-geo.mesh_K = dataIn.Mesh;         % post-processing and manual design
+geo.mesh_K      = dataIn.Mesh;         % post-processing and manual design
 
 % Rotor
 geo.x0 = geo.r/cos(pi/2/geo.p);
+
 geo.dalpha_pu = dataIn.ALPHApu;
-geo.dalpha = geo.dalpha_pu*(90/geo.p);   % [mec degrees]
-geo.hc_pu = dataIn.HCpu;
-geo.dx = dataIn.DepthOfBarrier;
-geo.dxIB = dataIn.RadShiftInner;
-geo.kOB = dataIn.NarrowFactor;
-geo.hcShrink = dataIn.CentralShrink;
+geo.dalpha    = geo.dalpha_pu*(90/geo.p);   % [mec degrees]
+geo.hc_pu     = dataIn.HCpu;
+geo.dx        = dataIn.DepthOfBarrier;
+geo.dxIB      = dataIn.RadShiftInner;
+geo.kOB       = dataIn.NarrowFactor;
+geo.hcShrink  = dataIn.CentralShrink;
 
 % PM sizing
 geo.PMdim     = dataIn.PMdim;
 geo.flagPMFBS = 0;  % PMFBS==0 --> PMs are not deformed during FBS
 % PMFBS==1 --> PMs are deformend during FBS according to the barrier area
 geo.PMclear = dataIn.PMclear;
+
 % tangential and radial ribs
-geo.pontT = dataIn.TanRibEdit;
-geo.pontR = dataIn.RadRibEdit;
-geo.radial_ribs_eval = dataIn.RadRibCheck;
+geo.pontT             = dataIn.TanRibEdit;
+geo.pontR             = dataIn.RadRibEdit;
+geo.radial_ribs_eval  = dataIn.RadRibCheck;
 geo.radial_ribs_split = dataIn.RadRibSplit;
-geo.RotorFilletTan1 = dataIn.RotorFilletTan1;
-geo.RotorFilletTan2 = dataIn.RotorFilletTan2;
-geo.pontRoffset = dataIn.pontRoffsetEdit;
-geo.pontRang = dataIn.pontRangEdit;
-geo.RotorFillet1 = dataIn.RotorFilletIn;
-geo.RotorFillet2 = dataIn.RotorFilletOut;
+geo.RotorFilletTan1   = dataIn.RotorFilletTan1;
+geo.RotorFilletTan2   = dataIn.RotorFilletTan2;
+geo.pontRang          = dataIn.pontRangEdit;
+geo.RotorFillet1      = dataIn.RotorFilletIn;
+geo.RotorFillet2      = dataIn.RotorFilletOut;
 
 % Flux Barrier Shift (mechanical radians)
 geo.th_FBS = dataIn.thetaFBS*pi/180;  % th_FBS is the shift angle in mechanical radians
@@ -253,124 +287,275 @@ geo.slidingGap = dataIn.slidingGap;
 % if enabled (third column used just in the creation, then filtered and
 % deleted)
 
+
 rr = 1;
 for ii=1:geo.nlay
     RQnames{rr} = ['dalpha_pu(' int2str(ii) ')'];
-    if ii==1
-        bounds(rr,:) = [dataIn.Alpha1Bou dataIn.Dalpha1BouCheck];
+    if strcmp(dataIn.optType,'Design')
+        if ii==1
+            bounds(rr,:) = [dataIn.Alpha1Bou dataIn.Dalpha1BouCheck];
+        else
+            bounds(rr,:) = [dataIn.DeltaAlphaBou dataIn.DalphaBouCheck];
+        end
     else
-        bounds(rr,:) = [dataIn.DeltaAlphaBou dataIn.DalphaBouCheck];
+        if ii==1
+            bounds(rr,:) = [dataIn.ALPHApu(ii)*dataIn.Alpha1Bou dataIn.Dalpha1BouCheck];
+        else
+            bounds(rr,:) = [dataIn.ALPHApu(ii)*dataIn.DeltaAlphaBou dataIn.DalphaBouCheck];
+        end
     end
+    RQ(rr) = geo.dalpha_pu(ii);
     rr=rr+1;
 end
+
 for ii=1:geo.nlay
     RQnames{rr} = ['hc_pu(' int2str(ii) ')'];
     if strcmp(geo.RotType,'SPM')
         bounds(rr,:) = [geo.lm*dataIn.hcBou dataIn.hcBouCheck];
     else
-        bounds(rr,:) = [dataIn.hcBou dataIn.hcBouCheck];
+        if strcmp(dataIn.optType,'Design')
+            bounds(rr,:) = [dataIn.hcBou dataIn.hcBouCheck];
+        else
+            bounds(rr,:) = [dataIn.HCpu(ii)*dataIn.hcBou dataIn.hcBouCheck]; 
+        end
     end
+    RQ(rr) = geo.hc_pu(ii);
     rr=rr+1;
 end
+
 for ii=1:geo.nlay
     RQnames{rr} = ['dx(' int2str(ii) ')'];
-    bounds(rr,:) = [dataIn.DfeBou dataIn.DxBouCheck];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.DfeBou dataIn.DxBouCheck];
+    else
+        bounds(rr,:) = [dataIn.DepthOfBarrier(ii)*dataIn.DfeBou dataIn.DxBouCheck];
+    end
     if ~(strcmp(geo.RotType,'Fluid') || strcmp(geo.RotType,'Seg') || strcmp(geo.RotType,'Circular') || strcmp(geo.RotType,'Vtype'))
         bounds(rr,3) = 0; % dx not included for SPM and ISeg
     end
+    RQ(rr) = geo.dx(ii);
     rr=rr+1;
 end
+
 for ii=1:geo.nlay
     RQnames{rr} = ['Br(' int2str(ii) ')'];
-    bounds(rr,:) = [dataIn.BrBou dataIn.BrBouCheck];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.BrBou dataIn.BrBouCheck];
+    else
+        bounds(rr,:) = [dataIn.Br*dataIn.BrBou dataIn.BrBouCheck];
+    end
+    RQ(rr) = dataIn.Br;
     rr=rr+1;
 end
 
 RQnames{rr} = 'g';          % airgap
-bounds(rr,:) = [dataIn.GapBou dataIn.GapBouCheck];
+if strcmp(dataIn.optType,'Design')
+    bounds(rr,:) = [dataIn.GapBou dataIn.GapBouCheck];
+else
+    bounds(rr,:) = [dataIn.AirGapThickness*dataIn.GapBou dataIn.GapBouCheck];
+end
+RQ(rr) = geo.g;
 rr = rr+1;
+
 RQnames{rr} = 'r';          % rotor radius
-bounds(rr,:) = [dataIn.GapRadiusBou dataIn.AirgapRadiusBouCheck];
+if strcmp(dataIn.optType,'Design')
+    bounds(rr,:) = [dataIn.GapRadiusBou dataIn.AirgapRadiusBouCheck];
+else
+    bounds(rr,:) = [dataIn.AirGapRadius*dataIn.GapRadiusBou dataIn.AirgapRadiusBouCheck];
+end
+RQ(rr) = geo.r;
 rr = rr+1;
+
 RQnames{rr} = 'wt';         % tooth width
-bounds(rr,:) = [dataIn.ToothWiBou dataIn.ToothWidthBouCheck];
+if strcmp(dataIn.optType,'Design')
+    bounds(rr,:) = [dataIn.ToothWiBou dataIn.ToothWidthBouCheck];
+else
+    bounds(rr,:) = [dataIn.ToothWidth*dataIn.ToothWiBou dataIn.ToothWidthBouCheck];
+end
+RQ(rr) = geo.wt;
 rr = rr+1;
+
 RQnames{rr} = 'lt';         % tooth length
-bounds(rr,:) = [dataIn.ToothLeBou dataIn.ToothLengthBouCheck];
+if strcmp(dataIn.optType,'Design')
+    bounds(rr,:) = [dataIn.ToothLeBou dataIn.ToothLengthBouCheck];
+else
+    bounds(rr,:) = [dataIn.ToothLength*dataIn.ToothLeBou dataIn.ToothLengthBouCheck];
+end
+RQ(rr) = geo.lt;
 rr = rr+1;
+
 RQnames{rr} = 'acs';        % stator slot opening [p.u.]
-bounds(rr,:) = [dataIn.StatorSlotOpenBou dataIn.StatorSlotOpenBouCheck];
+if strcmp(dataIn.optType,'Design')
+    bounds(rr,:) = [dataIn.StatorSlotOpenBou dataIn.StatorSlotOpenBouCheck];
+else
+    bounds(rr,:) = [dataIn.StatorSlotOpen*dataIn.StatorSlotOpenBou dataIn.StatorSlotOpenBouCheck];
+end
+RQ(rr) = geo.acs;
 rr = rr+1;
+
 RQnames{rr} = 'ttd';        % tooth tang depth [mm]
-bounds(rr,:) = [dataIn.ToothTangDepthBou dataIn.ToothTangDepthBouCheck];
+if strcmp(dataIn.optType,'Design')
+    bounds(rr,:) = [dataIn.ToothTangDepthBou dataIn.ToothTangDepthBouCheck];
+else
+    bounds(rr,:) = [dataIn.ToothTangDepth*dataIn.ToothTangDepthBou dataIn.ToothTangDepthBouCheck];
+end
+RQ(rr) = geo.ttd;
 rr = rr+1;
+
 RQnames{rr} = 'th_FBS';     % flux barrier shift [mech deg]
-bounds(rr,:) = [dataIn.ThetaFBSBou dataIn.ThetaFBSBouCheck];
+if strcmp(dataIn.optType,'Design')
+    bounds(rr,:) = [dataIn.ThetaFBSBou dataIn.ThetaFBSBouCheck];
+else
+    bounds(rr,:) = [dataIn.thetaFBS*dataIn.ThetaFBSBou dataIn.ThetaFBSBouCheck];
+end
+RQ(rr) = geo.th_FBS*180/pi;
 rr = rr+1;
 
 for ii=1:geo.nlay
     RQnames{rr} = ['betaPMshape(' int2str(ii) ')'];
-    bounds(rr,:) = [dataIn.BetaPMshapeBou dataIn.BetaPMshapeBouCheck];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.BetaPMshapeBou dataIn.BetaPMshapeBouCheck];
+    else
+        bounds(rr,:) = [dataIn.betaPMshape(ii)*dataIn.BetaPMshapeBou dataIn.BetaPMshapeBouCheck];
+    end
+    RQ(rr) = geo.betaPMshape(ii);
     rr=rr+1;
 end
 
 for ii=1:length(geo.PMdim(:))
     RQnames{rr} = ['PMdim(' int2str((ii)) ')'];
-    bounds(rr,:) = [dataIn.PMdimBou dataIn.PMdimBouCheck];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.PMdimBou dataIn.PMdimBouCheck];
+    else
+        bounds(rr,:) = [dataIn.PMdim(ii)*dataIn.PMdimBou dataIn.PMdimBouCheck];
+    end
     if (strcmp(geo.RotType,'Circular')||strcmp(geo.RotType,'Vtype'))
         if rem(ii,2)==0
             bounds(rr,3) = 0; % just central PM for Circular and Vtype
         end
     end
+    RQ(rr) = geo.PMdim(ii);
     rr=rr+1;
 end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['pontR(' int2str(ii) ')'];
-    bounds(rr,:) = [dataIn.RadRibBou dataIn.RadRibBouCheck];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.RadRibBou dataIn.RadRibBouCheck];
+    else
+        bounds(rr,:) = [dataIn.RadRibEdit(ii)*dataIn.RadRibBou dataIn.RadRibBouCheck];
+    end
+    RQ(rr) = geo.pontR(ii);
     rr=rr+1;
 end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['pontT(' int2str(ii) ')'];
-    bounds(rr,:) = [dataIn.TanRibBou dataIn.TanRibBouCheck];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.TanRibBou dataIn.TanRibBouCheck];
+    else
+        bounds(rr,:) = [dataIn.TanRibEdit(ii)*dataIn.TanRibBou dataIn.TanRibBouCheck];
+    end
+    RQ(rr) = geo.pontT(ii);
     rr=rr+1;
 end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['hcShrink(' int2str(ii) ')'];
-    bounds(rr,:) = [dataIn.CentralShrinkBou dataIn.CentralShrinkBouCheck];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.CentralShrinkBou dataIn.CentralShrinkBouCheck];
+    else
+        bounds(rr,:) = [dataIn.CentralShrink(ii)*dataIn.CentralShrinkBou dataIn.CentralShrinkBouCheck];
+    end
+    RQ(rr) = geo.hcShrink(ii);
     rr=rr+1;
 end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['dxIB(' int2str(ii) ')'];
-    bounds(rr,:) = [dataIn.RadShiftInnerBou dataIn.RadShiftInnerBouCheck];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.RadShiftInnerBou dataIn.RadShiftInnerBouCheck];
+    else
+        bounds(rr,:) = [dataIn.RadShiftInner(ii)*dataIn.RadShiftInnerBou dataIn.RadShiftInnerBouCheck];
+    end
+    RQ(rr) = geo.dxIB(ii);
+    rr=rr+1;
+end
+
+for ii=1:geo.nlay
+    RQnames{rr} = ['RotorFilletTan1(' int2str(ii) ')'];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.FilletTan1Bou dataIn.FilletTan1BouCheck];
+    else
+        bounds(rr,:) = [dataIn.RotorFilletTan1(ii)*dataIn.FilletTan1Bou dataIn.FilletTan1BouCheck];
+    end
+    RQ(rr) = geo.RotorFilletTan1(ii);
+    rr=rr+1;
+end
+
+for ii=1:geo.nlay
+    RQnames{rr} = ['RotorFilletTan2(' int2str(ii) ')'];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.FilletTan2Bou dataIn.FilletTan2BouCheck];
+    else
+        bounds(rr,:) = [dataIn.RotorFilletTan2(ii)*dataIn.FilletTan2Bou dataIn.FilletTan2BouCheck];
+    end
+    RQ(rr) = geo.RotorFilletTan2(ii);
+    rr=rr+1;
+end
+
+for ii=1:geo.nlay
+    RQnames{rr} = ['RotorFillet1(' int2str(ii) ')'];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.FilletRad1Bou dataIn.FilletRad1BouCheck];
+    else
+        bounds(rr,:) = [dataIn.RotorFilletIn(ii)*dataIn.FilletRad1Bou dataIn.FilletRad1BouCheck];
+    end
+    RQ(rr) = geo.RotorFillet1(ii);
+    rr=rr+1;
+end
+
+for ii=1:geo.nlay
+    RQnames{rr} = ['RotorFillet2(' int2str(ii) ')'];
+    if strcmp(dataIn.optType,'Design')
+        bounds(rr,:) = [dataIn.FilletRad2Bou dataIn.FilletRad2BouCheck];
+    else
+        bounds(rr,:) = [dataIn.RotorFilletOut(ii)*dataIn.FilletRad2Bou dataIn.FilletRad2BouCheck];
+    end
+    RQ(rr) = geo.RotorFillet2(ii);
     rr=rr+1;
 end
 
 RQnames{rr} = 'gamma';
-bounds(rr,:) = [dataIn.PhaseAngleCurrBou dataIn.GammaBouCheck];
-
+if strcmp(dataIn.optType,'Design')
+    bounds(rr,:) = [dataIn.PhaseAngleCurrBou dataIn.GammaBouCheck];
+else
+    bounds(rr,:) = [dataIn.GammaPP*dataIn.PhaseAngleCurrBou dataIn.GammaBouCheck];
+end
+RQ(rr) = dataIn.GammaPP(1);
 
 filt_bounds = (bounds(:,3)==1);
-if geo.nlay == 1
-    filt_bounds(2) = [];
-    bounds(2,:) = [];
-end
+% if geo.nlay == 1
+%     filt_bounds(2) = [];
+%     bounds(2,:) = [];
+% end
 bounds = bounds(filt_bounds,1:2);
 RQnames = RQnames(filt_bounds);
+RQ = RQ(filt_bounds);
 geo.RQnames = RQnames;
+geo.RQ = RQ;
 
 %% OBJECTIVES
 objs = [
-    per.min_exp_torque  dataIn.TorqueOptCheck           0
-    per.max_exp_ripple  dataIn.TorRipOptCheck           0
-    per.max_Cu_mass     dataIn.MassCuOptCheck           0
-    per.max_PM_mass     dataIn.MassPMOptCheck           0
-    per.min_pf          dataIn.PowerFactorOptCheck      0.1
-    per.max_fdq0        dataIn.NoLoadFluxOptCheck       0
+    per.min_exp_torque      dataIn.TorqueOptCheck           0
+    per.max_exp_ripple      dataIn.TorRipOptCheck           0
+    per.max_Cu_mass         dataIn.MassCuOptCheck           0
+    per.max_PM_mass         dataIn.MassPMOptCheck           0
+    per.min_pf              dataIn.PowerFactorOptCheck      0.1
+    per.max_fdq0            dataIn.NoLoadFluxOptCheck       0
+    mat.Rotor.sigma_max     dataIn.MechStressOptCheck       0
     ];
+
 per.MechStressOptCheck =  dataIn.MechStressOptCheck;
 
 filt_objs = (objs(:,2)==1);
@@ -386,7 +571,7 @@ OBJnames{3} = 'MassCu';
 OBJnames{4} = 'MassPM';
 OBJnames{5} = 'PF';
 OBJnames{6} = 'Fdq0';
-% OBJnames{7} = 'MechStress';
+OBJnames{7} = 'MechStress';
 
 % eliminate unnecessary OBJnames
 OBJnames = OBJnames(filt_objs);
@@ -414,5 +599,5 @@ else
     geo.ps = psCalc;
 end
 
-mat = assign_mat_prop(dataIn);
+
 

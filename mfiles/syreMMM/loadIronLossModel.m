@@ -13,7 +13,7 @@
 %    limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [IronLossModel]=loadIronLossModel(filename)
+function [IronLossModel] = loadIronLossModel(filename)
 
 if strcmp(filename,'0')
     IronLossModel.type='0';
@@ -32,12 +32,18 @@ else
         IronLossModel.Id     = Id;
         IronLossModel.Iq     = Iq;
         
-        if exist('geo','var')
+        if exist('geo','var') % from FEA simulations
             p = geo.p;
             IronLossModel.f0    = IronLossModel.n0/60*p;
             IronLossModel.expC  = 2;
             IronLossModel.expH  = mat.Stator.alpha;
             IronLossModel.expPM = 2;
+            IronLossModel.segPM = 1;
+        elseif exist('factors','var') % from MMM GUI
+            IronLossModel.f0    = factors.f0;
+            IronLossModel.expC  = factors.expC;
+            IronLossModel.expH  = factors.expH;
+            IronLossModel.expPM = factors.expPM;
             IronLossModel.segPM = 1;
         else
             prompt={'Pole pair number',...

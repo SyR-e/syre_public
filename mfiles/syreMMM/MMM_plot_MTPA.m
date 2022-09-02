@@ -153,6 +153,13 @@ plot(MTPA.id,MTPA.iq,'-r','DisplayName','MTPA')
 plot(MTPV.id,MTPV.iq,'-r','DisplayName','MTPV')
 hleg = legend('show','Location','northeast');
 
+hfig(11) = figure();
+figSetting()
+xlabel('$T$ [Nm]')
+ylabel('$cos \varphi$')
+title('Power factor vs torque along MTPA')
+set(hfig(11),'FileName',[pathname resFolder 'powerFactorVStorque.fig'])
+plot(MTPA.T,sin(atan2(MTPA.iq,MTPA.id)-atan2(MTPA.fq,MTPA.fd)),'-b' )
 
 %% Save figures
 answer = 'No';

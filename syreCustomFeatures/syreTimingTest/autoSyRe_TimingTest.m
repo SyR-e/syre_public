@@ -85,8 +85,14 @@ for ii=1:length(nVector)
     
     tic;    
     dataSet = mot.dataSet;
+    geo     = mot.geo;
+    per     = mot.per;
     dataSet = back_compatibility(dataSet,geo,per,0);
     [~, ~, geo, per, mat] = data0(dataSet);
+    mot.dataSet = dataSet;
+    mot.geo = geo;
+    mot.per = per;
+    mot.mat = mat;
     
     dataSet.FEAfixN = nVector(ii);
     

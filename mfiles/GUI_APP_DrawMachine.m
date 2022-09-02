@@ -27,7 +27,7 @@ if app.dataSet.custom
 end 
 
 [~, ~, geo,per,mat] = data0(dataSet);
-[geo,gamma,mat] = interpretRQ(dataSet.RQ,geo,mat);
+[geo,gamma,mat] = interpretRQ(geo.RQ,geo,mat);
 geo.x0 = geo.r/cos(pi/2/geo.p);
 
 fem.res = 0;
@@ -80,7 +80,7 @@ if  isnan(dataSet.SimIth0)
 %     else
 %         error('Wrong thermal parameters input')
 %     end
-    per = calc_i0(geo,per);
+    per = calc_i0(geo,per,mat);
     per.tempcuest = temp_est_simpleMod(geo,per);
     
     dataSet.AdmiJouleLosses     = per.Loss;
@@ -109,8 +109,10 @@ dataSet.Lend = per.Lend;
 
 
 % Mass and Inertia computation
+geo.pShape = dataSet.pShape;
 geo.mCu = calcMassCu(geo,mat);
 geo.mPM = calcMassPM(geo,mat);
+% geo.mAl = calcMassAl(geo,mat);
 [geo.mFeS,geo.mFeR] = calcMassFe(geo,mat);
 geo.J = calcRotorInertia(geo,mat);
 
@@ -118,6 +120,7 @@ dataSet.MassWinding = geo.mCu;
 dataSet.MassMagnet = geo.mPM;
 dataSet.MassStatorIron = geo.mFeS;
 dataSet.MassRotorIron  = geo.mFeR;
+% dataSet.MassRotorBar   = geo.mAl;
 dataSet.RotorInertia   = geo.J;
 
 % Refresh display
@@ -126,12 +129,13 @@ dataSet.SlotConductorParallel = geo.win.pCond;
 dataSet.DepthOfBarrier = round(geo.dx,2);
 dataSet.HCpu = round(geo.hc_pu,2);
 dataSet.betaPMshape = round(geo.betaPMshape,2);
+dataSet.YokeLength = geo.ly;
 
 % dataSet.CurrentDensity = per.i0*geo.win.Nbob*2/(sqrt(2)*geo.Aslot*geo.win.kcu);
 %dataSet.CurrentDensity = per.i0/(sqrt(2)*geo.Aslot*geo.win.kcu*geo.win.pCond);
 
 dataSet.pontRangEdit = geo.pontRang;
-dataSet.pontRoffsetEdit = geo.pontRoffset;
+% dataSet.pontRoffsetEdit = geo.pontRoffset;
 dataSet.RadRibSplit = geo.radial_ribs_split;
 dataSet.RotorFilletIn = geo.RotorFillet1;
 dataSet.RotorFilletOut = geo.RotorFillet2;
@@ -147,7 +151,7 @@ dataSet.CentralShrink = geo.hcShrink;
 % set(app.CalculatedRatedCurrent,'String',num2str(dataSet.RatedCurrent));
 % set(app.CurrentPP,'String',num2str(dataSet.RatedCurrent));
 % set(app.Rsedit,'String',num2str(dataSet.Rs));
-if ~strcmp (geo.RotType, 'SPM')
+if (~strcmp(geo.RotType, 'SPM') && ~strcmp(geo.RotType,'IM'))
     dataSet.ALPHAdeg = round(100*geo.dalpha)/100;
     dataSet.HCmm = round(100*geo.hc)/100;
 %     set(app.AlphadegreeEdit,'String',mat2str(dataSet.ALPHAdeg));

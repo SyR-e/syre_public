@@ -25,7 +25,7 @@ switch skinEffectModel.type
         end
     case 'interpFreqTemp'
         if strcmp(method,'LUT')
-            kAC = interp2(skinEffectModel.f,skinEffectModel.T,skinEffectModel.k,freq,temp);
+            kAC = interp2(skinEffectModel.f,skinEffectModel.T,skinEffectModel.k,freq,temp*ones(size(freq)));
         else
             f = skinEffectModel.f(skinEffectModel.T==temp);
             k = skinEffectModel.k(skinEffectModel.T==temp);

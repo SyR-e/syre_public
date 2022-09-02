@@ -98,3 +98,11 @@ motorModel.tmpSkew             = skewData;
 motorModel.TnSetup             = Tw;
 motorModel.SyreDrive           = SyreDrive;
 motorModel.WaveformSetup       = WaveformSetup;
+
+% Custom geometry
+motorModel.dataSet.pShape.rotor  = [];
+motorModel.dataSet.pShape.stator = [];
+motorModel.dataSet.pShape.magnet = [];
+motorModel.dataSet.pShape.slot   = [];
+motorModel.dataSet.pShape.flag   = 0;
+motorModel.dataSet.custom        = 0;

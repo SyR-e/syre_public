@@ -29,7 +29,7 @@ if not(isempty(geo.RQnames))
         end
     else
         if (strcmp(geo.RotType,'Circular')||strcmp(geo.RotType,'Vtype'))
-            geo.PMdim = zeros(1,geo.nlay);
+            geo.PMdim = zeros(2,geo.nlay);
         elseif (strcmp(geo.RotType,'Seg')||strcmp(geo.RotType,'ISeg'))
             geo.PMdim = zeros(2,geo.nlay);
         else
@@ -41,6 +41,8 @@ if not(isempty(geo.RQnames))
     
     flagPM = 0;
     flagHC = 0;
+    flagPT = 0;
+    flagPR = 0;
     for ii=1:length(geo.RQnames)
         eval(['geo.' geo.RQnames{ii} ' = ' num2str(RQ(ii)) ';'])
         if contains(geo.RQnames{ii},'PMdim')
@@ -52,6 +54,12 @@ if not(isempty(geo.RQnames))
         if contains(geo.RQnames{ii},'hc_pu')
             flagHC = 1;
         end
+        if contains(geo.RQnames{ii},'pontT')
+            flagPT = 1;
+        end
+        if contains(geo.RQnames{ii},'pontR')
+            flagPR = 1;
+        end
     end
     
     if flagPM
@@ -60,6 +68,14 @@ if not(isempty(geo.RQnames))
     
     if flagHC
         geo.hc_pu = sort(geo.hc_pu);
+    end
+
+    if flagPT
+        geo.pontT = sort(geo.pontT);
+    end
+    
+    if flagPR
+        geo.pontR = sort(geo.pontR);
     end
     
     if strcmp(geo.RQnames{ii},'gamma')

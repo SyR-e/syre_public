@@ -137,10 +137,11 @@ parfor m = 1:size(x,1)
         pdeplot(output{m}.structModel,'XYData',output{m}.sVonMises/1e6,'ZData',output{m}.sVonMises/1e6)
         colormap turbo
         view(2)
-        title('Von Mises Stress [MPa]')
+        title(['Von Mises Stress [MPa] - mot\_' mot_index])
         sVM_max = max(output{m}.sVonMises);
         set(gca,'CLim',[0 sVM_max]/1e6)
-        saveas(gcf,[pathname_res '\MechStress\mot_' mot_index '_mech.fig']);
+        set(gcf,'FileName',[pathname_res '\MechStress\mot_' mot_index '_mech.fig'])
+        savePrintFigure(gcf)
         close
     end
     % debug
@@ -181,6 +182,10 @@ dataSet.RadRibBouCheck         = 0;
 dataSet.CentralShrinkBouCheck  = 0;
 dataSet.RadShiftInnerBouCheck  = 0;
 dataSet.MechStressOptCheck     = 0;
+dataSet.FilletRad1BouCheck     = 0;
+dataSet.FilletRad2BouCheck     = 0;
+dataSet.FilletTan1BouCheck     = 0;
+dataSet.FilletTan2BouCheck     = 0;
 
 dataSet.RQ                     = [];
 dataSet.RQnames                = [];
@@ -198,7 +203,7 @@ for m=1:size(x,1)
     out=output{m};
     
     %     openfemm(1)
-    [geo,~,mat] = interpretRQ(x(m,:),geo,mat);
+    [geo,gamma,mat] = interpretRQ(x(m,:),geo,mat);
     [geo,mat] = draw_motor_in_FEMM(geo,mat,pathname_res,['mot_'  mot_index '.fem']);
     
 %     if isoctave() %OCT
@@ -216,54 +221,81 @@ for m=1:size(x,1)
     % Save data geometry mot
     geo.RQ = x(m,:);
     
-    if isoctave()                       %OCT
-        dataSet.AirGapThickness = geo.g; % airgap thickness
-        dataSet.AirGapThickness = round(dataSet.AirGapThickness .*100) ./100;
-        dataSet.AirGapRadius = geo.r; % machine airgap radius
-        dataSet.AirGapRadius = round(dataSet.AirGapRadius .*100) ./100;
-        dataSet.ToothLength = geo.lt; % tooth length
-        dataSet.ToothLength = round(dataSet.ToothLength .*100) ./100;
-        dataSet.StatorSlotOpen = geo.acs; % stator slot open in [p.u.]
-        dataSet.StatorSlotOpen = round(dataSet.StatorSlotOpen .*100) ./100;
-        dataSet.ToothWidth = geo.wt; % Bgap/Btooth (determines tooth width^-1, yoke width^-1)
-        dataSet.ToothWidth = round(dataSet.ToothWidth .*100) ./100;
-        dataSet.ToothTangDepth = geo.ttd; % tooth tang depth [mm]
-        dataSet.ToothTangDepth = round(dataSet.ToothTangDepth .*100) ./100;
-        dataSet.Br = round(mat.LayerMag.Br .*10000) ./10000; % Br
-        dataSet.Br = round(dataSet.Br .*100) ./100;
-        dataSet.ALPHApu = geo.dalpha_pu;
-        dataSet.ALPHApu = round(dataSet.ALPHApu .*100) ./100;
-        dataSet.PMdim   = round(geo.PMdim.*100)./100;
-        dataSet.betaPMshape = round(geo.betaPMshape.*100)./100;
-    else
-        dataSet.AirGapThickness = round(geo.g,2);
-        dataSet.AirGapRadius = round(geo.r,2);
-        dataSet.ToothLength = round(geo.lt,2);
-        dataSet.StatorSlotOpen = round(geo.acs,2);
-        dataSet.ToothWidth = round(geo.wt,2);
-        dataSet.ToothTangDepth = round(geo.ttd,2);
-        dataSet.Br = round(mat.LayerMag.Br,4); % Br
-        dataSet.Br = round(dataSet.Br,2);
-        dataSet.ALPHApu = round(geo.dalpha_pu,2);
-        dataSet.PMdim   = round(geo.PMdim,2);
-        dataSet.betaPMshape = round(geo.betaPMshape,2);
-    end
-    [dataSet] = SaveInformation(geo,mat,dataSet);
-    
+%     if isoctave()                       %OCT
+%         dataSet.AirGapThickness = geo.g; % airgap thickness
+%         dataSet.AirGapThickness = round(dataSet.AirGapThickness .*100) ./100;
+%         dataSet.AirGapRadius = geo.r; % machine airgap radius
+%         dataSet.AirGapRadius = round(dataSet.AirGapRadius .*100) ./100;
+%         dataSet.ToothLength = geo.lt; % tooth length
+%         dataSet.ToothLength = round(dataSet.ToothLength .*100) ./100;
+%         dataSet.StatorSlotOpen = geo.acs; % stator slot open in [p.u.]
+%         dataSet.StatorSlotOpen = round(dataSet.StatorSlotOpen .*100) ./100;
+%         dataSet.ToothWidth = geo.wt; % Bgap/Btooth (determines tooth width^-1, yoke width^-1)
+%         dataSet.ToothWidth = round(dataSet.ToothWidth .*100) ./100;
+%         dataSet.ToothTangDepth = geo.ttd; % tooth tang depth [mm]
+%         dataSet.ToothTangDepth = round(dataSet.ToothTangDepth .*100) ./100;
+%         dataSet.Br = round(mat.LayerMag.Br .*10000) ./10000; % Br
+%         dataSet.Br = round(dataSet.Br .*100) ./100;
+%         dataSet.ALPHApu = geo.dalpha_pu;
+%         dataSet.ALPHApu = round(dataSet.ALPHApu .*100) ./100;
+%         dataSet.PMdim   = round(geo.PMdim.*100)./100;
+%         dataSet.betaPMshape = round(geo.betaPMshape.*100)./100;
+%     else
+%         dataSet.AirGapThickness = round(geo.g,2);
+%         dataSet.AirGapRadius = round(geo.r,2);
+%         dataSet.ToothLength = round(geo.lt,2);
+%         dataSet.StatorSlotOpen = round(geo.acs,2);
+%         dataSet.ToothWidth = round(geo.wt,2);
+%         dataSet.ToothTangDepth = round(geo.ttd,2);
+%         dataSet.Br = round(mat.LayerMag.Br,4); % Br
+%         dataSet.Br = round(dataSet.Br,2);
+%         dataSet.ALPHApu = round(geo.dalpha_pu,2);
+%         dataSet.PMdim   = round(geo.PMdim,2);
+%         dataSet.betaPMshape = round(geo.betaPMshape,2);
+%     end
+%     [dataSet] = SaveInformation(geo,mat,dataSet);
+
+    dataSet.AirGapThickness = round(geo.g.*100)./100;
+    dataSet.AirGapRadius    = round(geo.r.*100)./100;
+    dataSet.ToothLength     = round(geo.lt.*100)./100;
+    dataSet.StatorSlotOpen  = round(geo.acs.*100)./100;
+    dataSet.ToothWidth      = round(geo.wt.*100)./100;
+    dataSet.ToothTangDepth  = round(geo.ttd.*100)./100;
+    dataSet.Br              = round(mat.LayerMag.Br.*100)./100;
+    dataSet.ALPHApu         = round(geo.dalpha_pu.*100)./100;
+    dataSet.HCpu            = round(geo.hc_pu.*100)./100;
+    dataSet.DepthOfBarrier  = round(geo.dx.*100)./100;
+    dataSet.betaPMshape     = round(geo.betaPMshape.*100)./100;
+    dataSet.thetaFBS        = round(geo.th_FBS*180/pi*100)/100;
+    dataSet.TanRibEdit      = round(geo.pontT.*100)./100;
+    dataSet.RadRibEdit      = round(geo.pontR.*100)./100;
+    dataSet.RotorFilletIn   = round(geo.RotorFillet1.*100)./100;
+    dataSet.RotorFilletOut  = round(geo.RotorFillet2.*100)./100;
+    dataSet.RotorFilletTan1 = round(geo.RotorFilletTan1.*100)./100;
+    dataSet.RotorFilletTan2 = round(geo.RotorFilletTan2.*100)./100;
+    dataSet.PMdim           = round(geo.PMdim.*100)./100;
+    dataSet.DepthOfBarrier  = round(geo.dx.*100)./100;
+    dataSet.CentralShrink   = round(geo.hcShrink.*100)./100;
+    dataSet.RadShiftInner   = round(geo.dxIB.*100)./100;
+    dataSet.betaPMshape     = round(geo.betaPMshape.*100)./100;
+    dataSet.gammaPP         = round(gamma.*100)./100;
+
+    dataSet.RQ              = geo.RQ;
+
     if strcmp(geo.RotType,'SPM')
         dataSet.ThicknessOfPM = geo.hc_pu;
     else
         dataSet.HCpu = geo.hc_pu;
     end
-    if isoctave()                                           %OCT
-        dataSet.HCpu = round(dataSet.HCpu .*100) ./100;
-        dataSet.DepthOfBarrier = geo.dx;                    % the depth of the barriers radial-wise in per unit
-        dataSet.DepthOfBarrier = round(dataSet.DepthOfBarrier .*100) ./100;
-    else
-        dataSet.HCpu = round(dataSet.HCpu,2);
-        dataSet.DepthOfBarrier = round(geo.dx,2);
-    end
-    dataSet.RQ = geo.RQ;
+%     if isoctave()                                           %OCT
+%         dataSet.HCpu = round(dataSet.HCpu .*100) ./100;
+%         dataSet.DepthOfBarrier = geo.dx;                    % the depth of the barriers radial-wise in per unit
+%         dataSet.DepthOfBarrier = round(dataSet.DepthOfBarrier .*100) ./100;
+%     else
+%         dataSet.HCpu = round(dataSet.HCpu,2);
+%         dataSet.DepthOfBarrier = round(geo.dx,2);
+%     end
+%     dataSet.RQ = geo.RQ;
     
     if isoctave()  %OCT
         name_file = strcat(pathname, '\mot_', mot_index, '.mat');

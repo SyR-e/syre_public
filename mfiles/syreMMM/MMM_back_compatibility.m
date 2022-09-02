@@ -96,8 +96,13 @@ if ~isfield(motorModel,'WaveformSetup')
 end
 
 if ~isfield(motorModel.data,'R')
-    motorModel.data.R  = motorModel.dataSet.StatorOuterRadius;
-    motorModel.scale.R = motorModel.dataSet.StatorOuterRadius;
+    if ~isempty(motorModel.dataSet)
+        motorModel.data.R  = motorModel.dataSet.StatorOuterRadius;
+        motorModel.scale.R = motorModel.dataSet.StatorOuterRadius;
+    else
+        motorModel.data.R = motorModel.data.l;
+        motorModel.scale.R = motorModel.data.R;
+    end
     flag = 1;
     if Dflag
         disp('- Added radial scaling');
@@ -105,10 +110,14 @@ if ~isfield(motorModel.data,'R')
 end
 
 if ~isfield(motorModel.data,'lend')
-    if ~isfield(motorModel.dataSet,'EndWindingsLength')
-        motorModel.dataSet.EndWindingsLength = calc_endTurnLength(motorModel.geo);
+    if ~isempty(motorModel.dataSet)
+        if ~isfield(motorModel.dataSet,'EndWindingsLength')
+            motorModel.dataSet.EndWindingsLength = calc_endTurnLength(motorModel.geo);
+        end
+        motorModel.data.lend  = motorModel.dataSet.EndWindingsLength;
+    else
+        motorModel.data.lend  = motorModel.data.l/3;
     end
-    motorModel.data.lend  = motorModel.dataSet.EndWindingsLength;
     flag = 1;
     if Dflag
         disp('- Added end-winding input');
@@ -169,6 +178,50 @@ if ~isfield(motorModel,'Thermal')
     if Dflag
         disp('- Added thermal section');
     end
+end
+
+% Custom geometry
+if isfield(motorModel,'dataSet')
+    if ~isfield(motorModel.dataSet,'custom')
+        motorModel.dataSet.pShape.rotor  = [];
+        motorModel.dataSet.pShape.stator = [];
+        motorModel.dataSet.pShape.magnet = [];
+        motorModel.dataSet.pShape.slot   = [];
+        motorModel.dataSet.pShape.flag   = 0;
+        motorModel.dataSet.custom        = 0;
+
+        if Dflag
+            disp('- Added Custom Geometry Mass Computation')
+        end
+        flag=1;
+    end
+end
+
+% Thermal -Interpolate Flux Maps with PM temperature
+if ~isfield(motorModel.Thermal,'interpTempPM')
+    motorModel.Thermal.interpTempPM = 0;
+    if Dflag
+        disp('- Added Flux Maps Interpolation with PM temperature')
+    end
+    flag=1;
+end
+
+% Interpolate Flux Maps with PM temperature
+if ~isfield(motorModel.data,'targetPMtemp')
+    motorModel.data.targetPMtemp = 80;
+    if Dflag
+        disp('- Added Flux Maps Interpolation with PM temperature')
+    end
+    flag=1;
+end
+
+% Added model type in syreDrive (Andrei Bojoi MSc Thesis)
+if ~isfield(motorModel.SyreDrive,'modelType')
+    motorModel.SyreDrive.modelType = 'Average';
+     if Dflag
+        disp('- Added model type in syreDrive')
+    end
+    flag=1;
 end
 
 

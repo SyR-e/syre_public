@@ -34,32 +34,36 @@ load([dataIn.currentpathname dataIn.currentfilename]);
 
 RatedCurrent = dataIn.RatedCurrent;
 CurrLoPP = dataIn.CurrLoPP;
-SimulatedCurrent = dataIn.SimulatedCurrent;
+%SimulatedCurrent = dataIn.SimulatedCurrent;
+SimulatedCurrent = RatedCurrent*CurrLoPP;
 GammaPP  = dataIn.GammaPP;
 BrPP = dataIn.BrPP;
 NumOfRotPosPP = dataIn.NumOfRotPosPP;
 AngularSpanPP = dataIn.AngularSpanPP;
-NumGrid = dataIn.NumGrid;
+per.flag3phaseSet = dataIn.Active3PhaseSets;
+
 
 per.EvalSpeed = dataIn.EvalSpeed;
 
 clc;
 
-if ~isfield(dataSet,'axisType')
-    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
-        dataSet.axisType = 'PM';
+if ~isfield(geo,'axisType')
+    if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+        geo.axisType = 'PM';
     else
-        dataSet.axisType = 'SR';
+        geo.axisType = 'SR';
     end
 end
 
-if ~strcmp(dataSet.axisType,dataIn.axisType)
-    if strcmp(dataSet.axisType,'PM')
-        geo.th0 = geo.th0 + 90;
-    else
+if ~strcmp(geo.axisType,dataIn.axisType)
+    geo.axisType = dataIn.axisType;
+    if strcmp(geo.axisType,'PM')
         geo.th0 = geo.th0 - 90;
+    else
+        geo.th0 = geo.th0 + 90;
     end
 end
+
 
 eval_type = dataIn.EvalType;
 

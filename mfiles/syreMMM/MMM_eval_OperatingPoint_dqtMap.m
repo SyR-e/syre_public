@@ -21,6 +21,7 @@ gamma     = motorModel.WaveformSetup.CurrAngle;
 motorName = motorModel.data.motorName;
 pathname  = motorModel.data.pathname;
 
+
 id = iAmp.*cosd(gamma);
 iq = iAmp.*sind(gamma);
 

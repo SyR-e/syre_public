@@ -34,8 +34,8 @@ load([dataIn.currentpathname dataIn.currentfilename]);
 
 RatedCurrent = dataIn.RatedCurrent;
 CurrLoPP = dataIn.CurrLoPP;
-SimulatedCurrent = dataIn.SimulatedCurrent;
-
+%SimulatedCurrent = dataIn.SimulatedCurrent;
+SimulatedCurrent = RatedCurrent*CurrLoPP;
 % GammaPP  = dataIn.GammaPP;
 BrPP = dataIn.BrPP;
 NumOfRotPosPP = dataIn.NumOfRotPosPP;
@@ -43,25 +43,28 @@ AngularSpanPP = dataIn.AngularSpanPP;
 NumGrid = dataIn.NumGrid;
 tempPP = dataIn.tempPP;
 
+per.flag3phaseSet = dataIn.Active3PhaseSets;
+
 per.EvalSpeed = dataIn.EvalSpeed;
 
 MapQuadrants = dataIn.MapQuadrants;
 
 clc;
 
-if ~isfield(dataSet,'axisType')
-    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
-        dataSet.axisType = 'PM';
+if ~isfield(geo,'axisType')
+    if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+        geo.axisType = 'PM';
     else
-        dataSet.axisType = 'SR';
+        geo.axisType = 'SR';
     end
 end
 
-if ~strcmp(dataSet.axisType,dataIn.axisType)
-    if strcmp(dataSet.axisType,'PM')
-        geo.th0 = geo.th0 + 90;
-    else
+if ~strcmp(geo.axisType,dataIn.axisType)
+    geo.axisType = dataIn.axisType;
+    if strcmp(geo.axisType,'PM')
         geo.th0 = geo.th0 - 90;
+    else
+        geo.th0 = geo.th0 + 90;
     end
 end
 
@@ -77,32 +80,10 @@ per.tempPP          = tempPP;
 
 % iAmp = dataIn.SimulatedCurrent;
 
-% flux map over a rectangular grid of (id,iq) combinations
-% switch length(SimulatedCurrent)
-%     case 1  % square domain
-%         if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
-%             idvect = linspace(-SimulatedCurrent,0,NumGrid);
-%             iqvect = linspace(0,SimulatedCurrent,NumGrid);
-%         else
-%             idvect = linspace(0,SimulatedCurrent,NumGrid);
-%             iqvect = linspace(0,SimulatedCurrent,NumGrid);
-%         end
-%     case 2  % rectangular domain
-%         if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
-%             idvect = linspace(-SimulatedCurrent(1),0,NumGrid);
-%             iqvect = linspace(0,SimulatedCurrent(2),NumGrid);
-%         else
-%             idvect = linspace(0,SimulatedCurrent(1),NumGrid);
-%             iqvect = linspace(0,SimulatedCurrent(2),NumGrid);
-%         end
-%     case 4  % CurrLoPP = [IdMin IdMax IqMin IqMax]
-%         idvect=linspace(SimulatedCurrent(1),SimulatedCurrent(2),NumGrid);
-%         iqvect=linspace(SimulatedCurrent(3),SimulatedCurrent(4),NumGrid);
-% end
-
 switch MapQuadrants
     case 1
-        if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
+        %if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')) || strcmp(dataSet.axisType,'PM')
+        if strcmp(geo.axisType,'PM')
             idvect = linspace(-SimulatedCurrent,0,NumGrid);
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
         else
@@ -110,7 +91,7 @@ switch MapQuadrants
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
         end
     case 2
-        if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
+        if strcmp(geo.axisType,'PM')
             idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
         else
@@ -118,13 +99,15 @@ switch MapQuadrants
             iqvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
         end
     case 4
-        if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype'))
-            idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
-            iqvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
-        else
-            idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
-            iqvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
-        end
+        idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
+        iqvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
+end
+
+if strcmp(dataIn.TypeOfRotor,'IM')
+    % remove the axis from the identification
+    iStep = SimulatedCurrent/(NumGrid-1);
+    idvect(idvect==0) = iStep/10;
+    iqvect(iqvect==0) = iStep/10;
 end
 
 
@@ -160,6 +143,7 @@ Fq   = zeros(size(Id));
 T    = zeros(size(Id));
 dT   = zeros(size(Id));
 dTpp = zeros(size(Id));
+SOL  = cell(size(Id));
 if isfield(OUT{1},'Pfes_h')
     Pfes_h = zeros(size(Id));
     Pfes_c = zeros(size(Id));
@@ -167,6 +151,16 @@ if isfield(OUT{1},'Pfes_h')
     Pfer_c = zeros(size(Id));
     Ppm    = zeros(size(Id));
     velDim = OUT{1,1}.velDim;
+end
+if isfield(OUT{1},'IM')
+    Ir      = zeros(size(Id));
+    Fdr     = zeros(size(Id));
+    Fqr     = zeros(size(Id));
+    kr      = zeros(size(Id));
+    Ibar    = cell(size(Id));
+    Vbar    = cell(size(Id));
+    Fbar    = cell(size(Id));
+    FbarTot = cell(size(Id));
 end
 
 for ii=1:length(Id)
@@ -183,6 +177,17 @@ for ii=1:length(Id)
         Pfer_h(ii) = OUT{ii}.Pfer_h;
         Pfer_c(ii) = OUT{ii}.Pfer_c;
         Ppm(ii)    = OUT{ii}.Ppm;
+    end
+
+    if isfield(OUT{ii},'IM')
+        Ir(ii)      = OUT{ii}.IM.ir;
+        Fdr(ii)     = OUT{ii}.IM.fdr;
+        Fqr(ii)     = OUT{ii}.IM.fqr;
+        kr(ii)      = OUT{ii}.IM.kr;
+        Ibar{ii}    = OUT{ii}.IM.Ibar;
+        Vbar{ii}    = OUT{ii}.IM.Vbar;
+        Fbar{ii}    = OUT{ii}.IM.Fbar;
+        FbarTot{ii} = OUT{ii}.IM.FbarTot;
     end
 end
 
@@ -203,6 +208,17 @@ if isfield(OUT{1},'Pfes_h')
     Ppm    = reshape(Ppm,[nR,nC]);
 end
 
+if isfield(OUT{1},'IM')
+    Ir      = reshape(Ir,[nR,nC]);
+    Fdr     = reshape(Fdr,[nR,nC]);
+    Fqr     = reshape(Fqr,[nR,nC]);
+    kr      = reshape(kr,[nR,nC]);
+    Ibar    = reshape(Ibar,[nR,nC]);
+    Vbar    = reshape(Vbar,[nR,nC]);
+    Fbar    = reshape(Fbar,[nR,nC]);
+    FbarTot = reshape(FbarTot,[nR,nC]);
+end
+
 
 F_map.Id   = Id;
 F_map.Iq   = Iq;
@@ -212,7 +228,7 @@ F_map.T    = T;
 F_map.dT   = dT;
 F_map.dTpp = dTpp;
 
-if exist('Pfes_h')
+if exist('Pfes_h','var')
     F_map.Pfes_h = Pfes_h;
     F_map.Pfes_c = Pfes_c;
     F_map.Pfer_h = Pfer_h;
@@ -220,6 +236,21 @@ if exist('Pfes_h')
     F_map.Ppm    = Ppm;
     F_map.Pfe    = Pfes_h+Pfes_c+Pfer_h+Pfer_c;
     F_map.velDim = velDim;
+end
+
+if exist('Ir','var')
+    F_map.IM.Ir  = Ir;
+    F_map.IM.Fdr = Fdr;
+    F_map.IM.Fqr = Fqr;
+    F_map.IM.kr  = kr;
+
+    F_map.bar.I    = Ibar;
+    F_map.bar.V    = Vbar;
+    F_map.bar.F    = Fbar;
+    F_map.bar.Ftot = FbarTot;
+
+    [F_map] = elab_Fmap_IM(F_map,geo,per);
+
 end
 
 % results folder
@@ -261,8 +292,7 @@ else
 end
 
 % interp and then plots the magnetic curves
-[pathname,filename,ext] = fileparts(filemot);
-plot_singm(F_map,NewDir,filename);
+plot_singm(F_map,NewDir);
 
 % add motor information to flux map files
 dataSet.RatedCurrent     = RatedCurrent;

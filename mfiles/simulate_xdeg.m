@@ -25,13 +25,20 @@ function [SOL] = simulate_xdeg(geo,per,mat,eval_type,pathname,filename)
 % NB: pathname with final slash
 % eval type determines number of simulated positions
 
-gamma   = per.gamma;
-th0     = geo.th0;
-p       = geo.p;
-ps      = geo.ps;
-n3phase = geo.win.n3phase; %AS number of 3-phase circuits
-Nbob    = geo.win.Nbob;
-l       = geo.l;
+gamma      = per.gamma;
+th0        = geo.th0;
+p          = geo.p;
+ps         = geo.ps;
+n3phase    = geo.win.n3phase; %AS number of 3-phase circuits
+Nbob       = geo.win.Nbob;
+l          = geo.l;
+
+if isfield(per,'flag3phaseSet')
+    flag3phSet = per.flag3phaseSet;
+else
+    flag3phSet = ones(1,n3phase);
+end
+
 if isfield(geo,'slidingGap')
     flagSG=1;
 else
@@ -250,7 +257,8 @@ end
 for jj = 1:nsim
     % assign the phase current values to the FEMM circuits
     for ik=0:(n3phase-1)
-        if geo.win.avv_flag((3*ik)+1)==1 && geo.win.avv_flag((3*ik)+2)==1 && geo.win.avv_flag((3*ik)+3)==1
+        if flag3phSet(ik+1)
+        %if geo.win.avv_flag((3*ik)+1)==1 && geo.win.avv_flag((3*ik)+2)==1 && geo.win.avv_flag((3*ik)+3)==1
             % healthy winding set
             %             i123 = dq2abc(id,iq,thetaPark(jj)*pi/180,n3phase,ik);
             %             i123 = dq2abc(id,iq,(thetaPark(jj)-ik*60/n3phase)*pi/180); % AS version
@@ -266,11 +274,11 @@ for jj = 1:nsim
             end
         else
             % open-circuit winding set
-            if geo.win.avv_flag((3*ik)+1)==0 && geo.win.avv_flag((3*ik)+2)==0 && geo.win.avv_flag((3*ik)+3)==0
-                i_tmp((3*ik)+1,jj) = 0;
-                i_tmp((3*ik)+2,jj) = 0;
-                i_tmp((3*ik)+3,jj) = 0;
-            end
+            %if geo.win.avv_flag((3*ik)+1)==0 && geo.win.avv_flag((3*ik)+2)==0 && geo.win.avv_flag((3*ik)+3)==0
+            i_tmp((3*ik)+1,jj) = 0;
+            i_tmp((3*ik)+2,jj) = 0;
+            i_tmp((3*ik)+3,jj) = 0;
+            %end
         end
         
         phase_name{3*ik+1}=strcat('fase',num2str(3*ik+1));

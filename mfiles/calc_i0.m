@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [per] = calc_i0(geo,per)
+function [per] = calc_i0(geo,per,mat)
 % Computation of the rated current and phase resistance from loss, thermal loading or slot
 % current density
 
@@ -32,7 +32,14 @@ q     = geo.q;              % number of slot per pole per phase
 
 tempCu = per.tempcu;        % target copper temperature [°C]
 
-rocu = (1.7241e-08)*(234.5+tempCu)/(234.5+20);
+if exist('mat','var')
+    ro0 = 1/mat.SlotCond.sigma;
+    alphaCond = mat.SlotCond.alpha;
+    rocu = ro0*(1+alphaCond*(tempCu-20));
+else
+    rocu = (1.7241e-08)*(234.5+tempCu)/(234.5+20);
+    warning('Copper windings computation');
+end
 Aslots = Aslot*(6*p*q*n3ph);
 
 

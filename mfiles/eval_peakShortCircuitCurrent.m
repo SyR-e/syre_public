@@ -22,26 +22,28 @@ end
 
 load([dataIn.currentpathname dataIn.currentfilename])
 
-if ~isfield(dataSet,'axisType')
-    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
-        dataSet.axisType = 'PM';
+if ~isfield(geo,'axisType')
+    if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+        geo.axisType = 'PM';
     else
-        dataSet.axisType = 'SR';
+        geo.axisType = 'SR';
     end
 end
 
-if ~strcmp(dataSet.axisType,dataIn.axisType)
-    if strcmp(dataSet.axisType,'PM')
-        geo.th0 = geo.th0 + 90;
-    else
+if ~strcmp(geo.axisType,dataIn.axisType)
+    geo.axisType = dataIn.axisType;
+    if strcmp(geo.axisType,'PM')
         geo.th0 = geo.th0 - 90;
+    else
+        geo.th0 = geo.th0 + 90;
     end
 end
 
 % update loaded dataSet fields with GUI dataSet (dataIn) fields
 dataSet.RatedCurrent     = dataIn.RatedCurrent;
 dataSet.CurrLoPP         = dataIn.CurrLoPP;
-dataSet.SimulatedCurrent = dataIn.SimulatedCurrent;
+% dataSet.SimulatedCurrent = dataIn.SimulatedCurrent;
+dataSet.SimulatedCurrent = dataSet.RatedCurrent*dataSet.CurrLoPP;
 dataSet.GammaPP          = dataIn.GammaPP;
 dataSet.BrPP             = dataIn.BrPP;
 dataSet.tempPP           = dataIn.tempPP;
@@ -55,12 +57,13 @@ dataSet.currentfilename = dataIn.currentfilename;
 filename = dataSet.currentfilename;
 pathname = dataSet.currentpathname;
 
+axes_type  = geo.axisType; 
 
-if (strcmp(dataSet.TypeOfRotor,'SPM')||strcmp(dataSet.TypeOfRotor,'Vtype'))
-    axes_type='PM';
-else
-    axes_type='SR';
-end
+% if strcmp(geo.axisType,'PM')
+%     axes_type='PM';
+% else
+%     axes_type='SR';
+% end
 
 % create result folder
 outFolder = [filename(1:end-4) '_results\FEA results\'];

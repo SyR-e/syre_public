@@ -129,6 +129,34 @@ MTPV.iq = iq;
 % MPFPA
 [id,iq] = calcOptCtrl(Id,Iq,PF,abs(Id+j*Iq),axisType);
 
+if strcmp(motorModel.data.axisType,'SR')
+    index = find(id==max(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(id==min(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==max(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==min(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+else
+    index = find(id==max(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(id==min(Id,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==max(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(iq==min(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+end
+
 MPFPA.id = id;
 MPFPA.iq = iq;
 

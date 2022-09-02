@@ -50,8 +50,11 @@ for kk=1:length(BLKLABELSstat.xy(:,1))
     elseif BLKLABELSstat.xy(kk,3)==3 %Copper
         if avv(ll,ss) > 0
             fase = ['fase' num2str(abs(avv(ll,ss)))];
+            dir = 1;
         else
-            fase = ['fase' num2str(abs(avv(ll,ss))) 'n'];
+            %fase = ['fase' num2str(abs(avv(ll,ss))) 'n'];
+            fase = ['fase' num2str(abs(avv(ll,ss)))];
+            dir = -1;
         end
         
         ll=ll+1;
@@ -62,7 +65,7 @@ for kk=1:length(BLKLABELSstat.xy(:,1))
         
         mi_addblocklabel(BLKLABELSstat.xy(kk,1),BLKLABELSstat.xy(kk,2));
         mi_selectlabel(BLKLABELSstat.xy(kk,1),BLKLABELSstat.xy(kk,2));
-        mi_setblockprop(BLKLABELS.materials{BLKLABELSstat.xy(kk,3)}, 0, fem.res,fase, 0, group, 0);
+        mi_setblockprop(BLKLABELS.materials{BLKLABELSstat.xy(kk,3)}, 0, fem.res, fase, 0, group, dir);
         %mi_setblockprop('Air', 0, fem.res,'None', 0, group, 0);
         mi_clearselected;
     elseif BLKLABELSstat.xy(kk,3)==4 %Iron stator

@@ -30,6 +30,8 @@ switch library
                  filename='materialLibrary\conductor_material.mat';
             case 'Layer'
                 filename='materialLibrary\layer_material.mat';
+            case 'Sleeve'
+                filename='materialLibrary\sleeve_material.mat';
         end
     case 'custom'
        switch type
@@ -39,6 +41,8 @@ switch library
                  filename='materialLibrary\custom_conductor.mat';
             case 'Layer'
                 filename='materialLibrary\custom_layer.mat';
+           case 'Sleeve'
+               filename='materialLibrary\custom_sleeve.mat';
         end
 end
 

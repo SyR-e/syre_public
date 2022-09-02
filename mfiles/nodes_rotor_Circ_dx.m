@@ -46,15 +46,23 @@ RotorFilletTan1(~isfinite(RotorFilletTan2)) =  NaN;
 RotorFilletTan2(~isfinite(RotorFilletTan1)) =  NaN;
 
 
-XcRibTraf1=zeros(1,nlay);
-XcRibTraf2=zeros(1,nlay);
-YcRibTraf1=zeros(1,nlay);
-YcRibTraf2=zeros(1,nlay);
-xxD1k=zeros(1,nlay);
-yyD1k=zeros(1,nlay);
-xxD2k=zeros(1,nlay);
-yyD2k=zeros(1,nlay);
+XcRibTraf1 = zeros(1,nlay);
+XcRibTraf2 = zeros(1,nlay);
+YcRibTraf1 = zeros(1,nlay);
+YcRibTraf2 = zeros(1,nlay);
+xxD1k      = zeros(1,nlay);
+yyD1k      = zeros(1,nlay);
+xxD2k      = zeros(1,nlay);
+yyD2k      = zeros(1,nlay);
 
+xcRac1 = nan(1,nlay);
+ycRac1 = nan(1,nlay);
+xxE1k  = nan(1,nlay);
+yyE1k  = nan(1,nlay);
+xcRac2 = nan(1,nlay);
+ycRac2 = nan(1,nlay);
+xxE2k  = nan(1,nlay);
+yyE2k  = nan(1,nlay);
 
 
 % CENTRO FITTIZIO DI COORDINATE (x0,0)
@@ -68,7 +76,7 @@ beta = 180/pi * calc_apertura_cerchio(pi/180*alpha,r,x0);
 % al centro di riferimento sono i punti mediani delle barriere, presi in
 % corrispondenza del traferro.
 
-rbeta = (x0 - r * cos(alpha*pi/180))./(cos(beta*pi/180)); 
+rbeta = (x0 - r * cos(alpha*pi/180))./(cos(beta*pi/180));
 % Di questi stessi punti, si calcolano anche le distanze dal centro (x0,0)
 % e le si memorizzano nel vettore rbeta.
 
@@ -118,10 +126,52 @@ for ii=1:nlay
 end
 
 % Barriers tips nodes (points 1 and 2 + centers)
-RotorFilletTan1 (RotorFilletTan1<pont0*ones(1,nlay) & isfinite(RotorFilletTan1)) = pont0;
-RotorFilletTan2 (RotorFilletTan2<pont0*ones(1,nlay) & isfinite(RotorFilletTan2)) = pont0;
-RotorFilletTan1 (RotorFilletTan1>geo.hc/2 & isfinite(RotorFilletTan1)) = geo.hc(RotorFilletTan1>geo.hc/2 & isfinite(RotorFilletTan1))/2;
-RotorFilletTan2 (RotorFilletTan2>geo.hc/2 & isfinite(RotorFilletTan2)) = geo.hc(RotorFilletTan2>geo.hc/2 & isfinite(RotorFilletTan2))/2;
+
+RotorFilletTan1(RotorFilletTan1<pont0) = pont0;
+RotorFilletTan2(RotorFilletTan2<pont0) = pont0;
+for ii=1:nlay
+    if RotorFilletTan1(ii)>hc(ii)*3/4
+        RotorFilletTan1(ii) = hc(ii)*3/4;
+        if RotorFilletTan2(ii)>hc(ii)*1/4-pont0
+            RotorFilletTan2(ii) = hc(ii)/4-pont0;
+        end
+    end
+    deltaTot = (RotorFilletTan2(ii)+RotorFilletTan1(ii))-hc(ii)+2*pont0;
+    if deltaTot>0
+        RotorFilletTan2(ii) = RotorFilletTan2(ii)-deltaTot*RotorFilletTan2(ii)/(RotorFilletTan2(ii)+RotorFilletTan1(ii));
+        RotorFilletTan1(ii) = RotorFilletTan1(ii)-deltaTot*RotorFilletTan1(ii)/(RotorFilletTan1(ii)+RotorFilletTan1(ii));
+        if RotorFilletTan2(ii)<pont0
+            RotorFilletTan2(ii) = pont0;
+        end
+        if RotorFilletTan1(ii)<pont0
+            RotorFilletTan1(ii) = pont0;
+        end
+    end
+
+end
+
+
+
+% RotorFilletTan1(RotorFilletTan1<pont0) = pont0;
+% RotorFilletTan2(RotorFilletTan2<pont0) = pont0;
+% RotorFilletTan2(RotorFilletTan2>hc/2)  = hc(RotorFilletTan2>hc/2)/2;
+% index = RotorFilletTan1>(2/3*hc);
+% RotorFilletTan1(index) = 2/3*hc(index);
+% RotorFilletTan2(index) = pont0;
+% index = (RotorFilletTan1+RotorFilletTan2)>(hc-pont0*1.5);
+% RotorFilletTan1(index) = hc(index)-2*pont0;
+% RotorFilletTan2(index) = pont0;
+
+% index = (RotorFilletTan1+RotorFilletTan2)>hc*0.8;
+% RotorFilletTan1(index) = hc(index)*0.8-pont0*2;
+% RotorFilletTan2(index) = pont0;
+
+
+
+% RotorFilletTan1 (RotorFilletTan1<pont0*ones(1,nlay) & isfinite(RotorFilletTan1)) = pont0;
+% RotorFilletTan2 (RotorFilletTan2<pont0*ones(1,nlay) & isfinite(RotorFilletTan2)) = pont0;
+% RotorFilletTan1 (RotorFilletTan1>geo.hc/2 & isfinite(RotorFilletTan1)) = geo.hc(RotorFilletTan1>geo.hc/2 & isfinite(RotorFilletTan1))/2;
+% RotorFilletTan2 (RotorFilletTan2>geo.hc/2 & isfinite(RotorFilletTan2)) = geo.hc(RotorFilletTan2>geo.hc/2 & isfinite(RotorFilletTan2))/2;
 
 for ii=1:nlay
     if LowDimBarrier(ii)==1
@@ -130,20 +180,18 @@ for ii=1:nlay
         xxD2k(ii)=B2k(ii);
         yyD2k(ii)=0;
     else
-
-        if ~(isfinite(RotorFilletTan1(ii)) & isfinite(RotorFilletTan2(ii)))
-            [xt,yt,xc,yc,rc]=cir_tg_2cir(xpont(ii),ypont(ii),r-pontT(ii),x0,0,x0-B1k(ii));
+        if ~(isfinite(RotorFilletTan1(ii)) && isfinite(RotorFilletTan2(ii))) % classical ribs shape (finger)
+            [xt,yt,xc,yc,~]=cir_tg_2cir(xpont(ii),ypont(ii),r-pontT(ii),x0,0,x0-B1k(ii));
             xxD1k(ii)=xt;      % D1: end of outer semi arc
             yyD1k(ii)=yt;
             XcRibTraf1(ii)=xc; % center of semi arc 1
             YcRibTraf1(ii)=yc;
-            [xt,yt,xc,yc,rc]=cir_tg_2cir(xpont(ii),ypont(ii),r-pontT(ii),x0,0,x0-B2k(ii));
+            [xt,yt,xc,yc,~]=cir_tg_2cir(xpont(ii),ypont(ii),r-pontT(ii),x0,0,x0-B2k(ii));
             xxD2k(ii)=xt;      % D2: end of inner semi arc
             yyD2k(ii)=yt;
             XcRibTraf2(ii)=xc; % center of semi arc 2
             YcRibTraf2(ii)=yc;
-            
-        else
+        else % straight ribs, with fillets
             [xtemp,ytemp] = calc_intersezione_cerchi(r-pontT(ii)-RotorFilletTan1(ii),x0-B1k(ii)-RotorFilletTan1(ii),x0);
             xcRac1(ii) = real(xtemp);
             ycRac1(ii) = real(ytemp);
@@ -153,6 +201,19 @@ for ii=1:nlay
             [xtemp,ytemp]=intersezione_cerchi(xcRac1(ii),ycRac1(ii),RotorFilletTan1(ii),0,0,r-pontT(ii));
             xxE1k(ii)=real(xtemp(2));
             yyE1k(ii)=real(ytemp(2));
+
+            if isnan(xxD1k(ii))
+                RotorFilletTan1(ii) = pont0;
+                [xtemp,ytemp] = calc_intersezione_cerchi(r-pontT(ii)-RotorFilletTan1(ii),x0-B1k(ii)-RotorFilletTan1(ii),x0);
+                xcRac1(ii) = real(xtemp);
+                ycRac1(ii) = real(ytemp);
+                [xtemp,ytemp]=intersezione_cerchi(xcRac1(ii),ycRac1(ii),RotorFilletTan1(ii),x0,0,x0-B1k(ii));
+                xxD1k(ii)=real(xtemp(2));
+                yyD1k(ii)=real(ytemp(2));
+                [xtemp,ytemp]=intersezione_cerchi(xcRac1(ii),ycRac1(ii),RotorFilletTan1(ii),0,0,r-pontT(ii));
+                xxE1k(ii)=real(xtemp(2));
+                yyE1k(ii)=real(ytemp(2));
+            end
 
             [xtemp,ytemp] = calc_intersezione_cerchi(r-pontT(ii)-RotorFilletTan2(ii),x0-B2k(ii)+RotorFilletTan2(ii),x0);
             xcRac2(ii) = real(xtemp);
@@ -164,49 +225,83 @@ for ii=1:nlay
             xxE2k(ii)=real(xtemp(2));
             yyE2k(ii)=real(ytemp(2));
 
-            temp.xcRac1 = xcRac1;
-            temp.ycRac1 = ycRac1;
-            temp.xxE1k = xxE1k;
-            temp.yyE1k = yyE1k;
-            temp.xcRac2 = xcRac2;
-            temp.ycRac2 = ycRac2;
-            temp.xxE2k = xxE2k;
-            temp.yyE2k = yyE2k;
+            if isnan(xxD2k(ii))
+                RotorFilletTan2(ii) = pont0;
+                [xtemp,ytemp] = calc_intersezione_cerchi(r-pontT(ii)-RotorFilletTan2(ii),x0-B2k(ii)+RotorFilletTan2(ii),x0);
+                xcRac2(ii) = real(xtemp);
+                ycRac2(ii) = real(ytemp);
+                [xtemp,ytemp]=intersezione_cerchi(xcRac2(ii),ycRac2(ii),RotorFilletTan2(ii),x0,0,x0-B2k(ii));
+                xxD2k(ii)=real(xtemp(2));
+                yyD2k(ii)=real(ytemp(2));
+                [xtemp,ytemp]=intersezione_cerchi(xcRac2(ii),ycRac2(ii),RotorFilletTan2(ii),0,0,r-pontT(ii));
+                xxE2k(ii)=real(xtemp(2));
+                yyE2k(ii)=real(ytemp(2));
+            end
+
+            if yyE2k(ii)>=yyE1k(ii)
+                RotorFilletTan1(ii) = hc(ii)/2;
+                RotorFilletTan2(ii) = hc(ii)/2;
+
+                [xtemp,ytemp] = calc_intersezione_cerchi(r-pontT(ii)-RotorFilletTan1(ii),x0-B1k(ii)-RotorFilletTan1(ii),x0);
+                xcRac1(ii) = real(xtemp);
+                ycRac1(ii) = real(ytemp);
+                [xtemp,ytemp]=intersezione_cerchi(xcRac1(ii),ycRac1(ii),RotorFilletTan1(ii),x0,0,x0-B1k(ii));
+                xxD1k(ii)=real(xtemp(2));
+                yyD1k(ii)=real(ytemp(2));
+                [xtemp,ytemp]=intersezione_cerchi(xcRac1(ii),ycRac1(ii),RotorFilletTan1(ii),0,0,r-pontT(ii));
+                xxE1k(ii)=real(xtemp(2));
+                yyE1k(ii)=real(ytemp(2));
+
+                [xtemp,ytemp] = calc_intersezione_cerchi(r-pontT(ii)-RotorFilletTan2(ii),x0-B2k(ii)+RotorFilletTan2(ii),x0);
+                xcRac2(ii) = real(xtemp);
+                ycRac2(ii) = real(ytemp);
+                [xtemp,ytemp]=intersezione_cerchi(xcRac2(ii),ycRac2(ii),RotorFilletTan2(ii),x0,0,x0-B2k(ii));
+                xxD2k(ii)=real(xtemp(2));
+                yyD2k(ii)=real(ytemp(2));
+                [xtemp,ytemp]=intersezione_cerchi(xcRac2(ii),ycRac2(ii),RotorFilletTan2(ii),0,0,r-pontT(ii));
+                xxE2k(ii)=real(xtemp(2));
+                yyE2k(ii)=real(ytemp(2));
+            end
+
 
         end
     end
 end
 
-temp.B1k=B1k;
-temp.B2k=B2k;
-temp.Bx0=Bx0;
+temp.B1k = B1k;
+temp.B2k = B2k;
+temp.Bx0 = Bx0;
 
-[temp,geo] = calc_ribs_rad_fun(geo,mat,temp);
+temp.xxD1k = xxD1k;
+temp.yyD1k = yyD1k;
+temp.xxD2k = xxD2k;
+temp.yyD2k = yyD2k;
 
-% Points for radial ribs
-XpontRadDx    = temp.XpontRadDx;
-YpontRadDx    = temp.YpontRadDx;
-XpontRadSx    = temp.XpontRadSx;
-YpontRadSx    = temp.YpontRadSx;
-XpontRadBarDx = temp.XpontRadBarDx;
-XpontRadBarSx = temp.XpontRadBarSx;
-YpontRadBarDx = temp.YpontRadBarDx;
-YpontRadBarSx = temp.YpontRadBarSx;
+temp.xcRac1 = xcRac1;
+temp.ycRac1 = ycRac1;
+temp.xxE1k  = xxE1k;
+temp.yyE1k  = yyE1k;
+temp.xcRac2 = xcRac2;
+temp.ycRac2 = ycRac2;
+temp.xxE2k  = xxE2k;
+temp.yyE2k  = yyE2k;
+
+[temp,geo] = calc_ribs_rad_Circ(geo,mat,temp);
 
 temp.xc=(xxD1k+xxD2k)/2;
 temp.yc=(yyD1k+yyD2k)/2;
 
 % Determining  Magnet Area
-temp.xpont=xpont;
-temp.ypont=ypont;
-temp.xxD1k=xxD1k;
-temp.yyD1k=yyD1k;
-temp.xxD2k=xxD2k;
-temp.yyD2k=yyD2k;
-temp.XcRibTraf1=XcRibTraf1;
-temp.YcRibTraf1=YcRibTraf1;
-temp.XcRibTraf2=XcRibTraf2;
-temp.YcRibTraf2=YcRibTraf2;
+temp.xpont      = xpont;
+temp.ypont      = ypont;
+temp.xxD1k      = xxD1k;
+temp.yyD1k      = yyD1k;
+temp.xxD2k      = xxD2k;
+temp.yyD2k      = yyD2k;
+temp.XcRibTraf1 = XcRibTraf1;
+temp.YcRibTraf1 = YcRibTraf1;
+temp.XcRibTraf2 = XcRibTraf2;
+temp.YcRibTraf2 = YcRibTraf2;
 
 [geo,mat,temp] = PMdefinition_Circ(geo,mat,temp);
 
@@ -240,4 +335,22 @@ geo.yyD2k=yyD2k;
 geo.hc=hc;
 geo.RotorFilletTan1 = RotorFilletTan1;
 geo.RotorFilletTan2 = RotorFilletTan2;
+
+geo.XpontRadDx      = temp.XpontRadDx;
+geo.YpontRadDx      = temp.YpontRadDx;
+geo.XpontRadSx      = temp.XpontRadSx;
+geo.YpontRadSx      = temp.YpontRadSx;
+geo.XpontRadBarDx   = temp.XpontRadBarDx;
+geo.XpontRadBarSx   = temp.XpontRadBarSx;
+geo.YpontRadBarDx   = temp.YpontRadBarDx;
+geo.YpontRadBarSx   = temp.YpontRadBarSx;
+
+geo.XpontSplitBarSx =  temp.XpontSplitBarSx;
+geo.YpontSplitBarSx =  temp.YpontSplitBarSx;
+geo.XpontSplitBarDx =  temp.XpontSplitBarDx;
+geo.YpontSplitBarDx =  temp.YpontSplitBarDx;
+geo.XpontSplitDx    =  temp.XpontSplitDx;
+geo.YpontSplitDx    =  temp.YpontSplitDx;
+geo.XpontSplitSx    =  temp.XpontSplitSx;
+geo.YpontSplitSx    =  temp.YpontSplitSx;
 

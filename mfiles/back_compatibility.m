@@ -595,10 +595,10 @@ end
 % Rotor fillet value
 if ~isfield(dataSet,'RotorFillet')
     dataSet.RotorFillet = nan(1,dataSet.NumOfLayers);
-    if Dflag
-        disp('rev465 - added rotor fillet on GUI')
-    end
-    flag=1;
+%     if Dflag
+%         disp('rev465 - added rotor fillet on GUI')
+%     end
+%     flag=1;
 end
 
 % PM clearance
@@ -635,7 +635,7 @@ end
 % Radial Ribs parameters 
 if ~isfield(dataSet,'pontRangEdit')
     dataSet.pontRangEdit    = zeros(1,dataSet.NumOfLayers);
-    dataSet.pontRoffsetEdit = zeros(1,dataSet.NumOfLayers);
+    %dataSet.pontRoffsetEdit = zeros(1,dataSet.NumOfLayers);
     dataSet.RotorFilletRadEdit = dataSet.MinMechTol*ones(1,dataSet.NumOfLayers);
     if Dflag
         disp('2020 12 09 - Added improved radial ribs parameters')
@@ -875,7 +875,104 @@ if ~isfield(dataSet,'axisType')
     end
     flag=1;
 end
- 
+
+% Stator yoke factor (for syrmDesign)
+if ~isfield(dataSet,'StatorYokeFactor')
+    dataSet.StatorYokeFactor = 1;
+    if Dflag
+        disp('2021 12 01 - Added stator yoke factor to syrmDesign - updated yoke design')
+    end
+    flag=1;
+end
+
+% Fillets in the optimization variables list
+if ~isfield(dataSet,'FilletRad1Bou')
+    dataSet.FilletRad1Bou      = dataSet.MinMechTol*[1 2];
+    dataSet.FilletRad2Bou      = dataSet.MinMechTol*[1 2];
+    dataSet.FilletTan1Bou      = dataSet.MinMechTol*[1 2];
+    dataSet.FilletTan2Bou      = dataSet.MinMechTol*[1 2];
+    dataSet.FilletRad1BouCheck = 0;
+    dataSet.FilletRad2BouCheck = 0;
+    dataSet.FilletTan1BouCheck = 0;
+    dataSet.FilletTan2BouCheck = 0;
+    if Dflag
+        disp('2022 01 10 - Added ribs fillets to optimization')
+    end
+    flag=1;
+end
+
+% Stator yoke length
+if ~isfield(dataSet,'YokeLength')
+    dataSet.YokeLength = dataSet.StatorOuterRadius-dataSet.AirGapRadius-dataSet.AirGapThickness-dataSet.ToothLength;
+    if Dflag
+        disp('2022 01 27 - Added display of stator yoke length')
+    end
+    flag=1;
+end
+
+% Optimization Design or Refine
+if ~isfield(dataSet,'optType')
+    dataSet.optType = 'Design';
+    if Dflag
+        disp('2022 02 14 - Added optimization refinement')
+    end
+    flag = 1;
+end
+
+% betaPMshape size
+if size(dataSet.betaPMshape)~=dataSet.NumOfLayers
+    dataSet.betaPMshape = dataSet.betaPMshape(1)*ones(1,dataSet.NumOfLayers);
+    if Dflag
+        disp('2022 02 14 - Correct size of betaPMshape')
+    end
+    flag = 1;
+end
+
+% Definition of the active/non-active 3-phase sets
+if ~isfield(dataSet,'Active3PhaseSets')
+    dataSet.Active3PhaseSets = ones(1,dataSet.Num3PhaseCircuit);
+    if Dflag
+        disp('2022 04 06 - Added flag to activate / de-activate 3phase sets')
+    end
+    flag = 1;
+end
+
+% Induction motor
+if ~isfield(dataSet,'BarMaterial')
+    dataSet.BarMaterial            = 'Aluminium';
+    dataSet.NumOfRotorBars         = (6*dataSet.NumOfSlots+4)*dataSet.NumOfPolePairs;
+    dataSet.RotorToothWidth        = dataSet.ToothWidth;
+    dataSet.RotorToothLength       = dataSet.ToothLength;
+    dataSet.RotorSlotOpen          = dataSet.StatorSlotOpen;
+    dataSet.RotorToothTangDepth    = dataSet.ToothTangDepth;
+    dataSet.RotorSlotFilletTop     = dataSet.FilletCorner;
+    dataSet.RotorSlotFilletBottom  = dataSet.FilletCorner;
+    if Dflag
+        disp('2022 05 25 - Added Induction Motor Simulation')
+    end
+    flag = 1;
+end
+
+% Rotor sleeve thickness
+if ~isfield(dataSet,'SleeveThickness')
+    dataSet.SleeveThickness = 0;
+    dataSet.SleeveMaterial = 'DW235';
+    if Dflag
+        disp('2022 06 14 - Added Rotor Sleeve')
+    end
+    flag = 1;
+end
+
+% PM filling factor in syrmDesign
+if ~isfield(dataSet,'kPM')
+    dataSet.kPM = 1;
+    if Dflag
+        disp('2022 07 19 - added PM filling factor to syrmDesign')
+    end
+    flag=1;
+end
+
+
 %%% Remove V-type geometry
 % if strcmp(geo.RotType,'V-type')
 %     geo.RotType = 'Seg';
@@ -954,9 +1051,14 @@ if isfield(dataSet,'RotorFillet')
     flagClear = 1;
 end
 
-if flagClear && Dflag
-    disp('Removed old dataSet fields')
+if isfield(dataSet,'pontRoffsetEdit')
+    dataSet = rmfield(dataSet,'pontRoffsetEdit');
+    flagClear = 1;
 end
+
+% if flagClear && Dflag
+%     disp('Removed old dataSet fields')
+% end
 
 if ~isfield(dataSet,'RMVTmp')
     dataSet.RMVTmp = 'ON';
@@ -983,6 +1085,7 @@ if flag && Dflag
     msg = 'This project was created with an older version of SyR-e: proceed to SAVE MACHINE to update to latest version';
     title = 'WARNING';
 %     f = warndlg(msg,title,'modal');
+    disp(msg)
 end
 
 end

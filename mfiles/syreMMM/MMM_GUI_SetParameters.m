@@ -21,7 +21,6 @@ motorModelUnScale = app.motorModelUnScale;
 motorModelUnSkew  = app.motorModelUnSkew;
 
 
-
 % main data
 % set(app.CurrentPathEditField,...
 %     'Value',motorModel.data.pathname,...
@@ -33,6 +32,7 @@ motorModelUnSkew  = app.motorModelUnSkew;
 
 % motor data
 set(app.MotornameEditField,'Value',data.motorName)
+set(app.PathnameEditField,'Value',data.pathname)
 set(app.Numberof3phasesetsEditField,...
     'Value',int2str(data.n3phase),...
     'Enable','on',...
@@ -40,6 +40,7 @@ set(app.Numberof3phasesetsEditField,...
 set(app.MotortypeEditField,'Value',data.motorType);
 set(app.AxistypeDropDown,'Value',data.axisType);
 set(app.RatedpowerEditField,'Value',num2str(data.P0));
+set(app.RatedtorqueEditField,'Value',num2str(data.T0));
 set(app.RatedcurrentEditField,'Value',num2str(data.i0));
 set(app.MaximumcurrentEditField,'Value',num2str(data.Imax));
 set(app.DClinkvoltageEditField,'Value',num2str(data.Vdc));
@@ -91,6 +92,7 @@ if ~isempty(motorModel.FluxMap_dq)
     set(app.MaxTwPush,'Enable','on')
     set(app.EvaluateShortCircuitTorqueButton,'Enable','on')
     set(app.WaveformShortCircuitButton,'Enable','on')
+    set(app.ScaleMapPush,'Enable','on')
 else
     set(app.dqModelCheckBox,...
         'Enable','off',...
@@ -105,6 +107,7 @@ else
     set(app.MaxTwPush,'Enable','off')
     set(app.EvaluateShortCircuitTorqueButton,'Enable','off')
     set(app.WaveformShortCircuitButton,'Enable','off')
+    set(app.ScaleMapPush,'Enable','off');
 end
 if ~isempty(motorModel.FluxMap_dqt)
     set(app.dqtMapModelCheckBox,...
@@ -215,32 +218,7 @@ else
     set(app.SaveInverseDQTButton,'Enable','off')
 end
 
-% % dqtMap model
-% if ~isempty(motorModel.dqtMap)
-%     set(app.DQTmodelCheckBox,...
-%         'Enable','on',...
-%         'Value',1);
-%     set(app.DQTplotPush,'Enable','on')
-%     set(app.DQTsavePush,'Enable','on')
-%     set(app.DQTharmButton,'Enable','on')
-%     set(app.DQTsingtButton,'Enable','on')
-% else
-%     set(app.DQTmodelCheckBox,...
-%         'Enable','off',...
-%         'Value',0);
-%     set(app.DQTplotPush,'Enable','off')
-%     set(app.DQTsavePush,'Enable','off')
-%     set(app.DQTharmButton,'Enable','off')
-%     set(app.DQTsingtButton,'Enable','off')
-% end
-% set(app.DQTharmEditField,'Value',mat2str(motorModel.dqtElab.harmonic))
-% 
-% set(app.DQTgammaEditField,'Value',mat2str(motorModel.dqtElab.CurrAngle,3))
-% set(app.DQTcurrentPUEditField,'Value',mat2str(motorModel.dqtElab.CurrLoad))
-% set(app.DQTcurrentEditField,...
-%     'Enable','on',...
-%     'Editable','off',...
-%     'Value',mat2str(motorModel.dqtElab.CurrAmpl))
+set(app.TargetPMTempEditField,'Value',num2str(motorModel.data.targetPMtemp));
 
 % Scale & Skew
 % Scale
@@ -363,6 +341,7 @@ set(app.SensorlessSwitch,'Value',num2str(motorModel.SyreDrive.SS_on));
 set(app.InjectedsignalDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.inj_waveform));
 set(app.DemodulationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.dem));
 set(app.PositionerrorestimationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.HS_ctrl));
+set(app.ModeltypeDropDown,'Value',motorModel.SyreDrive.modelType);
 
 if (isempty(motorModel.data)||isempty(motorModel.controlTrajectories)||isempty(motorModel.IncInductanceMap_dq)||isempty(motorModel.FluxMapInv_dqt)||isempty(motorModel.FluxMapInv_dq))
     set(app.RUNButton,'Enable','off')
@@ -387,6 +366,7 @@ set(app.MagnetTempLimitEditField,'Value',mat2str(motorModel.Thermal.TempPmLimit)
 set(app.ThTwMinSpeedEditField,'Value',mat2str(motorModel.Thermal.nmin))
 set(app.ThTwMaxSpeedEditField,'Value',mat2str(motorModel.Thermal.nmax))
 set(app.ThTwNumSpeedEditField,'Value',mat2str(motorModel.Thermal.NumSpeed))
+set(app.AdjustFluxMapPMtemperatureCheckBox,'Value',motorModel.Thermal.interpTempPM);
 
 
 

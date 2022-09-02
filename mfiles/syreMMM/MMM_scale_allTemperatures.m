@@ -40,7 +40,7 @@ for ii=1:length(tempVectPM)
     else
         disp(['  scaling map...'])
         load([pathnameOld motorNameOld '_results\MMM results\tempModels\motorModel_' int2str(tempVectPM(ii)) 'deg.mat'],'motorModel');
-        motorModel = MMM_scale(motorModel,motorModelNew.scale);
+        motorModel = MMM_scale(motorModel,motorModelNew.tmpScale);
         motorModel.data.pathname  = pathnameNew;
         motorModel.data.motorName = motorNameNew;
         save([pathnameNew motorNameNew '_results\MMM results\tempModels\motorModel_' int2str(tempVectPM(ii)) 'deg.mat'],'motorModel')

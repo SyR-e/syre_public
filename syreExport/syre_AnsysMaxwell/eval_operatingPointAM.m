@@ -31,23 +31,9 @@ EvalType         = dataIn.EvalType;
 
 per.EvalSpeed    = dataIn.EvalSpeed;
 
-%Manual input Simulation Data
-% eval_type           = 'singt'; %-singt  -coreloss
-% per.gamma           = 55; %idq angle  %dataSet.GammaPP;
-% per.CurrLoPP        = 1; %Current [pu] %dataSet.CurrLoPP;
-% per.EvalSpeed       = 1800; %Evaluation Speed [rpm]
-% per.nsim_singt      = 10;%Simulation Points %dataSet.NumOfRotPosPP
-% per.delta_sim_singt = 60;%Angular Excursion %dataSet.AngularSpanPP
-% per.tempPP          = 80; %permanent magnets temperature
-% per.corelossflag    = strcmp(eval_type,'singtIron');
-% per.save_fields     = 0; %activate and save fields every # step (0 deactiveted) must be < nsim_singt
-
 eval_type           = EvalType;       %-singt  -coreloss
-%per.gamma           = 55;             %idq angle  %dataSet.GammaPP;
-%per.CurrLoPP       = CurrLoPP; %Current [pu] %dataSet.CurrLoPP;
 per.i0              = RatedCurrent;
 per.overload        = CurrLoPP;
-%per.EvalSpeed      = 1800; %Evaluation Speed [rpm]
 per.nsim_singt      = NumOfRotPosPP;   %Simulation Points %dataSet.NumOfRotPosPP
 per.delta_sim_singt = AngularSpanPP;   %Angular Excursion %dataSet.AngularSpanPP
 per.tempPP          = TempPP;          %permanent magnets temperature
@@ -108,6 +94,7 @@ for ii = 1:length(SimulatedCurrent)
         CoreLoss   = output{ii}.CoreLoss;
         CoreLoss_s = output{ii}.CoreLoss_s;
         CoreLoss_r = output{ii}.CoreLoss_r;
+        PMloss     = output{ii}.PMloss;
 %         EddyLossAvg       = output{ii}.EddyLossAvg;
 %         ExcessLossAvg     = output{ii}.ExcessLossAvg;
         per.savefield     = 0;
@@ -135,9 +122,17 @@ for ii = 1:length(SimulatedCurrent)
     
     %save
     iAmp = round(CurrLoPP*RatedCurrent,2);
-    resFolder = [pathname,filename(1:end-4),'_results\FEA results\Ansys_', eval_type , '_', num2str(round(iAmp,2)), 'A\'];
-    save([resFolder 'Data.mat'], 'Theta', 'T', 'fd', 'fq', 'IPF');
+
+    if dataIn.CustomCurrentEnable
+        resFolder = [pathname,filename(1:end-4),'_results\FEA results\Ansys_', eval_type , '_', num2str(dataIn.CustomCurrentAnsysCounter), '\'];
+         mkdir(resFolder);
+         save([resFolder 'Data.mat'], 'Theta', 'T', 'fd', 'fq', 'IPF','CoreLoss','CoreLoss_s','CoreLoss_r','PMloss');
+    else
+        resFolder = [pathname,filename(1:end-4),'_results\FEA results\Ansys_', eval_type , '_', num2str(round(iAmp,2)), 'A\'];
+        save([resFolder 'Data.mat'], 'Theta', 'T', 'fd', 'fq', 'IPF');
+    end
     
+
     %Torque
     hT = figure
     figSetting()
@@ -216,6 +211,17 @@ for ii = 1:length(SimulatedCurrent)
         ylabel('Core Loss [W]');
         savePrintFigure(hl)
         
+        h2 = figure;
+        figSetting(12,8,12)
+        set(h2,'FileName',[resFolder 'PMLossVsTime.fig'])
+        plot(Theta,PMloss)
+        title(['Mean PM Loss = ' num2str(mean(PMloss(ceil(6*end/7)+1:end)))]);
+        xlim([0 Theta(end)]), %ylim([ymin ymax]),
+        ti = 0:60:xdeg*nrep; set(gca,'XTick',ti);
+        xlabel('$\theta$ - [degrees]');
+        ylabel('PM Loss [W]');
+        savePrintFigure(h2)
+
 %         Pfe_tot = CoreLossAvg(1); 
 %         Pfes_tot = CoreLossAvg(2); 
 %         Pfer_tot = CoreLossAvg(3);

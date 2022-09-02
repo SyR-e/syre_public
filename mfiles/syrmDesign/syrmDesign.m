@@ -45,6 +45,8 @@ if dataSet.FEAfixN==0
     map.km   = ones(size(map.xx));
     map.k0   = ones(size(map.xx));
     map.kg   = ones(size(map.xx));
+    map.dg   = zeros(size(map.xx));
+    map.kmPM = zeros(size(map.xx));
     map.xRaw = [];
     map.bRaw = [];
 else
@@ -54,6 +56,8 @@ else
     map.km   = FEAfixOut.km;
     map.k0   = FEAfixOut.k0;
     map.kg   = FEAfixOut.kg;
+    map.dg   = FEAfixOut.dg;
+    map.kmPM = FEAfixOut.kmPM;
     map.xRaw = FEAfixOut.xRaw;
     map.bRaw = FEAfixOut.bRaw;
 end
@@ -61,7 +65,8 @@ end
 if strcmp(dataSet.TypeOfRotor,'SPM')
     map.fd = map.fd.*map.kd;
     map.fq = map.fq.*map.kq;
-    map.gamma = map.gamma.*map.kg;
+    %map.gamma = map.gamma.*map.kg;
+    map.gamma = map.gamma+map.dg;
     map.id = map.iAmp.*cos(map.gamma*pi/180);
     map.iq = map.iAmp.*sin(map.gamma*pi/180);
     map.T  = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
@@ -70,24 +75,29 @@ elseif strcmp(dataSet.TypeOfRotor,'Vtype')
     map.fd  = map.fM.*map.km+(map.fd-map.fM).*map.kd;
     map.fq  = map.fq.*map.kq;
     map.fM  = map.fM.*map.km;
-    map.gamma = map.gamma.*map.kg;
+    %map.gamma = map.gamma.*map.kg;
+    map.gamma = map.gamma+map.dg;
     map.id = map.iAmp.*cos(map.gamma*pi/180);
     map.iq = map.iAmp.*sin(map.gamma*pi/180);
     map.T   = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
     map.ich = map.ich.*map.km./map.k0;
 else
     map.fd = map.fd.*map.kd;
-    map.fq = map.fq.*map.kq;
-    map.gamma = map.gamma.*map.kg;
+    map.fq = (map.fq+map.fM).*map.kq-map.fM.*map.km;
+%     map.fq = map.fq.*map.kq;
+    % map.gamma = map.gamma.*map.kg;
+    map.gamma = map.gamma+map.dg;
     map.id = map.iAmp.*cos(map.gamma*pi/180);
     map.iq = map.iAmp.*sin(map.gamma*pi/180);
     map.T  = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
     map.PF = abs(sin(atan(map.iq./map.id)-atan(map.fq./map.fd)));
+    map.fM = map.fM.*map.km;
+    map.mPM = map.mPM.*map.kmPM;
 end
 
-% if isfield(map,'ich')
-%     map.ich = map.ich.*map.km;
-% end
+% update flux/N
+map.NsI0    = map.i0*dataSet.TurnsInSeries;
+map.F0_Ns   = abs(map.fd+j*map.fq)/dataSet.TurnsInSeries;
 
 % Output figure
 hfig=figure();
@@ -215,6 +225,9 @@ while isequal(button,'Yes')
         
         dataSet.HCpu=round(geo.hc_pu*100)/100;
         dataSet.DepthOfBarrier=round(geo.dx*100)/100;
+
+        dataSet.PMdim = -dataSet.PMdimPU./dataSet.PMdimPU;
+        dataSet.PMdim(isnan(dataSet.PMdim)) = 0;
     end
     
     % current phase angle
@@ -241,7 +254,7 @@ while isequal(button,'Yes')
     geo.Aslot = Aslots/(6*geo.p*geo.q*geo.win.n3phase);
     geo.lend = interp2(map.xx,map.bb,map.lend,geo.x,geo.b);
 
-    [per] = calc_i0(geo,per);
+    [per] = calc_i0(geo,per,mat);
 %     dataSet.AdmiJouleLosses = per.Loss;
 %     dataSet.ThermalLoadKj   = per.kj;
 %     dataSet.CurrentDensity  = per.J;
@@ -277,58 +290,6 @@ end
 
 figure(hfig)
 
-
-if(0)
-    
-    % Current Density
-    figure()
-    figSetting(15,10)
-    [c, h] = contour(map.xx,map.bb,map.J,'Color','r','LineWidth',1,'DisplayName','$J$ [A/mm2]');
-    clabel(c,h);
-    [c, h] = contour(map.xx,map.bb,map.A,'Color','b','LineWidth',1,'DisplayName','$A$ [A/mm]');
-    clabel(c,h);
-    xlabel('$x$ - rotor / stator split');
-    if strcmp(dataSet.TypeOfRotor,'SPM')
-        ylabel('$l_m/g$ - p.u. magnet size')
-    else
-        ylabel('$b$ - p.u. magnetic loading');
-    end
-    title('Current Density Map');
-    legend('show','Location','NorthEast')
-    
-    % Shear Stress
-    figure()
-    figSetting(15,10)
-    
-    map.sigma = map.T./(2*pi*geo.R*map.xx*geo.l*1e-6);  % sher stress in Nm/m2
-    [c, h] = contour(map.xx,map.bb,map.sigma,'Color','b','LineWidth',1,'DisplayName','$\sigma$ [Nm/m2]');
-    clabel(c,h);
-    xlabel('$x$ - rotor / stator split');
-    if strcmp(dataSet.TypeOfRotor,'SPM')
-        ylabel('$l_m/g$ - p.u. magnet size')
-    else
-        ylabel('$b$ - p.u. magnetic loading');
-    end
-    title('Shear Stress Vs Cu Temperature Map');
-    
-    map.tempcuest = map.T*0;
-    for j = 1:size(map.T,1)
-        for k= 1:size(map.T,2)
-            
-            geo.r  = map.xx(j,k)*geo.R;
-            geo.wt = map.wt(j,k);
-            geo.lt = map.lt(j,k);
-            geo.ly = map.ly(j,k);
-            map.tempcuest(j,k) = temp_est_simpleMod(geo,per);
-            
-        end
-    end
-    
-    [c, h] = contour(map.xx,map.bb,map.dTempCu+per.temphous,'Color','r','LineWidth',1,'DisplayName','$\theta$ [$^\circ$C]');
-    clabel(c,h);
-    legend('show','Location','NorthEast')
-    
-end
 % %
 % figure(1);
 

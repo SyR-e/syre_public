@@ -91,6 +91,11 @@ if ~exist([syreDirectory '\materialLibrary\custom_conductor.mat'],'file')
     MatList = {};
     save([syreDirectory '\materialLibrary\custom_conductor.mat'],'MatLib','MatList');
 end
+if ~exist([syreDirectory '\materialLibrary\custom_sleeve.mat'],'file')
+    MatLib = {};
+    MatList = {};
+    save([syreDirectory '\materialLibrary\custom_sleeve.mat'],'MatLib','MatList');
+end
 
 
 

@@ -72,8 +72,9 @@ geo.th0=geo.th0-th_rot*geo.p*180/pi;
 % boundary conditions: definition (assigned to segments later)
 mi_addboundprop('A=0', 0, 0, 0, 0, 0, 0, 0, 0, 0);  % inner and outer circles
 % Periodicity or Anti-Periodicity (2 x rotor + 2 x stator + 3 x airgap + 1 x APmove) APmove is the sliding contour
-mi_addboundprop('APr1', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
-mi_addboundprop('APr2', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
+mi_addboundprop('APr1', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);   % shaft
+mi_addboundprop('APr2', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);   % rotor iron
+mi_addboundprop('APr3', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);   % sleeve
 mi_addboundprop('APg1', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
 mi_addboundprop('APg2', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
 mi_addboundprop('APg3', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
@@ -93,6 +94,10 @@ geo.stator=stator;
 % draw lines and arcs
 draw_lines_arcs(rotor,2,fem.res);
 draw_lines_arcs(stator,1,fem.res);
+
+% check rotor arcs resolution (error for no ribs design and multiple arcs
+% drawn)
+% FEMM_checkArcResolution(rotor,2,fem.res)
 
 % assign block labels
 BLKLABELS.materials=geo.BLKLABELSmaterials;
@@ -140,12 +145,15 @@ for ii=1:size(BLKLABELSstat.boundary,1)
 end
 
 % build the airgap (group 20)
-th_m0 = 0; % rotor aligned with the horizon
-if (geo.ps<2*geo.p)
-    AirGapBuild(geo.Qs,geo.ps,geo.p,geo.g,360/(6*geo.q*geo.p*geo.win.n3phase)/2,geo.r,fem.res_traf,1,2,geo.lm,BLKLABELSrot,geo.RotType);
-else
-    draw_airgap_arc_with_mesh_fullMachine(geo,th_m0,fem);
-end
+
+draw_airgap(geo,fem);
+
+% th_m0 = 0; % rotor aligned with the horizon
+% if (geo.ps<2*geo.p)
+%     AirGapBuild(geo.Qs,geo.ps,geo.p,geo.g,360/(6*geo.q*geo.p*geo.win.n3phase)/2,geo.r,fem.res_traf,1,2,geo.lm,BLKLABELSrot,geo.RotType);
+% else
+%     draw_airgap_arc_with_mesh_fullMachine(geo,th_m0,fem);
+% end
 
 geo.mesh_res=fem;
 if isoctave() %OCT

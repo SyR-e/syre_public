@@ -47,6 +47,10 @@ if isfield(data,'Id')
     else
         tempPM = NaN;
     end
+    
+    if isfield(data,'IM')
+        fdfq.IM = data.IM;
+    end
 else
     fdfq = [];
     tempPM = [];

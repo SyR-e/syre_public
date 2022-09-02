@@ -118,21 +118,21 @@ for ss=1:length(alfa_k)
         FqSlice(real(Idq)<IdMin) = +fInt.Fq(-IdSlice(real(Idq)<0),IqSlice(real(Idq)<0));
         TSlice(real(Idq)<IdMin) = -fInt.T(-IdSlice(real(Idq)<0),IqSlice(real(Idq)<0));
         if ~isempty(ironLoss)
-            Pfes_cSlice(real(Idq)<IdMin) = fInt.Pfes_c(real(Idq(real(Idq)<0)),imag(Idq(real(Idq)<0)));
-            Pfes_hSlice(real(Idq)<IdMin) = fInt.Pfes_h(real(Idq(real(Idq)<0)),imag(Idq(real(Idq)<0)));
-            Pfer_cSlice(real(Idq)<IdMin) = fInt.Pfer_c(real(Idq(real(Idq)<0)),imag(Idq(real(Idq)<0)));
-            Pfer_hSlice(real(Idq)<IdMin) = fInt.Pfer_h(real(Idq(real(Idq)<0)),imag(Idq(real(Idq)<0)));
-            PpmSlice(real(Idq)<IdMin)    = fInt.Ppm(real(Idq(real(Idq)<0)),imag(Idq(real(Idq)<0)));
+            Pfes_cSlice(real(Idq)<IdMin) = fInt.Pfes_c(-IdSlice(real(Idq)<0),IqSlice(real(Idq)<0));
+            Pfes_hSlice(real(Idq)<IdMin) = fInt.Pfes_h(-IdSlice(real(Idq)<0),IqSlice(real(Idq)<0));
+            Pfer_cSlice(real(Idq)<IdMin) = fInt.Pfer_c(-IdSlice(real(Idq)<0),IqSlice(real(Idq)<0));
+            Pfer_hSlice(real(Idq)<IdMin) = fInt.Pfer_h(-IdSlice(real(Idq)<0),IqSlice(real(Idq)<0));
+            PpmSlice(real(Idq)<IdMin)    = fInt.Ppm(-IdSlice(real(Idq)<0),IqSlice(real(Idq)<0));
         end
         FdSlice(imag(Idq)<IqMin) = +fInt.Fd(IdSlice(imag(Idq)<0),-IqSlice(imag(Idq)<0));
         FqSlice(imag(Idq)<IqMin) = -fInt.Fq(IdSlice(imag(Idq)<0),-IqSlice(imag(Idq)<0));
         TSlice(imag(Idq)<IqMin) = -fInt.T(IdSlice(imag(Idq)<0),-IqSlice(imag(Idq)<0));
         if ~isempty(ironLoss)
-            Pfes_cSlice(imag(Idq)<IqMin) = fInt.Pfes_c(real(Idq(imag(Idq)<0)),imag(Idq(imag(Idq)<0)));
-            Pfes_hSlice(imag(Idq)<IqMin) = fInt.Pfes_h(real(Idq(imag(Idq)<0)),imag(Idq(imag(Idq)<0)));
-            Pfer_cSlice(imag(Idq)<IqMin) = fInt.Pfer_c(real(Idq(imag(Idq)<0)),imag(Idq(imag(Idq)<0)));
-            Pfer_hSlice(imag(Idq)<IqMin) = fInt.Pfer_h(real(Idq(imag(Idq)<0)),imag(Idq(imag(Idq)<0)));
-            PpmSlice(imag(Idq)<IqMin)    = fInt.Ppm(real(Idq(imag(Idq)<0)),imag(Idq(imag(Idq)<0)));
+            Pfes_cSlice(imag(Idq)<IqMin) = fInt.Pfes_c(IdSlice(imag(Idq)<0),-IqSlice(imag(Idq)<0));
+            Pfes_hSlice(imag(Idq)<IqMin) = fInt.Pfes_h(IdSlice(imag(Idq)<0),-IqSlice(imag(Idq)<0));
+            Pfer_cSlice(imag(Idq)<IqMin) = fInt.Pfer_c(IdSlice(imag(Idq)<0),-IqSlice(imag(Idq)<0));
+            Pfer_hSlice(imag(Idq)<IqMin) = fInt.Pfer_h(IdSlice(imag(Idq)<0),-IqSlice(imag(Idq)<0));
+            PpmSlice(imag(Idq)<IqMin)    = fInt.Ppm(IdSlice(imag(Idq)<0),-IqSlice(imag(Idq)<0));
         end
     elseif strcmp(motorType,'PM')
         if strcmp(axisType,'SR')
@@ -141,11 +141,11 @@ for ss=1:length(alfa_k)
             FqSlice(real(Idq)<IdMin) = +fInt.Fq(-IdSlice(real(Idq)<IdMin),IqSlice(real(Idq)<IdMin));
             TSlice(real(Idq)<IdMin) = -fInt.T(-IdSlice(real(Idq)<IdMin),IqSlice(real(Idq)<IdMin));
             if ~isempty(ironLoss)
-                Pfes_cSlice(real(Idq)<IdMin) = fInt.Pfes_c(real(Idq(real(Idq)<IdMin)),imag(Idq(real(Idq)<IdMin)));
-                Pfes_hSlice(real(Idq)<IdMin) = fInt.Pfes_h(real(Idq(real(Idq)<IdMin)),imag(Idq(real(Idq)<IdMin)));
-                Pfer_cSlice(real(Idq)<IdMin) = fInt.Pfer_c(real(Idq(real(Idq)<IdMin)),imag(Idq(real(Idq)<IdMin)));
-                Pfer_hSlice(real(Idq)<IdMin) = fInt.Pfer_h(real(Idq(real(Idq)<IdMin)),imag(Idq(real(Idq)<IdMin)));
-                PpmSlice(real(Idq)<IdMin)    = fInt.Ppm(real(Idq(real(Idq)<IdMin)),imag(Idq(real(Idq)<IdMin)));
+                Pfes_cSlice(real(Idq)<IdMin) = fInt.Pfes_c(-IdSlice(real(Idq)<IdMin),IqSlice(real(Idq)<IdMin));
+                Pfes_hSlice(real(Idq)<IdMin) = fInt.Pfes_h(-IdSlice(real(Idq)<IdMin),IqSlice(real(Idq)<IdMin));
+                Pfer_cSlice(real(Idq)<IdMin) = fInt.Pfer_c(-IdSlice(real(Idq)<IdMin),IqSlice(real(Idq)<IdMin));
+                Pfer_hSlice(real(Idq)<IdMin) = fInt.Pfer_h(-IdSlice(real(Idq)<IdMin),IqSlice(real(Idq)<IdMin));
+                PpmSlice(real(Idq)<IdMin)    = fInt.Ppm(-IdSlice(real(Idq)<IdMin),IqSlice(real(Idq)<IdMin));
             end
             FdSlice(imag(Idq)<IqMin) = NaN;
             FqSlice(imag(Idq)<IqMin) = NaN;
@@ -173,11 +173,11 @@ for ss=1:length(alfa_k)
             FqSlice(imag(Idq)<IqMin) = -fInt.Fq(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin));
             TSlice(imag(Idq)<IqMin) = -fInt.T(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin));
             if ~isempty(ironLoss)
-                Pfes_cSlice(imag(Idq)<IqMin) = fInt.Pfes_c(real(Idq(imag(Idq)<IqMin)),imag(Idq(imag(Idq)<IqMin)));
-                Pfes_hSlice(imag(Idq)<IqMin) = fInt.Pfes_h(real(Idq(imag(Idq)<IqMin)),imag(Idq(imag(Idq)<IqMin)));
-                Pfer_cSlice(imag(Idq)<IqMin) = fInt.Pfer_c(real(Idq(imag(Idq)<IqMin)),imag(Idq(imag(Idq)<IqMin)));
-                Pfer_hSlice(imag(Idq)<IqMin) = fInt.Pfer_h(real(Idq(imag(Idq)<IqMin)),imag(Idq(imag(Idq)<IqMin)));
-                PpmSlice(imag(Idq)<IqMin)    = fInt.Ppm(real(Idq(imag(Idq)<IqMin)),imag(Idq(imag(Idq)<IqMin)));
+                Pfes_cSlice(imag(Idq)<IqMin) = fInt.Pfes_c(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin));
+                Pfes_hSlice(imag(Idq)<IqMin) = fInt.Pfes_h(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin));
+                Pfer_cSlice(imag(Idq)<IqMin) = fInt.Pfer_c(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin));
+                Pfer_hSlice(imag(Idq)<IqMin) = fInt.Pfer_h(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin));
+                PpmSlice(imag(Idq)<IqMin)    = fInt.Ppm(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin));
             end
         end
     end

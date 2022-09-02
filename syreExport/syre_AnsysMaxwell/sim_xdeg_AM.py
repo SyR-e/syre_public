@@ -18,6 +18,7 @@ ScriptEnv.Initialize("Ansoft.ElectronicsDesktop")
 oDesktop.RestoreWindow()
 oProject = oDesktop.SetActiveProject("%s"%(simdata["filename"][:-4]))
 oDesign = oProject.SetActiveDesign("Maxwell2DDesign1")
+#oDesign = oProject.SetActiveDesign("SOLID_ACLOSS")
 oEditor = oDesign.SetActiveEditor("3D Modeler")
 
 #oDesktop.AddMessage ("%s"%(geo["filename"][:-4]), "Maxwell2DDesign1", 0, "%s"%(simdata["iAmp"]), "")
@@ -59,6 +60,9 @@ oModule.AssignWindingGroup(
 		"Voltage:="		, "0mV",
 		"ParallelBranchesNum:="	, "1"
 	])
+
+
+
 
 ############ lists name slots 
 ii=0
@@ -135,8 +139,8 @@ if simdata["n_PM"]!=0:
 ####### Setup Core Loss Part ######
 if simdata['corelossflag']==1:
 	#rotorindex=3+5*simdata["q"]*3+2*(simdata["nlay"]+simdata["radial_ribs_split"])+simdata["n_PM"]
-	#rotorindex=3+5*simdata["q"]*3+2*(simdata["nlay"]+simdata["radial_ribs_split"])+simdata["n_PM"]
-	rotorindex= 41;
+	rotorindex=3+5*simdata["q"]*3+2*(simdata["nlay"]+simdata["radial_ribs_split"])+simdata["n_PM"]
+	#rotorindex= 41;
 	rotorplate="2_%d" %(rotorindex)
 	oModule.SetCoreLoss([statplate,rotorplate], False)
 	#if shaft!="ShaftAir":

@@ -208,7 +208,7 @@ if (strcmp(save_yn, 'Yes'))    % Save and plot
     
     [bounds,objs,geo,per,mat] = data0(dataSet);
     dataSet.RQ = buildDefaultRQ(bounds);
-    [geo,gamma,mat] = interpretRQ(dataSet.RQ,geo,mat);
+    [geo,gamma,mat] = interpretRQ(geo.RQ,geo,mat);
     
 %     openfemm(1)
     eval_type='MO_OA';
@@ -229,7 +229,7 @@ else     % Plot only
 
     [bounds,objs,geo,per,mat] = data0(dataSet);
     dataSet.RQ = buildDefaultRQ(bounds);
-    [geo,gamma,mat] = interpretRQ(dataSet.RQ,geo,mat);
+    [geo,gamma,mat] = interpretRQ(geo.RQ,geo,mat);
     
 end
 

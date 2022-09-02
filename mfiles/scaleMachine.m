@@ -33,7 +33,6 @@ dataSet.TanRibEdit = dataSet.TanRibEdit*ScaleFactor;
 dataSet.RotorFilletTan1 = dataSet.RotorFilletTan1*ScaleFactor;
 dataSet.RotorFilletTan2 = dataSet.RotorFilletTan2*ScaleFactor;
 dataSet.RadRibEdit = dataSet.RadRibEdit*ScaleFactor;
-dataSet.pontRoffsetEdit = dataSet.pontRoffsetEdit*ScaleFactor;
 dataSet.RotorFilletIn = dataSet.RotorFilletIn*ScaleFactor;
 dataSet.RotorFilletOut = dataSet.RotorFilletOut*ScaleFactor;
 

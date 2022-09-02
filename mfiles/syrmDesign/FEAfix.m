@@ -31,10 +31,13 @@ else
     gammaDebug = NaN;
 end
 
+% dataSet.kPM=1;
+% warning('kPM not read!!!')
 
 gammaFix = dataSet.syrmDesignFlag.gf;
 
 FEAfixN = dataSet.FEAfixN;
+
 clc
 disp('FEAfix calibration...')
 tic
@@ -72,6 +75,16 @@ switch FEAfixN
         bMea=0.5*(bMax+bMin);
         xRaw=[xMin xMin xMax xMax xMin+(xMea-xMin)/2 xMea xMea+(xMea-xMin)/2 xMea];
         bRaw=[bMin bMax bMax bMin bMea bMea+(bMea-bMin)/2 bMea bMin+(bMea-bMin)/2];
+    case 12
+        xMax=max(max(xx));
+        xMin=min(min(xx));
+        bMax=max(max(bb));
+        bMin=min(min(bb));
+        xTmp=linspace(xMin,xMax,3);
+        bTmp=linspace(bMin,bMax,4);
+        [xRaw,bRaw] = meshgrid(xTmp,bTmp);
+        xRaw = xRaw(:)';
+        bRaw = bRaw(:)';
     case 16
         xMax=max(max(xx));
         xMin=min(min(xx));
@@ -83,12 +96,6 @@ switch FEAfixN
         xRaw = xRaw(:)';
         bRaw = bRaw(:)';
     case 1000
-        xMax=max(max(xx));
-        xMin=min(min(xx));
-        bMax=max(max(bb));
-        bMin=min(min(bb));
-        xMea=0.5*(xMax+xMin);
-        bMea=0.5*(bMax+bMin);
         xRaw=reshape(xx,1,numel(xx));
         bRaw=reshape(bb,1,numel(bb));
 %         % FEAfix13
@@ -146,16 +153,20 @@ end
 
 geo.RQnames=RQnames;
 
-RQ    = zeros(length(RQnames),length(xRaw));
-fdFEA = zeros(1,length(xRaw));
-fqFEA = zeros(1,length(xRaw));
-fMFEA = zeros(1,length(xRaw));
-f0FEA = zeros(1,length(xRaw));
-fdMod = zeros(1,length(xRaw));
-fqMod = zeros(1,length(xRaw));
-fMMod = zeros(1,length(xRaw));
-f0Mod = zeros(1,length(xRaw));
-i0    = zeros(1,length(xRaw));
+RQ     = zeros(length(RQnames),length(xRaw));
+fdFEA  = zeros(1,length(xRaw));
+fqFEA  = zeros(1,length(xRaw));
+fMFEA  = zeros(1,length(xRaw));
+f0FEA  = zeros(1,length(xRaw));
+gFEA   = zeros(1,length(xRaw));
+mPMFEA = zeros(1,length(xRaw));
+fdMod  = zeros(1,length(xRaw));
+fqMod  = zeros(1,length(xRaw));
+fMMod  = zeros(1,length(xRaw));
+f0Mod  = zeros(1,length(xRaw));
+gMod   = zeros(1,length(xRaw));
+mPMMod = zeros(1,length(xRaw));
+% i0    = zeros(1,length(xRaw));
 
 if strcmp(eval_type,'flxdn')
     BtFEA = zeros(1,length(xRaw));
@@ -170,15 +181,19 @@ per.objs = [per.min_exp_torque 1 0];
 
 per.nsim_singt      = 6;
 per.delta_sim_singt = 60;
-per.overload        = dataSet.CurrLoPP;
+per.overload        = 1;
 geo.mesh_K          = 5;
 geo.mesh_K_MOOA     = 10;
+per.BrPP            = dataSet.Br;
+per.tempPP          = dataSet.PMtemp;
 
 if dataSet.syrmDesignFlag.i0==0
-    per.J = NaN;
+    per.J    = NaN;
+    per.kj   = dataSet.ThermalLoadKj;
     per.Loss = NaN;
 else
-    per.kj = NaN;
+    per.J    = dataSet.CurrentDensity;
+    per.kj   = NaN;
     per.Loss = NaN;
 end
 
@@ -201,7 +216,8 @@ for mot=1:length(xRaw)
     % current phase angle
     temp_id = interp2(xx,bb,map.id,geo.x,geo.b);         % id [A]
     temp_iq = interp2(xx,bb,map.iq,geo.x,geo.b);         % iq [A]
-    gamma   = round(atan2(temp_iq,temp_id)*180/pi*100)/100;
+    %gamma   = round(atan2(temp_iq,temp_id)*180/pi*100)/100;
+    gamma = atan2(temp_iq,temp_id)*180/pi;
     
     if ~isnan(gammaDebug)
         switch gammaDebug
@@ -209,10 +225,10 @@ for mot=1:length(xRaw)
                 per.overload = 0;
                 gamma = 0;
             case +1
-                per.overload = dataSet.CurrLoPP*cosd(gamma);
+                per.overload = cosd(gamma);
                 gamma = 0;
             case +1
-                per.overload = dataSet.CurrLoPP*sind(gamma);
+                per.overload = sind(gamma);
                 gamma = 90;
         end
     end
@@ -252,7 +268,10 @@ for mot=1:length(xRaw)
                 end
                 % fill RQ
                 per.i0 = interp2(map.xx,map.bb,map.i0,geo.x,geo.b);
-                PMdim = dataSet.PMdimPU;
+                PMdimPU = dataSet.PMdimPU./dataSet.PMdimPU;
+                PMdimPU(isnan(PMdimPU)) = 0;
+                PMdimPU = dataSet.kPM*PMdimPU;
+                PMdim = PMdimPU;
 
                 RQ(:,mot)=[geo.hc_pu geo.dx r wt lt PMdim(:)' gamma]';
         end
@@ -268,6 +287,11 @@ for mot=1:length(xRaw)
         end
         if isfield(map,'fM')
             fMMod(mot) = interp2(xx,bb,map.fM,geo.x,geo.b); % fM [Vs]
+        end
+        if isfield(map,'mPM')
+            mPMMod(mot) = interp2(map.xx,map.bb,map.mPM,geo.x,geo.b);
+        else
+            mPMMod(mot) = 1;
         end
     end
 end
@@ -288,34 +312,42 @@ filemot = strrep(filemot,'.mat','.fem');
 if ~isempty(RQ)
     ppState=parallelComputingCheck();
     if ppState==0 && FEAfixN==1000
+        disp('Parallel computing not enabled. Enabling...')
         parpool();
         ppState=parallelComputingCheck();
+        disp(['Parallel computing enabled on ' int2str(ppState) ' workers']);
     end
     if ppState<1
         for mot=1:length(xRaw)
-            disp([' - FEA simulation ' int2str(mot) ' of ' int2str(length(xRaw))])
+            % disp([' - FEA simulation ' int2str(mot) ' of ' int2str(length(xRaw))])
             FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix);
-            fdFEA(mot) = FEA.fd;
-            fqFEA(mot) = FEA.fq;
-            fMFEA(mot) = FEA.fM;
-            f0FEA(mot) = FEA.f0;
-            BgFEA(mot) = FEA.Bg;
-            BtFEA(mot) = FEA.Bt;
-            ByFEA(mot) = FEA.By;
-            gFEA(mot)  = atan2(FEA.iq,FEA.id)*180/pi;
+            fdFEA(mot)  = FEA.fd;
+            fqFEA(mot)  = FEA.fq;
+            fMFEA(mot)  = FEA.fM;
+            f0FEA(mot)  = FEA.f0;
+            BgFEA(mot)  = FEA.Bg;
+            BtFEA(mot)  = FEA.Bt;
+            ByFEA(mot)  = FEA.By;
+            gFEA(mot)   = atan2(FEA.iq,FEA.id)*180/pi;
+            mPMFEA(mot) = FEA.mPM;
+            %mCuFEA(mot) = FEA.mCu;
+            disp([' - motor ' int2str(mot) ' of ' int2str(length(xRaw)) ' evaluated with ' int2str(FEA.nFEA) ' FEA'])
         end
     else
         parfor mot=1:length(xRaw)
-            disp([' - FEA simulation ' int2str(mot) ' of ' int2str(length(xRaw))])
+            % disp([' - FEA simulation ' int2str(mot) ' of ' int2str(length(xRaw))])
             FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix);
-            fdFEA(mot) = FEA.fd;
-            fqFEA(mot) = FEA.fq;
-            fMFEA(mot) = FEA.fM;
-            f0FEA(mot) = FEA.f0;
-            BgFEA(mot) = FEA.Bg;
-            BtFEA(mot) = FEA.Bt;
-            ByFEA(mot) = FEA.By;
-            gFEA(mot)  = atan2(FEA.iq,FEA.id)*180/pi;
+            fdFEA(mot)  = FEA.fd;
+            fqFEA(mot)  = FEA.fq;
+            fMFEA(mot)  = FEA.fM;
+            f0FEA(mot)  = FEA.f0;
+            BgFEA(mot)  = FEA.Bg;
+            BtFEA(mot)  = FEA.Bt;
+            ByFEA(mot)  = FEA.By;
+            gFEA(mot)   = atan2(FEA.iq,FEA.id)*180/pi;
+            mPMFEA(mot) = FEA.mPM;
+            %mCuFEA(mot) = FEA.mCu;
+            disp([' - motor ' int2str(mot) ' of ' int2str(length(xRaw)) ' evaluated with ' int2str(FEA.nFEA) ' FEA'])
         end
     end
 else
@@ -335,16 +367,20 @@ elseif strcmp(geo.RotType,'Vtype')
     kdRaw = (fdFEA-fMFEA)./(fdMod-fMMod);
     kqRaw = fqFEA./fqMod;
 else
-    kdRaw = fdFEA./fdMod;
-    kqRaw = fqFEA./fqMod;
-    kmRaw = zeros(size(fdFEA));
-    k0Raw = zeros(size(fdFEA));
+    kdRaw   = fdFEA./fdMod;
+%     kqRaw = fqFEA./fqMod;
+    kqRaw   = (fqFEA+fMFEA)./(fqMod+fMMod);
+    kmRaw   = fMFEA./fMMod;
+    k0Raw   = zeros(size(fdFEA));
+    kmPMRaw = mPMFEA./mPMMod;
 end
 
 if gammaFix
     kgRaw = gFEA./gMod;
+    dgRaw = gFEA-gMod;
 else
     kgRaw = ones(size(kdRaw));
+    dgRaw = zeros(size(kdRaw));
 end
 
 kdRaw = kdRaw(~errorFlag);
@@ -352,6 +388,8 @@ kqRaw = kqRaw(~errorFlag);
 kmRaw = kmRaw(~errorFlag);
 k0Raw = k0Raw(~errorFlag);
 kgRaw = kgRaw(~errorFlag);
+dgRaw = dgRaw(~errorFlag);
+kmPMRaw = kmPMRaw(~errorFlag);
 
 if FEAfixN==1
     kd = kdRaw*ones(size(xx));
@@ -359,17 +397,23 @@ if FEAfixN==1
     km = kmRaw*ones(size(xx));
     k0 = k0Raw*ones(size(xx));
     kg = kgRaw*ones(size(xx));
+    dg = dgRaw*ones(size(xx));
+    kmPM = kmPMRaw*ones(size(xx));
 else
-    kd = scatteredInterpolant(xRaw',bRaw',kdRaw','linear');
-    kq = scatteredInterpolant(xRaw',bRaw',kqRaw','linear');
-    km = scatteredInterpolant(xRaw',bRaw',kmRaw','linear');
-    k0 = scatteredInterpolant(xRaw',bRaw',k0Raw','linear');
-    kg = scatteredInterpolant(xRaw',bRaw',kgRaw','linear');
-    kd = kd(xx,bb);
-    kq = kq(xx,bb);
-    km = km(xx,bb);
-    k0 = k0(xx,bb);
-    kg = kg(xx,bb);
+    kd   = scatteredInterpolant(xRaw',bRaw',kdRaw','linear');
+    kq   = scatteredInterpolant(xRaw',bRaw',kqRaw','linear');
+    km   = scatteredInterpolant(xRaw',bRaw',kmRaw','linear');
+    k0   = scatteredInterpolant(xRaw',bRaw',k0Raw','linear');
+    kg   = scatteredInterpolant(xRaw',bRaw',kgRaw','linear');
+    dg   = scatteredInterpolant(xRaw',bRaw',dgRaw','linear');
+    kmPM = scatteredInterpolant(xRaw',bRaw',kmPMRaw','linear');
+    kd   = kd(xx,bb);
+    kq   = kq(xx,bb);
+    km   = km(xx,bb);
+    k0   = k0(xx,bb);
+    kg   = kg(xx,bb);
+    dg   = dg(xx,bb);
+    kmPM = kmPM(xx,bb);
 end
 
 disp('End of FEAfix calibration')
@@ -381,6 +425,8 @@ FEAfixOut.kq   = kq;
 FEAfixOut.km   = km;
 FEAfixOut.k0   = k0;
 FEAfixOut.kg   = kg;
+FEAfixOut.dg   = dg;
+FEAfixOut.kmPM = kmPM;
 FEAfixOut.xRaw = xRaw;
 FEAfixOut.bRaw = bRaw;
 

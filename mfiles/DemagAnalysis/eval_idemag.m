@@ -56,13 +56,13 @@ else
         end
     end
     
-    if ~strcmp(dataSet.axisType,dataIn.axisType)
-        if strcmp(dataSet.axisType,'PM')
-            geo.th0 = geo.th0 + 90;
-        else
-            geo.th0 = geo.th0 - 90;
-        end
-    end
+%     %if ~strcmp(dataSet.axisType,dataIn.axisType)
+%         if strcmp(dataSet.axisType,'PM')
+%             geo.th0 = geo.th0 + 90;
+%         else
+%             geo.th0 = geo.th0 - 90;
+%         end
+% %     end%
 end
 
 pathname = setup.pathname;

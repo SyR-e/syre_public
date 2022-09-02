@@ -44,6 +44,11 @@ end
 mi_addmaterial(mat.SlotCond.MatName);
 mi_modifymaterial(mat.SlotCond.MatName,5,mat.SlotCond.sigma/1e6);
 
+if ~strcmp(mat.SlotCond.MatName,mat.BarCond.MatName)
+    mi_addmaterial(mat.BarCond.MatName);
+    mi_modifymaterial(mat.BarCond.MatName,5,mat.BarCond.sigma/1e6);
+end
+
 % add barrier 
 if isfield(mat.LayerMag,'BH')
     mi_addmaterial(mat.LayerMag.MatName);
@@ -55,6 +60,9 @@ if isfield(mat.LayerMag,'BH')
 else
     mi_addmaterial(mat.LayerMag.MatName,mat.LayerMag.mu,mat.LayerMag.mu,mat.LayerMag.Hc(1),0,mat.LayerMag.sigmaPM/1e6);
 end
+
+% add sleeve
+mi_addmaterial(mat.Sleeve.MatName,1,1,0,0);
 
 % add air
 mi_addmaterial('Air',1,1,0,0);

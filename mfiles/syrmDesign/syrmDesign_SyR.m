@@ -48,19 +48,33 @@ else
     flag_ks = flags.ks;
 end
 
-mu0    = 4e-7*pi;                   % air permeability
-Bs     = 2.0;                       % ribs flux density [T]
-Bfe    = dataSet.Bfe;               % steel loading (yoke flux density [T])
-kj     = dataSet.ThermalLoadKj;     % thermal loading (copper loss/stator outer surface [W/m^2])
-kt     = dataSet.kt;                % kt = wt/wt_unsat
-J      = dataSet.CurrentDensity;    % J= slot current density, expressed in [Apk/mm^2]
-loadpu = dataSet.CurrLoPP;          % current load in p.u. of i0
-kyr    = dataSet.RotorYokeFactor;   % kyr = lyr/lys = increase factor for rotor yoke length compared to stator yoke
-% ky     = dataSet.StatorYokeFactor;  % ky = ly/ly_ideal
-ky = 1;
+mu0     = 4e-7*pi;                  % air permeability
+Bs      = 2.0;                      % ribs flux density [T]
+Bfe     = dataSet.Bfe;              % steel loading (yoke flux density [T])
+kj      = dataSet.ThermalLoadKj;    % thermal loading (copper loss/stator outer surface [W/m^2])
+kt      = dataSet.kt;               % kt = wt/wt_unsat
+J       = dataSet.CurrentDensity;   % J= slot current density, expressed in [Apk/mm^2]
+loadpu  = 1;                        % current load in p.u. of i0
+kyr     = dataSet.RotorYokeFactor;  % kyr = lyr/lys = increase factor for rotor yoke length compared to stator yoke
+ky      = dataSet.StatorYokeFactor; % ky = ly/ly_ideal
+PMdimPU = dataSet.PMdimPU;          % per-unit PM dimension
+kPM     = dataSet.kPM;              % PM filling factor
+Br      = dataSet.Br;               % PM remanence @ design temperature
 
+PMdimPU = PMdimPU./PMdimPU;
+PMdimPU(isnan(PMdimPU)) = 0;
+PMdimPU = kPM*PMdimPU;
 
 [~, ~, geo, per, mat] = data0(dataSet);
+
+if flag_kw
+    [kw, ~] = calcKwTh0(geo);
+    kw = kw(1);
+else
+    kw = pi/2/sqrt(3);
+    warning('Winding factor not evaluated')
+end
+
 
 R     = geo.R;
 p     = geo.p;
@@ -79,6 +93,7 @@ nlay  = geo.nlay;
 pont0 = geo.pont0;
 pont  = geo.pont0;%+min(geo.pont);
 n3ph  = geo.win.n3phase;
+pontT = geo.pontT;
 
 Nbob  = Ns/p/q/2;                                                   % conductors in slot per layer
 
@@ -106,13 +121,17 @@ rocu = 17.8*(234.5 + tempcu)/(234.5+20)*1e-9;                           % resist
 ssp = r * pi/(3*p*q);                                                   % stator slot pitch (x,b)
 sso = ssp * acs;                                                        % stator slot opening (x,b)
 kc = ssp./(ssp-2/pi*g*(sso/g.*atan(sso/(2*g))-log(1+(sso/(2*g)).^2)));  % Carter coefficient (x,b)
-ly = pi/2*R/p*xx.*bb*kfm;                                              % yoke or back iron (x,b) [mm]
+% ly = pi/2*R/p*xx.*bb*kfm;                                              % yoke or back iron (x,b) [mm]
 %ly = R/p*xx.*bb;                                                       % yoke [mm], do not depend on kt
-%ly = 4/9*(1+sqrt(3))*R/p*xx.*bb*ky;                                     % yoke or back iron (x,b) [mm]
+% ly = 4/9*(1+sqrt(3))*R/p*xx.*bb*ky;                                     % yoke or back iron (x,b) [mm]
+% ly = (sqrt(3)-pi/6)*R/p*xx.*bb*ky;                                     % yoke or back iron (x,b) [mm], elmo
+ly = R/p*xx.*bb*ky;                                                       % yoke [mm], do not depend on kt, sin
 wt = 2*pi*R/(6*p*q*n3ph)*xx.*bb.*kt;                                    % tooth width (x,b) [mm]
 cos_x0 = cos(pi/2/p);
 sin_x0 = sin(pi/2/p);
 Ar = geo.R*xx*(1/cos_x0-sqrt(((1-cos_x0^2)/cos_x0)^2+sin_x0^2));    % (max) shaft radius (x,b) [mm]
+ArLim = Ar;
+Ar(Ar>geo.Ar) = geo.Ar;
 
 lt = R*(1-xx)-g-ly;
 lt(lt<2*ttd) = NaN;
@@ -127,7 +146,7 @@ geo.dalpha = geo.dalpha_pu*(90/p);                                  % [mec degre
 beta_temp = atand(r*sind(geo.dalpha(1))./(x0 - r * cosd(geo.dalpha(1))));
 rbeta = (x0 - r*cosd(geo.dalpha(1)))./(cosd(beta_temp));            % radius of barrier circle
 % 2) 1st carrier takes 1-cos(p*alpha1) p.u. flux
-la = (x0 - rbeta - Ar - ly*kyr*cosd(p*geo.dalpha(1)))*nlay/(nlay-0.5);
+la = (x0 - rbeta - ArLim - ly*kyr*cosd(p*geo.dalpha(1)))*nlay/(nlay-0.5);
 %%
 % rotor design + slot evaluation + Lfqpu + Lcqpu
 alpha = cumsum(geo.dalpha);                                         % alpha in syre coordinates (mech deg, zero is axis Q)
@@ -136,21 +155,21 @@ f = cumsum((df));                                                   % stator MMF
 sumDf2r = sum(df.^2);
 Lcqpu = 1-4/pi*sum(f.^2.*da);
 
-alpha = cumsum(da);                                                 % alpha defined as in Vagati tutorial (0 = d axis)
+% alpha = cumsum(da);                                                 % alpha defined as in Vagati tutorial (0 = d axis)
 geo.alpha = cumsum(geo.dalpha);                                     % alpha in syre coordinates (mech deg, zero is axis Q)
 
 % initializing matrix
 % q-axis
 Lfqpu = zeros(m,n);
 % rotor
-hc = cell(m,n);
-sk = cell(m,n);
-hf = cell(m,n);
-dx = cell(m,n);
+hc    = cell(m,n);
+sk    = cell(m,n);
+hf    = cell(m,n);
+dx    = cell(m,n);
 hc_pu = cell(m,n);
-Bx0 = cell(m,n);
+Bx0   = cell(m,n);
 delta = zeros(m,n);
-lr = zeros(m,n);
+lr    = zeros(m,n);
 % slot
 Aslots = zeros(m,n);
 d1 = zeros(m,n);
@@ -159,12 +178,16 @@ c1 = zeros(m,n);
 c2 = zeros(m,n);
 ws = zeros(m,n);
 % additional ribs
-pontR = zeros(m,n);
+pontR   = zeros(m,n);
 BrPrime = cell(m,n);
+% PM remanence and flux linkage
+BrAvg = zeros(m,n);
+BrMax = zeros(m,n);
+BrMin = zeros(m,n);
+fM    = zeros(m,n);
+PMdim = cell(m,n);
 
-Br.mean = zeros(m,n);
-Br.max  = zeros(m,n);
-Br.min  = zeros(m,n);
+hcMin = zeros(m,n); % minimum barrier thickness [mm]
 
 Abar = zeros(m,n);  %total barriers area (estimation for PMs volume)
 
@@ -201,8 +224,9 @@ for rr=1:m
         rbeta = (x0(rr,cc) - R*xx(rr,cc) * cosd(geo.alpha))./(cos(beta));
         [xpont,ypont] = calc_intersezione_cerchi(R*xx(rr,cc)-geo.pont0, rbeta, x0(rr,cc));
         if strcmp(dataSet.TypeOfRotor,'Circular')
-            sk{rr,cc}=rbeta.*beta;
-            lr(rr,cc)=mean(sk{rr,cc}(end-1:end)); % length of the inner flux carrier (for saturation factor)
+            sk{rr,cc}    = rbeta.*beta;
+            lr(rr,cc)    = mean(sk{rr,cc}(end-1:end)); % length of the inner flux carrier (for saturation factor)
+            PMdim{rr,cc} = [sk{rr,cc};zeros(size(sk{rr,cc}))].*PMdimPU;
         elseif strcmp(dataSet.TypeOfRotor,'Seg')|| strcmp(dataSet.TypeOfRotor,'ISeg')
             rpont_x0=sqrt(ypont.^2+(x0(rr,cc)-xpont).^2);
             [alphapont,rpont] = cart2pol(xpont,ypont);
@@ -214,11 +238,20 @@ for rr=1:m
             yBmk=y;
             skv{rr,cc}=calc_distanza_punti_altern(xBmk,yBmk,Bx0,zeros(size(Bx0)));
             sko{rr,cc}=calc_distanza_punti_altern(xpont,ypont,xBmk,yBmk);
-            lrv(rr,cc)=mean(skv{rr,cc}(end-1:end));
-            lro(rr,cc)=mean(skv{rr,cc}(end-1:end));
+            if length(skv{rr,cc})>1
+                lrv(rr,cc)=mean(skv{rr,cc}(end-1:end));
+            else
+                lrv(rr,cc)=skv{rr,cc};
+            end
+            if length(sko{rr,cc})>1
+                lro(rr,cc)=mean(sko{rr,cc}(end-1:end));
+            else
+                lro(rr,cc)=sko{rr,cc};
+            end
 
-            sk{rr,cc}=skv{rr,cc}+sko{rr,cc};
-            lr(rr,cc)=lrv(rr,cc)+lro(rr,cc);
+            sk{rr,cc}    = skv{rr,cc}+sko{rr,cc};
+            lr(rr,cc)    = lrv(rr,cc)+lro(rr,cc);
+            PMdim{rr,cc} = [skv{rr,cc};sko{rr,cc}].*PMdimPU;
         end
         
         clear Bx0
@@ -233,21 +266,48 @@ for rr=1:m
                 hc{rr,cc}=la(rr,cc)/sum(dfQ.*sk{rr,cc}.^0.5).*(dfQ.*sk{rr,cc}.^0.5);
                 %disp('flux barrier desig: hc/(df*sk) = cost')
         end
-        
+
+        hcMin(rr,cc) = min(hc{rr,cc});
+
         rpont_x0=sqrt(ypont.^2+(x0(rr,cc)-xpont).^2);
         Bx0{rr,cc}=x0(rr,cc)-(rpont_x0);
-        hc_min=(R*xx(rr,cc)-Ar(rr,cc)-(geo.R-geo.R*xx(rr,cc)-geo.g-lt(rr,cc)))/geo.nlay/4;
+        hc_min=(R*xx(rr,cc)-ArLim(rr,cc)-(geo.R-geo.R*xx(rr,cc)-geo.g-lt(rr,cc)))/geo.nlay/4;
         hfe_min=2*geo.pont0;
-        delta(rr,cc)=(0.5*hc{rr,cc}(1)+sum(hc{rr,cc}(2:end-1))+0.5*hc{rr,cc}(end)-hc_min*(geo.nlay-1))/(Bx0{rr,cc}(1)-Bx0{rr,cc}(end)-hfe_min*(geo.nlay-1)-hc_min*(geo.nlay-1));
-        hc_pu{rr,cc}=hc{rr,cc}*(delta(rr,cc)*geo.nlay)/sum(hc{rr,cc});
         
+        if (nlay==1)
+            hc_half_min = la(rr,cc)/nlay/8;
+            % max hc according to alpha min
+            hc_half_max1 = (alpha*pi/180/(1+alpha*pi/180)*(r(rr,cc)-pont0));
+            % (needs division by 2 .. don't know why but it works)
+            hc_half_max1 = hc_half_max1 * 2;
+
+            % max hc according to alpha max (27 Jan 2011)
+            temp_alpha_hfemin = hfe_min/r(rr,cc); % rad
+            temp_alpha_hc_2 = pi/(2*p) - alpha*pi/180 - temp_alpha_hfemin;
+            hc_half_max2 = (temp_alpha_hc_2/(1+temp_alpha_hc_2)*(r(rr,cc)-pont0));
+            hc_half_max = min(hc_half_max1,hc_half_max2);
+            
+            if hc{rr,cc}<2*hc_half_min
+                hc{rr,cc}=2*hc_half_min;
+            end
+
+            if hc{rr,cc}>2*hc_half_max
+                hc{rr,cc}=2*hc_half_max;
+            end
+            
+            hc_pu{rr,cc} = hc{rr,cc}/(hc_half_max *2);
+            
+        else
+            delta(rr,cc)=(0.5*hc{rr,cc}(1)+sum(hc{rr,cc}(2:end-1))+0.5*hc{rr,cc}(end)-hc_min*(geo.nlay-1))/(Bx0{rr,cc}(1)-Bx0{rr,cc}(end)-hfe_min*(geo.nlay-1)-hc_min*(geo.nlay-1));
+            hc_pu{rr,cc}=hc{rr,cc}*(delta(rr,cc)*geo.nlay)/sum(hc{rr,cc});
+        end
         % dx (flux carrier design)
         alphad=[0 90-fliplr(geo.alpha)*geo.p 90];                   % 0<=alphad<=90 [° elt]
         r_all=geo.R*xx(rr,cc);
         for ii=1:geo.nlay
             r_all=[r_all Bx0{rr,cc}(ii)+hc{rr,cc}(ii)/2 Bx0{rr,cc}(ii)-hc{rr,cc}(ii)/2];
         end
-        r_all=[r_all Ar(rr,cc)];
+        r_all=[r_all ArLim(rr,cc)];
         hf0=r_all(1:2:end)-r_all(2:2:end);
         
         switch flag_dx
@@ -271,7 +331,7 @@ for rr=1:m
         
         for ii=geo.nlay:-1:1
             if ii==geo.nlay
-                B1tmp=Ar(rr,cc)+hf{rr,cc}(ii);
+                B1tmp=ArLim(rr,cc)+hf{rr,cc}(ii);
             else
                 B1tmp=B2k(ii+1)+hf{rr,cc}(ii);
             end
@@ -303,6 +363,7 @@ for rr=1:m
         temp.B1k=B1k;
         temp.B2k=B2k;
         temp.Bx0=Bx0;
+        temp.yyD2k = [];
         
         geo0.x0 = x0(rr,cc);
         geo0.r = r(rr,cc);
@@ -312,7 +373,7 @@ for rr=1:m
             warning('Ribs computed for circular geometry');
         end
         
-        [~,geo0] = calc_ribs_rad_fun(geo0,mat,temp);
+        [~,geo0] = calc_ribs_rad_Circ(geo0,mat,temp);
         
         pontR(rr,cc) = mean(geo0.pontR);
 
@@ -323,20 +384,45 @@ for rr=1:m
         BrMax(rr,cc) = max(BrPrime{rr,cc});
         BrMin(rr,cc) = min(BrPrime{rr,cc});
 
-        Abar(rr,cc) = sum(2*sk{rr,cc}.*hc{rr,cc});
+        Abar(rr,cc) = sum(2*sk{rr,cc}.*hc{rr,cc});        
         
+        % PM dim (adapt after ribs computation)
+        if strcmp(dataSet.TypeOfRotor,'Circular')
+            PMdim{rr,cc} = PMdim{rr,cc}-[pontT+geo0.pontR/2;zeros(size(geo0.pontR))];
+        elseif strcmp(dataSet.TypeOfRotor,'Seg')|| strcmp(dataSet.TypeOfRotor,'ISeg')
+            PMdim{rr,cc} = PMdim{rr,cc}-[geo0.pontR/2;pontT];
+        end
+
+        % PM flux linkage
+        tmp.nlay    = nlay;
+        tmp.Ns      = Ns;
+        tmp.g       = g;
+        tmp.sk      = sk{rr,cc};
+        tmp.hc      = hc{rr,cc};
+        tmp.r       = r(rr,cc);
+        tmp.dalpha  = geo.dalpha;
+        tmp.l       = l;
+        tmp.kc      = kc(rr,cc);
+        tmp.kw      = kw;
+        tmp.PMdim   = PMdim{rr,cc};
+        tmp.pontT   = geo0.pontT;
+        tmp.pontR   = geo0.pontR;
+        tmp.Br      = Br;
+        tmp.Bs      = Bs;
+        tmp.p       = geo.p;
+        tmp.alpha   = alpha;
+        tmp.Tfillet = max(geo.RotorFilletTan1,geo.RotorFilletTan2);
+        tmp.Rfillet = max(geo.RotorFillet1,geo.RotorFillet2);
+                
+        fM(rr,cc)   = evalPMfluxSyrmDesign(tmp);
+        
+ 
     end
 end
 
+
 %%
 % d axis
-if flag_kw
-    [kw, ~] = calcKwTh0(geo);
-    kw = kw(1);
-else
-    kw = pi/2/sqrt(3);
-    warning('Winding factor not evaluated')
-end
 
 Ht = interp1(mat.Stator.BH(:,1),mat.Stator.BH(:,2),Bfe./kt);
 Hy = interp1(mat.Stator.BH(:,1),mat.Stator.BH(:,2),Bfe);
@@ -357,14 +443,6 @@ Lmd = Fmd./id;                                                      % d magnetiz
 Lbase=Lmd.*ksat;% base inductance for analytical model (unsaturated)
 %Lbase=mu0*pi*(R*1e-3)*(l*1e-3)*Ns^2./(2*p^2.*kc*(g*1e-3)).*x;
 
-% stator design
-if q<1
-    lend = 0.5*(wt+pi*(r+lt/2)*sin(pi/(6*p*q*n3ph)));
-else
-    lend = 2*lt+(0.5*pi*(R-ly+r)/p);                                % end turn length (x,b) [mm]
-end
-
-
 % Rated current computation (from kj or J)
 
 per0 = per;
@@ -384,13 +462,13 @@ if flag_i0==0
     per0.kj   = kj;
     per0.Loss = NaN;
 elseif flag_i0==1
-    per0.kj = NaN;
+    per0.kj   = NaN;
     per0.Loss = NaN;
-    per0.J = J;
+    per0.J    = J;
 end
 
 
-per0 = calc_i0(geo0,per0);
+per0 = calc_i0(geo0,per0,mat);
 
 Rs = per0.Rs;
 
@@ -439,7 +517,7 @@ Lmq=Lbase.*(Lcqpu+Lfqpu)+Lrib;
 
 kdq=1-Lmq./Lmd;
 
-T = 3/2*p*(kdq.*Fmd.*iq);
+% T = 3/2*p*(kdq.*Fmd.*iq);
 
 % stator leakage inductance Ls
 [dfs] = staircaseRegular(6*q);                                      % stator staircase
@@ -461,13 +539,29 @@ Lspu = Ls./Lbase;
 Ld = Lmd+Ls;
 Lq = Lmq+Ls;
 
-csi = Ld./Lq;
-gamma = atand(iq./id);                                              % current phase angle [deg]
-delta = atand((Lq.*iq)./(Ld.*id));                                  % flux linkage phase angle [deg]
+fd = Ld.*id;        % d-axis flux linkage (SR axis)
+fq = Lq.*iq-fM;     % q-axis flux linkage (SR axis)
 
-PF = sind(gamma-delta);                                             % PF @ gamma (same gamma as torque)
-PFmax = (Ld-Lq)./(Ld+Lq);                                           % PF @ max PF gamma
+T = 3/2*p*(fd.*iq-fq.*id);
+
+csi = Ld./Lq;
+gamma = atand(iq./id);      % current phase angle [deg]
+delta = atand(fq./fd);      % flux linkage phase angle [deg]
+
+PF = sind(gamma-delta);     % PF @ gamma (same gamma as torque)
+% PFmax = (Ld-Lq)./(Ld+Lq);   % PF @ max PF gamma
 % PF2 = (csi-1)./sqrt(csi.^2.*(sind(gamma)).^-2+(cosd(gamma)).^-2);  % alternative formula
+
+% active parts mass computation
+mCu = Aslots/1e6.*(l+lend)/1e3*mat.SlotCond.kgm3*kcu;
+mPM = nan(size(xx));
+if strcmp(mat.LayerMag.MatName,'Air')
+    mPM = zeros(size(xx));
+else
+    for ii=1:numel(xx)
+        mPM(ii) = sum(hc{ii}.*sum(PMdim{ii},1))/1e6.*l/1e3*2*(2*p)*mat.LayerMag.kgm3;
+    end
+end
 
 %% save all the results in the map structure
 map.xx      = xx;
@@ -476,13 +570,15 @@ map.T       = T;
 map.PF      = PF;
 map.id      = id;
 map.iq      = iq;
-map.fd      = Ld.*id;
-map.fq      = Lq.*iq;
+map.fd      = fd;
+map.fq      = fq;
+map.fM      = fM;
 map.wt      = wt;
 map.ws      = ws;
 map.lt      = lt;
 map.la      = la;
 map.Ar      = Ar;
+map.ArLim   = ArLim;
 map.hc_pu   = hc_pu;
 map.dx      = dx;
 map.geo     = geo;
@@ -500,8 +596,6 @@ map.Aslots  = Aslots;
 map.A       = A;
 map.J       = J;
 map.kj      = kj;
-% map.kf1     = kf1*ones(size(xx));
-% map.kfm     = kfm*ones(size(xx));
 map.iAmp    = i0*loadpu;
 map.i0      = i0;
 map.gamma   = atan2(map.iq,map.id)*180/pi;
@@ -511,4 +605,12 @@ map.BrMax   = BrMax;
 map.BrMin   = BrMin;
 map.Abar    = Abar;
 map.Rs      = Rs;
+map.hcMin   = hcMin;
+map.mCu     = mCu;
+map.mPM     = mPM;
+map.PMdim   = PMdim;
+map.NsI0    = map.i0*Ns;
+map.F0_Ns   = abs(map.fd+j*map.fq)/Ns;
 map.dataSet = dataSet;
+% map.sk      = sk;
+% map.PMdim   = PMdim;

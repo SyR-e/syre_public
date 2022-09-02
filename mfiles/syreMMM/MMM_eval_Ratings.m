@@ -22,7 +22,7 @@ end
 i0    = motorModel.data.i0;
 Vdc   = motorModel.data.Vdc;
 
-Plim{1} = OpLimEval(motorModel,i0,Vdc*0.9);
+Plim{1} = OpLimEval(motorModel,i0,Vdc);
 
 if ~isempty(motorModel.IronPMLossMap_dq)
     % approximated: subtract iron loss at nominal conditions (A)

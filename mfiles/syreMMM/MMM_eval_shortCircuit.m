@@ -13,7 +13,9 @@
 %    limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [TccOut] = MMM_eval_shortCircuit(motorModel)
+function [TccOut] = MMM_eval_shortCircuit(motorModel,vector)
+
+expFlag = 0; % To evaluate the same speed points with measured temperatures of experimental data 
 
 Id      = motorModel.FluxMap_dq.Id;
 Iq      = motorModel.FluxMap_dq.Iq;
@@ -26,7 +28,12 @@ temp    = motorModel.data.tempCu;
 nMax    = motorModel.data.nmax;
 nPoints = 501;
 
-nVect = linspace(0,nMax,nPoints);
+if expFlag
+    tempVect = vector.temp;
+    nVect = vector.n;
+else
+    nVect = linspace(0,nMax,nPoints);
+end
 
 if strcmp(motorModel.data.axisType,'SR')
     if min(Id,[],'all')>=0
@@ -65,9 +72,20 @@ for ii=1:length(nVect)
     if isempty(motorModel.acLossFactor)
         kAC = 1;
     else
-        kAC = calcSkinEffect(motorModel.acLossFactor,freq,temp,'LUT');
+        if expFlag
+            kAC = calcSkinEffect(motorModel.acLossFactor,freq,tempVect(ii),'LUT');
+        else
+            kAC = calcSkinEffect(motorModel.acLossFactor,freq,temp,'LUT');
+        end
+
     end
-    Rs = Rs0*kAC;
+    if expFlag
+        Rs = Rs0*kAC*(1+0.004*(-temp+tempVect(ii)));
+    else
+        Rs = Rs0*kAC;
+    end
+
+
     Vdq = Rs*Idq+j*w(ii)*Fdq;
     c = contourc(idVect,iqVect,real(Vdq),[0 0]);
     idTmp = c(1,2:end);
@@ -115,7 +133,7 @@ for ii=1:4
             set(gca,...
                 'XLim',[min(Id,[],'all') max(Id,[],'all')],...
                 'YLim',[min(Iq,[],'all') max(Iq,[],'all')],...
-            	'DataAspectRatio',[1 1 1],...
+                'DataAspectRatio',[1 1 1],...
                 'CLim',[min(T,[],'all') max(T,[],'all')]);
             set(gcf,'FileName',[pathname resFolder 'DQcurrents.fig']);
             legend('show','Location','northeast');
@@ -154,9 +172,9 @@ if strcmp(answer,'Yes')
     if ~exist([pathname resFolder],'dir')
         mkdir([pathname resFolder]);
     end
-    
+
     save([pathname resFolder 'ShortCircuitResults.mat'],'TccOut')
-    
+
     for ii=1:length(hfig)
         savePrintFigure(hfig(ii));
     end

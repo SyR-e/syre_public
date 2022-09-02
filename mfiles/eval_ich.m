@@ -94,22 +94,23 @@ else
         dataSet.currentfilename = setup.currentfilename;
         dataSet.currentpathname = setup.currentpathname;
         
-        if ~isfield(dataSet,'axisType')
-            if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
-                dataSet.axisType = 'PM';
+        if ~isfield(geo,'axisType')
+            if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+                geo.axisType = 'PM';
             else
-                dataSet.axisType = 'SR';
+                geo.axisType = 'SR';
             end
         end
-        
-        if ~strcmp(dataSet.axisType,dataIn.axisType)
-            if strcmp(dataSet.axisType,'PM')
-                geo.th0 = geo.th0 + 90;
-            else
-                geo.th0 = geo.th0 - 90;
-            end
-        end
-        
+        %
+%         if ~strcmp(geo.axisType,dataIn.axisType)
+%             geo.axisType = dataIn.axisType;
+%             if strcmp(geo.axisType,'PM')
+%                 geo.th0 = geo.th0 - 90;
+%             else
+%                 geo.th0 = geo.th0 + 90;
+%             end
+%         end
+
         tempVect = dataSet.tempPP;
         pathname = dataSet.currentpathname;
         filename = dataSet.currentfilename;
@@ -126,12 +127,11 @@ per.BrPP            = dataSet.BrPP;
 dataSet.currentfilename = filename;
 dataSet.currentpathname = pathname;
 
-if (strcmp(dataSet.TypeOfRotor,'SPM')||strcmp(dataSet.TypeOfRotor,'Vtype'))
+axes_type = geo.axisType;
+if strcmp(axes_type,'PM')
     per.gamma=-180;
-    axes_type='PM';
 else
     per.gamma=90;
-    axes_type='SR';
 end
 
 motname=[pathname filename(1:end-4) '.fem'];

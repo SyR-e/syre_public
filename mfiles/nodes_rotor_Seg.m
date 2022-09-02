@@ -63,18 +63,18 @@ xRaccR2_B2 = NaN(1,nlay);
 yRaccR2_B2 = NaN(1,nlay);
 
 %%%Tangential Rotor Fillet 
-temp.xC1k  = nan(1,nlay);
-temp.yC1k  = nan(1,nlay);
-temp.xC2k  = nan(1,nlay);
-temp.yC2k  = nan(1,nlay);
-temp.xC3k  = nan(1,nlay);
-temp.yC3k  = nan(1,nlay);
-temp.xC4k  = nan(1,nlay);
-temp.yC4k  = nan(1,nlay);
-temp.xC01k = nan(1,nlay);
-temp.yC01k = nan(1,nlay);
-temp.xC02k = nan(1,nlay);
-temp.yC02k = nan(1,nlay);
+xC1k  = nan(1,nlay);
+yC1k  = nan(1,nlay);
+xC2k  = nan(1,nlay);
+yC2k  = nan(1,nlay);
+xC3k  = nan(1,nlay);
+yC3k  = nan(1,nlay);
+xC4k  = nan(1,nlay);
+yC4k  = nan(1,nlay);
+xC01k = nan(1,nlay);
+yC01k = nan(1,nlay);
+xC02k = nan(1,nlay);
+yC02k = nan(1,nlay);
 
 % Check array
 LowDimBarrier = zeros(1,nlay);
@@ -364,105 +364,81 @@ ii = ((hcShrink_val>0) & (flag_Vkdx==0));
 RotorFilletTan2(isfinite(RotorFilletTan1) & ~isfinite(RotorFilletTan2)) =   RotorFilletTan1(isfinite(RotorFilletTan1) & ~isfinite(RotorFilletTan2));
 RotorFilletTan1(isfinite(RotorFilletTan2) & ~isfinite(RotorFilletTan1)) =   RotorFilletTan2(isfinite(RotorFilletTan2) & ~isfinite(RotorFilletTan1));
 
+for ii=1:nlay
+    if ~isnan(RotorFilletTan1(ii))
+        if sum(RotorFilletTan2(ii)+RotorFilletTan1(ii))>hc(ii)
+            disp('Rotor Fillet limited');
+            RotorFilletTan1(ii) = floor(hc(ii)/2+100)/100;
+            RotorFilletTan2(ii) = floor(hc(ii)/2+100)/100;
+        end
+        % Inner side
+        [a1,b1,c1] = retta_per_2pti(XpBar1(ii),YpBar1(ii),xxD1k(ii),yyD1k(ii));
+        [a1p,b1p,c1p] = calc_retta_offset(a1,b1,c1,RotorFilletTan1(ii));
+        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-RotorFilletTan1(ii),a1p,b1p,c1p);
+        xC01k(ii) = real(xTmp(1));
+        yC01k(ii) = real(yTmp(1));
+        [xC1k(ii),yC1k(ii)] = proiezione_punto_retta(a1,b1,c1,xC01k(ii),yC01k(ii));
+        [a10,b10,c10] = retta_per_2pti(xC01k(ii),yC01k(ii),0,0);
+        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii),a10,b10,c10);
+        xC2k(ii) = real(xTmp(1));
+        yC2k(ii) = real(yTmp(1));
+        % Outer side
+        [a2,b2,c2] = retta_per_2pti(XpBar2(ii),YpBar2(ii),xxD2k(ii),yyD2k(ii));
+        [a2p,b2p,c2p] = calc_retta_offset(a2,b2,c2,-RotorFilletTan2(ii));
+        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-RotorFilletTan2(ii),a2p,b2p,c2p);
+        xC02k(ii) = real(xTmp(1));
+        yC02k(ii) = real(yTmp(1));
+        [xC4k(ii),yC4k(ii)] = proiezione_punto_retta(a2,b2,c2,xC02k(ii),yC02k(ii));
+        [a20,b20,c20] = retta_per_2pti(xC02k(ii),yC02k(ii),0,0);
+        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii),a20,b20,c20);
+        xC3k(ii) = real(xTmp(1));
+        yC3k(ii) = real(yTmp(1));
 
 
-if any(isfinite(RotorFilletTan1))
-    pont0_nlay = pont0*ones(1,nlay);
-    RotorFilletTan1(~isfinite(RotorFilletTan1)) = 2*pont0_nlay(~isfinite(RotorFilletTan1));
-    RotorFilletTan2(~isfinite(RotorFilletTan2)) = 2*pont0_nlay(~isfinite(RotorFilletTan2));
-%     
-    
-    if sum(RotorFilletTan1+RotorFilletTan2>hc)
-        disp('Rotor Fillet limited');
-        RotorFilletTan1(RotorFilletTan1>hc/2) = floor(hc(RotorFilletTan1>hc/2)/2*10^2)/10^2;
-        RotorFilletTan2(RotorFilletTan2>hc/2) = floor(hc(RotorFilletTan2>hc/2)/2*10^2)/10^2;
-%         RotorFillet(2,RotorFillet>hc/2) = floor(hc(RotorFillet>hc/2)/2*10^2)/10^2;
+        %constraint on the inferior arc
+        if ((xC4k(ii)<XpBar2(ii))&&(yC4k(ii)<YpBar2(ii)))
+            disp('Inferior arc limited in rotor fillet');
+            RotorFilletTan2(ii) = pont0;
+            [a2,b2,c2] = retta_per_2pti(XpBar2(ii),YpBar2(ii),xxD2k(ii),yyD2k(ii));
+            [a2p,b2p,c2p] = calc_retta_offset(a2,b2,c2,-RotorFilletTan2(ii));
+            [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-RotorFilletTan2(ii),a2p,b2p,c2p);
+            xC02k(ii) = real(xTmp(1));
+            yC02k(ii) = real(yTmp(1));
+            [xC4k(ii),yC4k(ii)] = proiezione_punto_retta(a2,b2,c2,xC02k(ii),yC02k(ii));
+            [a20,b20,c20] = retta_per_2pti(xC02k(ii),yC02k(ii),0,0);
+            [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii),a20,b20,c20);
+            xC3k(ii) = real(xTmp(1));
+            yC3k(ii) = real(yTmp(1));
+        end
     end
+end
 
-    m1 = (YpBar1-yyD1k)./(XpBar1-xxD1k);
-    if ~isfinite(m1(1,1))
-        m1(1,1) = m1(1,2);
-    end
-    
-    q1 = YpBar1-m1.*XpBar1;
-    m2 = -xpont./ypont;
-    m1perp = -ones(1,nlay)./m1;
-    m2perp = -ones(1,nlay)./m2;
-    q2 = ypont-m2.*xpont;
-    q3 = yyD2k-m1.*xxD2k;
-    
-    %tangential rib superior arc starts in C1k and ends in C2k with center in C01k
-    xC2k = (sqrt(1+m1.*m1).*RotorFilletTan1-q1+q2)./(m1-m2);
-    yC2k = m2.*xC2k+q2;
-    xC1k = (sqrt(1+m2.*m2).*RotorFilletTan1-q2+q1)./(m2-m1);
-    yC1k = m1.*xC1k+q1;
-    q11 = yC1k-m1perp.*xC1k;
-    q22 = yC2k-m2perp.*xC2k;
-    xC01k = (q22-q11)./(m1perp-m2perp);
-    yC01k = m2perp.*xC01k+q22;
-    
-    %tangential rib inferior arc starts in C3k and ends in C4k with center in C02k
-    xC3k=(sqrt(1+m1.*m1).*RotorFilletTan2+q3-q2)./(m2-m1);
-    yC3k=m2.*xC3k+q2;
-    xC4k=(sqrt(1+m2.*m2).*RotorFilletTan2-q2+q3)./(m2-m1);
-    yC4k=m1.*xC4k+q3;
-    q33=yC3k-m2perp.*xC3k;
-    q44=yC4k-m1perp.*xC4k;
-    xC02k=(q44-q33)./(m2perp-m1perp);
-    yC02k=m2perp.*xC02k+q33;
-    
-    %constraint on the inferior arc
-    index=(xC4k<XpBar2) & (yC4k<YpBar2);
-    if sum(index)>0
-        disp('Inferior arc limited in rotor fillet');
-        xC4k(index)=XpBar2(index);
-        yC4k(index)=YpBar2(index);
-        RotorFilletLimited=((m2(index)-m1(index)).*xC4k(index)+q2(index)-q3(index))./(sqrt(1+m2(index).*m2(index)));
-        xC3k(index)=(sqrt(1+m1(index).*m1(index)).*RotorFilletLimited+q3(index)-q2(index))./(m2(index)-m1(index));
-        yC3k(index)=m2(index).*xC3k(index)+q2(index);
-    end
-    
-    
+if ~isnan(xC1k(1))
     xxD1k = xC1k;
     yyD1k = yC1k;
     xxD2k = xC4k;
     yyD2k = yC4k;
-    
-    
-    %save nodes
-    temp.xC1k = xC1k;
-    temp.yC1k = yC1k;
-    temp.xC2k = xC2k;
-    temp.yC2k = yC2k;
-    temp.xC3k = xC3k;
-    temp.yC3k = yC3k;
-    temp.xC4k = xC4k;
-    temp.yC4k = yC4k;
-    temp.xC01k = xC01k;
-    temp.yC01k = yC01k;
-    temp.xC02k = xC02k;
-    temp.yC02k = yC02k;
 end
 
-geo.hc = hc;
-temp.B1k = B1k;
-temp.B2k = B2k;
-temp.xpont = xpont;
-temp.ypont = ypont;
+geo.hc      = hc;
+temp.B1k    = B1k;
+temp.B2k    = B2k;
+temp.xpont  = xpont;
+temp.ypont  = ypont;
 temp.XpBar1 = XpBar1;
 temp.YpBar1 = YpBar1;
 temp.XpBar2 = XpBar2;
 temp.YpBar2 = YpBar2;
-temp.xxD1k = xxD1k;
-temp.yyD1k = yyD1k;
-temp.xxD2k = xxD2k;
-temp.yyD2k = yyD2k;
+temp.xxD1k  = xxD1k;
+temp.yyD1k  = yyD1k;
+temp.xxD2k  = xxD2k;
+temp.yyD2k  = yyD2k;
 
 %Shrink
 temp.hcAngle = hcAngle;
 temp.flag_segV = flag_V; 
 
-[temp,geo] = calc_ribs_rad_fun(geo,mat,temp);
+[temp,geo] = calc_ribs_rad_Seg(geo,mat,temp);
 
 if YpBar2(1)<=0
     LowDimBarrier(1)=1;
@@ -481,15 +457,15 @@ end
 %% temp 
 temp.Bx0 = Bx0;
 
-temp.XcRacc_B1 = XcRacc_B1;
-temp.YcRacc_B1 = YcRacc_B1;
+temp.XcRacc_B1  = XcRacc_B1;
+temp.YcRacc_B1  = YcRacc_B1;
 temp.xRaccR1_B1 = xRaccR1_B1;
 temp.yRaccR1_B1 = yRaccR1_B1;
 temp.xRaccR2_B1 = xRaccR2_B1;
 temp.yRaccR2_B1 = yRaccR2_B1;
 
-temp.XcRacc_B2 = XcRacc_B2;
-temp.YcRacc_B2 = YcRacc_B2;
+temp.XcRacc_B2  = XcRacc_B2;
+temp.YcRacc_B2  = YcRacc_B2;
 temp.xRaccR1_B2 = xRaccR1_B2;
 temp.yRaccR1_B2 = yRaccR1_B2;
 temp.xRaccR2_B2 = xRaccR2_B2;
@@ -541,5 +517,46 @@ geo.hcShrink = hcShrink;
 geo.RotorFilletTan1 = RotorFilletTan1;
 geo.RotorFilletTan2 = RotorFilletTan2;
 
+geo.xxD1k = xxD1k;
+geo.yyD1k = yyD1k;
+geo.xxD2k = xxD2k;
+geo.yyD2k = yyD2k;
+
 geo.CentBarLength = temp.YpontSplitBarSx(2,:)*2;
 geo.hrheight      = temp.XpontSplitDx(2,:)-temp.XpontSplitSx(2,:);
+
+geo.XpontRadDx      = temp.XpontRadDx;   
+geo.YpontRadDx      = temp.YpontRadDx;   
+geo.XpontRadSx      = temp.XpontRadSx;   
+geo.YpontRadSx      = temp.YpontRadSx;   
+geo.XpontRadBarDx   = temp.XpontRadBarDx;
+geo.XpontRadBarSx   = temp.XpontRadBarSx;
+geo.YpontRadBarDx   = temp.YpontRadBarDx;
+geo.YpontRadBarSx   = temp.YpontRadBarSx;
+
+geo.XpontSplitBarSx =  temp.XpontSplitBarSx;
+geo.YpontSplitBarSx =  temp.YpontSplitBarSx;
+geo.XpontSplitBarDx =  temp.XpontSplitBarDx;
+geo.YpontSplitBarDx =  temp.YpontSplitBarDx;
+geo.XpontSplitDx    =  temp.XpontSplitDx;
+geo.YpontSplitDx    =  temp.YpontSplitDx;   
+geo.XpontSplitSx    =  temp.XpontSplitSx;   
+geo.YpontSplitSx    =  temp.YpontSplitSx;
+
+temp.xC1k  = xC1k;
+temp.yC1k  = yC1k;
+temp.xC2k  = xC2k;
+temp.yC2k  = yC2k;
+temp.xC3k  = xC3k;
+temp.yC3k  = yC3k;
+temp.xC4k  = xC4k;
+temp.yC4k  = yC4k;
+temp.xC01k = xC01k;
+temp.yC01k = yC01k;
+temp.xC02k = xC02k;
+temp.yC02k = yC02k;
+
+
+
+
+

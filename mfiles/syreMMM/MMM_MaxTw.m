@@ -85,6 +85,7 @@ hg=plot(hax,0,0,'g.','LineWidth',1.5);
 
 
 disp('Map evaluation in progress...')
+fprintf(' %06.2f%%',0)
 
 for ii=1:numel(TwMap.n)
     
@@ -133,9 +134,16 @@ for ii=1:numel(TwMap.n)
         drawnow();
 %         pause(0.01);
     end
+    
+    fprintf('\b\b\b\b\b\b\b')
+    fprintf('%06.2f%%',ii/numel(TwMap.n)*100)
+
 end
 
+disp(' ')
 disp('Maps Evaluated');
+
+TwMap.dTpp = interp2(motorModel.FluxMap_dq.Id,motorModel.FluxMap_dq.Iq,motorModel.FluxMap_dq.dTpp,TwMap.Id,TwMap.Iq);
 
 TwMap.T_top_W = max(TwMap.Tout);
 TwMap.T_top_W(TwMap.T_top_W<0) = 0;
@@ -169,6 +177,7 @@ figNames{16} = 'Iron and mechanical loss map';
 figNames{17} = 'Rotor Joule loss map';
 figNames{18} = 'Rotor slip map';
 figNames{19} = 'Rotor current map';
+figNames{20} = 'Torque ripple';
 
 flagPlot = 1:1:numel(figNames);
 if strcmp(TwData.IronLossFlag,'No')
@@ -297,6 +306,11 @@ for ii=1:length(flagPlot)
         case 19
             title('Rotor current map [A]')
             [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Ir);
+            clabel(c,h)
+            colorbar
+        case 20
+            title('Peak-to-peak torque ripple [Nm]')
+            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.dTpp);
             clabel(c,h)
             colorbar
     end

@@ -25,13 +25,14 @@ nmax = motorModel.data.nmax;
 
 Id = motorModel.FluxMap_dq.Id;
 Iq = motorModel.FluxMap_dq.Iq;
-Fd = motorModel.FluxMap_dq.Fd;
-Fq = motorModel.FluxMap_dq.Fq;
+% Fd = motorModel.FluxMap_dq.Fd;
+% Fq = motorModel.FluxMap_dq.Fq;
 T  = motorModel.FluxMap_dq.T;
 % PF = sin(atan2(Iq,Id)-atan2(Fq,Fd));
 
-MTPA = motorModel.controlTrajectories.MTPA;
-MTPV = motorModel.controlTrajectories.MTPV;
+MTPA  = motorModel.controlTrajectories.MTPA;
+MTPV  = motorModel.controlTrajectories.MTPV;
+MPFPA = motorModel.controlTrajectories.MPFPA;
 
 
 % create figures
@@ -84,8 +85,9 @@ clabel(c,h)
 [c,h] = contour(Id,Iq,T,'-b','DisplayName','$T$');
 clabel(c,h)
 
-plot(MTPA.id,MTPA.iq,'--k','DisplayName','MTPA')
+plot(MTPA.id,MTPA.iq,'-k','DisplayName','MTPA')
 plot(MTPV.id,MTPV.iq,':k','DisplayName','MTPV')
+% plot(MPFPA.id,MPFPA.iq,'--k','DisplayName','MPFPA')
 
 for ii=1:length(Plim)
     % curves

@@ -43,7 +43,7 @@ if ~isempty(RQ)
         %         populationSize=options.PopulationSize;
         %         generation=floor(iteration/populationSize)+1;
         %         options.currentgen=generation;
-        RQ % debug .. when syre crashes it is useful to have visibility of last RQ
+%         RQ % debug .. when syre crashes it is useful to have visibility of last RQ
     end
 
     [geo,gamma,mat] = interpretRQ(RQ,geo,mat);
@@ -52,7 +52,7 @@ if ~isempty(RQ)
     [geo,mat] = draw_motor_in_FEMM(geo,mat,pathname,filename);
 
     [~,geo] = calc_endTurnLength(geo);
-    per = calc_i0(geo,per);
+    per = calc_i0(geo,per,mat);
 
     %     if any(strcmp(geo.OBJnames,'Fdq0'))
     %         per0 = per;
@@ -75,7 +75,7 @@ if ~isempty(RQ)
         simSetup.evalSpeed = geo.nmax;
         simSetup.meshSize  = 'coarse';
         simSetup.flagFull  = 0;
-        simSetup.shaftBC   = 0;
+        simSetup.shaftBC   = 1;
         warning('off')
         %     [structModel] = syre2pde(geo,mat,simSetup);
         simSetup.filename = filename;
@@ -89,18 +89,28 @@ if ~isempty(RQ)
         saveas(gcf,[pathname 'mechMesh.fig']);
         close
         warning('on')
+        
+        if sum([outMech.nPointOverRad outMech.nPointOverTan])>100
+            flagSim=0;
+        end
         %     if any(outMech.stress_T>mat.Rotor.sigma_max*10^6)  || any(outMech.stress_R>mat.Rotor.sigma_max*10^6)
         %         flagSim = 0;
         %     end
-        if any(outMech.stress_R>mat.Rotor.sigma_max*10^6)
-            flagSim = 0;
-        end
+        %         if any(outMech.stress_R>mat.Rotor.sigma_max*10^6)
+        %             flagSim = 0;
+        %         end
+%         if outMech.MaxStress>mat.Rotor.sigma_max*10^6
+%             flagSim=0;
+%         end
     end
 end
 
 if flagSim
-    [SOL] = simulate_xdeg(geo,per,mat,eval_type,pathname,filename);
-
+    if strcmp(geo.RotType,'IM')
+        [SOL] = simulate_FOC_IM(geo,per,mat,eval_type,pathname,filename);
+    else
+        [SOL] = simulate_xdeg(geo,per,mat,eval_type,pathname,filename);
+    end
     % standard results
     out.id     = mean(SOL.id);                                      % [A]
     out.iq     = mean(SOL.iq);                                      % [A]
@@ -111,7 +121,6 @@ if flagSim
     out.dTpu   = std(SOL.T)/out.T;                                  % [pu]
     out.dTpp   = max(SOL.T)-min(SOL.T);                             % [Nm]
     out.IPF    = sin(atan2(out.iq,out.id)-atan2(out.fq,out.fd));
-    %out.MassPM = mean(SOL.VolPM)*mat.LayerMag.kgm3;                % [kg]
     out.SOL    = SOL;
 
     % check Torque sign
@@ -152,10 +161,14 @@ if flagSim
         end
     end
 
+    if strcmp(geo.RotType,'IM')
+        out.IM = SOL.IM;
+    end
+
 else
-    out.T = -10^50;
+    out.T    = 0;
     out.dTpp = 10^50;
-    out.IPF = -10^50;
+    out.IPF  = -10^50;
 end
 
 if ~isempty(RQ)     % MODE optimization (RQ geometry)
@@ -215,6 +228,11 @@ if ~isempty(RQ)     % MODE optimization (RQ geometry)
         temp1 = temp1+1;
     end
 
+     % Structural properties
+    if temp1<=length(geo.OBJnames) && strcmp(geo.OBJnames{temp1},'MechStress')
+        cost(temp1) = max([outMech.sigmaRadMax outMech.sigmaTanMax])/1e6;
+        temp1=temp1+1;
+    end
 
     % penalize weak solutions
     for ii = 1:length(cost)
@@ -247,6 +265,6 @@ if ~isempty(RQ)     % MODE optimization (RQ geometry)
     end
 else
     cost = [];
-    save([pathname strrep(filename,'.fem','.mat')],'geo','out','mat');   % save geo and out
+    save([pathname strrep(filename,'.fem','.mat')],'geo','out','mat','per');   % save geo and out
 end
 

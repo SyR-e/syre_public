@@ -96,7 +96,7 @@ clc;
 
 dataIn.currentpathname = pathname;
 dataIn.currentfilename = strrep(filemot,'.fem','.mat');
-per = calc_i0(geo,per);
+per = calc_i0(geo,per,mat);
 dataIn.RatedCurrent = per.i0;
 dataIn.SimulatedCurrent = dataIn.CurrLoPP*dataIn.RatedCurrent;
 

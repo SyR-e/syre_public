@@ -18,11 +18,11 @@ function [geo,temp,mat] = drawPole(geo,mat,fem)
 % SyR-e), with labels matrix (BLKLABELSrot), 
 % 
 
-Ar = geo.Ar;
-r  = geo.r;
-ps = geo.ps;
-p  = geo.p;
-lm = geo.lm;
+% Ar = geo.Ar;
+% r  = geo.r;
+% ps = geo.ps;
+% p  = geo.p;
+% lm = geo.lm;
 geo.delta_FBS=0; % no pole deformation
 flagVtype = 1; % if 0, use Marco Gallo Vtype version, else use Simone Ferrari version (ready for syrmDesign)
 if ~strcmp(geo.RotType,'SPM')
@@ -61,7 +61,6 @@ switch geo.RotType
             [geo,mat,temp] = nodes_rotor_Vtype(geo,mat);
             rotor=build_matrix_Vtype(temp,geo);
         end
-        
 end
 
 % check about the PM area (to add to the nodes_rotor_xxx.m functions)
@@ -99,7 +98,6 @@ ytemp=sin(atan2(BarCenter(:,7),BarCenter(:,6))+(pi/2/geo.p-eps));
 BarCenter(:,6)=xtemp;
 BarCenter(:,7)=ytemp;
 clear xtemp ytemp;
-
 
 %%% OUTPUT DATA %%%
 %%%%%%%%%%%%%%%%%%%

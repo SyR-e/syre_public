@@ -13,7 +13,15 @@
 %    limitations under the License.
 
 function MMM_print_MotorDataH(motorModel)
-MotorDataH_path = [motorModel.data.pathname motorModel.data.motorName '_ctrl\User_functions\Inc\MotorData.h'];
+
+modelType = motorModel.SyreDrive.modelType;
+
+switch(modelType)
+    case 'Average'
+        MotorDataH_path = [motorModel.data.pathname motorModel.data.motorName '_ctrl_AVG\User_functions\Inc\MotorData.h'];
+    case 'Istantaneous'
+        MotorDataH_path = [motorModel.data.pathname motorModel.data.motorName '_ctrl_INST\User_functions\Inc\MotorData.h'];
+end
 
 MTPA = motorModel.controlTrajectories.MTPA;
 MTPV = motorModel.controlTrajectories.MTPV;
@@ -22,8 +30,10 @@ MTPA.T(isnan(MTPA.T)) = 0;
 i0       = motorModel.data.i0;
 Imax_mot = motorModel.data.Imax;
 nmax_mot = motorModel.data.nmax;
+
 T_rated(~isnan(motorModel.data.T0)) = motorModel.data.T0;
 T_rated(isempty(T_rated)) = interp1(abs(MTPA.id+1i*MTPA.iq),MTPA.T,i0);
+
 Tmax_mot = 2 * T_rated;
 RS       = motorModel.data.Rs;
 PP       = motorModel.data.p;
@@ -55,11 +65,11 @@ fprintf(fid,' \n');
 fprintf(fid,'#define deadtime %4.2fe-6\n',deadtime);
 
 fprintf(fid,' \n');
-fprintf(fid,'#define Ld_inic %4.3f\n',Ld_inic);
-fprintf(fid,'#define Lq_inic %4.3f\n',Lq_inic);
-fprintf(fid,'#define ld_inic %4.3f\n',ld_inic);
-fprintf(fid,'#define lq_inic %4.3f\n',lq_inic);
-fprintf(fid,'#define ldq_inic %4.3f\n',ldq_inic);
+fprintf(fid,'#define Ld_inic %d\n',Ld_inic);
+fprintf(fid,'#define Lq_inic %d\n',Lq_inic);
+fprintf(fid,'#define ld_inic %d\n',ld_inic);
+fprintf(fid,'#define lq_inic %d\n',lq_inic);
+fprintf(fid,'#define ldq_inic %d\n',ldq_inic);
 fprintf(fid,' \n');
 fclose(fid);
 

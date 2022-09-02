@@ -68,7 +68,24 @@ if isfield(skinEffect,'T')
         plot(hax(1),f(ii,:),k(ii,:),'-o','DisplayName',['$\Theta_{Cu}=' int2str(tempVect(ii)) '^\circ$C'])
     end
     legend(hax(1),'show','Location','northwest');
-
+    
+    hfig(3) = figure();
+    figSetting();
+    set(hfig(3),'Filename',[pathname resFolder 'phaseACresistance.fig'])
+    hax(3) = axes('OuterPosition',[0 0 1 1],...
+        'XLim',[0 max(f(:))]);
+    xlabel('$f$ [Hz]')
+    ylabel('$R_{AC}$ [$\Omega$]')
+    Rs0   = motorModel.data.Rs;
+    temp0 = motorModel.data.tempCu;
+    l     = motorModel.data.l;
+    lend  = motorModel.data.lend;
+    for ii=1:length(tempVect)
+        kAC = calcSkinEffect(skinEffect,f(ii,:),tempVect(ii),'LUT');
+        Rs = Rs0*(kAC*l/(l+lend)+lend/(l+lend)).*(1+0.004*(tempVect(ii)-temp0));
+        plot(hax(3),f(ii,:),Rs,'-o','DisplayName',['$\Theta_{Cu}=' int2str(tempVect(ii)) '^\circ$C'])
+    end
+    legend(hax(3),'show','Location','northeastoutside');
 
 
 end

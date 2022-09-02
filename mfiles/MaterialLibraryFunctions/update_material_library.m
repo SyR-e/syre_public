@@ -152,6 +152,48 @@ if ~isfield(matTmp,'kgm3')
     clear mat
 end
 
+% check rotor slot material
+if isfield(mot.dataSet,'BarMaterial')
+    matTmp=material_properties_conductor(mot.dataSet.BarMaterial);
+    if ~isfield(matTmp,'kgm3')
+        mat.MatName = mot.mat.BarCond.MatName;
+        mat.sigma   = mot.mat.BarCond.sigma;
+        mat.kgm3    = mot.mat.BarCond.kgm3;
+        mat.alpha   = mot.mat.BarCond.alpha;
+
+        load('materialLibrary\custom_conductor.mat');
+        ind=length(MatList);
+        ind=ind+1;
+        MatList{ind}=mat.MatName;
+        MatLib{ind}=mat;
+
+        save('materialLibrary\custom_conductor.mat','MatList','MatLib');
+        flagMod(5)=1;
+        clear mat
+    end
+end
+
+% check rotor sleeve material
+if isfield(mot.dataSet,'SleeveMaterial')
+    matTmp=material_properties_sleeve(mot.dataSet.SleeveMaterial);
+    if ~isfield(matTmp,'kgm3')
+        mat.MatName   = mot.mat.Sleeve.MatName;
+        mat.sigma_max = mot.mat.Sleeve.sigma_max;
+        mat.kgm3      = mot.mat.Sleeve.kgm3;
+        mat.E         = mot.mat.Sleeve.E;
+
+        load('materialLibrary\custom_sleeve.mat');
+        ind=length(MatList);
+        ind=ind+1;
+        MatList{ind}=mat.MatName;
+        MatLib{ind}=mat;
+
+        save('materialLibrary\custom_sleeve.mat','MatList','MatLib');
+        flagMod(5)=1;
+        clear mat
+    end
+end
+
 if sum(flagMod)
     disp('Materials added to the custom material library:')
     for ii=1:length(flagMod)

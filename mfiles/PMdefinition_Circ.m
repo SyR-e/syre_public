@@ -66,7 +66,9 @@ eta1 = atan2(yyD1k,(x0-xxD1k));
 eta2 = atan2(yyD2k,(x0-xxD2k));
 etaMax = min([eta1;eta2],[],1);
 
-etaRib = atan2(YpontRadBarDx,(x0-XpontRadBarDx));
+etaRibDx = atan2(YpontRadBarDx,(x0-XpontRadBarDx));
+etaRibSx = atan2(YpontRadBarSx,(x0-XpontRadBarSx));
+etaRib = max([etaRibSx;etaRibDx]);
 
 AreaC = pi*(etaMax-etaRib)/(2*pi).*((x0-B1k).^2-(x0-B2k).^2);
 b     = AreaC./hc;
@@ -96,8 +98,13 @@ AreaC = PMdim.*hc;
 PMclearLim = hc-pont0*ones(size(hc));
 PMclear(PMclear>PMclearLim) = PMclearLim(PMclear>PMclearLim);
 
+
 xPMC2b = XpontRadBarDx;
 yPMC2b = YpontRadBarDx;
+
+% xPMC2b(etaRibSx>etaRibDx) = XpontRadBarSx(etaRibSx>etaRibDx);
+% yPMC2b(etaRibSx>etaRibDx) = YpontRadBarSx(etaRibSx>etaRibDx);
+
 m = -tan(etaRib);
 q = 0;
 [xPMC1b,yPMC1b] = intersezione_retta_circonferenza(0,0,x0-B1k-PMclear,m,q);

@@ -167,6 +167,7 @@ yPMC2t = yPMC2b+PMdimC;
 xPMC1t = xPMC1b;
 yPMC1t = yPMC2t;
 
+deltaFBS=0;
 % point definition - external section
 xPME2b = XpontSplitBarDx(1,:)+pont0*cos(pi/2/p+deltaFBS/2+hcAngle);
 yPME2b = YpontSplitBarDx(1,:)+pont0*sin(pi/2/p+deltaFBS/2+hcAngle);

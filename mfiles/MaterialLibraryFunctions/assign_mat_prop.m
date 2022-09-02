@@ -52,18 +52,29 @@ mat.Rotor.MatName   = tmp.MatName;
 %% slot conductor
 tmp = material_properties_conductor(dataSet.SlotMaterial);
 if ~isfield(tmp,'kgm3')
-    error('Select a correct statot conductor material')
+    error('Select a correct stator conductor material')
 end
-mat.SlotCond.sigma = tmp.sigma;
-mat.SlotCond.kgm3 = tmp.kgm3;
+mat.SlotCond.sigma   = tmp.sigma;
+mat.SlotCond.kgm3    = tmp.kgm3;
 mat.SlotCond.MatName = tmp.MatName;
-mat.SlotCond.alpha = tmp.alpha;
+mat.SlotCond.alpha   = tmp.alpha;
 %mat.MatList.conductor = tmp.MatList;
 
 %% slot air
-mat.SlotAir.kgm3 = 3;
-mat.SlotAir.sigma = 0;
+mat.SlotAir.kgm3    = 3;
+mat.SlotAir.sigma   = 0;
 mat.SlotAir.MatName = 'Air';
+
+%% Rotor bar (IM)
+% tmp = material_properties_conductor(dataSet.BarMaterial);
+tmp = material_properties_conductor('Aluminium');
+if ~isfield(tmp,'kgm3')
+    error('Select a correct rotor conductor material')
+end
+mat.BarCond.sigma   = tmp.sigma;
+mat.BarCond.kgm3    = tmp.kgm3;
+mat.BarCond.MatName = tmp.MatName;
+mat.BarCond.alpha   = tmp.alpha;
 
 %% rotor PM
 tmp = material_properties_layer(dataSet.FluxBarrierMaterial);
@@ -72,10 +83,10 @@ if ~isfield(tmp,'kgm3')
 end
 mat.LayerMag.kgm3 = tmp.kgm3;
 if isfield(tmp,'BH')
-    mat.LayerMag.BH = tmp.BH;
-    mat.LayerMag.Br = 0;
-    mat.LayerMag.Hc = 0;
-    mat.LayerMag.Hci = tmp.Hci;
+    mat.LayerMag.BH   = tmp.BH;
+    mat.LayerMag.Br   = 0;
+    mat.LayerMag.Hc   = 0;
+    mat.LayerMag.Hci  = tmp.Hci;
     mat.LayerMag.Bnom = tmp.Bnom;
 else
     mat.LayerMag.Br      = tmp.Br;
@@ -107,24 +118,35 @@ mat.LayerAir.MatName = 'Air';
 tmp = material_properties_iron(dataSet.ShaftMaterial);
 if ~isfield(tmp,'kgm3')
     if isequal(dataSet.ShaftMaterial,'Air')
-        mat.Shaft.kgm3 = 0;
-        mat.Shaft.alpha = 0;
-        mat.Shaft.beta = 0;
-        mat.Shaft.kh = 0;
-        mat.Shaft.ke = 0;
-        mat.Shaft.BH = [-100 -1/(4*pi)*1e-9
-                        +100 +1/(4*pi)*1e-9];
+        mat.Shaft.kgm3    = 0;
+        mat.Shaft.alpha   = 0;
+        mat.Shaft.beta    = 0;
+        mat.Shaft.kh      = 0;
+        mat.Shaft.ke      = 0;
+        mat.Shaft.BH      = [-100 -1/(4*pi)*1e-9
+                             +100 +1/(4*pi)*1e-9];
         mat.Shaft.MatName = 'ShaftAir';
     else
         error('Select a correct shaft material')
     end
 else
-    mat.Shaft.kgm3 = tmp.kgm3;
-    mat.Shaft.alpha = tmp.alpha;
-    mat.Shaft.beta = tmp.beta;
-    mat.Shaft.kh = tmp.kh;
-    mat.Shaft.ke = tmp.ke;
-    mat.Shaft.BH = tmp.BH;
+    mat.Shaft.kgm3    = tmp.kgm3;
+    mat.Shaft.alpha   = tmp.alpha;
+    mat.Shaft.beta    = tmp.beta;
+    mat.Shaft.kh      = tmp.kh;
+    mat.Shaft.ke      = tmp.ke;
+    mat.Shaft.BH      = tmp.BH;
     mat.Shaft.MatName = tmp.MatName;
+end
+
+%% Rotor Sleeve
+tmp = material_properties_sleeve(dataSet.SleeveMaterial);
+if ~isfield(tmp,'kgm3')
+    error('Select a correct sleeve material')
+else
+    mat.Sleeve.kgm3      = tmp.kgm3;
+    mat.Sleeve.E         = tmp.E;
+    mat.Sleeve.sigma_max = tmp.sigma_max;
+    mat.Sleeve.MatName   = tmp.MatName;
 end
 

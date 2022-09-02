@@ -18,6 +18,8 @@ mod = load([pathname filename]);
 
 if isfield(mod,'motorModel')    % MMM already used 
     motorModel = mod.motorModel;
+    motorModel.data.pathname = pathname;
+    motorModel.data.motorName = filename(1:end-4);
 elseif isfield(mod,'dataSet')   % first time MMM is used
     if isequal(mod.dataSet.currentfilename(1:end-4),filename(1:end-4))  % existing filename  
         data.motorName = mod.dataSet.currentfilename(1:end-4);
@@ -38,7 +40,7 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     data.n3phase   = mod.dataSet.Num3PhaseCircuit;
     data.Rs        = mod.dataSet.Rs;
     data.tempCu    = mod.dataSet.TargetCopperTemp;
-    data.tempPM    = mod.dataSet.tempPP;
+    data.tempPM    = mod.dataSet.tempPP(1);
     data.Ns        = mod.dataSet.TurnsInSeries;
     data.l         = mod.dataSet.StackLength;
     data.lend      = mod.dataSet.EndWindingsLength;
@@ -50,6 +52,8 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     end
     if(strcmp(mod.dataSet.TypeOfRotor,'Circular')||strcmp(mod.dataSet.TypeOfRotor,'Seg')||strcmp(mod.dataSet.TypeOfRotor,'ISeg')||strcmp(mod.dataSet.TypeOfRotor,'Fluid'))
         data.axisType = 'SR';
+    elseif strcmp(mod.dataSet.TypeOfRotor,'IM')
+        data.axisType = 'SR';
     else
         data.axisType = 'PM';
     end
@@ -57,6 +61,9 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
         data.motorType = 'SR';
     else
         data.motorType = 'PM';
+    end
+    if strcmp(mod.dataSet.TypeOfRotor,'IM')
+        data.axisType = 'IM';
     end
     
     data.pathname = pathname;

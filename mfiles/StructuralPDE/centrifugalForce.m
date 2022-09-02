@@ -14,10 +14,12 @@
 
 function [f] = centrifugalForce(region,y,dataForCF)
 
-kgm3_Fe  = dataForCF.kgm3_Fe;
-kgm3_PM  = dataForCF.kgm3_PM;
-w        = dataForCF.w;
-psMagnet = dataForCF.psMagnet;
+kgm3_Fe     = dataForCF.kgm3_Fe;
+kgm3_PM     = dataForCF.kgm3_PM;
+w           = dataForCF.w;
+psMagnet    = dataForCF.psMagnet;
+psSleeve    = dataForCF.psSleeve;
+kgm3_sleeve = dataForCF.kgm3_sleeve;
 
 
 x0 = 0;
@@ -28,9 +30,15 @@ xy = (region.x-x0)+j*(region.y-y0);
 kgm3 = kgm3_Fe*ones(size(xy));
 if ~isempty(psMagnet)
     for ii=1:length(xy)
-        [in,out] = intersect(psMagnet,[real(xy(ii))*[1;1],imag(xy(ii))*[1;1]]);
-        if isempty(out)
-            kgm3(ii)=kgm3_PM;
+        psTest = nsidedpoly(20,'Center',[real(xy(ii)) imag(xy(ii))],'Radius',eps*1e10);
+        [psInt] = intersect(psMagnet,psTest);
+        if psInt.NumRegions>0
+            kgm3(ii) = kgm3_PM;
+        else
+            [psInt] = intersect(psSleeve,psTest);
+            if psInt.NumRegions>0
+                kgm3(ii) = kgm3_sleeve;
+            end
         end
     end
 end

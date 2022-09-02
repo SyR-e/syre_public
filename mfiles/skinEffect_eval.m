@@ -173,6 +173,16 @@ else
     surf(results.f,results.T,results.k)
     xlabel('$f$ [Hz]')
     ylabel('$\Theta_{Cu}$ [$^\circ$C]')
-    zlabel('$\frac{R_{AC}}{R_{DC}}$');
+    zlabel('$k_{AC}=\frac{R_{AC}}{R_{DC}}$');
+    saveas(gcf,[resFolder 'skinEffectFactor3D.fig']);
+
+    figure()
+    figSetting()
+    xlabel('$f$ [Hz]')
+    ylabel('$k_{AC}=\frac{R_{AC}}{R_{DC}}$');
+    for ii=1:size(results.T,1)
+        plot(results.f(ii,:),results.k(ii,:),'-o','DisplayName',['$\Theta_{PM}=' num2str(results.T(ii,1)) '^\circ$C'])
+    end
+    legend('show','Location','northwest')
     saveas(gcf,[resFolder 'skinEffectFactor.fig']);
 end

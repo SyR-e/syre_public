@@ -40,10 +40,12 @@ IqMax = max(abs(Iq),[],'all');
 
 Imax = min([Imax,IdMax,IqMax]);
 
+numPoints = 46;
+
 if strcmp(axisType,'SR')
-    gammaVect = linspace(0,90,21);
+    gammaVect = linspace(0,90,numPoints);
 else
-    gammaVect = linspace(90,180,21);
+    gammaVect = linspace(90,180,numPoints);
 end
 
 
@@ -64,32 +66,22 @@ for ii=1:length(figNames)
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig']);
     switch ii
         case 1
-            ylabel('$T$ [$Nm$]')
+            ylabel('$T$ [Nm]')
             legend(hax(ii),'show','Location','northwest')
         case 2
             ylabel('$cos \varphi$')
             legend(hax(ii),'show','Location','northwest')
         case 3
-            ylabel('$|\lambda|$ [$Vs$]')
+            ylabel('$|\lambda|$ [Vs]')
             legend(hax(ii),'show','Location','southwest')
         case 4
             ylabel('$\delta$ [$^\circ$]')
             legend(hax(ii),'show','Location','northwest')
         case 5
-            ylabel('$\Delta T_{pp}$ [$nm$]')
+            ylabel('$\Delta T_{pp}$ [Nm]')
             legend(hax(ii),'show','Location','northwest')
     end
 end
-
-% if length(nCurr)==1
-%     if nCurr==1
-%         Ivect = i0;
-%     else
-%         Ivect = (1/nCurr:1/nCurr:1)*Imax;
-%     end
-% else
-%     Ivect = nCurr*i0;
-% end
 
 Ivect = nCurr*i0;
 
@@ -102,11 +94,11 @@ for ii=1:length(Ivect)
     deltaVect = interp2(Id,Iq,atan2(Fq,Fd)*180/pi,Ivect(ii)*cosd(gammaVect),Ivect(ii)*sind(gammaVect));
     dTppVect  = interp2(Id,Iq,dTpp,Ivect(ii)*cosd(gammaVect),Ivect(ii)*sind(gammaVect));
     
-    plot(hax(1),gammaVect,TVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '\,A$'])
-    plot(hax(2),gammaVect,IPFVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '\,A$'])
-    plot(hax(3),gammaVect,FVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '\,A$'])
-    plot(hax(4),gammaVect,deltaVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '\,A$'])
-    plot(hax(5),gammaVect,dTppVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '\,A$'])
+    plot(hax(1),gammaVect,TVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '$ A'])
+    plot(hax(2),gammaVect,IPFVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '$ A'])
+    plot(hax(3),gammaVect,FVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '$ A'])
+    plot(hax(4),gammaVect,deltaVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '$ A'])
+    plot(hax(5),gammaVect,dTppVect,'-x','DisplayName',['$I=' num2str(round(Ivect(ii),2)) '$ A'])
 end
 
 

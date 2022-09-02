@@ -12,77 +12,63 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function plot_singm(F_map,NewDir,filename)
+function plot_singm(F_map,resFolder)
 
 % Interp the flux linkage maps over a very dense grid (256 x 256)
 
 n_interp = 256;    % number of points in [0 Imax] for data interpolation
-klength = 1; kturns = 1; n2=n_interp;
         
-id = F_map.Id; iq = F_map.Iq;
-Fd = F_map.Fd; Fq = F_map.Fq;
+Id = linspace(min(F_map.Id,[],'all'),max(F_map.Id,[],'all'),n_interp);
+Iq = linspace(min(F_map.Iq,[],'all'),max(F_map.Iq,[],'all'),n_interp);
 
-T = F_map.T;
-if isfield(F_map,'dT')
-    dT = F_map.dT;
-end
-if isfield(F_map,'dTpp')
-    dTpp = F_map.dTpp;
-end
-if isfield(F_map,'Pfe')
-    Pfe = F_map.Pfe;
-end
-if isfield(F_map,'Pfes_h')
-    Pfes_h = F_map.Pfes_h;
-    Pfes_c = F_map.Pfes_c;
-    Pfer_h = F_map.Pfer_h;
-    Pfer_c = F_map.Pfer_c;
-end
-if isfield(F_map,'Ppm')
-    Ppm = F_map.Ppm;
-end
-
-i_d=linspace(id(1),id(end),n2);
-i_q=linspace(iq(1),iq(end),n2);
-
-[Id,Iq]=meshgrid(i_d,i_q);
+[Id,Iq] = meshgrid(Id,Iq);
 
 % refine maps to the 256 x 256 standard resolution
-Fd = interp2(F_map.Id(1,:,1),F_map.Iq(:,1,1)',mean(Fd,3),Id,Iq,'spline')*klength;
-Fq = interp2(F_map.Id(1,:,1),F_map.Iq(:,1,1)',mean(Fq,3),Id,Iq,'spline')*klength;
-T = interp2(F_map.Id(1,:,1),F_map.Iq(:,1,1)',mean(T,3),Id,Iq,'spline')*klength;
+Fd = interp2(F_map.Id,F_map.Iq,F_map.Fd,Id,Iq,'spline');
+Fq = interp2(F_map.Id,F_map.Iq,F_map.Fq,Id,Iq,'spline');
+T  = interp2(F_map.Id,F_map.Iq,F_map.T,Id,Iq,'spline');
+
 if isfield(F_map,'dT')
-    dT = interp2(F_map.Id(1,:),F_map.Iq(:,1)',mean(dT,3),Id,Iq,'spline');
-    dT = dT*klength;
+    dT = interp2(F_map.Id,F_map.Iq,F_map.dT,Id,Iq,'spline');
 end
+
 if isfield(F_map,'dTpp')
-    dTpp = interp2(F_map.Id(1,:,1),F_map.Iq(:,1,1)',mean(dTpp,3),Id,Iq,'spline');
-    dTpp = dTpp*klength;
+    dTpp = interp2(F_map.Id,F_map.Iq,F_map.dTpp,Id,Iq,'spline');
 end
+
 if isfield(F_map,'Pfes_h')
-    Pfes_h = interp2(F_map.Id(1,:,1),F_map.Iq(:,1,1)',mean(Pfes_h,3),Id,Iq,'spline')*klength;
-    Pfes_c = interp2(F_map.Id(1,:,1),F_map.Iq(:,1,1)',mean(Pfes_c,3),Id,Iq,'spline')*klength;
-    Pfer_h = interp2(F_map.Id(1,:,1),F_map.Iq(:,1,1)',mean(Pfer_h,3),Id,Iq,'spline')*klength;
-    Pfer_c = interp2(F_map.Id(1,:,1),F_map.Iq(:,1,1)',mean(Pfer_c,3),Id,Iq,'spline')*klength;
+    Pfes_h = interp2(F_map.Id,F_map.Iq,F_map.Pfes_h,Id,Iq,'spline');
+    Pfes_c = interp2(F_map.Id,F_map.Iq,F_map.Pfes_c,Id,Iq,'spline');
+    Pfer_h = interp2(F_map.Id,F_map.Iq,F_map.Pfer_h,Id,Iq,'spline');
+    Pfer_c = interp2(F_map.Id,F_map.Iq,F_map.Pfer_c,Id,Iq,'spline');
     velDim = F_map.velDim;
-    Pfe    = interp2(F_map.Id(1,:),F_map.Iq(:,1)',mean(Pfe,3),Id,Iq,'spline');
-    Ppm    = interp2(F_map.Id(1,:,1),F_map.Iq(:,1,1)',mean(Ppm,3),Id,Iq,'spline')*klength;
+    Pfe    = interp2(F_map.Id,F_map.Iq,F_map.Pfe,Id,Iq,'spline');
+    Ppm    = interp2(F_map.Id,F_map.Iq,F_map.Ppm,Id,Iq,'spline');
 end
 
-%% rewind
-Id=Id/kturns;
-Iq=Iq/kturns;
-Fd=Fd*kturns;
-Fq=Fq*kturns;
+if isfield(F_map,'IM')
+    F_IM     = F_map.IM;
+    IM.Ir    = interp2(F_map.Id,F_map.Iq,F_IM.Ir,Id,Iq,'spline');
+    IM.kr    = interp2(F_map.Id,F_map.Iq,F_IM.kr,Id,Iq,'spline');
+    IM.ks    = interp2(F_map.Id,F_map.Iq,F_IM.ks,Id,Iq,'spline');
+    IM.Rs    = interp2(F_map.Id,F_map.Iq,F_IM.Rs,Id,Iq,'spline');
+    IM.Rr    = interp2(F_map.Id,F_map.Iq,F_IM.Rr,Id,Iq,'spline');
+    IM.Ls    = interp2(F_map.Id,F_map.Iq,F_IM.Ls,Id,Iq,'spline');
+    IM.Lr    = interp2(F_map.Id,F_map.Iq,F_IM.Lr,Id,Iq,'spline');
+    IM.Lm    = interp2(F_map.Id,F_map.Iq,F_IM.Lm,Id,Iq,'spline');
+    IM.Lt    = interp2(F_map.Id,F_map.Iq,F_IM.Lt,Id,Iq,'spline');
+    IM.Lls   = interp2(F_map.Id,F_map.Iq,F_IM.Lls,Id,Iq,'spline');
+    IM.LLr   = interp2(F_map.Id,F_map.Iq,F_IM.Llr,Id,Iq,'spline');
+    IM.sigma = interp2(F_map.Id,F_map.Iq,F_IM.sigma,Id,Iq,'spline');
+    IM.tr    = interp2(F_map.Id,F_map.Iq,F_IM.tr,Id,Iq,'spline');
+    IM.wslip = interp2(F_map.Id,F_map.Iq,F_IM.wslip,Id,Iq,'spline');
+end
 
-% %% add end-connections term
-% Fd = Fd + Lld * Id;
-% Fq = Fq + Llq * Iq;
 
+% save data
 if isoctave()  %OCT
-    name_file = strcat(NewDir, 'fdfq_idiq_n',num2str(n2),'.mat');
-    save ('-mat7-binary', name_file,'Fd','Fq','Id','Iq');
-    save ('-mat7-binary', name_file,'T','-append');
+    name_file = strcat(resFolder, 'fdfq_idiq_n',num2str(n_interp),'.mat');
+    save ('-mat7-binary', name_file,'Fd','Fq','Id','Iq','T');
     if isfield(F_map,'dT')
         save ('-mat7-binary', name_file,'T','-append');
     end
@@ -100,32 +86,35 @@ if isoctave()  %OCT
     end
     clear name_file
 else
-    save ([NewDir 'fdfq_idiq_n' num2str(n2) '.mat'],'Fd','Fq','Id','Iq');
-    save ([NewDir 'fdfq_idiq_n' num2str(n2) '.mat'],'T','-append');
+    nameFile = [resFolder 'fdfq_idiq_n' int2str(n_interp) '.mat'];
+    save (nameFile,'Fd','Fq','Id','Iq','T');
     if isfield(F_map,'dT')
-        save ([NewDir 'fdfq_idiq_n' num2str(n2) '.mat'],'dT','-append');
+        save (nameFile,'dT','-append');
     end
     if isfield(F_map,'dTpp')
-        save ([NewDir 'fdfq_idiq_n' num2str(n2) '.mat'],'dTpp','-append');
+        save (nameFile,'dTpp','-append');
     end
     if isfield(F_map,'Pfe')
-        save ([NewDir 'fdfq_idiq_n' num2str(n2) '.mat'],'Pfe','-append');
+        save (nameFile,'Pfe','-append');
     end
     if isfield(F_map,'Pfes_h')
-        save ([NewDir 'fdfq_idiq_n' num2str(n2) '.mat'],'Pfes_h','Pfes_c','Pfer_h','Pfer_c','velDim','-append');
+        save (nameFile,'Pfes_h','Pfes_c','Pfer_h','Pfer_c','velDim','-append');
     end
     if isfield(F_map,'Ppm')
-        save ([NewDir 'fdfq_idiq_n' num2str(n2) '.mat'],'Ppm','-append');
+        save (nameFile,'Ppm','-append');
     end
     if isfield(F_map,'speed')
         velDim = F_map.speed;
-        save ([NewDir 'fdfq_idiq_n' num2str(n2) '.mat'],'velDim','-append');
+        save (nameFile,'velDim','-append');
+    end
+    if exist('IM','var')
+        save (nameFile,'IM','-append');
     end
 end
 
-% Figures
-FigDir=[NewDir,'fig - flux maps'];
-[success,message,messageid] = mkdir(FigDir);
+%% Figures
+FigDir=[resFolder,'fig - flux maps'];
+mkdir(FigDir);
 FigDir = [FigDir '\'];
 
 % flux maps
@@ -135,85 +124,70 @@ plot(Iq(:,1),Fq(:,[1 end]),F_map.Iq(:,1),F_map.Fq(:,[1 end]),'kx'),
 xlabel('id,iq [A]'), ylabel('\lambda_d, \lambda_q [Vs]'), %zlabel('\lambda_d')
 h=gcf(); %OCT
 if isoctave()
-    fig_name=strcat(FigDir, 'Curves_', strrep(filename,'.mat',''));
+    fig_name=strcat(FigDir, 'Curves.fig');
     hgsave(h,[fig_name]);
     clear fig_name
 else
-    saveas(gcf,[FigDir 'Curves_' strrep(filename,'.mat','.fig')])
+    saveas(gcf,[FigDir 'Curves.fig'])
 end
 
 figure
 surfc(Id,Iq,Fd), grid on, xlabel('id'), ylabel('iq'), zlabel('\lambda_d')
-if not(kturns == 1)
-    title(['Rewind factor = ' num2str(kturns)])
-end
 h=gcf(); %OCT
 if isoctave()
-    fig_name=strcat(FigDir, '\Fdsurf_', strrep(filename,'.mat',''));
+    fig_name=strcat(FigDir, '\Fdsurf.fig');
     hgsave(h,[fig_name]);
     clear fig_name
 else
-    saveas(gcf,[FigDir 'Fdsurf_' strrep(filename,'.mat','.fig')])
+    saveas(gcf,[FigDir 'Fdsurf.fig'])
 end
 
 figure
 surfc(Id,Iq,Fq), grid on, xlabel('id'), ylabel('iq'), zlabel('\lambda_q')
-if not(kturns == 1)
-    title(['Rewind factor = ' num2str(kturns)])
-end
 h=gcf(); %OCT
 if isoctave()
-    fig_name=strcat(FigDir, 'Fqsurf_', strrep(filename,'.mat',''));
+    fig_name=strcat(FigDir, 'Fqsurf.fig');
     hgsave(h,[fig_name]);
     clear fig_name
 else
-    saveas(gcf,[FigDir 'Fqsurf_' strrep(filename,'.mat','.fig')])
+    saveas(gcf,[FigDir 'Fqsurf.fig'])
 end
 
 
 % TORQUE MAP
 figure
 surf(Id,Iq,abs(T)), grid on, xlabel('id [A]'), ylabel('iq [A]'), zlabel('Torque [Nm]')
-if not(kturns == 1)
-    title(['Rewind factor = ' num2str(kturns)])
-end
 h=gcf(); %OCT
 if isoctave()
-    fig_name=strcat(FigDir, 'Tsurf_', strrep(filename,'.mat',''));
+    fig_name=strcat(FigDir, 'Tsurf.fig');
     hgsave(h,[fig_name]);
     clear fig_name
 else
-    saveas(gcf,[FigDir 'Tsurf_' strrep(filename,'.mat','.fig')])
+    saveas(gcf,[FigDir 'Tsurf.fig'])
 end
 
 if isfield(F_map,'dT')
     figure
     surf(Id,Iq,dT), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Torque ripple (std) [Nm]')
-    if not(kturns == 1)
-        title(['Rewind factor = ' num2str(kturns)])
-    end
     h=gcf(); %OCT
     if isoctave()
-        fig_name=strcat(FigDir, 'dTsurf_', strrep(filename,'.mat',''));
+        fig_name=strcat(FigDir, 'dTsurf.fig');
         hgsave(h,[fig_name]);
         clear fig_name
     else
-        saveas(gcf,[FigDir 'dTsurf_' strrep(filename,'.mat','.fig')])
+        saveas(gcf,[FigDir 'dTsurf.fig'])
     end
 end
 if isfield(F_map,'dTpp')
     figure
     surf(Id,Iq,dTpp), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Torque ripple (pk-pk) [Nm]')
-    if not(kturns == 1)
-        title(['Rewind factor = ' num2str(kturns)])
-    end
     h=gcf(); %OCT
     if isoctave()
-        fig_name=strcat(FigDir, 'dTppsurf_', strrep(filename,'.mat',''));
+        fig_name=strcat(FigDir, 'dTppsurf.fig');
         hgsave(h,[fig_name]);
         clear fig_name
     else
-        saveas(gcf,[FigDir 'dTppsurf_' strrep(filename,'.mat','.fig')])
+        saveas(gcf,[FigDir 'dTppsurf.fig'])
     end
     
 end
@@ -221,16 +195,25 @@ end
 if isfield(F_map,'Pfe')
     figure
     surf(Id,Iq,Pfe), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Iron Loss [W]')
-    if not(kturns == 1)
-        title(['Rewind factor = ' num2str(kturns)])
-    end
     h=gcf(); %OCT
     if isoctave()
-        fig_name=strcat(FigDir, 'Pfesurf_', strrep(filename,'.mat',''));
+        fig_name=strcat(FigDir, 'Pfesurf.fig');
         hgsave(h,[fig_name]);
         clear fig_name
     else
-        saveas(gcf,[FigDir 'Pfesurf' strrep(filename,'.mat','.fig')])
+        saveas(gcf,[FigDir 'Pfesurf.fig'])
     end
-    
+end
+
+if isfield(F_map,'IM')
+    figure
+    surf(Id,Iq,IM.Ir), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('I_r [A]')
+    h=gcf(); %OCT
+    if isoctave()
+        fig_name=strcat(FigDir, 'Irsurf.fig');
+        hgsave(h,[fig_name]);
+        clear fig_name
+    else
+        saveas(gcf,[FigDir 'Irsurf.fig'])
+    end
 end
