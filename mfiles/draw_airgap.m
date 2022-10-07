@@ -21,6 +21,7 @@ p        = geo.p;
 r        = geo.r+geo.hs;
 res_traf = fem.res_traf;
 RotType  = geo.RotType;
+lm       = geo.lm;
 
 groupGap = 20;
 

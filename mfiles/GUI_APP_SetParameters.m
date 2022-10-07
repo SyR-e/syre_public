@@ -315,7 +315,7 @@ set(app.StatorcorematerialDropDown,'Value',dataSet.StatorMaterial);
 set(app.RotorcorematerialDropDown,'Value',dataSet.RotorMaterial);
 set(app.FluxbarriermaterialDropDown,'Value',dataSet.FluxBarrierMaterial);
 set(app.ShaftmaterialDropDown,'Value',dataSet.ShaftMaterial);
-set(app.RotorslotmaterialDropDown,'Value',dataSet.RotorCondMaterial);
+set(app.RotorslotmaterialDropDown,'Value',dataSet.BarMaterial);
 set(app.SleevematerialDropDown,'Value',dataSet.SleeveMaterial);
 
 set(app.MassWindingEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassWinding));
@@ -324,7 +324,7 @@ set(app.MassRotorIronEditField,'Enable','on','Editable','off','Value',num2str(da
 set(app.MassFluxBarrierEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassMagnet));
 set(app.MassTotalEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassWinding+dataSet.MassStatorIron+dataSet.MassRotorIron+dataSet.MassMagnet));
 set(app.RotorInertiaEditField,'Enable','on','Editable','off','Value',num2str(dataSet.RotorInertia));
-set(app.MassBarEditField,'Enable','on','Editable','off','Value','NaN');
+set(app.MassBarEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassRotorBar));
 
 % PM design panel
 nameCols = cell(1,size(dataSet.PMdim,2));

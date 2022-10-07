@@ -75,6 +75,9 @@ if ~exist([cd '\tmp'],'dir')
     mkdir('tmp')
 end
 
+if ~exist([cd '\syreDrive\PLECSModel\SimMatFiles'],'dir')
+    mkdir('syreDrive\PLECSModel\SimMatFiles')
+end
 % Check for custom library files
 if ~exist([syreDirectory '\materialLibrary\custom_iron.mat'],'file')
     MatLib = {};

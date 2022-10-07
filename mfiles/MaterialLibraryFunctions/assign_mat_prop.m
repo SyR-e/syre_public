@@ -66,8 +66,7 @@ mat.SlotAir.sigma   = 0;
 mat.SlotAir.MatName = 'Air';
 
 %% Rotor bar (IM)
-% tmp = material_properties_conductor(dataSet.BarMaterial);
-tmp = material_properties_conductor('Aluminium');
+tmp = material_properties_conductor(dataSet.BarMaterial);
 if ~isfield(tmp,'kgm3')
     error('Select a correct rotor conductor material')
 end

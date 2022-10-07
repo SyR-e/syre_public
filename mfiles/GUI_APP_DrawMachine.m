@@ -112,7 +112,7 @@ dataSet.Lend = per.Lend;
 geo.pShape = dataSet.pShape;
 geo.mCu = calcMassCu(geo,mat);
 geo.mPM = calcMassPM(geo,mat);
-% geo.mAl = calcMassAl(geo,mat);
+geo.mAl = calcMassAl(geo,mat);
 [geo.mFeS,geo.mFeR] = calcMassFe(geo,mat);
 geo.J = calcRotorInertia(geo,mat);
 
@@ -120,7 +120,7 @@ dataSet.MassWinding = geo.mCu;
 dataSet.MassMagnet = geo.mPM;
 dataSet.MassStatorIron = geo.mFeS;
 dataSet.MassRotorIron  = geo.mFeR;
-% dataSet.MassRotorBar   = geo.mAl;
+dataSet.MassRotorBar   = geo.mAl;
 dataSet.RotorInertia   = geo.J;
 
 % Refresh display

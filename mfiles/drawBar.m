@@ -32,7 +32,7 @@ q = 0;
 % calcolo mezza cava
 [xOut,yOut] = intersezione_retta_circonferenza(0,0,r,m,q);
 [aOut,bOut,cOut] = retta_per_2pti(0,0,xOut,yOut);
-[a,b,c] = calc_retta_offset(aOut,bOut,cOut,wt/2);
+[a,b,c] = calc_retta_offset(aOut,bOut,cOut,+wt/2);
 
 m1 = tan(alpha_slot*acr);
 q1 = 0;

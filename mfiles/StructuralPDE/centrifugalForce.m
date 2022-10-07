@@ -20,7 +20,8 @@ w           = dataForCF.w;
 psMagnet    = dataForCF.psMagnet;
 psSleeve    = dataForCF.psSleeve;
 kgm3_sleeve = dataForCF.kgm3_sleeve;
-
+psShaft     = dataForCF.psShaft;
+kgm3_shaft  = dataForCF.kgm3_shaft;
 
 x0 = 0;
 y0 = 0;
@@ -38,6 +39,11 @@ if ~isempty(psMagnet)
             [psInt] = intersect(psSleeve,psTest);
             if psInt.NumRegions>0
                 kgm3(ii) = kgm3_sleeve;
+            else
+                [psInt] = intersect(psShaft,psTest);
+                if psInt.NumRegions>0
+                    kgm3(ii) = kgm3_shaft;
+                end
             end
         end
     end

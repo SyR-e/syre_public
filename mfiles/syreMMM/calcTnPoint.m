@@ -121,12 +121,14 @@ else
 end
 
 % 6) Phase resistance computation (with temperature and skin effect)
-if strcmp(SkinEffectFlag,'Yes')
-    kAC = calcSkinEffect(motorModel.acLossFactor,abs(FreqElet),temp,SkinEffectMethod);
-else
-    kAC = 1;
+
+
+if strcmp(SkinEffectFlag,'No')
+    SkinEffectMethod = '0';
 end
-Rs  = Rs0.*(kAC*l/(lend+l)+lend/(lend+l)).*(1+0.004*(temp-temp0)).*ones(size(Id));
+[Rs,kAC] = calcRsTempFreq(Rs0,temp0,l,lend,motorModel.acLossFactor,SkinEffectMethod,temp,FreqElet);
+
+Rs  = Rs.*ones(size(Id));
 
 % 7) Voltage computation
 Vof = Vind+Rs.*Io;  % phase voltage

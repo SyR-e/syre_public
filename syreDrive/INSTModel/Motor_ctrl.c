@@ -627,7 +627,7 @@ void FluxObserver(void) {
 		
 		case 2:
 			ReadLut2d(&FD_LUT[0][0], isdq.d, fabs(isdq.q), DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &lambda_CM_dq.d);
-			ReadLut2d(&FQ_LUT[0][0], fabs(isdq.q), isdq.d, DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &lambda_CM_dq.q);
+			ReadLut2d(&FQ_LUT[0][0], fabs(isdq.q), isdq.d, DIQQ, INV_DIQQ, DIDQ, INV_DIDQ , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &lambda_CM_dq.q);
 			if (isdq.q < 0)
 				lambda_CM_dq.q = -lambda_CM_dq.q;
 		break;

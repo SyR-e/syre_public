@@ -44,31 +44,39 @@ IdMin = min(dqtMap.data.Id,[],'all');
 IqMax = max(dqtMap.data.Iq,[],'all');
 IqMin = min(dqtMap.data.Iq,[],'all');
 
-% max current amplitude (diagonal of the id iq rectangle)
-% diagonal_raw = abs(IdMax + 1j*IqMax);
-diagonal_angle = angle(IdMax + 1j*IqMax);
-% reduced diagonal (tentative)
-diagonal_temp = IdMax/(cos(diagonal_angle-ang_sk/2));
-id_span_new = diagonal_temp * cos(diagonal_angle);
-iq_span_new = diagonal_temp * sin(diagonal_angle);
-% if no good, try the other side
-if (iq_span_new > IqMax)
-    diagonal_temp = IqMax/(cos(diagonal_angle-ang_sk/2));
-    id_span_new = diagonal_temp * cos(diagonal_angle);
-    iq_span_new = diagonal_temp * sin(diagonal_angle);
-end
+% % max current amplitude (diagonal of the id iq rectangle)
+% % diagonal_raw = abs(IdMax + 1j*IqMax);
+% diagonal_angle = angle(IdMax + 1j*IqMax);
+% % reduced diagonal (tentative)
+% diagonal_temp = IdMax/(cos(diagonal_angle-ang_sk/2));
+% id_span_new = diagonal_temp * cos(diagonal_angle);
+% iq_span_new = diagonal_temp * sin(diagonal_angle);
+% % if no good, try the other side
+% if (iq_span_new > IqMax)
+%     diagonal_temp = IqMax/(cos(diagonal_angle-ang_sk/2));
+%     id_span_new = diagonal_temp * cos(diagonal_angle);
+%     iq_span_new = diagonal_temp * sin(diagonal_angle);
+% end
+% 
+% % 3D matrixes of skewed machine
+% if IdMin<-id_span_new
+%     id = linspace(-id_span_new,id_span_new,nPoints);
+% else
+%     id = linspace(IdMin,id_span_new,nPoints);
+% end
+% if IqMin<id_span_new
+%     iq = linspace(-iq_span_new,iq_span_new,nPoints);
+% else
+%     iq = linspace(IqMin,iq_span_new,nPoints);
+% end
 
-% 3D matrixes of skewed machine
-if IdMin<-id_span_new
-    id = linspace(-id_span_new,id_span_new,nPoints);
-else
-    id = linspace(IdMin,id_span_new,nPoints);
-end
-if IqMin<id_span_new
-    iq = linspace(-iq_span_new,iq_span_new,nPoints);
-else
-    iq = linspace(IqMin,iq_span_new,nPoints);
-end
+lim.IdMax = IdMax;
+lim.IdMin = IdMin;
+lim.IqMax = IqMax;
+lim.IqMin = IqMin;
+
+[id,iq] = calcSkewCurrentDomain(lim,ang_sk,nPoints,axisType);
+
 th = dqtMap.th;
 [data.Id,data.Iq,data.th]=ndgrid(id,iq,th);
 [dS,qS,tS]=size(data.Id);
@@ -153,9 +161,9 @@ for dd=1:dS
                     FdSlice(real(Idq)>IdMax) = NaN;
                     FqSlice(real(Idq)>IdMax) = NaN;
                     TSlice(real(Idq)>IdMax)  = NaN;
-                    FdSlice(imag(Idq)<IdMax) = +fInt.Fd(IdSlice(imag(Idq)<IdMax),-IqSlice(imag(Idq)<IdMax),thSliceInv(imag(Idq)<IdMax));
-                    FqSlice(imag(Idq)<IdMax) = -fInt.Fq(IdSlice(imag(Idq)<IdMax),-IqSlice(imag(Idq)<IdMax),thSliceInv(imag(Idq)<IdMax));
-                    TSlice(imag(Idq)<IdMax)  = -fInt.T(IdSlice(imag(Idq)<IdMax),-IqSlice(imag(Idq)<IdMax),thSliceInv(imag(Idq)<IdMax));
+                    FdSlice(imag(Idq)<IqMin) = +fInt.Fd(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin),thSliceInv(imag(Idq)<IqMin));
+                    FqSlice(imag(Idq)<IqMin) = -fInt.Fq(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin),thSliceInv(imag(Idq)<IqMin));
+                    TSlice(imag(Idq)<IqMin)  = -fInt.T(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin),thSliceInv(imag(Idq)<IqMin));
                 end
             end
             

@@ -32,6 +32,3 @@ if strcmp(geo.RotType,'IM')
 else
     Mass = 0;
 end
-
-
-

@@ -920,7 +920,7 @@ if ~isfield(dataSet,'optType')
 end
 
 % betaPMshape size
-if size(dataSet.betaPMshape)~=dataSet.NumOfLayers
+if (length(dataSet.betaPMshape)~=dataSet.NumOfLayers) && ~strcmp(dataSet.TypeOfRotor,'SPM')
     dataSet.betaPMshape = dataSet.betaPMshape(1)*ones(1,dataSet.NumOfLayers);
     if Dflag
         disp('2022 02 14 - Correct size of betaPMshape')
@@ -972,6 +972,14 @@ if ~isfield(dataSet,'kPM')
     flag=1;
 end
 
+% Rotor bar mass
+if ~isfield(dataSet,'MassRotorBar')
+    dataSet.MassRotorBar = 0;
+    if Dflag
+        disp('2022 09 26 - added rotor bar mass')
+    end
+    flag=1;
+end
 
 %%% Remove V-type geometry
 % if strcmp(geo.RotType,'V-type')

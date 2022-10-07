@@ -188,7 +188,7 @@ geo.IM.Nbars  = dataIn.NumOfRotorBars;
 geo.IM.k = 1/(2*sin(2*pi*geo.p/2/geo.IM.Nbars)); % =Iend/Ibar || =(Zwye/Zdelta)^0.5
 
 geo.IM.lt        = dataIn.RotorToothLength;
-geo.IM.wt        = dataIn.RotorToothWidth/2;
+geo.IM.wt        = dataIn.RotorToothWidth;
 geo.IM.acr       = dataIn.RotorSlotOpen;
 geo.IM.ttd       = dataIn.RotorToothTangDepth;
 geo.IM.filletTop = dataIn.RotorSlotFilletTop/5;

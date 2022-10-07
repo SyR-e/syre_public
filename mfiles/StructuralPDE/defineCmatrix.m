@@ -20,6 +20,8 @@ nu       = dataForCmaxtrix.nu;
 psMagnet = dataForCmaxtrix.psMagnet;
 E_sleeve = dataForCmaxtrix.E_sleeve;
 psSleeve = dataForCmaxtrix.psSleeve;
+psShaft  = dataForCmaxtrix.psShaft;
+E_shaft  = dataForCmaxtrix.E_shaft;
 
 
 xy = (region.x)+j*(region.y);
@@ -29,21 +31,37 @@ if ~isempty(psMagnet)
     for ii=1:length(xy)
         psTest = nsidedpoly(20,'Center',[real(xy(ii)) imag(xy(ii))],'Radius',eps*1e10);
         [psInt] = intersect(psMagnet,psTest);
-        if psInt.NumRegions==0
+        if psInt.NumRegions==0 % no-PM area
             [psInt] = intersect(psSleeve,psTest);
-            if psInt.NumRegions==0
-                % iron section
-                f(:,ii) = [
-                    E_Fe/(1-nu^2)
-                    0
-                    E_Fe/(2*(1+nu))
-                    0
-                    E_Fe/(2*(1+nu))
-                    E_Fe*nu/(1-nu^2)
-                    0
-                    E_Fe/(2*(1+nu))
-                    0
-                    E_Fe/(1-nu^2)];
+            if psInt.NumRegions==0 % no-sleeve area
+                [psInt] = intersect(psShaft,psTest);
+                if psInt.NumRegions==0 % no-shaft section
+                    % iron section
+                    f(:,ii) = [
+                        E_Fe/(1-nu^2)
+                        0
+                        E_Fe/(2*(1+nu))
+                        0
+                        E_Fe/(2*(1+nu))
+                        E_Fe*nu/(1-nu^2)
+                        0
+                        E_Fe/(2*(1+nu))
+                        0
+                        E_Fe/(1-nu^2)];
+                else
+                    % gummy-shaft section
+                    f(:,ii) = [
+                        E_shaft/(1-nu^2)
+                        0
+                        E_shaft/(2*(1+nu))
+                        0
+                        E_shaft/(2*(1+nu))
+                        E_shaft*nu/(1-nu^2)
+                        0
+                        E_shaft/(2*(1+nu))
+                        0
+                        E_shaft/(1-nu^2)];
+                end
             else
                 % sleeve section
                 f(:,ii) = [

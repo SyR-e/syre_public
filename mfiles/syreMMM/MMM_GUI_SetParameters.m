@@ -343,10 +343,10 @@ set(app.DemodulationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.de
 set(app.PositionerrorestimationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.HS_ctrl));
 set(app.ModeltypeDropDown,'Value',motorModel.SyreDrive.modelType);
 
-if (isempty(motorModel.data)||isempty(motorModel.controlTrajectories)||isempty(motorModel.IncInductanceMap_dq)||isempty(motorModel.FluxMapInv_dqt)||isempty(motorModel.FluxMapInv_dq))
-    set(app.RUNButton,'Enable','off')
+if ~isfield(motorModel.SyreDrive,'SIM_path')
+    set(app.RUNSimulinkModelButton,'Enable','off')
 else
-    set(app.RUNButton,'Enable','on')
+    set(app.RUNSimulinkModelButton,'Enable','on')
 end
 
 

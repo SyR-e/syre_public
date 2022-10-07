@@ -35,10 +35,14 @@ switch meshSize
         Hedge = geo.pont0/1e3/10;
         warning('Coarse mesh selected!!!')
     case 'fine'
-        Hmax  = geo.pont0/1e3;
-        Hmin  = geo.pont0/1e3/5;
+        %         Hmax  = geo.pont0/1e3;
+        %         Hmin  = geo.pont0/1e3/5;
+        %         Hgrad = 2;
+        %         Hedge = geo.pont0/1e3/5;
+        Hmax  = 2*geo.pont0/1e3;
+        Hmin  = geo.pont0/1e3/2;
         Hgrad = 2;
-        Hedge = geo.pont0/1e3/5;
+        Hedge = geo.pont0/1e3/2;
     otherwise
         Hmax  = geo.pont0/1e3/2;
         Hmin  = geo.pont0/1e3/5;
@@ -74,43 +78,77 @@ newFile = [syreDirectory '\tmp\' filename];
 
 openfemm(1);
 opendocument(newFile);
-if ~geo.custom
-    xy = geo.BLKLABELS.rotore.xy;
-    for ii=1:size(xy,1)
-        if xy(ii,3)==1 % Air
+% reduce mesh size (if not custom)
+xy = geo.BLKLABELS.rotore.xy;
+for ii=1:size(xy,1)
+    if xy(ii,3)==1 % Air
+        if ~geo.custom
             mi_selectlabel(xy(ii,1),xy(ii,2));
-            mi_setblockprop('<No Mesh>',0,0,'None',0,2,0);
+            mi_setblockprop('Air',0,0,'None',0,2,0);
             mi_clearselected;
-        elseif xy(ii,3)==7 % Shaft
-            if geo.ps~=2*geo.p
-                mi_selectnode(0,0);
-                mi_deleteselectednodes();
-                mi_selectlabel(xy(ii,1),xy(ii,2));
-                mi_setblockprop('<No Mesh>',1,0,'None',0,2,0);
-                mi_clearselected;
-            else
-                mi_selectlabel(xy(ii,1),xy(ii,2))
-                mi_setblockprop('Air',1,0,'None',0,2,0);
-                mi_clearselected;
-            end
-        elseif xy(ii,3)==6 % PM
+        end
+    elseif xy(ii,3)==7 % Shaft
+        mi_selectlabel(xy(ii,1),xy(ii,2));
+        mi_setblockprop('Air',1,0,'None',0,400,0);
+        mi_clearselected;
+    elseif xy(ii,3)==6 % PM
+        if ~geo.custom
             mi_selectlabel(xy(ii,1),xy(ii,2));
             magdir=atan2(xy(ii,7),xy(ii,6))*180/pi;
             mi_setblockprop(mat.LayerMag.MatName,1,0,'None',magdir,201,0);
             mi_clearselected;
-        elseif xy(ii,3)==5 % rotor iron
+        end
+    elseif xy(ii,3)==5 % rotor iron
+        if ~geo.custom
             mi_selectlabel(xy(ii,1),xy(ii,2));
             mi_setblockprop(mat.Rotor.MatName,1,0,'None',0,22,0);
             mi_clearselected;
-        elseif xy(ii,3)==8 % rotor bar
+        end
+    elseif xy(ii,3)==8 % rotor bar
+        if ~geo.custom
             mi_selectlabel(xy(ii,1),xy(ii,2));
             mi_setblockprop(mat.BarCond.MatName,1,0,'None',0,201,0);
             mi_clearselected;
-        elseif xy(ii,3)==9 % sleeve
+        end
+    elseif xy(ii,3)==9 % sleeve
+        if ~geo.custom
             mi_selectlabel(xy(ii,1),xy(ii,2));
             mi_setblockprop(mat.Sleeve.MatName,1,0,'None',0,300,0);
             mi_clearselected;
         end
+    end
+end
+
+
+
+% add shaft ring spring
+if shaftBC==2
+    ArIn = geo.Ar/10;
+    if geo.ps==2*geo.p
+        mi_addnode(+ArIn,0);
+        mi_addnode(-ArIn,0);
+        mi_addarc(+ArIn,0,-ArIn,0,180,2);
+        mi_addarc(-ArIn,0,+ArIn,0,180,2);
+        mi_addblocklabel(ArIn/2,0);
+        mi_selectlabel(ArIn/2,0);
+        mi_setblockprop('Air',1,0,'None',0,2,0);
+        mi_clearselected();
+    else
+        x1 = ArIn;
+        y1 = 0;
+        [x2,y2] = rot_point(x1,y1,pi/geo.p*geo.ps);
+        mi_addnode(x1,y1);
+        mi_addnode(x2,y2);
+        mi_addarc(x1,y1,x2,y2,180/geo.p*geo.ps,2);
+        [x0,y0] = rot_point(x1/2,y1/2,pi/geo.p*geo.ps/2);
+        mi_addblocklabel(x0,y0);
+        mi_selectlabel(x0,y0);
+        mi_setblockprop('Air',1,0,'None',0,2,0);
+        mi_clearselected();
+        mi_selectsegment(x1/2,y1/2);
+        mi_selectsegment(x2/2,y2/2);
+        mi_setsegmentprop('None',1,0,0,2);
+        mi_clearselected();
     end
 end
 
@@ -137,6 +175,7 @@ end
 k=1; %zz=1; jj=1; 
 psMagnet = polyshape;
 psSleeve = polyshape;
+psShaft  = polyshape;
 
 for ii=1:numElements
     tmp=mo_getelement(ii);
@@ -156,6 +195,13 @@ for ii=1:numElements
         psTemp   = polyshape(vertex);
         psSleeve = union(psSleeve,psTemp);
         elementID(ii) = 3;
+    elseif (eleGroup(ii)==400)
+        index = elements(:,ii);
+        vertex   = nodes(:,index);
+        vertex   = vertex';
+        psTemp   = polyshape(vertex);
+        psShaft = union(psShaft,psTemp);
+        elementID(ii) = 4;
     elseif (eleGroup(ii)>199)
         index    = elements(:,ii);
         vertex   = nodes(:,index);
@@ -310,27 +356,30 @@ data4GeoMat.E_sleeve       = mat.Sleeve.E*1e9;
 data4GeoMat.nu             = 0.3;
 data4GeoMat.sigmaMaxFe     = mat.Rotor.sigma_max*1e6;
 data4GeoMat.sigmaMaxSleeve = mat.Sleeve.sigma_max*1e6;
+data4GeoMat.psShaft        = psShaft;
+data4GeoMat.kgm3_shaft     = 0;
+data4GeoMat.E_shaft        = mat.Rotor.E*1e9*1e-6;
 
 if strcmp(geo.RotType,'IM')
     data4GeoMat.kgm3_PM = mat.BarCond.kgm3;
 end
 
 
-if (strcmp(geo.RotType,'IM')||geo.hs>0||~strcmp(mat.LayerMag.MatName,'Air'))
+% if (strcmp(geo.RotType,'IM')||geo.hs>0||~strcmp(mat.LayerMag.MatName,'Air'))
     specifyCoefficients(structModel,...
         'm',0,...
         'd',0,...
         'c',@(x,y)defineCmatrix(x,y,data4GeoMat),...
         'a',0,...
         'f',@(x,y)centrifugalForce(x,y,data4GeoMat));
-else
-    specifyCoefficients(structModel,...
-        'm',0,...
-        'd',0,...
-        'c',cMat,...
-        'a',0,...
-        'f',@(x,y)centrifugalForce(x,y,data4GeoMat));
-end
+% else
+%     specifyCoefficients(structModel,...
+%         'm',0,...
+%         'd',0,...
+%         'c',cMat,...
+%         'a',0,...
+%         'f',@(x,y)centrifugalForce(x,y,data4GeoMat));
+% end
 
 % if strcmp(geo.RotType,'IM')
 %     specifyCoefficients(structModel,...

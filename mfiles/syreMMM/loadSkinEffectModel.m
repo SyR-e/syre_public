@@ -16,27 +16,37 @@
 function SkinEffModel=loadSkinEffectModel(filename)
 
 if strcmp(filename,'0')
-    SkinEffModel.type='0';
+    SkinEffModel = [];
 else
     load(filename)
-    if exist('results','var') % from FEA simulations
+    if exist('results','var')
         if isfield(results,'T')
-            SkinEffModel.type='interpFreqTemp';
-            f = results.f;
-            T = results.T;
-            k = results.k;
-            
-            if f(1,1)~=0
-                f = [zeros(size(f,1),1) f];
-                k = [ones(size(k,1),1) k];
-                T = [T(:,1) T];
+            if length(unique(results.T))==1
+                SkinEffModel.type = 'interpFreq';
+            else
+                SkinEffModel.type = 'interpFreqTemp';
             end
-            
-            SkinEffModel.f = f;
-            SkinEffModel.T = T;
-            SkinEffModel.k = k;
         else
-            f=results.f(1,:);
+            SkinEffModel.type = 'interpFreq';
+        end
+        
+        switch SkinEffModel.type
+            case 'interpFreqTemp'
+                f = results.f;
+                T = results.T;
+                k = results.k;
+
+                if f(1,1)~=0
+                    f = [zeros(size(f,1),1) f];
+                    k = [ones(size(k,1),1) k];
+                    T = [T(:,1) T];
+                end
+
+                SkinEffModel.f = f;
+                SkinEffModel.T = T;
+                SkinEffModel.k = k;
+            case 'interpFreq'
+                f=results.f(1,:);
             k=results.k(1,:);
             if f(1)~=0
                 f = [0 f];
@@ -45,17 +55,17 @@ else
 
             [p,s] = polyfit(f,k,7);
 
-            SkinEffModel.type='interpFreq';
-            SkinEffModel.f=f;
-            SkinEffModel.k=k;
-            SkinEffModel.p=p;
-            SkinEffModel.s=s;
-            SkinEffModel.n=7;
+            SkinEffModel.f = f;
+            SkinEffModel.k = k;
+            SkinEffModel.p = p;
+            SkinEffModel.s = s;
+            SkinEffModel.n = 7;
         end
-    elseif exist('skinEffect','var') % from MMM GUI
+    elseif exist('skinEffect','var')% from MMM GUI
         SkinEffModel = skinEffect;
     else
         SkinEffModel = [];
     end
 end
+
         

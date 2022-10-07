@@ -80,10 +80,9 @@ if isfield(skinEffect,'T')
     temp0 = motorModel.data.tempCu;
     l     = motorModel.data.l;
     lend  = motorModel.data.lend;
+    Rs = calcRsTempFreq(Rs0,temp0,l,lend,skinEffect,'LUT',T,f);
     for ii=1:length(tempVect)
-        kAC = calcSkinEffect(skinEffect,f(ii,:),tempVect(ii),'LUT');
-        Rs = Rs0*(kAC*l/(l+lend)+lend/(l+lend)).*(1+0.004*(tempVect(ii)-temp0));
-        plot(hax(3),f(ii,:),Rs,'-o','DisplayName',['$\Theta_{Cu}=' int2str(tempVect(ii)) '^\circ$C'])
+        plot(hax(3),f(ii,:),Rs(ii,:),'-o','DisplayName',['$\Theta_{Cu}=' int2str(tempVect(ii)) '^\circ$C'])
     end
     legend(hax(3),'show','Location','northeastoutside');
 

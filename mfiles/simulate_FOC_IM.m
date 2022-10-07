@@ -24,6 +24,8 @@ thR     = geo.IM.thR;
 kturns  = geo.IM.kturns;
 gamma   = per.gamma;
 n3phase = geo.win.n3phase;
+ps      = geo.ps;
+NbarSim = Nbars/(2*p)*ps;
 
 if isfield(per,'flag3phaseSet')
     flag3phSet = per.flag3phaseSet;
@@ -106,10 +108,10 @@ while ~done
     fdq = abc2dq(f1,f2,f3,th*pi/180);
 
     % evaluate rotor flux
-    Fbar = zeros(1,Nbars/(2*p));
-    Ibar = zeros(1,Nbars/(2*p));
-    Vbar = zeros(1,Nbars/(2*p));
-    for jj  = 1:Nbars/(2*p)
+    Fbar = zeros(1,NbarSim);
+    Ibar = zeros(1,NbarSim);
+    Vbar = zeros(1,NbarSim);
+    for jj  = 1:NbarSim
         circ_name = ['bar' num2str(jj)];
         temp_out = mo_getcircuitproperties(circ_name); % [current,voltage,flux]
         Fbar(jj) = temp_out(3);
@@ -118,8 +120,11 @@ while ~done
     end
     % aggiunta flussi di anello di corto circuito (end ring)
     FbarTot=Fbar+geo.IM.k^2*(2*per.IM.Lring)*Ibar;
+    if rem(ps,2)==1
+        FbarTot = [FbarTot -FbarTot];
+    end
     % flussi dq rotore (calcolo diretto da barre)
-    fdqR = kturns*Nbars/3*bar2dq([FbarTot -FbarTot]',thR*pi/180,Nbars/p);
+    fdqR = kturns*Nbars/3*bar2dq(FbarTot',thR*pi/180,Nbars/p);
 
     if iq==0
         kr=0;

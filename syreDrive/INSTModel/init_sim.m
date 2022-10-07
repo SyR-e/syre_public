@@ -69,7 +69,21 @@ elseif (Quad_Maps == 1) %PM-Syr
 elseif (Quad_Maps == 2) %IPM
     Fm = interp2(Idd,Iqq,Fdd,0,0);
 end
+
 clear Idd Iqq Fdd Fqq
+
+switch(Quad_Maps)
+    case 0
+        InitIntg_d = 0.0;
+        InitIntg_q = 0.0;
+    case 1
+        InitIntg_d = Fm*sin(th0);
+        InitIntg_q = -Fm*cos(th0);
+    case 2
+        InitIntg_d = Fm*cos(th0);
+        InitIntg_q = Fm*sin(th0);
+end
+
 
 
 
@@ -182,7 +196,7 @@ switch(InverterModel)
     case 'Average'
         InvModel = 0;
         set_param([Slx_name '/Inverter Model/Solver Configuration'],'UseLocalSolver','on');
-        set_param([Slx_name '/Inverter Model/Solver Configuration'],'LocalSolverSampleTime','Ts');
+        set_param([Slx_name '/Inverter Model/Solver Configuration'],'LocalSolverSampleTime','Ts/10');
         set_param([Slx_name '/Inverter Model/Converter (Three-Phase)'],'device_type','ee.enum.converters.switchingdevice.averaged');
         set_param([Slx_name '/Inverter Model/Converter (Three-Phase)'],'Ron','Rd');
 end

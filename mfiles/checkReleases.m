@@ -18,28 +18,29 @@ out=1;
 
 clc
 
-disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 disp('Check minimum release requirements')
-disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
 % Matlab
 disp('Check Matlab release...')
-disp('   minimum requirement      : 2016b (9.1)')
-disp('   suggested release        : 2021b (9.11)')
+disp('   minimum requirement      : 2019b (9.7)  released 18-Jul-2019')
+disp('   suggested release        : 2022b (9.13) released 13-May-2022')
 
 tmp = ver('matlab');
 vMatlab = eval(tmp.Version);
+vMatlabDate = datetime(tmp.Date);
 
-disp(['   installed Matlab release : ' tmp.Release(3:end-1) ' (' tmp.Version ')'])
+disp(['   installed Matlab release : ' tmp.Release(3:end-1) ' (' tmp.Version ') released ' tmp.Date])
 
-if vMatlab>=9.1
+if vMatlabDate>=datetime('24-May-2018')
     disp('(v)Matlab release OK')
 else
     disp('(x)Matlab release too old. Some compatibility issues may arise')
     out = 0;
 end
 
-disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
 % FEMM
 
@@ -53,7 +54,7 @@ else
     out = 0;
 end
 
-disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
 % Parallel computing toolbox
 disp('Parallel Computing Toolbox check...')
@@ -65,7 +66,7 @@ else
     disp('(v)Parallel Computing Toolbox available')
 end
 
-disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
 % CF Toolbox
 disp('Curve Fitting Toolbox check...')
@@ -84,13 +85,12 @@ else
     disp('(v)Curve Fitting Toolbox available')
 end
 
-disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
 % PDE Toolbox
 disp('PDE Toolbox check...')
 flag=0;
 
-test = ver();
 for ii=1:length(test)
     if strcmp(test(ii).Name,'Partial Differential Equation Toolbox')
         flag=1;
@@ -103,7 +103,48 @@ else
     disp('(v)PDE Toolbox available')
 end
 
-disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+
+% Simulink
+disp('Simulink/Simscape check...')
+flag=0;
+
+for ii=1:length(test)
+    if strcmp(test(ii).Name,'Simulink')
+        flag=1;
+    end
+end
+if ~flag
+    disp('(x)Simulink not available')
+else
+    disp('(v)Simulink available')
+end
+
+flag=0;
+for ii=1:length(test)
+    if strcmp(test(ii).Name,'Simscape')
+        flag=1;
+    end
+end
+if ~flag
+    disp('(x)Simscape not available')
+else
+    disp('(v)Simscape available')
+end
+
+flag=0;
+for ii=1:length(test)
+    if strcmp(test(ii).Name,'Simscape Electrical')
+        flag=1;
+    end
+end
+if ~flag
+    disp('(x)Simscape Electrical not available')
+else
+    disp('(v)Simscape Electrical available')
+end
+
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
 if out
     disp('Minimum requirements fulfilled')
@@ -111,7 +152,7 @@ else
     disp('Minimum requirements NOT fulfilled!')
 end
 
-disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
 if nargout==0
     clear out
