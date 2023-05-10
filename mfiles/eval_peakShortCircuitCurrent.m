@@ -14,111 +14,145 @@
 
 function [pkSCout] = eval_peakShortCircuitCurrent(dataIn)
 
-clc
+if isfield(dataIn,'flagSave')
+    flagSave = dataIn.flagSave;
+else
+    flagSave = 1;
+end
+
+if isfield(dataIn,'flagFEAfix')
+    clc
+    flagFEAfix = dataIn.flagFEAfix;
+    geo        = dataIn.geo;
+    mat        = dataIn.mat;
+    per        = dataIn.per;
+    axis_type  = geo.axisType;
+    flagSave   = 0;
+    RQ         = dataIn.RQ;
+else
+    flagFEAfix = 0;
+end
 
 if nargin()~=1
     error('Wrong number of function input!')
 end
 
-load([dataIn.currentpathname dataIn.currentfilename])
+if ~flagFEAfix
+    load([dataIn.currentpathname dataIn.currentfilename])
 
-if ~isfield(geo,'axisType')
-    if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
-        geo.axisType = 'PM';
-    else
-        geo.axisType = 'SR';
+
+    if ~isfield(geo,'axisType')
+        if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+            geo.axisType = 'PM';
+        else
+            geo.axisType = 'SR';
+        end
     end
-end
 
-if ~strcmp(geo.axisType,dataIn.axisType)
-    geo.axisType = dataIn.axisType;
-    if strcmp(geo.axisType,'PM')
-        geo.th0 = geo.th0 - 90;
-    else
-        geo.th0 = geo.th0 + 90;
+    if ~strcmp(geo.axisType,dataIn.axisType)
+        %geo.axisType = dataIn.axisType;
+        if strcmp(dataIn.axisType,'PM')
+            geo.th0 = geo.th0 - 90;
+        else
+            geo.th0 = geo.th0 + 90;
+        end
     end
+
+    % update loaded dataSet fields with GUI dataSet (dataIn) fields
+    dataSet.RatedCurrent     = dataIn.RatedCurrent;
+    dataSet.CurrLoPP         = dataIn.CurrLoPP;
+    % dataSet.SimulatedCurrent = dataIn.SimulatedCurrent;
+    dataSet.SimulatedCurrent = dataSet.RatedCurrent*dataSet.CurrLoPP;
+    dataSet.GammaPP          = dataIn.GammaPP;
+    dataSet.BrPP             = dataIn.BrPP;
+    dataSet.tempPP           = dataIn.tempPP;
+    dataSet.NumOfRotPosPP    = dataIn.NumOfRotPosPP;
+    dataSet.AngularSpanPP    = dataIn.AngularSpanPP;
+    dataSet.EvalSpeed        = dataIn.EvalSpeed;
+    dataSet.axisType         = dataIn.axisType;
+
+    dataSet.currentpathname = dataIn.currentpathname;
+    dataSet.currentfilename = dataIn.currentfilename;
+
+    filename = dataSet.currentfilename;
+    pathname = dataSet.currentpathname;
+
+    axis_type  = dataSet.axisType;
 end
-
-% update loaded dataSet fields with GUI dataSet (dataIn) fields
-dataSet.RatedCurrent     = dataIn.RatedCurrent;
-dataSet.CurrLoPP         = dataIn.CurrLoPP;
-% dataSet.SimulatedCurrent = dataIn.SimulatedCurrent;
-dataSet.SimulatedCurrent = dataSet.RatedCurrent*dataSet.CurrLoPP;
-dataSet.GammaPP          = dataIn.GammaPP;
-dataSet.BrPP             = dataIn.BrPP;
-dataSet.tempPP           = dataIn.tempPP;
-dataSet.NumOfRotPosPP    = dataIn.NumOfRotPosPP;
-dataSet.AngularSpanPP    = dataIn.AngularSpanPP;
-dataSet.EvalSpeed        = dataIn.EvalSpeed;
-
-dataSet.currentpathname = dataIn.currentpathname;
-dataSet.currentfilename = dataIn.currentfilename;
-
-filename = dataSet.currentfilename;
-pathname = dataSet.currentpathname;
-
-axes_type  = geo.axisType; 
-
-% if strcmp(geo.axisType,'PM')
-%     axes_type='PM';
-% else
-%     axes_type='SR';
-% end
 
 % create result folder
-outFolder = [filename(1:end-4) '_results\FEA results\'];
-if ~exist([pathname outFolder],'dir')
-    mkdir([pathname outFolder]);
+if flagSave
+    outFolder = [filename(1:end-4) '_results\FEA results\'];
+    if ~exist([pathname outFolder],'dir')
+        mkdir([pathname outFolder]);
+    end
+
+    resFolder = ['peakShortCircuitCurrent_' datestr(now,30) '\'];
+    mkdir([pathname outFolder],resFolder);
+    resFolder = [pathname outFolder resFolder];
+
+
+    save([resFolder 'pkScOut.mat'],'dataSet');
 end
 
-resFolder = ['peakShortCircuitCurrent_' datestr(now,30) '\'];
-mkdir([pathname outFolder],resFolder);
-resFolder = [pathname outFolder resFolder];
+if ~flagFEAfix
+    % update per structure
+    per.nsim_singt      = dataSet.NumOfRotPosPP;
+    per.delta_sim_singt = dataSet.AngularSpanPP;
+    per.tempPP          = dataSet.tempPP;
+    per.BrPP            = dataSet.BrPP;
+    per.i0              = dataSet.RatedCurrent;
+
+    % initialize variables
+    idq0 = dataSet.SimulatedCurrent.*cosd(dataSet.GammaPP)+j*dataSet.SimulatedCurrent.*sind(dataSet.GammaPP);
+    fdq0 = nan(size(idq0));
+    T0   = nan(size(idq0));
+    idq  = nan(size(idq0));
+    fdq  = nan(size(idq0));
 
 
-save([resFolder 'pkScOut.mat'],'dataSet');
+    i0 = per.i0;
 
-% update per structure
-per.nsim_singt      = dataSet.NumOfRotPosPP;
-per.delta_sim_singt = dataSet.AngularSpanPP;
-per.tempPP          = dataSet.tempPP;
-per.BrPP            = dataSet.BrPP;
-per.i0              = dataSet.RatedCurrent;
-
-% initialize variables
-idq0 = dataSet.SimulatedCurrent.*cosd(dataSet.GammaPP)+j*dataSet.SimulatedCurrent.*sind(dataSet.GammaPP);
-fdq0 = nan(size(idq0));
-T0   = nan(size(idq0));
-idq  = nan(size(idq0));
-fdq  = nan(size(idq0));
+    motname = [dataSet.currentpathname dataSet.currentfilename(1:end-4) '.fem'];
+else
+    motname = dataIn.filemot;
+    idq0 = dataIn.idq0;
+    i0 = per.i0;
+end
 
 tol = 100;
 maxIter = 10;
-i0 = per.i0;
 
-motname = [dataSet.currentpathname dataSet.currentfilename(1:end-4) '.fem'];
 
-disp('Starting FEMM simulations...')
 
 for ii=1:length(idq0)
-    disp(['Operating point ' int2str(ii) ' of ' int2str(length(idq0)) ' --> ' int2str(real(idq0(ii))) '+j*' int2str(imag(idq0(ii))) ' A'])
-    per.overload = abs(idq0(ii))/per.i0;
-    per.gamma = angle(idq0(ii))*180/pi;
-    
-    disp(' Healthy point simulation...')
-    [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'singt',motname);
-    fdq0(ii) = out.fd+j*out.fq;
-    T0(ii)   = out.T;
-    disp([' Healthy point simulation done: |fdq| = ' num2str(abs(fdq0(ii)),4) ' Vs'])
-    
+        
+    if ~flagFEAfix
+        disp('Starting FEMM simulations...')
+        disp(' Healthy point simulation...')
+        disp(['Operating point ' int2str(ii) ' of ' int2str(length(idq0)) ' --> ' int2str(real(idq0(ii))) '+j*' int2str(imag(idq0(ii))) ' A'])
+        per.overload = abs(idq0(ii))/per.i0;
+        per.gamma = angle(idq0(ii))*180/pi;
+        [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'singt',motname);
+        fdq0(ii) = out.fd+j*out.fq;
+        T0(ii)   = out.T;
+        disp([' Healthy point simulation done: |fdq| = ' num2str(abs(fdq0(ii)),4) ' Vs'])
+    else
+        per.overload = abs(idq0(ii))/per.i0;
+        fdq0(ii) = dataIn.fdq0;
+        T0(ii)   = dataIn.T0;
+    end
+
+   
+
     tol = abs(fdq0(ii))/100;
-    
+
     done = 0;
     jj=1;
-    
+
     iTest{ii} = nan(1,maxIter);
     fTest{ii} = nan(1,maxIter);
-    
+
     while ~done
         if ii==1 && jj<3
             if jj==1
@@ -142,34 +176,42 @@ for ii=1:length(idq0)
             iVect = iVect(~isnan(iVect));
             [fVect,index] = sort(fVect);
             iVect = iVect(index);
-            
-            iTest{ii}(jj) = interp1(fVect,iVect,abs(fdq0(ii)),'linear','extrap');
+
+            if strcmp(axis_type,'SR')
+                iTest{ii}(jj) = interp1(fVect,iVect,abs(fdq0(ii)),'linear','extrap');
+            else
+                iTest{ii}(jj) = interp1(fVect,iVect,-abs(fdq0(ii)),'linear','extrap');
+            end
         end
-        
+
         per.overload = abs(iTest{ii}(jj));
-        if strcmp(axes_type,'SR')
+        if strcmp(axis_type,'SR')
             per.gamma = 90;
         else
             per.gamma = -180;
         end
-        [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'singt',motname);
-        
-        
-        if strcmp(axes_type,'SR')
+        if ~flagFEAfix
+            [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'singt',motname);
+        else
+            [~,~,~,out,~] = FEMMfitness(RQ,geo,per,mat,'singt',motname);
+        end
+
+        if strcmp(axis_type,'SR')
             fTest{ii}(jj) = out.fq;
         else
             fTest{ii}(jj) = -out.fd;
         end
-        
-        
-        disp(['  - Iteration ' int2str(jj) ': ' num2str(abs(iTest{ii}(jj)*i0),4) ' A --> ' num2str(abs(fTest{ii}(jj)),4) ' Vs'])
-        
+
+        if ~flagFEAfix
+            disp(['  - Iteration ' int2str(jj) ': ' num2str(abs(iTest{ii}(jj)*i0),4) ' A --> ' num2str(abs(fTest{ii}(jj)),4) ' Vs'])
+        end
+
         if (abs(fTest{ii}(jj))>abs(fdq0(ii))+tol)||(abs(fTest{ii}(jj))<abs(fdq0(ii))-tol)
             done = 0;
             jj = jj+1;
         else
             done = 1;
-            if strcmp(axes_type,'SR')
+            if strcmp(axis_type,'SR')
                 idq(ii) = j*iTest{ii}(jj);
                 fdq(ii) = j*fTest{ii}(jj);
             else
@@ -177,14 +219,16 @@ for ii=1:length(idq0)
                 fdq(ii) = fTest{ii}(jj);
             end
         end
-        
+
         if ii>maxIter
             done=1;
         end
     end
 end
 
-disp('FEMM simulations done!!!')
+if ~flagFEAfix
+    disp('FEMM simulations done!!!')
+end
 
 idq = idq*per.i0;
 
@@ -197,47 +241,49 @@ pkSCout.fdq     = fdq;
 pkSCout.iTest   = iTest;
 pkSCout.fTest   = fTest;
 
-save([resFolder 'pkScOut.mat'],'pkSCout','-append');
+if flagSave
+    save([resFolder 'pkScOut.mat'],'pkSCout','-append');
 
-hfig(1) = figure();
-figSetting(16,10);
-hax(1) = axes(...
-    'OuterPosition',[0 0 1 1],...
-    'XLim',[0.5 length(idq)+0.5],'XTick',1:1:length(idq));
-xlabel('working point')
-ylabel('[A]')
-set(hfig(1),'FileName',[resFolder 'peakShortCircuitCurrent.fig'])
-hleg(1) = legend(hax(1),'show','Location','southoutside','Orientation','horizontal');
-
-
-hfig(2) = figure();
-figSetting(16,10);
-hax(2) = axes('OuterPosition',[0 0 1 1]);
-xlabel('[A]')
-ylabel('[Vs]')
-set(hfig(2),'FileName',[resFolder 'iterations.fig'])
-hleg(2) = legend(hax(2),'show','Location','northeastoutside');
-
-bar(hax(1),abs(idq),'BarWidth',0.8,'EdgeColor',0.5*[1 0 0],'FaceColor',[1 0 0],'DisplayName','peak short circuit current')
-bar(hax(1),abs(idq0),'BarWidth',0.5,'EdgeColor',0.5*[0 0 1],'FaceColor',[0 0 1],'DisplayName','initial current')
+    hfig(1) = figure();
+    figSetting(16,10);
+    hax(1) = axes(...
+        'OuterPosition',[0 0 1 1],...
+        'XLim',[0.5 length(idq)+0.5],'XTick',1:1:length(idq));
+    xlabel('working point')
+    ylabel('[A]')
+    set(hfig(1),'FileName',[resFolder 'peakShortCircuitCurrent.fig'])
+    hleg(1) = legend(hax(1),'show','Location','southoutside','Orientation','horizontal');
 
 
-fVect = [];
-iVect = [];
-for ii=1:length(iTest)
-    fVect = [fVect (fTest{ii})];
-    iVect = [iVect (iTest{ii})];
-    iPlot = iTest{ii}(~isnan(iTest{ii}));
-    fPlot = fTest{ii}(~isnan(fTest{ii}));
-    plot(hax(2),iPlot*per.i0,fPlot,'-o','DisplayName',['working point ' int2str(ii)]);
-end
+    hfig(2) = figure();
+    figSetting(16,10);
+    hax(2) = axes('OuterPosition',[0 0 1 1]);
+    xlabel('[A]')
+    ylabel('[Vs]')
+    set(hfig(2),'FileName',[resFolder 'iterations.fig'])
+    hleg(2) = legend(hax(2),'show','Location','northeastoutside');
 
-iVect = iVect(~isnan(iVect));
-fVect = fVect(~isnan(fVect));
-[iVect,index] = sort(iVect);
-fVect = fVect(index);
-plot(hax(2),iVect*per.i0,fVect,':k','DisplayName','all simulations')
+    bar(hax(1),abs(idq),'BarWidth',0.8,'EdgeColor',0.5*[1 0 0],'FaceColor',[1 0 0],'DisplayName','peak short circuit current')
+    bar(hax(1),abs(idq0),'BarWidth',0.5,'EdgeColor',0.5*[0 0 1],'FaceColor',[0 0 1],'DisplayName','initial current')
 
-for ii=1:length(hfig)
-    savePrintFigure(hfig(ii));
+
+    fVect = [];
+    iVect = [];
+    for ii=1:length(iTest)
+        fVect = [fVect (fTest{ii})];
+        iVect = [iVect (iTest{ii})];
+        iPlot = iTest{ii}(~isnan(iTest{ii}));
+        fPlot = fTest{ii}(~isnan(fTest{ii}));
+        plot(hax(2),iPlot*per.i0,fPlot,'-o','DisplayName',['working point ' int2str(ii)]);
+    end
+
+    iVect = iVect(~isnan(iVect));
+    fVect = fVect(~isnan(fVect));
+    [iVect,index] = sort(iVect);
+    fVect = fVect(index);
+    plot(hax(2),iVect*per.i0,fVect,':k','DisplayName','all simulations')
+
+    for ii=1:length(hfig)
+        savePrintFigure(hfig(ii));
+    end
 end

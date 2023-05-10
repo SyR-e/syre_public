@@ -38,11 +38,6 @@ if ~isempty(RQ)
     %     options.PopulationSize=1;
 
     if strcmp(eval_type,'MO_OA')
-        %         options.iteration=options.iteration+1;
-        %         iteration=options.iteration;
-        %         populationSize=options.PopulationSize;
-        %         generation=floor(iteration/populationSize)+1;
-        %         options.currentgen=generation;
 %         RQ % debug .. when syre crashes it is useful to have visibility of last RQ
     end
 
@@ -105,6 +100,13 @@ if ~isempty(RQ)
     end
 end
 
+if (strcmp(eval_type,'idemag')||strcmp(eval_type,'idemagmap')||strcmp(eval_type,'demagArea'))
+    flagSim = 0;
+    flagDemag = 1;
+else
+    flagDemag = 0;
+end
+
 if flagSim
     if strcmp(geo.RotType,'IM')
         [SOL] = simulate_FOC_IM(geo,per,mat,eval_type,pathname,filename);
@@ -121,6 +123,8 @@ if flagSim
     out.dTpu   = std(SOL.T)/out.T;                                  % [pu]
     out.dTpp   = max(SOL.T)-min(SOL.T);                             % [Nm]
     out.IPF    = sin(atan2(out.iq,out.id)-atan2(out.fq,out.fd));
+    out.We     = mean(SOL.we);                                      % [J]
+    out.Wc     = mean(SOL.wc);                                      % [J]
     out.SOL    = SOL;
 
     % check Torque sign
@@ -134,13 +138,16 @@ if flagSim
     end
 
     if isfield(SOL,'psh')
-        out.Pfes_h = sum(sum(SOL.psh))*(2*geo.p/geo.ps);
-        out.Pfes_c = sum(sum(SOL.psc))*(2*geo.p/geo.ps);
-        out.Pfer_h = sum(sum(SOL.prh))*(2*geo.p/geo.ps);
-        out.Pfer_c = sum(sum(SOL.prc))*(2*geo.p/geo.ps);
-        out.Ppm    = sum(sum(SOL.ppm))*(2*geo.p/geo.ps);
-        out.Pfe    = out.Pfes_h + out.Pfes_c + out.Pfer_h + out.Pfer_c;
-        out.velDim = per.EvalSpeed;
+        out.Pfes_h        = sum(sum(SOL.psh))*(2*geo.p/geo.ps);
+        out.Pfes_c        = sum(sum(SOL.psc))*(2*geo.p/geo.ps);
+        out.Pfer_h        = sum(sum(SOL.prh))*(2*geo.p/geo.ps);
+        out.Pfer_c        = sum(sum(SOL.prc))*(2*geo.p/geo.ps);
+        out.Ppm           = sum(sum(SOL.ppm))*(2*geo.p/geo.ps);
+        out.ppm_RF        = sum(sum(SOL.ppm_RF))*(2*geo.p/geo.ps);
+        out.ppm_noRF      = sum(sum(SOL.ppm_noRF))*(2*geo.p/geo.ps);
+        out.Ppm_breakdown = SOL.ppm_PM*(2*geo.p/geo.ps);
+        out.Pfe           = out.Pfes_h + out.Pfes_c + out.Pfer_h + out.Pfer_c;
+        out.velDim        = per.EvalSpeed;
 
         if strcmp(eval_type,'singmIron')
             % remove all the debug data from SOL, to avoid excessive data size
@@ -149,6 +156,9 @@ if flagSim
             SOL = rmfield(SOL,'prh');
             SOL = rmfield(SOL,'prc');
             SOL = rmfield(SOL,'ppm');
+            SOL = rmfield(SOL,'ppm_RF');
+            SOL = rmfield(SOL,'ppm_noRF');
+            SOL = rmfield(SOL,'ppm_PM');
             SOL = rmfield(SOL,'freq');
             SOL = rmfield(SOL,'bs');
             SOL = rmfield(SOL,'br');
@@ -170,6 +180,17 @@ else
     out.dTpp = 10^50;
     out.IPF  = -10^50;
 end
+
+if flagDemag
+    SOL = simulate_xdeg(geo,per,mat,eval_type,pathname,filename);
+    
+    out.id   = mean(SOL.id);
+    out.iq   = mean(SOL.iq);
+    out.SOL  = SOL;
+    out.Bmin = min(SOL.Bmin);
+    out.dPM  = max(SOL.dPM);
+end
+
 
 if ~isempty(RQ)     % MODE optimization (RQ geometry)
 

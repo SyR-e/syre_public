@@ -21,9 +21,6 @@ end
 if isempty(motorModel.FluxMapInv_dq)
     motorModel.FluxMapInv_dq = MMM_eval_inverseModel_dq(motorModel);
 end
-if isempty(motorModel.FluxMapInv_dqt)
-    motorModel.FluxMapInv_dqt = MMM_eval_inverse_dqtMap(motorModel);
-end
 if isempty(motorModel.IncInductanceMap_dq)
     motorModel.IncInductanceMap_dq = MMM_eval_inductanceMap(motorModel);
 end
@@ -51,7 +48,6 @@ switch(modelType)
         movefile([ctrlFolder_path '\Motor_ctrl_INST.slx'],[ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx']);
 end
 
-save([ctrlFolder_path '\motorModel.mat'],'motorModel');
 
 MMM_print_MotorDataH(motorModel);
 
@@ -62,3 +58,11 @@ switch(modelType)
     case 'Istantaneous'
         motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx'];
 end
+
+save([ctrlFolder_path '\motorModel.mat'],'motorModel');
+
+disp('Simulink model created!')
+disp(['pathname:'])
+disp(['  ' ctrlFolder_path '\'])
+disp(['filename:'])
+disp(['  ' motorModel.data.motorName '_ctrl_INST.slx'])

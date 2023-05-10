@@ -24,15 +24,16 @@
     Reset 				= InputSignal(0,9);			// Black button
     Go    				= InputSignal(0,10);	  // Blue  button
 		
-	Ctrl_type			= InputSignal(0,11);			
-    inj_waveform		= InputSignal(0,12);		// Injected waveform (sinusoidal or squarewave)
-    dem 			  	= InputSignal(0,13);		// Current or Flux demoduation
-	HS_ctrl		  		= InputSignal(0,14);		// High speed position error estimation technique (AF or APP)
-	SS_on				= InputSignal(0,15);		// Sensorless ON or OFF
-	accel				= InputSignal(0,16); 		// speed acceleration rpm/s
-	Quad_Maps			= InputSignal(0,17);
-	lambda_M			= InputSignal(0,18);
-	th0					= InputSignal(0,19);
+	Ctrl_type			= InputSignal(0,11);
+	Ctrl_strategy       = InputSignal(0,12);			
+    inj_waveform		= InputSignal(0,13);		// Injected waveform (sinusoidal or squarewave)
+    dem 			  	= InputSignal(0,14);		// Current or Flux demoduation
+	HS_ctrl		  		= InputSignal(0,15);		// High speed position error estimation technique (AF or APP)
+	SS_on				= InputSignal(0,16);		// Sensorless ON or OFF
+	accel				= InputSignal(0,17); 		// speed acceleration rpm/s
+	Quad_Maps			= InputSignal(0,18);
+	lambda_M			= InputSignal(0,19);
+	th0					= InputSignal(0,20);
 
     
   
@@ -126,14 +127,14 @@
             pwm_stop = 0;
             
             // Current offset accumulation
-            if (counter>100){
+            if (counter>0.01f/Ts){
                 offset_in.ch0+=input.ch0;
                 offset_in.ch1+=input.ch1;
                 offset_in.ch2+=input.ch2;
             }
             
             // Offset computation and bootstrap
-            if (counter==(100+200)) {
+            if (counter==(0.03f/Ts)) {
                 offset_current_a=(float)(offset_in.ch0/200.0f);
                 offset_current_b=(float)(offset_in.ch1/200.0f);
                 offset_current_c=(float)(offset_in.ch2/200.0f);
@@ -149,7 +150,7 @@
 			}
 						
             // Switch to READY state
-            if (counter > 300) {
+            if (counter > 0.03f/Ts) {
                 counter=0;
                 State = READY;
             }
@@ -175,26 +176,9 @@
 			
 			//-------------------Speed Compute----------------------------------//
 			
-			theta_elt_meas      = PP * theta_mec_meas;
-			while(theta_elt_meas > PI)
-				theta_elt_meas -= TWOPI;
-			while(theta_elt_meas < -PI)
-				theta_elt_meas += TWOPI;
-			SinCos_elt_meas.sin = sin(theta_elt_meas);
-			SinCos_elt_meas.cos = cos(theta_elt_meas);
-				
-			speed_compute_sc(SinCos_elt_meas, &SinCos_elt_meas_old, &omega_elt_meas);
-			_Filter(omega_elt_meas, omega_elt_meas_f, Ts*TWOPI*10);
-			omega_mec_meas      = omega_elt_meas/PP;
-			omega_mec_meas_f    = omega_elt_meas_f/PP;
-			omega_mec_meas_rpm  = omega_mec_meas_f*30/PI;
-				
-			SinCos_elt_meas_old.sin = SinCos_elt_meas.sin;
-			SinCos_elt_meas_old.cos = SinCos_elt_meas.cos;
-								
-			//---------------------------------PLL-------------------------------//
+			//-------------------Sensorless PLL---------------------------------//
 			
-			if(SS_on) {	
+				if(SS_on) {	
 				PLL_par.kp   = 2*OMEGA_B_PLL;
 				PLL_par.ki   = pow(OMEGA_B_PLL,2)*Ts;
 				PLL_par.lim  = RPM2RAD * nmax_mot * PP;
@@ -216,12 +200,46 @@
 				position_error_real = asin(sin(theta_elt_meas - theta_PLL));
 
 			}		
-			
-			else { // Encoder
-				SinCos_elt.sin = sin(theta_elt_meas);
-				SinCos_elt.cos = cos(theta_elt_meas);
-				omega_elt = omega_elt_meas_f;
-				position_error_real = 0;
+			//-------------------------Encoder PLL-----------------------------//
+			else { 
+				while(theta_mec_meas > PI)
+				    theta_mec_meas -= TWOPI;
+			    while(theta_mec_meas < -PI)
+				    theta_mec_meas += TWOPI;
+               
+                SinCos_mec_meas.cos = cos(theta_mec_meas);
+                SinCos_mec_meas.sin = sin(theta_mec_meas);
+
+                theta_elt_meas      = PP * theta_mec_meas;
+			    while(theta_elt_meas > PI)
+			        theta_elt_meas -= TWOPI;
+			    while(theta_elt_meas < -PI)
+		            theta_elt_meas += TWOPI;
+ 				
+                SinCos_elt.sin = sin(theta_elt_meas);
+ 				SinCos_elt.cos = cos(theta_elt_meas);
+ 	            
+                PLL_mec_par.kp   = OMEGA_PLL;
+				PLL_mec_par.ki   = pow(OMEGA_PLL,2)*Ts*10;
+				PLL_mec_par.lim  = RPM2RAD*nmax_mot;
+				PLL_mec_var.ref  = SinCos_mec_meas.sin*SinCos_mec_PLL.cos-SinCos_mec_meas.cos*SinCos_mec_PLL.sin;
+				PLL_mec_var.fbk  = 0;
+                
+                PIReg(&PLL_mec_par, &PLL_mec_var);
+				omega_mec_PLL  = PLL_mec_var.out;
+				theta_mec_PLL += Ts*PLL_mec_var.out; 
+				_Filter(omega_mec_PLL, omega_mec, Ts*TWOPI*25);
+				
+				if(theta_mec_PLL >= TWOPI)
+					theta_mec_PLL -= TWOPI;
+				if (theta_mec_PLL < 0)
+					theta_mec_PLL +=TWOPI;
+				
+				SinCos_mec_PLL.sin = sin(theta_mec_PLL);
+				SinCos_mec_PLL.cos = cos(theta_mec_PLL);
+                
+                omega_elt = omega_mec*PP;
+                
 			}
 			
 			//-------------------------------Control Type ------------------------------//										
@@ -236,6 +254,7 @@
 				case 2: //TorqueControl
 					ReadLut(&ID_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &isdq_ref.d); 
 					ReadLut(&IQ_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &isdq_ref.q);
+					ReadLut(&F_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &lambda_MTPA);
 					switch (Quad_Maps){
 					case 0:
 						isdq_ref.d = sgn(T_ext)*isdq_ref.d; 
@@ -266,6 +285,7 @@
 																	
 					ReadLut(&ID_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &isdq_ref.d); 
 					ReadLut(&IQ_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &isdq_ref.q);
+					ReadLut(&F_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &lambda_MTPA);
 					switch (Quad_Maps){
 						case 0:
 							isdq_ref.d = sgn(T_ext)*isdq_ref.d; 
@@ -291,8 +311,15 @@
 			_rot(vsab_k0,SinCos_elt,vsdq_k0);
 			
 			FluxObserver();
-			Compute_Inductance();
+			//Compute_Inductance();
+			SinCos_delta.cos = cos(delta);
+            SinCos_delta.sin = sin(delta);
 			
+            idsqs.d = isdq.d*cos(delta) + isdq.q*sin(delta);
+            idsqs.q = -isdq.d*sin(delta)+isdq.q*cos(delta);
+
+
+
 			//---------------------------Sensorless Position Estimation--------------------------//
 			
 			pos_err_LS = 0;
@@ -384,27 +411,116 @@
 			if (counterHF >= ns)
 				counterHF = 0;
 			
-			//-----------------------Current Vector Control--------------------//
-			
-// 			kp_id = OMEGA_BI*ld;
-// 			ki_id = kp_id*OMEGA_BI/10;
-// 			kp_iq = OMEGA_BI*lq;
-// 			ki_iq = kp_iq*OMEGA_BI/10;
+
+			//-----------------------Control Strategy--------------------------//
+
+			 switch(Ctrl_strategy){
+                case FOC:
+			//-----------------------FOC---------------------------------------//
+// 			
+//      		kp_id = OMEGA_BI*ld;
+//      		ki_id = kp_id*OMEGA_BI/10;
+//      		kp_iq = OMEGA_BI*lq;
+//      		ki_iq = kp_iq*OMEGA_BI/10;
+                
+	            kp_id = OMEGA_BI*Ld_inic;
+			    ki_id = kp_id*OMEGA_BI/10;
+			    kp_iq = OMEGA_BI*Lq_inic;
+			    ki_iq = kp_iq*OMEGA_BI/10;
+     
+			    id_par.kp   = kp_id;
+			    id_par.ki   = ki_id*Ts;
+			    iq_par.kp   = kp_iq;
+			    iq_par.ki   = ki_iq*Ts;
+    
+			    //Current loop
+			    Current_loop(vdc, Imax_mot, isdq_ref, isdq, &id_par, &id_var, &iq_par, &iq_var, &vsdq_ref);
+			    vsdq_ref.d += RS*isdq.d - omega_elt*lambda_dq.q;
+			    vsdq_ref.q += RS*isdq.q + omega_elt*lambda_dq.d;
             
-            kp_id = OMEGA_BI*Ld_inic;
-			ki_id = kp_id*OMEGA_BI/10;
-			kp_iq = OMEGA_BI*Lq_inic;
-			ki_iq = kp_iq*OMEGA_BI/10;
+                break;
+                case DFVC:
+                //---------------------Direct Flux Vector Control--------------//
+                T_ref = T_ext; 
+                lambda_ref = lambda_MTPA;
+                if(lambda_ref<lambda_MTPA_min)
+                    lambda_ref=lambda_MTPA_min;
+                if(lambda_ref>lambda_MTPA_max) 
+                   lambda_ref=lambda_MTPA_max;
+    
+                Flux_Lim = 0.85f*vdc*SQRT1OVER3/abs(omega_elt+1);
+                
+                if(Flux_Lim>lambda_MTPA_max)
+                    Flux_Lim=lambda_MTPA_max;
+                if(lambda_ref>Flux_Lim)
+                    lambda_ref = Flux_Lim;
+                
+             
+				delta_par.kp = OMEGA_DELTA*lambda_ref/iqs_par.kp;
+				delta_par.ki = delta_par.kp*0.1;
+                  
+				if(Quad_Maps==0 || Quad_Maps==2){
+				delta_var.ref = delta_MTPV_max;
+				delta_var.fbk = fabs(delta)*180/PI;
+				}	
+				if(Quad_Maps==1){
+					if(T_ref>0){
+					delta_var.ref = delta_MTPV_max;
+					delta_var.fbk = delta*180/PI; 
+					}
+					else{
+					delta_var.ref = delta_MTPV_max+180;
+					delta_var.fbk = fabs(delta)*180/PI+90;
+					}
+				}  
 
-			id_par.kp   = kp_id;
-			id_par.ki   = ki_id*Ts;
-			iq_par.kp   = kp_iq;
-			iq_par.ki   = ki_iq*Ts;
+				PIRegAsy(&delta_par,&delta_var,Imax_mot,0);
+				i_MTPV = delta_var.out;
+               
+                    
+                
+                //Current Limitation
+                iqs_ref = T_ref/(1.5*PP*lambda_ref);
+                iqs_Lim = sqrt(pow(Imax_mot,2)-pow(idsqs.d,2))-i_MTPV;            
+                if(fabs(iqs_ref) >iqs_Lim)
+                    iqs_ref = iqs_Lim*sgn(T_ref);
+                
+                //Control Loops
+    
+                lambda_par.kp = OMEGA_BI*0.5;
+                lambda_par.ki = lambda_par.kp*OMEGA_BI*0.5/10*Ts;
+                iqs_par.kp = OMEGA_BI*Lq_inic;
+                iqs_par.ki = iqs_par.kp*OMEGA_BI/10*Ts;
+                lambda_par.lim = vdc*SQRT1OVER3/3;
+                iqs_par.lim=vdc*SQRT1OVER3;
+    
+                lambda_var.ref = lambda_ref;
+                lambda_var.fbk = lambda_OBS.amp;
+                PIReg(&lambda_par,&lambda_var);
+                vdsqs.d = lambda_var.out;
+                //iqs_par.lim = sqrt(pow(vdc*SQRT1OVER3,2)-pow(vdsqs.d,2));
+                
+    
+                iqs_var.ref = iqs_ref;
+                iqs_var.fbk = idsqs.q;
+                PIReg(&iqs_par,&iqs_var);
+                vdsqs.q = iqs_var.out;
+                vdsqs.q+= RS*idsqs.q + omega_elt*lambda_OBS.amp;
+                   
+     
+                vsdq_ref.d = vdsqs.d*cos(delta)-vdsqs.q*sin(delta);
+                vsdq_ref.q  = vdsqs.d*sin(delta)+vdsqs.q*cos(delta);
+                
+                break;
+            }
 
-			//Current loop
-			Current_loop(vdc, Imax_mot, isdq_ref, isdq, &id_par, &id_var, &iq_par, &iq_var, &vsdq_ref);
-			vsdq_ref.d += RS*isdq.d - omega_elt*lambda_dq.q;
-			vsdq_ref.q += RS*isdq.q + omega_elt*lambda_dq.d;
+            //Phase advance
+
+            dTheta = 1.5f*omega_elt*Ts;
+            SinCos_elt_dTheta.sin = SinCos_elt.sin*cosf(dTheta) +SinCos_elt.cos*sinf(dTheta);
+            SinCos_elt_dTheta.cos = SinCos_elt.cos*cosf(dTheta) -SinCos_elt.sin*sinf(dTheta);
+			
+
 			
 			// HF injection
 			if (abs(omega_elt) < KOBS + 1.2*OMEGA_G && SS_on == 1) {
@@ -493,4 +609,7 @@
 	OutputSignal(0,33) = pos_err_HS*180/PI;
 	OutputSignal(0,34) = lambda_OBS.alpha;
 	OutputSignal(0,35) = lambda_OBS.beta;
-
+	OutputSignal(0,36) = lambda_var.ref;
+	OutputSignal(0,37) = lambda_var.fbk;
+	OutputSignal(0,38) = iqs_var.ref;
+	OutputSignal(0,39) = iqs_var.fbk;

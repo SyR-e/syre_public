@@ -55,7 +55,7 @@ overload_temp = CurrLoPP;   % current to be simulated
 gamma_temp    = GammaPP;    % current phase angle
 
 %Python ansys path
-ipypath  = 'C:\Program Files\AnsysEM\AnsysEM20.1\Win64\common\IronPython\';
+ipypath    = 'C:\Program Files\AnsysEM\v222\Win64\common\IronPython\';
 ipy64exe = 'ipy64.exe';
 ipypath  = strcat('"',ipypath,ipy64exe,'" "');
 
@@ -129,6 +129,7 @@ for ii = 1:length(SimulatedCurrent)
          save([resFolder 'Data.mat'], 'Theta', 'T', 'fd', 'fq', 'IPF','CoreLoss','CoreLoss_s','CoreLoss_r','PMloss');
     else
         resFolder = [pathname,filename(1:end-4),'_results\FEA results\Ansys_', eval_type , '_', num2str(round(iAmp,2)), 'A\'];
+        mkdir(resFolder)
         save([resFolder 'Data.mat'], 'Theta', 'T', 'fd', 'fq', 'IPF');
     end
     

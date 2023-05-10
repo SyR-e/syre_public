@@ -14,17 +14,18 @@
 
 function [map] = SDE_evalBaseSpeed(map)
 p       = map.geo.p;
-kj      = map.kj;
-R       = map.geo.R;
-l       = map.geo.l;
-n3ph    = map.geo.win.n3phase;
-Ns      = map.geo.win.Ns;
-i0      = map.i0;
+% kj      = map.kj;
+% R       = map.geo.R;
+% l       = map.geo.l;
+% n3ph    = map.geo.win.n3phase;
+% Ns      = map.geo.win.Ns;
+% i0      = map.i0;
 fd      = map.fd;
 fq      = map.fq;
+fM      = map.fM;
 id      = map.id;
 iq      = map.iq;
-q       = map.geo.q;
+% q       = map.geo.q;
 T       = map.T; 
 Vdc     = map.Vdc;
 Rs      = map.Rs;
@@ -34,10 +35,12 @@ fdq = fd + j*fq;
 
 
 [w_elet] = calcLimitPulsation(id,iq,fd,fq,Rs,Vdc/sqrt(3));
-f_elet = w_elet/2/pi;
-nbase = f_elet/pi*60;
+% f_elet = w_elet/2/pi;
+% nbase = f_elet/pi*60;
 nbase = w_elet*30/pi/p;
 Pbase =  T.*w_elet/p;
+fUGOpu = (abs(fdq))./fM;
 
+map.fUGOpu = fUGOpu;
 map.nbase = nbase;
 map.Pbase = Pbase;

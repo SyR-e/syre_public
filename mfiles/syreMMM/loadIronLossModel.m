@@ -62,6 +62,30 @@ else
             IronLossModel.expH=eval(setup{3});
             IronLossModel.expPM=eval(setup{4});
             IronLossModel.segPM=eval(setup{5});
+            
+%             % check axis style
+%             if exist('dataSet','var')
+%                 if ~isfield(dataSet,'axisType')
+%                     if strcmp(dataSet.TypeOfRotor,'SPM')||strcmp(dataSet.TypeOfRotor,'Vtype')
+%                         dataSet.axisType = 'PM';
+%                     else
+%                         dataSet.axisType = 'SR';
+%                     end
+%                 end
+%                 if ~strcmp(dataSet.axisType,motorModel.data.axisType)
+%                     tmp.FluxMap_dq.Id    = Id;
+%                     tmp.FluxMap_dq.Iq    = Iq;
+%                     tmp.FluxMap_dq.Fd    = Fd;
+%                     tmp.FluxMap_dq.Fq    = Fq;
+%                     tmp.IronPMLossMap_dq = IronLossModel;
+%                     if strcmp(dataSet.axisType,'SR')
+%                         tmp = MMM_sr2pm(tmp);
+%                     else
+%                         tmp = MMM_pm2sr(tmp);
+%                     end
+%                     IronLossModel = tmp.IronPMLossMap_dq;
+%                 end
+%             end
         end
         
     elseif exist('IronLossModel','var') % model from fit

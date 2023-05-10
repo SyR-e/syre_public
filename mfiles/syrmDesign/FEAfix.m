@@ -31,10 +31,12 @@ else
     gammaDebug = NaN;
 end
 
-% dataSet.kPM=1;
-% warning('kPM not read!!!')
 
-gammaFix = dataSet.syrmDesignFlag.gf;
+gammaFix     = dataSet.syrmDesignFlag.gf;
+flagIch      = dataSet.syrmDesignFlag.ichf;
+flagSC       = dataSet.syrmDesignFlag.scf;
+flagDemag0   = dataSet.syrmDesignFlag.demag0;
+flagDemagHWC = dataSet.syrmDesignFlag.demagHWC;
 
 FEAfixN = dataSet.FEAfixN;
 
@@ -153,20 +155,33 @@ end
 
 geo.RQnames=RQnames;
 
-RQ     = zeros(length(RQnames),length(xRaw));
-fdFEA  = zeros(1,length(xRaw));
-fqFEA  = zeros(1,length(xRaw));
-fMFEA  = zeros(1,length(xRaw));
-f0FEA  = zeros(1,length(xRaw));
-gFEA   = zeros(1,length(xRaw));
-mPMFEA = zeros(1,length(xRaw));
-fdMod  = zeros(1,length(xRaw));
-fqMod  = zeros(1,length(xRaw));
-fMMod  = zeros(1,length(xRaw));
-f0Mod  = zeros(1,length(xRaw));
-gMod   = zeros(1,length(xRaw));
-mPMMod = zeros(1,length(xRaw));
-% i0    = zeros(1,length(xRaw));
+RQ      = zeros(length(RQnames),length(xRaw));
+
+fdFEA      = zeros(1,length(xRaw));
+fqFEA      = zeros(1,length(xRaw));
+fMFEA      = zeros(1,length(xRaw));
+f0FEA      = zeros(1,length(xRaw));
+gFEA       = zeros(1,length(xRaw));
+mPMFEA     = zeros(1,length(xRaw));
+ichFEA     = zeros(1,length(xRaw));
+iHWCFEA    = zeros(1,length(xRaw));
+Bmin0FEA   = zeros(1,length(xRaw));
+dPM0FEA    = zeros(1,length(xRaw));
+BminHWCFEA = zeros(1,length(xRaw));
+dPMHWCFEA  = zeros(1,length(xRaw));
+
+fdMod      = zeros(1,length(xRaw));
+fqMod      = zeros(1,length(xRaw));
+fMMod      = zeros(1,length(xRaw));
+f0Mod      = zeros(1,length(xRaw));
+gMod       = zeros(1,length(xRaw));
+mPMMod     = zeros(1,length(xRaw));
+ichMod     = zeros(1,length(xRaw));
+iHWCMod    = zeros(1,length(xRaw));
+Bmin0Mod   = ones(1,length(xRaw));
+dPM0Mod    = ones(1,length(xRaw));
+BminHWCMod = ones(1,length(xRaw));
+dPMHWCMod  = ones(1,length(xRaw));
 
 if strcmp(eval_type,'flxdn')
     BtFEA = zeros(1,length(xRaw));
@@ -176,8 +191,9 @@ end
 
 
 OBJnames{1} = 'Torque';
+per.objs(1,:) = [per.min_exp_torque 1 0];
 geo.OBJnames=OBJnames;
-per.objs = [per.min_exp_torque 1 0];
+
 
 per.nsim_singt      = 6;
 per.delta_sim_singt = 60;
@@ -272,10 +288,10 @@ for mot=1:length(xRaw)
                 PMdimPU(isnan(PMdimPU)) = 0;
                 PMdimPU = dataSet.kPM*PMdimPU;
                 PMdim = PMdimPU;
-
+                
                 RQ(:,mot)=[geo.hc_pu geo.dx r wt lt PMdim(:)' gamma]';
+                
         end
-        
         % model flux linkages
         fdMod(mot) = interp2(xx,bb,map.fd,geo.x,geo.b); % fd [Vs]
         fqMod(mot) = interp2(xx,bb,map.fq,geo.x,geo.b); % fq [Vs]
@@ -293,6 +309,28 @@ for mot=1:length(xRaw)
         else
             mPMMod(mot) = 1;
         end
+        if isfield(map,'ich')
+            ichMod(mot) = interp2(map.xx,map.bb,map.ich,geo.x,geo.b);
+        else
+            ichMod(mot) = 1;
+        end
+        if isfield(map,'iHWC')
+            iHWCMod(mot) = interp2(map.xx,map.bb,map.iHWC,geo.x,geo.b);
+        else
+            iHWCMod(mot) = 1;
+        end
+        if isfield(map,'Bmin0')
+            Bmin0Mod(mot) = interp2(map.xx,map.bb,map.Bmin0,geo.x,geo.b);
+        else
+            Bmin0Mod(mot) = 1;
+        end
+        if isfield(map,'BminHWC')
+            BminHWCMod(mot) = interp2(map.xx,map.bb,map.BminHWC,geo.x,geo.b);
+        else
+            Bmin0Mod(mot) = 1;
+        end
+        dPM0Mod(mot)   = 1;
+        dPMHWCMod(mot) = 1;
     end
 end
 
@@ -319,34 +357,42 @@ if ~isempty(RQ)
     end
     if ppState<1
         for mot=1:length(xRaw)
-            % disp([' - FEA simulation ' int2str(mot) ' of ' int2str(length(xRaw))])
-            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix);
-            fdFEA(mot)  = FEA.fd;
-            fqFEA(mot)  = FEA.fq;
-            fMFEA(mot)  = FEA.fM;
-            f0FEA(mot)  = FEA.f0;
-            BgFEA(mot)  = FEA.Bg;
-            BtFEA(mot)  = FEA.Bt;
-            ByFEA(mot)  = FEA.By;
-            gFEA(mot)   = atan2(FEA.iq,FEA.id)*180/pi;
-            mPMFEA(mot) = FEA.mPM;
-            %mCuFEA(mot) = FEA.mCu;
+            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC);
+            fdFEA(mot)      = FEA.fd;
+            fqFEA(mot)      = FEA.fq;
+            fMFEA(mot)      = FEA.fM;
+            f0FEA(mot)      = FEA.f0;
+            BgFEA(mot)      = FEA.Bg;
+            BtFEA(mot)      = FEA.Bt;
+            ByFEA(mot)      = FEA.By;
+            gFEA(mot)       = atan2(FEA.iq,FEA.id)*180/pi;
+            mPMFEA(mot)     = FEA.mPM;
+            ichFEA(mot)     = FEA.ich;
+            iHWCFEA(mot)    = FEA.iHWC;
+            Bmin0FEA(mot)   = FEA.Bmin0;
+            dPM0FEA(mot)    = FEA.dPM0;
+            BminHWCFEA(mot) = FEA.BminHWC;
+            dPMHWCFEA(mot)  = FEA.dPMHWC;
             disp([' - motor ' int2str(mot) ' of ' int2str(length(xRaw)) ' evaluated with ' int2str(FEA.nFEA) ' FEA'])
         end
     else
         parfor mot=1:length(xRaw)
-            % disp([' - FEA simulation ' int2str(mot) ' of ' int2str(length(xRaw))])
-            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix);
-            fdFEA(mot)  = FEA.fd;
-            fqFEA(mot)  = FEA.fq;
-            fMFEA(mot)  = FEA.fM;
-            f0FEA(mot)  = FEA.f0;
-            BgFEA(mot)  = FEA.Bg;
-            BtFEA(mot)  = FEA.Bt;
-            ByFEA(mot)  = FEA.By;
-            gFEA(mot)   = atan2(FEA.iq,FEA.id)*180/pi;
-            mPMFEA(mot) = FEA.mPM;
-            %mCuFEA(mot) = FEA.mCu;
+            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC);
+            fdFEA(mot)      = FEA.fd;
+            fqFEA(mot)      = FEA.fq;
+            fMFEA(mot)      = FEA.fM;
+            f0FEA(mot)      = FEA.f0;
+            BgFEA(mot)      = FEA.Bg;
+            BtFEA(mot)      = FEA.Bt;
+            ByFEA(mot)      = FEA.By;
+            gFEA(mot)       = atan2(FEA.iq,FEA.id)*180/pi;
+            mPMFEA(mot)     = FEA.mPM;
+            ichFEA(mot)     = FEA.ich;
+            iHWCFEA(mot)    = FEA.iHWC;
+            Bmin0FEA(mot)   = FEA.Bmin0;
+            dPM0FEA(mot)    = FEA.dPM0;
+            BminHWCFEA(mot) = FEA.BminHWC;
+            dPMHWCFEA(mot)  = FEA.dPMHWC;
             disp([' - motor ' int2str(mot) ' of ' int2str(length(xRaw)) ' evaluated with ' int2str(FEA.nFEA) ' FEA'])
         end
     end
@@ -367,12 +413,17 @@ elseif strcmp(geo.RotType,'Vtype')
     kdRaw = (fdFEA-fMFEA)./(fdMod-fMMod);
     kqRaw = fqFEA./fqMod;
 else
-    kdRaw   = fdFEA./fdMod;
-%     kqRaw = fqFEA./fqMod;
-    kqRaw   = (fqFEA+fMFEA)./(fqMod+fMMod);
-    kmRaw   = fMFEA./fMMod;
-    k0Raw   = zeros(size(fdFEA));
-    kmPMRaw = mPMFEA./mPMMod;
+    kdRaw       = fdFEA./fdMod;
+    kqRaw       = (fqFEA+fMFEA)./(fqMod+fMMod);
+    kmRaw       = fMFEA./fMMod;
+    k0Raw       = zeros(size(fdFEA));
+    kmPMRaw     = mPMFEA./mPMMod;
+    kichRaw     = ichFEA./ichMod;
+    kiHWCRaw    = iHWCFEA./iHWCMod;
+    kBmin0Raw   = Bmin0FEA./Bmin0Mod;
+    kdPM0Raw    = dPM0FEA./dPM0Mod;
+    kBminHWCRaw = BminHWCFEA./BminHWCMod;
+    kdPMHWCRaw  = dPMHWCFEA./dPMHWCMod;
 end
 
 if gammaFix
@@ -383,52 +434,83 @@ else
     dgRaw = zeros(size(kdRaw));
 end
 
-kdRaw = kdRaw(~errorFlag);
-kqRaw = kqRaw(~errorFlag);
-kmRaw = kmRaw(~errorFlag);
-k0Raw = k0Raw(~errorFlag);
-kgRaw = kgRaw(~errorFlag);
-dgRaw = dgRaw(~errorFlag);
-kmPMRaw = kmPMRaw(~errorFlag);
+kdRaw       = kdRaw(~errorFlag);
+kqRaw       = kqRaw(~errorFlag);
+kmRaw       = kmRaw(~errorFlag);
+k0Raw       = k0Raw(~errorFlag);
+kgRaw       = kgRaw(~errorFlag);
+dgRaw       = dgRaw(~errorFlag);
+kmPMRaw     = kmPMRaw(~errorFlag);
+kichRaw     = kichRaw(~errorFlag);
+kiHWCRaw    = kiHWCRaw(~errorFlag);
+kBmin0Raw   = kBmin0Raw(~errorFlag);
+kdPM0Raw    = kdPM0Raw(~errorFlag);
+kBminHWCRaw = kBminHWCRaw(~errorFlag);
+kdPMHWCRaw  = kdPMHWCRaw(~errorFlag);
 
 if FEAfixN==1
-    kd = kdRaw*ones(size(xx));
-    kq = kqRaw*ones(size(xx));
-    km = kmRaw*ones(size(xx));
-    k0 = k0Raw*ones(size(xx));
-    kg = kgRaw*ones(size(xx));
-    dg = dgRaw*ones(size(xx));
-    kmPM = kmPMRaw*ones(size(xx));
+    kd       = kdRaw*ones(size(xx));
+    kq       = kqRaw*ones(size(xx));
+    km       = kmRaw*ones(size(xx));
+    k0       = k0Raw*ones(size(xx));
+    kg       = kgRaw*ones(size(xx));
+    dg       = dgRaw*ones(size(xx));
+    kmPM     = kmPMRaw*ones(size(xx));
+    kich     = kichRaw*ones(size(xx));
+    kiHWC    = kiHWCRaw*ones(size(xx));
+    kBmin0   = kBmin0Raw*ones(size(xx));
+    kdPM0    = kdPM0Raw*ones(size(xx));
+    kBminHWC = kBminHWCRaw*ones(size(xx));
+    kdPMHWC  = kdPMHWCRaw*ones(size(xx));
 else
-    kd   = scatteredInterpolant(xRaw',bRaw',kdRaw','linear');
-    kq   = scatteredInterpolant(xRaw',bRaw',kqRaw','linear');
-    km   = scatteredInterpolant(xRaw',bRaw',kmRaw','linear');
-    k0   = scatteredInterpolant(xRaw',bRaw',k0Raw','linear');
-    kg   = scatteredInterpolant(xRaw',bRaw',kgRaw','linear');
-    dg   = scatteredInterpolant(xRaw',bRaw',dgRaw','linear');
-    kmPM = scatteredInterpolant(xRaw',bRaw',kmPMRaw','linear');
-    kd   = kd(xx,bb);
-    kq   = kq(xx,bb);
-    km   = km(xx,bb);
-    k0   = k0(xx,bb);
-    kg   = kg(xx,bb);
-    dg   = dg(xx,bb);
-    kmPM = kmPM(xx,bb);
+    kd       = scatteredInterpolant(xRaw',bRaw',kdRaw','linear');
+    kq       = scatteredInterpolant(xRaw',bRaw',kqRaw','linear');
+    km       = scatteredInterpolant(xRaw',bRaw',kmRaw','linear');
+    k0       = scatteredInterpolant(xRaw',bRaw',k0Raw','linear');
+    kg       = scatteredInterpolant(xRaw',bRaw',kgRaw','linear');
+    dg       = scatteredInterpolant(xRaw',bRaw',dgRaw','linear');
+    kmPM     = scatteredInterpolant(xRaw',bRaw',kmPMRaw','linear');
+    kich     = scatteredInterpolant(xRaw',bRaw',kichRaw','linear');
+    kiHWC    = scatteredInterpolant(xRaw',bRaw',kiHWCRaw','linear');
+    kBmin0   = scatteredInterpolant(xRaw',bRaw',kBmin0Raw','linear');
+    kdPM0    = scatteredInterpolant(xRaw',bRaw',kdPM0Raw','linear');
+    kBminHWC = scatteredInterpolant(xRaw',bRaw',kBminHWCRaw','linear');
+    kdPMHWC  = scatteredInterpolant(xRaw',bRaw',kdPMHWCRaw','linear');
+
+    kd       = kd(xx,bb);
+    kq       = kq(xx,bb);
+    km       = km(xx,bb);
+    k0       = k0(xx,bb);
+    kg       = kg(xx,bb);
+    dg       = dg(xx,bb);
+    kmPM     = kmPM(xx,bb);
+    kich     = kich(xx,bb);
+    kiHWC    = kiHWC(xx,bb);
+    kBmin0   = kBmin0(xx,bb);
+    kdPM0    = kdPM0(xx,bb);
+    kBminHWC = kBminHWC(xx,bb);
+    kdPMHWC  = kdPMHWC(xx,bb);
 end
 
 disp('End of FEAfix calibration')
 
 delete('dataSet.mat')
 
-FEAfixOut.kd   = kd;
-FEAfixOut.kq   = kq;
-FEAfixOut.km   = km;
-FEAfixOut.k0   = k0;
-FEAfixOut.kg   = kg;
-FEAfixOut.dg   = dg;
-FEAfixOut.kmPM = kmPM;
-FEAfixOut.xRaw = xRaw;
-FEAfixOut.bRaw = bRaw;
+FEAfixOut.kd       = kd;
+FEAfixOut.kq       = kq;
+FEAfixOut.km       = km;
+FEAfixOut.k0       = k0;
+FEAfixOut.kg       = kg;
+FEAfixOut.dg       = dg;
+FEAfixOut.kmPM     = kmPM;
+FEAfixOut.kich     = kich;
+FEAfixOut.kiHWC    = kiHWC;
+FEAfixOut.kBmin0   = kBmin0;
+FEAfixOut.kdPM0    = kdPM0;
+FEAfixOut.kBminHWC = kBminHWC;
+FEAfixOut.kdPMHWC  = kdPMHWC;
+FEAfixOut.xRaw     = xRaw;
+FEAfixOut.bRaw     = bRaw;
 
 if strcmp(eval_type,'flxdn')
     FEAfixOut.Bg = BgFEA;
@@ -436,34 +518,10 @@ if strcmp(eval_type,'flxdn')
     FEAfixOut.By = ByFEA;
 end
 
-if (0)
-    figure()
-    figSetting(12,12)
-    xlabel('$x$')
-    ylabel('$b$')
-    zlabel('$k_d$')
-    view(45,30)
-    set(gca,'XLim',[min(min(xx)) max(max(xx))],'YLim',[min(min(bb)) max(max(bb))]);
-    surf(xx,bb,kd);
-    plot3(xRaw,bRaw,kdRaw,'ko')
-    
-    figure()
-    figSetting(12,12)
-    xlabel('$x$')
-    ylabel('$b$')
-    zlabel('$k_d$')
-    view(45,30)
-    set(gca,'XLim',[min(min(xx)) max(max(xx))],'YLim',[min(min(bb)) max(max(bb))]);
-    surf(xx,bb,kq);
-    plot3(xRaw,bRaw,kqRaw,'ko')
-    
-    keyboard
-end
-
 timeEnd=toc();
 %clc
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
-disp(['FEAfix procedure'])
+disp('FEAfix procedure')
 disp(['- number of FEA machines : ' int2str(length(xRaw))])
 disp(['- elapsed time           : ' num2str(round(timeEnd,1)) ' s'])
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');

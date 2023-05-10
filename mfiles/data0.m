@@ -94,7 +94,12 @@ geo.pont0 = dataIn.MinMechTol;  % thickness of the structural bridges at the air
 
 % Geometry
 geo.RotType  = dataIn.TypeOfRotor;
-geo.axisType = dataIn.axisType;
+if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+    geo.axisType = 'PM';
+else
+    geo.axisType = 'SR';
+end
+% geo.axisType = dataIn.axisType;
 
 % 'Circular' is the Circular barrier type of rotor, for any number of barriers
 % 'ISeg' draws a rotor with the external I-shaped barrier and other
@@ -211,17 +216,9 @@ geo.phi = dataIn.AngleSpanOfPM;
 phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %first slot in 360/(6pq)/2 position
 
 if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
-    if strcmp(geo.axisType,'PM')
-        phase1_offset = phase1_offset - 90;   % valid for d axis on PM direction
-    else
-        phase1_offset = phase1_offset + 180;        % valid for -q axis on PM direction
-    end
+    phase1_offset = phase1_offset - 90;   % valid for d axis on PM direction
 else
-    if strcmp(geo.axisType,'PM')
-        phase1_offset = phase1_offset + 90;   % valid for d axis on PM direction
-    else
-        phase1_offset = phase1_offset;        % valid for -q axis on PM direction
-    end
+    phase1_offset = phase1_offset;        % valid for -q axis on PM direction
 end
 
 geo.th0 = - phase1_offset;  % d- to alpha-axis offset [elt deg]
@@ -252,7 +249,9 @@ geo.kOB       = dataIn.NarrowFactor;
 geo.hcShrink  = dataIn.CentralShrink;
 
 % PM sizing
-geo.PMdim     = dataIn.PMdim;
+geo.PMdim = dataIn.PMdim;
+geo.PMNc  = dataIn.PMNc;
+geo.PMNa  = round(dataIn.PMNa); 
 geo.flagPMFBS = 0;  % PMFBS==0 --> PMs are not deformed during FBS
 % PMFBS==1 --> PMs are deformend during FBS according to the barrier area
 geo.PMclear = dataIn.PMclear;

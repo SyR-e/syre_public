@@ -25,7 +25,8 @@ T       = motorModel.FluxMap_dq.T;
 Rs0     = motorModel.data.Rs;
 p       = motorModel.data.p;
 temp    = motorModel.data.tempCu;
-nMax    = motorModel.data.nmax;
+% nMax    = motorModel.data.nmax;
+nMax    = motorModel.WaveformSetup.EvalSpeed;
 nPoints = 501;
 
 if expFlag
@@ -49,7 +50,7 @@ else
         Iq = [-flipud(Iq(2:end,:));Iq];
         Fd = [flipud(Fd(2:end,:));Fd];
         Fq = [-flipud(Fq(2:end,:));Fq];
-        T  = [-fliplr(T(2:end,:));T];
+        T  = [-flipud(T(2:end,:));T];
     end
 end
 

@@ -132,19 +132,31 @@ if ~isempty(motorModel.FluxMap_dqt)
         dqtMap.data.T(isnan(dqtMap.data.T)) = 0;
     end
     % re-compute fInt
-    dqtMap.fInt.Id = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Id,'spline');
-    dqtMap.fInt.Iq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Iq,'spline');
-    dqtMap.fInt.th = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.th,'spline');
-    dqtMap.fInt.Fd = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fd,'spline');
-    dqtMap.fInt.Fq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fq,'spline');
-    dqtMap.fInt.T  = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.T,'spline');
-    if isfield(dqtMap.data,'Fa')
-        dqtMap.fInt.Fa = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fa,'spline');
-        dqtMap.fInt.Fb = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fb,'spline');
-        dqtMap.fInt.Fc = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fc,'spline');
-    end
+%     dqtMap.fInt.Id = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Id,'spline');
+%     dqtMap.fInt.Iq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Iq,'spline');
+%     dqtMap.fInt.th = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.th,'spline');
+%     dqtMap.fInt.Fd = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fd,'spline');
+%     dqtMap.fInt.Fq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fq,'spline');
+%     dqtMap.fInt.T  = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.T,'spline');
+%     if isfield(dqtMap.data,'Fa')
+%         dqtMap.fInt.Fa = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fa,'spline');
+%         dqtMap.fInt.Fb = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fb,'spline');
+%         dqtMap.fInt.Fc = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fc,'spline');
+%     end
     motorModel.FluxMap_dqt = dqtMap;
 end
+
+if isfield(dqtMap,'sets')
+    dqtMap = rmfield(dqtMap,'sets');
+end
+
+% Demagnetization update
+if ~isempty(motorModel.DemagnetizationLimit)
+    motorModel.DemagnetizationLimit.Idemag = motorModel.DemagnetizationLimit.Idemag/kN*kD;
+    motorModel.DemagnetizationLimit.test.Idemag = motorModel.DemagnetizationLimit.test.Idemag/kN*kD;
+end
+
+
 
 % 4) update motor data
 motorModel.tmpScale = scaleFactors;
@@ -157,7 +169,9 @@ if isfield(motorModel,'dataSet')
     if ~isempty(motorModel.dataSet)
         [motorModel.dataSet,~,motorModel.per,~] = back_compatibility(motorModel.dataSet,motorModel.geo,motorModel.per,0);
 
-        %Radial scaling
+        % Scaling
+        motorModel.dataSet.StackLength       = motorModel.data.l;
+        motorModel.dataSet.TurnsInSeries     = motorModel.data.Ns;
         motorModel.dataSet.StatorOuterRadius = motorModel.data.R;
         motorModel.dataSet.ShaftRadius       = motorModel.dataSet.ShaftRadius*kD;
         motorModel.dataSet.AirGapRadius      = motorModel.dataSet.AirGapRadius*kD;
@@ -178,62 +192,47 @@ if isfield(motorModel,'dataSet')
         motorModel.dataSet.MinMechTol        = motorModel.dataSet.MinMechTol*kD ;
         motorModel.dataSet.PMdim             = motorModel.dataSet.PMdim*kD;
 
-        motorModel.dataSet.ThermalLoadKj   = NaN;
-        motorModel.dataSet.AdmiJouleLosses = NaN;
-        motorModel.dataSet.CurrentDensity  = motorModel.dataSet.CurrentDensity/kD;
+        motorModel.dataSet.ThermalLoadKj     = NaN;
+        motorModel.dataSet.AdmiJouleLosses   = NaN;
+        motorModel.dataSet.CurrentDensity    = motorModel.dataSet.CurrentDensity/kD;
+        motorModel.dataSet.TargetCopperTemp  = motorModel.data.tempCu;
 
-        motorModel.geo.R               = motorModel.dataSet.StatorOuterRadius;
-        motorModel.geo.Ar              = motorModel.dataSet.ShaftRadius;
-        motorModel.geo.r               = motorModel.dataSet.AirGapRadius;
-        motorModel.geo.g               = motorModel.dataSet.AirGapThickness;
-        motorModel.geo.lt              = motorModel.dataSet.ToothLength;
-        motorModel.geo.wt              = motorModel.dataSet.ToothWidth;
-        motorModel.geo.ttd             = motorModel.dataSet.ToothTangDepth;
-        motorModel.geo.SFR             = motorModel.dataSet.FilletCorner;
-        motorModel.geo.dxIB            = motorModel.dataSet.RadShiftInner;
-        motorModel.geo.pontT           = motorModel.dataSet.TanRibEdit;
-        motorModel.geo.RotorFilletTan1 = motorModel.dataSet.RotorFilletTan1;
-        motorModel.geo.RotorFilletTan2 = motorModel.dataSet.RotorFilletTan2;
-        motorModel.geo.pontR           = motorModel.dataSet.RadRibEdit;
-        motorModel.geo.RotorFillet1    = motorModel.dataSet.RotorFilletIn;
-        motorModel.geo.RotorFillet2    = motorModel.dataSet.RotorFilletOut;
-        motorModel.geo.mesh_K          = motorModel.dataSet.Mesh;
-        motorModel.geo.mesh_K_MOOA     = motorModel.dataSet.Mesh_MOOA;
-        motorModel.geo.pont0           = motorModel.dataSet.MinMechTol;
-        motorModel.geo.PMdim           = motorModel.dataSet.PMdim;
+        [~,~,motorModel.geo,motorModel.per,~] = data0(motorModel.dataSet);
 
-        motorModel.geo.Aslot    = motorModel.geo.Aslot*kD^2;
-        motorModel.geo.win.Ns   = motorModel.geo.win.Ns*kN;
-        motorModel.geo.win.Nbob = motorModel.geo.win.Nbob*kN;
-        motorModel.geo.l        = motorModel.geo.l*kL;
+
+%         motorModel.geo.R               = motorModel.dataSet.StatorOuterRadius;
+%         motorModel.geo.Ar              = motorModel.dataSet.ShaftRadius;
+%         motorModel.geo.r               = motorModel.dataSet.AirGapRadius;
+%         motorModel.geo.g               = motorModel.dataSet.AirGapThickness;
+%         motorModel.geo.lt              = motorModel.dataSet.ToothLength;
+%         motorModel.geo.wt              = motorModel.dataSet.ToothWidth;
+%         motorModel.geo.ttd             = motorModel.dataSet.ToothTangDepth;
+%         motorModel.geo.SFR             = motorModel.dataSet.FilletCorner;
+%         motorModel.geo.dxIB            = motorModel.dataSet.RadShiftInner;
+%         motorModel.geo.pontT           = motorModel.dataSet.TanRibEdit;
+%         motorModel.geo.RotorFilletTan1 = motorModel.dataSet.RotorFilletTan1;
+%         motorModel.geo.RotorFilletTan2 = motorModel.dataSet.RotorFilletTan2;
+%         motorModel.geo.pontR           = motorModel.dataSet.RadRibEdit;
+%         motorModel.geo.RotorFillet1    = motorModel.dataSet.RotorFilletIn;
+%         motorModel.geo.RotorFillet2    = motorModel.dataSet.RotorFilletOut;
+%         motorModel.geo.mesh_K          = motorModel.dataSet.Mesh;
+%         motorModel.geo.mesh_K_MOOA     = motorModel.dataSet.Mesh_MOOA;
+%         motorModel.geo.pont0           = motorModel.dataSet.MinMechTol;
+%         motorModel.geo.PMdim           = motorModel.dataSet.PMdim;
+% 
+%         motorModel.geo.Aslot    = motorModel.geo.Aslot*kD^2;
+%         motorModel.geo.win.Ns   = motorModel.geo.win.Ns*kN;
+%         motorModel.geo.win.Nbob = motorModel.geo.win.Nbob*kN;
+%         motorModel.geo.l        = motorModel.geo.l*kL;
         [~,motorModel.geo]      = calc_endTurnLength(motorModel.geo);
 
-        motorModel.per.tempcu = motorModel.data.tempCu;
-        motorModel.per.kj     = NaN;
-        motorModel.per.Loss   = NaN;
-        motorModel.per.J      = motorModel.per.J/kD;
+%         motorModel.per.tempcu = motorModel.data.tempCu;
+%         motorModel.per.kj     = NaN;
+%         motorModel.per.Loss   = NaN;
+%         motorModel.per.J      = motorModel.per.J/kD;
 
 
-        geo = motorModel.geo;
-        per = motorModel.per;
-        % per.Loss = per.Loss*kD*kL;
-        % geo.l = geo.l*kL;
-        % geo.win.Ns = geo.win.Ns*kN;
-        % geo.R = geo.R*kD;
-        % geo.Aslot = geo.Aslot*kD^2;
-
-        per = calc_i0(geo,per);
-        motorModel.data.i0 = per.i0;
-        motorModel.data.Rs = per.Rs;
-
-        motorModel.dataSet.StackLength   = motorModel.data.l;
-        motorModel.dataSet.TurnsInSeries = motorModel.data.Ns;
-        motorModel.dataSet.RatedCurrent  = per.i0;
-        motorModel.dataSet.Rs            = per.Rs;
-        % motorModel.geo.l                 = motorModel.data.l;
-        % motorModel.geo.win.Ns            = motorModel.data.Ns;
-        motorModel.per.Rs                = per.Rs;
-        motorModel.per.i0                = per.i0;
+        
 
 
         % motorModel.data.Imax = motorModel.data.Imax/kN*kD;
@@ -246,8 +245,11 @@ if isfield(motorModel,'dataSet')
         fem.res_traf = 0;
 
         % nodes
-        [motorModel.geo.rotor,~,motorModel.geo] = ROTmatr(motorModel.geo,fem,motorModel.mat);
-        [motorModel.geo,motorModel.geo.stator,~] = STATmatr(motorModel.geo,fem);
+        [motorModel.geo.rotor,BLKLABELSrot,motorModel.geo] = ROTmatr(motorModel.geo,fem,motorModel.mat);
+        [motorModel.geo,motorModel.geo.stator,BLKLABELSstat] = STATmatr(motorModel.geo,fem);
+        
+        motorModel.geo.BLKLABELS.rotore = BLKLABELSrot;
+        motorModel.geo.BLKLABELS.statore = BLKLABELSstat;
 
         motorModel.geo.pShape = motorModel.dataSet.pShape;
 
@@ -263,6 +265,29 @@ if isfield(motorModel,'dataSet')
         motorModel.dataSet.RotorInertia   = motorModel.geo.J;
         motorModel.data.J                 = motorModel.geo.J;
         motorModel.data.lend              = motorModel.geo.lend;
+
+        geo = motorModel.geo;
+        per = motorModel.per;
+        % per.Loss = per.Loss*kD*kL;
+        % geo.l = geo.l*kL;
+        % geo.win.Ns = geo.win.Ns*kN;
+        % geo.R = geo.R*kD;
+        % geo.Aslot = geo.Aslot*kD^2;
+
+        per = calc_i0(geo,per);
+        motorModel.data.i0 = per.i0;
+        motorModel.data.Rs = per.Rs;
+
+        
+        motorModel.dataSet.RatedCurrent  = per.i0;
+        motorModel.dataSet.Rs            = per.Rs;
+        % motorModel.geo.l                 = motorModel.data.l;
+        % motorModel.geo.win.Ns            = motorModel.data.Ns;
+        motorModel.per.Rs                = per.Rs;
+        motorModel.per.i0                = per.i0;
+
+
+
     end
 end
 

@@ -36,7 +36,7 @@ w   = n*pi/30*p;
 if w==0
     n=3000;
     w   = n*pi/30*p;
-    warning(['speed equal to zero, set to ' int2str(w) ' ras/'])
+    warning(['speed equal to zero, set to ' int2str(w) ' rad/s'])
 end
 
 nRep = 360/per.delta_sim_singt; % number of repetition needed

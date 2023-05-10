@@ -39,6 +39,7 @@ if ~isempty(map)
     set(app.DrawButton,'Enable','on');
     set(app.SaveButton,'Enable','on');
     set(app.ExporttoWorkSpaceButton,'Enable','on');
+    set(app.EvaluatefeasibilityareaButton,'Enable','on');
 
     if ~isempty(map.dataSelect)
         set(app.Plot2DButton,'Enable','on')
@@ -63,6 +64,7 @@ else
     set(app.DrawButton,'Enable','off');
     set(app.SaveButton,'Enable','off');
     set(app.ExporttoWorkSpaceButton,'Enable','off');
+    set(app.EvaluatefeasibilityareaButton,'Enable','off');
     set(app.Plot2DButton,'Enable','off')
     set(app.Plot3DButton,'Enable','off')
 end

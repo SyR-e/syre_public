@@ -8,6 +8,7 @@ int State;
 int counter=0;
 int Ctrl_type;
 int Quad_Maps;
+int Ctrl_strategy;
 
 //Acquisition channels and feedback
 Xabc isabc;
@@ -54,6 +55,30 @@ float acc_id, buffer_id[20], ishf, ishf_mag;
 float ishf, lambdahf, ishf_mag, ishf_mag_old, lambdahf_mag, pos_err_LS;
 float isq_old, lambdaq_old;
 
+//Direct Flux Vector Control
+XPIRegPars lambda_par,iqs_par,delta_par;
+XPIRegVars lambda_var,iqs_var,delta_var;
+Xsc SinCos_delta;
+Xdq vdsqs,idsqs;
+float lambda_MTPA,Flux_Lim,lambda_ref,iqs_ref;
+Xdq isdq_aux,lambda_aux;
+float delta_mtpv,delta_max;
+float a,b;
+float tmp_1;
+float delta_ref;
+float Tmax_MTPV;
+float iqs_Lim;
+float Tmax_CrtLim;
+float T_Lim;
+float T_ref;
+float i_MTPV;
+
+//Flux Control
+float flux_ref,flux_ext_ref;
+float T_flux_ref;
+float T_Ref;
+
+
 // High speed control
 float pos_err_HS;
 int HS_ctrl; // AF or APP
@@ -76,6 +101,14 @@ float pos_err, position_error_real;
 int SS_on, cnt = 0;
 int dem; 	 // CRNTDEM: current demodulation, FLUXDEM: flux demodulation
 int inj_waveform; // SINUS: pulsating, SQUARE: squarewave
+
+
+// Mechanical PLL
+Xsc SinCos_mec_PLL,SinCos_elt_meas,SinCos_mec_meas;
+XPIRegPars PLL_mec_par;
+XPIRegVars PLL_mec_var;
+float omega_mec_PLL,omega_mec,theta_mec_PLL;
+
 
 #ifdef SIM
 float Reset,  BlueBTN;

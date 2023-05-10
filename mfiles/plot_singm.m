@@ -17,6 +17,8 @@ function plot_singm(F_map,resFolder)
 % Interp the flux linkage maps over a very dense grid (256 x 256)
 
 n_interp = 256;    % number of points in [0 Imax] for data interpolation
+n_interp = 255;    % number of points in [0 Imax] for data interpolation
+% SF 11/01/2023: number of points become odd to have the points along the axis if more than 1 quadrant is considered
         
 Id = linspace(min(F_map.Id,[],'all'),max(F_map.Id,[],'all'),n_interp);
 Iq = linspace(min(F_map.Iq,[],'all'),max(F_map.Iq,[],'all'),n_interp);
@@ -36,6 +38,11 @@ if isfield(F_map,'dTpp')
     dTpp = interp2(F_map.Id,F_map.Iq,F_map.dTpp,Id,Iq,'spline');
 end
 
+if isfield(F_map,'We')
+    We = interp2(F_map.Id,F_map.Iq,F_map.We,Id,Iq,'spline');
+    Wc = interp2(F_map.Id,F_map.Iq,F_map.Wc,Id,Iq,'spline');
+end
+
 if isfield(F_map,'Pfes_h')
     Pfes_h = interp2(F_map.Id,F_map.Iq,F_map.Pfes_h,Id,Iq,'spline');
     Pfes_c = interp2(F_map.Id,F_map.Iq,F_map.Pfes_c,Id,Iq,'spline');
@@ -48,6 +55,8 @@ end
 
 if isfield(F_map,'IM')
     F_IM     = F_map.IM;
+    IM.Fdr   = interp2(F_map.Id,F_map.Iq,F_IM.Fdr,Id,Iq,'spline');
+    IM.Fqr   = interp2(F_map.Id,F_map.Iq,F_IM.Fqr,Id,Iq,'spline');
     IM.Ir    = interp2(F_map.Id,F_map.Iq,F_IM.Ir,Id,Iq,'spline');
     IM.kr    = interp2(F_map.Id,F_map.Iq,F_IM.kr,Id,Iq,'spline');
     IM.ks    = interp2(F_map.Id,F_map.Iq,F_IM.ks,Id,Iq,'spline');
@@ -67,13 +76,16 @@ end
 
 % save data
 if isoctave()  %OCT
-    name_file = strcat(resFolder, 'fdfq_idiq_n',num2str(n_interp),'.mat');
+    name_file = strcat(resFolder, 'fdfq_idiq_n',num2str(256),'.mat');
     save ('-mat7-binary', name_file,'Fd','Fq','Id','Iq','T');
     if isfield(F_map,'dT')
         save ('-mat7-binary', name_file,'T','-append');
     end
     if isfield(F_map,'dTpp')
         save ('-mat7-binary', name_file,'dTpp','-append');
+    end
+    if isfield(F_map,'We')
+        save ('-mat7-binary', name_file,'We','Wc','-append');
     end
     if isfield(F_map,'Pfe')
         save ('-mat7-binary', name_file,'Pfe','-append');
@@ -86,13 +98,16 @@ if isoctave()  %OCT
     end
     clear name_file
 else
-    nameFile = [resFolder 'fdfq_idiq_n' int2str(n_interp) '.mat'];
+    nameFile = [resFolder 'fdfq_idiq_n' int2str(256) '.mat'];
     save (nameFile,'Fd','Fq','Id','Iq','T');
     if isfield(F_map,'dT')
         save (nameFile,'dT','-append');
     end
     if isfield(F_map,'dTpp')
         save (nameFile,'dTpp','-append');
+    end
+    if isfield(F_map,'We')
+        save (nameFile,'We','Wc','-append');
     end
     if isfield(F_map,'Pfe')
         save (nameFile,'Pfe','-append');

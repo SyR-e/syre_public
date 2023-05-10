@@ -15,20 +15,22 @@
 function [motorModel] = MMM_sr2pm(motorModel)
 
 % 1) dq maps
-fdfq = motorModel.FluxMap_dq;
-motorModel.FluxMap_dq.Id = fliplr(-fdfq.Iq');
-motorModel.FluxMap_dq.Iq = fliplr(+fdfq.Id');
-motorModel.FluxMap_dq.Fd = fliplr(-fdfq.Fq');
-motorModel.FluxMap_dq.Fq = fliplr(+fdfq.Fd');
+if ~isempty(motorModel.FluxMap_dq)
+    fdfq = motorModel.FluxMap_dq;
+    motorModel.FluxMap_dq.Id = fliplr(-fdfq.Iq');
+    motorModel.FluxMap_dq.Iq = fliplr(+fdfq.Id');
+    motorModel.FluxMap_dq.Fd = fliplr(-fdfq.Fq');
+    motorModel.FluxMap_dq.Fq = fliplr(+fdfq.Fd');
 
-if isfield(fdfq,'T')
-    motorModel.FluxMap_dq.T = fliplr(fdfq.T');
-end
-if isfield(fdfq,'dT')
-    motorModel.FluxMap_dq.dT = fliplr(fdfq.dT');
-end
-if isfield(fdfq,'dTpp')
-    motorModel.FluxMap_dq.dTpp = fliplr(fdfq.dTpp');
+    if isfield(fdfq,'T')
+        motorModel.FluxMap_dq.T = fliplr(fdfq.T');
+    end
+    if isfield(fdfq,'dT')
+        motorModel.FluxMap_dq.dT = fliplr(fdfq.dT');
+    end
+    if isfield(fdfq,'dTpp')
+        motorModel.FluxMap_dq.dTpp = fliplr(fdfq.dTpp');
+    end
 end
 
 % 2) dqtMaps
@@ -44,11 +46,11 @@ if ~isempty(motorModel.FluxMap_dqt)
     motorModel.FluxMap_dqt.data.T  = flipud(pagetranspose(dqtMap.data.T));
     motorModel.FluxMap_dqt.data.th = flipud(pagetranspose(dqtMap.data.th));
     
-    motorModel.FluxMap_dqt.fInt.Id = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Id,'spline');
-    motorModel.FluxMap_dqt.fInt.Iq = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Iq,'spline');
-    motorModel.FluxMap_dqt.fInt.Fd = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Fd,'spline');
-    motorModel.FluxMap_dqt.fInt.Fq = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Fq,'spline');
-    motorModel.FluxMap_dqt.fInt.T  = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.T,'spline');
+%     motorModel.FluxMap_dqt.fInt.Id = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Id,'spline');
+%     motorModel.FluxMap_dqt.fInt.Iq = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Iq,'spline');
+%     motorModel.FluxMap_dqt.fInt.Fd = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Fd,'spline');
+%     motorModel.FluxMap_dqt.fInt.Fq = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Fq,'spline');
+%     motorModel.FluxMap_dqt.fInt.T  = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.T,'spline');
 end
 
 % 3) ironLoss

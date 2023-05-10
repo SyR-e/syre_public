@@ -103,7 +103,7 @@ else
 end
 
 % 5) Current component representing Fe and PM loss and total current
-Ife=2/3*Pfe./conj(Vind);
+Ife=2/3/n3phase*Pfe./conj(Vind);
 Ife(Pfe==0)=0;
 
 if Tref>=0
@@ -166,7 +166,7 @@ if abs(Tref)<=max(max(T))
     c = contourc(unique(Id),unique(Iq),T,abs(Tref*[1 1]));
     idIso = c(1,2:end);
     iqIso = c(2,2:end);
-    if strcmp(Control,'Maximum efficiency')
+    if strcmp(Control,'Max efficiency')
         PlossIso = interp2(Id,Iq,Ploss,idIso,iqIso);
     elseif strcmp(Control,'MTPA')
         PlossIso = interp2(Id,Iq,3/2*Rs.*Io_m.^2.*lim,idIso,iqIso);

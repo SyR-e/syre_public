@@ -24,11 +24,11 @@ else
         mkdir(MMMfolder)
         disp('MMM folder created')
     end
-    TmpFolder = [MMMfolder 'tempModels\'];
-    if ~exist(TmpFolder,'dir')
-        mkdir(TmpFolder)
-        disp('Temperature models folder created')
-    end
+%     TmpFolder = [MMMfolder 'tempModels\'];
+%     if ~exist(TmpFolder,'dir')
+%         mkdir(TmpFolder)
+%         disp('Temperature models folder created')
+%     end
     
     dirStruct = dir(FEAfolder);
     

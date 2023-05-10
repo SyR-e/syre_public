@@ -21,6 +21,10 @@ th=data.th;
 
 hfig=get(hax,'Parent');
 
+v = VideoWriter([filename(1:end-4) '.avi']);
+v.Quality = 95;
+open(v);
+
 for ii=1:zS
     cla(hax)
     surf(hax,data.x(:,:,ii),data.y(:,:,ii),data.z(:,:,ii));
@@ -35,4 +39,7 @@ for ii=1:zS
     else
         imwrite(imind,cm,filename,'gif','WriteMode','append','DelayTime',0.01);
     end
+    writeVideo(v,im);
 end
+
+close(v);

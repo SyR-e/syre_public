@@ -95,18 +95,18 @@ end
 % disp('Inversion done!')
 
 %% Interpolant
-fInt.Id = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.Id,'linear','none');
-fInt.Iq = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.Iq,'linear','none');
-fInt.th = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.th,'linear','none');
-fInt.Fd = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.Fd,'linear','none');
-fInt.Fq = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.Fq,'linear','none');
-fInt.T  = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.T,'linear','none');
+% fInt.Id = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.Id,'linear','none');
+% fInt.Iq = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.Iq,'linear','none');
+% fInt.th = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.th,'linear','none');
+% fInt.Fd = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.Fd,'linear','none');
+% fInt.Fq = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.Fq,'linear','none');
+% fInt.T  = griddedInterpolant(dataF.Fd,dataF.Fq,dataF.th,dataF.T,'linear','none');
 
 %% Save data
 dqtMapF.th   = dqtMap.th;
 dqtMapF.Fd   = unique(dataF.Fd);
 dqtMapF.Fq   = unique(dataF.Fq);
-dqtMapF.fInt = fInt;
+% dqtMapF.fInt = fInt;
 dqtMapF.dataF = dataF;
 
 

@@ -101,15 +101,15 @@ else
                 geo.axisType = 'SR';
             end
         end
-        %
-%         if ~strcmp(geo.axisType,dataIn.axisType)
-%             geo.axisType = dataIn.axisType;
-%             if strcmp(geo.axisType,'PM')
-%                 geo.th0 = geo.th0 - 90;
-%             else
-%                 geo.th0 = geo.th0 + 90;
-%             end
-%         end
+
+        if ~strcmp(geo.axisType,dataSet.axisType)
+            %geo.axisType = dataIn.axisType;
+            if strcmp(dataSet.axisType,'PM')
+                geo.th0 = geo.th0 - 90;
+            else
+                geo.th0 = geo.th0 + 90;
+            end
+        end
 
         tempVect = dataSet.tempPP;
         pathname = dataSet.currentpathname;
@@ -127,8 +127,8 @@ per.BrPP            = dataSet.BrPP;
 dataSet.currentfilename = filename;
 dataSet.currentpathname = pathname;
 
-axes_type = geo.axisType;
-if strcmp(axes_type,'PM')
+
+if strcmp(dataSet.axisType,'PM')
     per.gamma=-180;
 else
     per.gamma=90;
@@ -175,7 +175,7 @@ for tt=1:length(tempVect)
         
         [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'singt',motname);
         
-        if strcmp(axes_type,'PM')
+        if strcmp(dataSet.axisType,'PM')
             FmTest{tt}(ii) = out.fd;
         else
             FmTest{tt}(ii) = -out.fq;
@@ -194,6 +194,7 @@ for tt=1:length(tempVect)
         
         if ii>MaxIter
             done=1;
+            ii=ii-1;
         end
     end
     

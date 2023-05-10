@@ -32,6 +32,5 @@ dT   = motorModel.FluxMap_dq.dT;
 dTpp = motorModel.FluxMap_dq.dTpp;
 
 save([pathname resFolder 'fdfq_idiq_n256.mat'],'Id','Iq','Fd','Fq','T','dT','dTpp')
-% save([pathname 'fdfq_idiq_n256.mat'],'Id','Iq','Fd','Fq','T','dT','dTpp')
 
 

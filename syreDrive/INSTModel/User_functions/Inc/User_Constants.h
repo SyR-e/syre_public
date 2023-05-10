@@ -18,10 +18,15 @@
 #define ERROR 	   			0
 
 //Ctrl_type
-#define CurrentControl 	0
-#define FluxControl 	  1
-#define TorqueControl 	2
-#define SpeedControl 	  3
+#define CurrentControl 	    0
+#define FluxControl 	    1
+#define TorqueControl 	    2
+#define SpeedControl 	    3
+
+//Ctrl strategy
+#define FOC                 0
+#define DFVC                1
+
 
 #define CRT_PROT 		30.0f
 				
@@ -46,10 +51,12 @@
 
 // PI Reg
 #define OMEGA_BW    	TWOPI*1.0f
-#define OMEGA_BI    	TWOPI*900.0f
+#define OMEGA_BI    	TWOPI*500.0f
 #define OMEGA_0_INJ 	TWOPI*50.0f 
 #define WB_PLL_PULS 	TWOPI*10.00f  
-#define WB_PLL_SQUARE TWOPI*25.0f
+#define OMEGA_PLL       TWOPI*25.00f
+#define OMEGA_DELTA     TWOPI*5.00f
+#define WB_PLL_SQUARE   TWOPI*25.0f
 
 // Control fusion
 #define OMEGA_G				TWOPI*4.0f   // 120 rpm

@@ -60,6 +60,15 @@ ky      = dataSet.StatorYokeFactor; % ky = ly/ly_ideal
 PMdimPU = dataSet.PMdimPU;          % per-unit PM dimension
 kPM     = dataSet.kPM;              % PM filling factor
 Br      = dataSet.Br;               % PM remanence @ design temperature
+tempPM  = dataSet.PMtemp;           % PM temperature
+
+if Br~=0
+    mat = material_properties_layer(dataSet.FluxBarrierMaterial);
+    Br  = interp1(mat.temp.temp,mat.temp.Br,tempPM);
+    Bd  = interp1(mat.temp.temp,mat.temp.Bd,tempPM);
+    dataSet.Br = Br;
+end
+
 
 PMdimPU = PMdimPU./PMdimPU;
 PMdimPU(isnan(PMdimPU)) = 0;
@@ -76,26 +85,24 @@ else
 end
 
 
-R     = geo.R;
-p     = geo.p;
-q     = geo.q;
-acs   = geo.acs;
-g     = geo.g;
-l     = geo.l;
-avv   = geo.win.avv;
-kcu   = geo.win.kcu;
-Ns    = geo.win.Ns;
-% ns    = geo.ns;
-ttd   = geo.ttd;
-tta   = geo.tta;
+R          = geo.R;
+p          = geo.p;
+q          = geo.q;
+acs        = geo.acs;
+g          = geo.g;
+l          = geo.l;
+avv        = geo.win.avv;
+kcu        = geo.win.kcu;
+Ns         = geo.win.Ns;
+ttd        = geo.ttd;
+tta        = geo.tta;
 RaccordoFC = geo.SFR;
-nlay  = geo.nlay;
-pont0 = geo.pont0;
-pont  = geo.pont0;%+min(geo.pont);
-n3ph  = geo.win.n3phase;
-pontT = geo.pontT;
-
-Nbob  = Ns/p/q/2;                                                   % conductors in slot per layer
+nlay       = geo.nlay;
+pont0      = geo.pont0;
+pont       = geo.pont0;%+min(geo.pont);
+n3ph       = geo.win.n3phase;
+pontT      = geo.pontT;
+Nbob       = Ns/p/q/2;                                                   % conductors in slot per layer
 
 tempcu = per.tempcu;
 
@@ -188,6 +195,7 @@ fM    = zeros(m,n);
 PMdim = cell(m,n);
 
 hcMin = zeros(m,n); % minimum barrier thickness [mm]
+skMax = zeros(m,n); % inner (half) barrier length [mm]
 
 Abar = zeros(m,n);  %total barriers area (estimation for PMs volume)
 
@@ -268,6 +276,7 @@ for rr=1:m
         end
 
         hcMin(rr,cc) = min(hc{rr,cc});
+        skMax(rr,cc) = sk{rr,cc}(end);
 
         rpont_x0=sqrt(ypont.^2+(x0(rr,cc)-xpont).^2);
         Bx0{rr,cc}=x0(rr,cc)-(rpont_x0);
@@ -481,10 +490,13 @@ gamma=acos(id./(loadpu*i0));
 iq=loadpu*i0.*sin(gamma);                                           % q-axis current [A] pk
 
 %iq = sqrt((loadpu*i0).^2 - id.^2); iq = real(iq);                  % q-axis current [A] pk
-Am = Aslots.* id./(loadpu*i0);                                      % slots area dedicated to id [mm2]
+%Am = Aslots.* id./(loadpu*i0);                                      % slots area dedicated to id [mm2]
 
 
 A = 2*Nbob * loadpu*i0 ./ (r*2*pi/(q*6*p));                         % linear current density [A/mm] pk
+
+Ad = A.*cosd(gamma);
+Aq = A.*sind(gamma);
 
 % kj = kj*loadpu;
 % J  = J*loadpu;
@@ -552,6 +564,9 @@ PF = sind(gamma-delta);     % PF @ gamma (same gamma as torque)
 % PFmax = (Ld-Lq)./(Ld+Lq);   % PF @ max PF gamma
 % PF2 = (csi-1)./sqrt(csi.^2.*(sind(gamma)).^-2+(cosd(gamma)).^-2);  % alternative formula
 
+ich = fM./Lq;
+iHWC = abs(fd+j*fq)./Lq;
+
 % active parts mass computation
 mCu = Aslots/1e6.*(l+lend)/1e3*mat.SlotCond.kgm3*kcu;
 mPM = nan(size(xx));
@@ -562,6 +577,41 @@ else
         mPM(ii) = sum(hc{ii}.*sum(PMdim{ii},1))/1e6.*l/1e3*2*(2*p)*mat.LayerMag.kgm3;
     end
 end
+
+% Demagnetization indicators
+tp = pi*r/p;
+if Br==0
+    Aqirr = zeros(size(xx));
+    Bmin0   = nan(size(xx));
+    dPM0    = nan(size(xx));
+    BminHWC = nan(size(xx));
+    dPMHWC  = nan(size(xx));
+else
+    % ref: "Design of Ferrite-Assisted Synchronous Reluctance Machines
+    % Robust Toward Demagnetization", A. Vagati, 2014
+    Bdpu = Bd/Br;
+    dalpha = geo.dalpha(end)*pi/180;
+    fqn = 1;
+    Bm0pu = 1./(1+(skMax/1e3)./(la/1e3).*(g/1e3)./(tp/1e3)*2*pi/dalpha.*sin(dalpha/2));
+    Aqirr = pi/4*Br*(la/1e3)./(tp/1e3)/mu0/fqn.*(1-Bdpu./Bm0pu)*2/1e3;                      % multiplied *2 because the full pole is considered here, /1e3 to have it in A/mm
+    
+    if dataSet.syrmDesignFlag.demag0
+        Bmin0   = Bd*ones(size(xx));
+        dPM0    = ones(size(xx));
+    else
+        Bmin0   = nan(size(xx));
+        dPM0    = nan(size(xx));
+    end
+    if dataSet.syrmDesignFlag.demagHWC
+        BminHWC = Bd*ones(size(xx));
+        dPMHWC  = ones(size(xx));
+    else
+        BminHWC = nan(size(xx));
+        dPMHWC  = nan(size(xx));
+    end
+end
+
+
 
 %% save all the results in the map structure
 map.xx      = xx;
@@ -594,6 +644,9 @@ map.kdq     = kdq;
 map.dTempCu = dTempCu;
 map.Aslots  = Aslots;
 map.A       = A;
+map.Ad      = Ad;
+map.Aq      = Aq;
+map.Aqirr   = Aqirr;
 map.J       = J;
 map.kj      = kj;
 map.iAmp    = i0*loadpu;
@@ -611,6 +664,16 @@ map.mPM     = mPM;
 map.PMdim   = PMdim;
 map.NsI0    = map.i0*Ns;
 map.F0_Ns   = abs(map.fd+j*map.fq)/Ns;
+map.ich     = ich;
+map.iHWC    = iHWC;
+map.Bmin0   = Bmin0;
+map.dPM0    = dPM0;
+map.BminHWC = BminHWC;
+map.dPMHWC  = dPMHWC;
+map.NsIch   = Ns.*map.ich;
+map.NsIHWC  = Ns.*map.iHWC;
+
 map.dataSet = dataSet;
-% map.sk      = sk;
-% map.PMdim   = PMdim;
+
+
+

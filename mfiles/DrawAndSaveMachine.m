@@ -110,6 +110,9 @@ if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom))
     dataSet.currentpathname = [pathname '\'];
     dataSet.currentfilename = filename;
     dataSet.slidingGap      = 1; % R347
+    if dataSet.Qs==6*dataSet.Num3PhaseCircuit*dataSet.NumOfSlots*dataSet.NumOfPolePairs
+        dataSet.slidingGap = 0;
+    end
     
     % refresh GUI display data
     % if flagGUI

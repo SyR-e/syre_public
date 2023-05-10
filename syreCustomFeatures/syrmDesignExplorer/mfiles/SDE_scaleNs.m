@@ -14,14 +14,19 @@
 
 function [map] = SDE_scaleNs(map,kN)
 
-map.id    = map.id/kN;
-map.iq    = map.iq/kN;
-map.i0    = map.i0/kN;
-map.iAmp  = map.iAmp/kN;
-map.fd    = map.fd*kN;
-map.fq    = map.fq*kN;
-map.Lbase = map.Lbase*kN^2;
-map.Lmd   = map.Lbase*kN^2;
-map.Rs    = map.Rs*kN^2;
+map.id    = map.id./kN;
+map.iq    = map.iq./kN;
+map.i0    = map.i0./kN;
+map.iAmp  = map.iAmp./kN;
+map.fd    = map.fd.*kN;
+map.fq    = map.fq.*kN;
+map.Lbase = map.Lbase.*kN.^2;
+map.Lmd   = map.Lbase.*kN.^2;
+map.Rs    = map.Rs.*kN.^2;
+map.fM    = map.fM.*kN;
+map.iHWC  = map.iHWC./kN;
+map.ich   = map.ich./kN;
 
-map.dataSet.TurnsInSeries = map.dataSet.TurnsInSeries*kN;
+if numel(kN)==1
+    map.dataSet.TurnsInSeries = map.dataSet.TurnsInSeries*kN;
+end

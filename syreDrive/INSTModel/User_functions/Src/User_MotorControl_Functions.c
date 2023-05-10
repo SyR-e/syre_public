@@ -29,6 +29,37 @@ void PIReg(XPIRegPars *par,XPIRegVars *var)
     var->out=var->prop+var->intg;
 }
 
+void PIRegAsy(XPIRegPars *par,XPIRegVars *var, float lim_max, float lim_min)
+{
+    float int_lim_max;
+    float int_lim_min;
+    
+    //Error computation
+    var->err  = var->fbk-var->ref;
+    //var->err  = var->ref-var->fbk;  //Proportional regulator
+    var->prop = par->kp*var->err;
+    //Saturation of the proportional part to lim
+    if (var->prop>lim_max)
+        var->prop=lim_max;
+    if (var->prop<lim_min)
+        var->prop=lim_min;
+    
+    //Limit of the intg part
+    int_lim_max = lim_max-fabs(var->prop);
+    int_lim_min = lim_min-fabs(var->prop);
+    //Integral part
+    var->intg+=par->ki*var->err;
+    
+    //Saturation of the intg part
+    if (var->intg > int_lim_max)
+        var->intg = int_lim_max;
+    if (var->intg < int_lim_min)
+        var->intg = int_lim_min;
+    
+    //Output computation
+    var->out=var->prop+var->intg;
+}
+
 //----------------------------------------------------------------------------------------------------//
 
 void PWMduty(Xabc vsabc_ref, float vdc, Xabc* duty_abc) {

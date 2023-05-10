@@ -14,14 +14,18 @@
 
 function [map] = SDE_scaleL(map,kL)
 
-map.fd    = map.fd*kL;
-map.fq    = map.fq*kL;
-map.Lbase = map.Lbase*kL;
-map.Lmd   = map.Lbase*kL;
-map.Rs    = map.Rs*kL;
-map.T     = map.T*kL;
-map.mPM   = map.mPM*kL;
-map.mCu   = map.mCu*kL;
+map.fd    = map.fd.*kL;
+map.fq    = map.fq.*kL;
+map.Lbase = map.Lbase.*kL;
+map.Lmd   = map.Lbase.*kL;
+map.Rs    = map.Rs.*kL;
+map.T     = map.T.*kL;
+map.mPM   = map.mPM.*kL;
+map.mCu   = map.mCu.*kL;
+map.fM    = map.fM.*kL;
+map.F0_Ns = map.F0_Ns.*kL;
 
-map.dataSet.StackLength = map.dataSet.StackLength*kL;
+if numel(kL)==1
+    map.dataSet.StackLength = map.dataSet.StackLength*kL;
+end
 

@@ -1,4 +1,4 @@
-% Copyright 2020
+% Copyright 2023
 %
 %    Licensed under the Apache License, Version 2.0 (the "License");
 %    you may not use this file except in compliance with the License.
@@ -42,6 +42,12 @@ if filename
     % 2) past version: the name of the variable was wrong (OUT instead of SOL), but the content was exactly the same
     % 3) first version: the cell matrix OUT was based on the out.SOL matrix (and not the structure), so each columns of out.SOL had a meaning. To identify this case, the flag_struct variable is used.
     
+    if exist('dataSet','var')
+        n3phase = dataSet.Num3PhaseCircuit;
+        th0 = geo.th0;
+    else
+        n3phase = 1;
+    end
     
     if exist('OUT','var')
         if isstruct(OUT{1,1})
@@ -102,6 +108,13 @@ if filename
                     IbTmp = zeros(size(th));
                     IcTmp = zeros(size(th));
                 end
+                if isfield(SOL{indQ,indD},'we')
+                    WeTmp = SOL{indQ,indD}.we;
+                    WcTmp = SOL{indQ,indD}.wc;
+                else
+                    WeTmp = zeros(size(th));
+                    WcTmp = zeros(size(th));
+                end
             else
                 IdTmp = SOL{indQ,indD}(:,2)';
                 IqTmp = SOL{indQ,indD}(:,3)';
@@ -114,6 +127,8 @@ if filename
                 IaTmp = zeros(size(th));
                 IbTmp = zeros(size(th));
                 IcTmp = zeros(size(th));
+                WeTmp = zeros(size(th));
+                WcTmp = zeros(size(th));
             end
             
             Id = repmat(IdTmp,1,nRep);
@@ -121,7 +136,39 @@ if filename
             Fd = repmat(FdTmp,1,nRep);
             Fq = repmat(FqTmp,1,nRep);
             T  = repmat(TTmp,1,nRep);
+            We = repmat(WeTmp,1,nRep);
+            Wc = repmat(WcTmp,1,nRep);
             
+            % single set elaboration
+            if n3phase>1
+                for ii=1:n3phase
+                    Iph = phaseQuantityDecoding(IaTmp,IbTmp,IcTmp,xdeg);
+                    Ia = Iph.a(ii,:);
+                    Ib = Iph.b(ii,:);
+                    Ic = Iph.c(ii,:);
+
+                    Fph = phaseQuantityDecoding(FaTmp,FbTmp,FcTmp,xdeg);
+                    Fa = Fph.a(ii,:);
+                    Fb = Fph.b(ii,:);
+                    Fc = Fph.c(ii,:);
+
+                    setsTmp(ii).ia = Ia;
+                    setsTmp(ii).ib = Ib;
+                    setsTmp(ii).ic = Ic;
+                    setsTmp(ii).fa = Fa;
+                    setsTmp(ii).fb = Fb;
+                    setsTmp(ii).fc = Fc;
+
+                    % dq transformation (single set)
+                    idq = abc2dq(Ia,Ib,Ic,(thVect+th0(ii)-th0(1))*pi/180);
+                    setsTmp(ii).id = idq(1,:);
+                    setsTmp(ii).iq = idq(2,:);
+                    fdq = abc2dq(Fa,Fb,Fc,(thVect+th0(ii)-th0(1))*pi/180);
+                    setsTmp(ii).fd = fdq(1,:);
+                    setsTmp(ii).fq = fdq(2,:);
+                end
+            end
+
             Iph = phaseQuantityDecoding(IaTmp,IbTmp,IcTmp,xdeg);
             Ia = Iph.a(1,:);
             Ib = Iph.b(1,:);
@@ -143,6 +190,23 @@ if filename
             Ia = Ia(index);
             Ib = Ib(index);
             Ic = Ic(index);
+            We = We(index);
+            Wc = Wc(index);
+
+            if n3phase>1
+                for ii=1:n3phase
+                    setsTmp(ii).id = setsTmp(ii).id(index);
+                    setsTmp(ii).iq = setsTmp(ii).iq(index);
+                    setsTmp(ii).fd = setsTmp(ii).fd(index);
+                    setsTmp(ii).fq = setsTmp(ii).fq(index);
+                    setsTmp(ii).ia = setsTmp(ii).ia(index);
+                    setsTmp(ii).ib = setsTmp(ii).ib(index);
+                    setsTmp(ii).ic = setsTmp(ii).ic(index);
+                    setsTmp(ii).fa = setsTmp(ii).fa(index);
+                    setsTmp(ii).fb = setsTmp(ii).fb(index);
+                    setsTmp(ii).fc = setsTmp(ii).fc(index);
+                end
+            end
             
             for indT=1:length(th)
                 dqtMap.data.Fd(indD,indQ,indT) = Fd(indT);
@@ -154,9 +218,26 @@ if filename
                 dqtMap.data.Ia(indD,indQ,indT) = Ia(indT);
                 dqtMap.data.Ib(indD,indQ,indT) = Ib(indT);
                 dqtMap.data.Ic(indD,indQ,indT) = Ic(indT);
+                dqtMap.data.We(indD,indQ,indT) = We(indT);
+                dqtMap.data.Wc(indD,indQ,indT) = Wc(indT);
                 
                 dqtMap.Id(indD) = Id(indT);
                 dqtMap.Iq(indQ) = Iq(indT);
+
+                if n3phase>1
+                    for ii=1:n3phase
+                        dqtMap.sets(ii).Id(indD,indQ,indT) = setsTmp(ii).id(indT);
+                        dqtMap.sets(ii).Iq(indD,indQ,indT) = setsTmp(ii).iq(indT);
+                        dqtMap.sets(ii).Fd(indD,indQ,indT) = setsTmp(ii).fd(indT);
+                        dqtMap.sets(ii).Fq(indD,indQ,indT) = setsTmp(ii).fq(indT);
+                        dqtMap.sets(ii).Ia(indD,indQ,indT) = setsTmp(ii).ia(indT);
+                        dqtMap.sets(ii).Ib(indD,indQ,indT) = setsTmp(ii).ib(indT);
+                        dqtMap.sets(ii).Ic(indD,indQ,indT) = setsTmp(ii).ic(indT);
+                        dqtMap.sets(ii).Fa(indD,indQ,indT) = setsTmp(ii).fa(indT);
+                        dqtMap.sets(ii).Fb(indD,indQ,indT) = setsTmp(ii).fb(indT);
+                        dqtMap.sets(ii).Fc(indD,indQ,indT) = setsTmp(ii).fc(indT);
+                    end
+                end
             end
         end
     end
@@ -164,41 +245,25 @@ if filename
     % ndmesh because matlab is stupid...
     [dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th]=ndgrid(dqtMap.Id,dqtMap.Iq,dqtMap.th);
     
-    % F_map
-    Fmap.Id   = mean(dqtMap.data.Id,3);
-    Fmap.Iq   = mean(dqtMap.data.Iq,3);
-    Fmap.Fd   = mean(dqtMap.data.Fd,3);
-    Fmap.Fq   = mean(dqtMap.data.Fq,3);
-    Fmap.T    = mean(dqtMap.data.T,3);
-    Fmap.dT   = std(dqtMap.data.T,0,3);
-    Fmap.dTpp = max(dqtMap.data.T,[],3)-min(dqtMap.data.T,[],3);
-    
-    % fdfq_idiq_n256
-%     fdfq.Id=linspace(min(min(Fmap.Id)),max(max(Fmap.Id)),256);
-%     fdfq.Iq=linspace(min(min(Fmap.Iq)),max(max(Fmap.Iq)),256);
-%     [fdfq.Id,fdfq.Iq]=meshgrid(fdfq.Id,fdfq.Iq);
-%     fdfq.Fd   = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.Fd',fdfq.Id,fdfq.Iq,'spline');
-%     fdfq.Fq   = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.Fq',fdfq.Id,fdfq.Iq,'spline');
-%     fdfq.T    = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.T',fdfq.Id,fdfq.Iq,'spline');
-%     fdfq.dT   = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.dT',fdfq.Id,fdfq.Iq,'spline');
-%     fdfq.dTpp = interp2(Fmap.Id(:,1),Fmap.Iq(1,:),Fmap.dTpp',fdfq.Id,fdfq.Iq,'spline');
     
     % Interpolant
-    fInt.Id = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Id,'spline');
-    fInt.Iq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Iq,'spline');
-    fInt.th = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.th,'spline');
-    fInt.Fd = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fd,'spline');
-    fInt.Fq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fq,'spline');
-    fInt.T  = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.T,'spline');
-    fInt.Fa = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fa,'spline');
-    fInt.Fb = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fb,'spline');
-    fInt.Fc = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fc,'spline');
-    fInt.Ia = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ia,'spline');
-    fInt.Ib = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ib,'spline');
-    fInt.Ic = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ic,'spline');
+%     fInt.Id = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Id,'spline');
+%     fInt.Iq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Iq,'spline');
+%     fInt.th = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.th,'spline');
+%     fInt.Fd = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fd,'spline');
+%     fInt.Fq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fq,'spline');
+%     fInt.T  = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.T,'spline');
+%     fInt.Fa = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fa,'spline');
+%     fInt.Fb = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fb,'spline');
+%     fInt.Fc = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fc,'spline');
+%     fInt.Ia = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ia,'spline');
+%     fInt.Ib = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ib,'spline');
+%     fInt.Ic = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ic,'spline');
+%     fInt.We = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.We,'spline');
+%     fInt.Wc = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Wc,'spline');
     
     % dqtMap.Fmap=Fmap;
-    dqtMap.fInt=fInt;
+    %dqtMap.fInt = fInt;
     % dqtMap.fdfq=fdfq;
     
     % Gli assi delle correnti sono scambiati tra 2D e 3D:

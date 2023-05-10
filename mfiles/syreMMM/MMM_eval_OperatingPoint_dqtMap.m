@@ -38,28 +38,61 @@ for ii=1:length(id)
     SOL.th = dqtMap.th;
     SOL.id = id(ii)*ones(size(SOL.th));
     SOL.iq = iq(ii)*ones(size(SOL.th));
-    SOL.fd = dqtMap.fInt.Fd(SOL.id,SOL.iq,SOL.th);
-    SOL.fq = dqtMap.fInt.Fq(SOL.id,SOL.iq,SOL.th);
-    SOL.T  = dqtMap.fInt.T(SOL.id,SOL.iq,SOL.th);
-    if isfield(dqtMap.fInt,'Fa')
-        SOL.fa = dqtMap.fInt.Fa(SOL.id,SOL.iq,SOL.th);
-        SOL.fb = dqtMap.fInt.Fb(SOL.id,SOL.iq,SOL.th);
-        SOL.fc = dqtMap.fInt.Fc(SOL.id,SOL.iq,SOL.th);
+    % SOL.fd = dqtMap.fInt.Fd(SOL.id,SOL.iq,SOL.th);
+    % SOL.fq = dqtMap.fInt.Fq(SOL.id,SOL.iq,SOL.th);
+    % SOL.T  = dqtMap.fInt.T(SOL.id,SOL.iq,SOL.th);
+    SOL.fd = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fd,SOL.id,SOL.iq,SOL.th,'spline');
+    SOL.fq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fq,SOL.id,SOL.iq,SOL.th,'spline');
+    SOL.T  = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.T,SOL.id,SOL.iq,SOL.th,'spline');
+
+    if isfield(dqtMap.data,'Fa')
+        % SOL.fa = dqtMap.fInt.Fa(SOL.id,SOL.iq,SOL.th);
+        % SOL.fb = dqtMap.fInt.Fb(SOL.id,SOL.iq,SOL.th);
+        % SOL.fc = dqtMap.fInt.Fc(SOL.id,SOL.iq,SOL.th);
+        SOL.fa = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fa,SOL.id,SOL.iq,SOL.th,'spline');
+        SOL.fb = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fb,SOL.id,SOL.iq,SOL.th,'spline');
+        SOL.fc = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fc,SOL.id,SOL.iq,SOL.th,'spline');
     else
         SOL.fa = nan(size(SOL.th));
         SOL.fb = nan(size(SOL.th));
         SOL.fc = nan(size(SOL.th));
     end
-    if isfield(dqtMap.fInt,'Ia')
-        SOL.ia = dqtMap.fInt.Ia(SOL.id,SOL.iq,SOL.th);
-        SOL.ib = dqtMap.fInt.Ib(SOL.id,SOL.iq,SOL.th);
-        SOL.ic = dqtMap.fInt.Ic(SOL.id,SOL.iq,SOL.th);
+    if isfield(dqtMap.data,'Ia')
+        % SOL.ia = dqtMap.fInt.Ia(SOL.id,SOL.iq,SOL.th);
+        % SOL.ib = dqtMap.fInt.Ib(SOL.id,SOL.iq,SOL.th);
+        % SOL.ic = dqtMap.fInt.Ic(SOL.id,SOL.iq,SOL.th);
+        SOL.ia = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ia,SOL.id,SOL.iq,SOL.th,'spline');
+        SOL.ib = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ib,SOL.id,SOL.iq,SOL.th,'spline');
+        SOL.ic = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ic,SOL.id,SOL.iq,SOL.th,'spline');
     else
         SOL.ia = nan(size(SOL.th));
         SOL.ib = nan(size(SOL.th));
         SOL.ic = nan(size(SOL.th));
     end
     
+    if isfield(dqtMap,'sets')
+        n3phase = length(dqtMap.sets);
+        for ss=1:n3phase
+            SOL.ia(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.ib(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.ic(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.fa(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.fb(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.fc(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.th,'spline');
+            
+            SOL.sets(ss).id = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Id,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).iq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Iq,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).fd = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fd,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).fq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fq,SOL.id,SOL.iq,SOL.th,'spline');
+
+            SOL.sets(ss).ia = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).ib = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).ic = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).fa = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).fb = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).fc = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.th,'spline');
+        end
+    end
     
     out.id   = id(ii);
     out.iq   = iq(ii);
@@ -72,18 +105,18 @@ for ii=1:length(id)
     out.IPF  = abs(sin(atan2(out.iq,out.id)-atan2(out.fq,out.fd)));
     out.SOL  = SOL;
     
-    if ~isempty(motorModel.IronPMLossMap_dq)
-        fdfq = motorModel.FluxMap_dq;
-        ironLoss = motorModel.IronPMLossMap_dq;
-        FreqElet=motorModel.WaveformSetup.EvalSpeed/60*motorModel.data.p;
-        [~,Pfes_h,Pfes_c,Pfer_h,Pfer_c,Ppm] = calcIronLoss(ironLoss,fdfq,FreqElet);
-        out.Pfes_h = interp2(fdfq.Id,fdfq.Iq,Pfes_h,id(ii),iq(ii));
-        out.Pfes_c = interp2(fdfq.Id,fdfq.Iq,Pfes_c,id(ii),iq(ii));
-        out.Pfer_h = interp2(fdfq.Id,fdfq.Iq,Pfer_h,id(ii),iq(ii));
-        out.Pfer_c = interp2(fdfq.Id,fdfq.Iq,Pfer_c,id(ii),iq(ii));
-        out.Ppm    = interp2(fdfq.Id,fdfq.Iq,Ppm,id(ii),iq(ii));
-        out.velDim = motorModel.WaveformSetup.EvalSpeed;
-    end
+%     if ~isempty(motorModel.IronPMLossMap_dq)
+%         fdfq = motorModel.FluxMap_dq;
+%         ironLoss = motorModel.IronPMLossMap_dq;
+%         FreqElet=motorModel.WaveformSetup.EvalSpeed/60*motorModel.data.p;
+%         [~,Pfes_h,Pfes_c,Pfer_h,Pfer_c,Ppm] = calcIronLoss(ironLoss,fdfq,FreqElet);
+%         out.Pfes_h = interp2(fdfq.Id,fdfq.Iq,Pfes_h,id(ii),iq(ii));
+%         out.Pfes_c = interp2(fdfq.Id,fdfq.Iq,Pfes_c,id(ii),iq(ii));
+%         out.Pfer_h = interp2(fdfq.Id,fdfq.Iq,Pfer_h,id(ii),iq(ii));
+%         out.Pfer_c = interp2(fdfq.Id,fdfq.Iq,Pfer_c,id(ii),iq(ii));
+%         out.Ppm    = interp2(fdfq.Id,fdfq.Iq,Ppm,id(ii),iq(ii));
+%         out.velDim = motorModel.WaveformSetup.EvalSpeed;
+%     end
     
 %     save([pathname resFolder motorName '_T_eval_' iStr '_' gammaStr '.mat'],'out');
     save([pathname resFolder 'out.mat'],'out','motorModel');

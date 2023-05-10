@@ -50,7 +50,7 @@ Ni2  = i123(2);
 Ni3  = i123(3);
 
 if iq~= 0
-    maxIter = 5; %% 10 is nosense .. maximum number of attempts is 3
+    maxIter = 10; %% 10 is nosense .. maximum number of attempts is 3
 else
     maxIter = 1;
 end
@@ -89,7 +89,7 @@ while ~done
     mi_modifycircprop('fase1',1,Ni1);
     mi_modifycircprop('fase2',1,Ni2);
     mi_modifycircprop('fase3',1,Ni3);
-    for jj  = 1:Nbars/(2*p)
+    for jj  = 1:NbarSim
         circ_name = ['bar' num2str(jj)];
         mi_modifycircprop(circ_name,1,ibar(jj));
     end
@@ -100,11 +100,11 @@ while ~done
 
     % evaluate stator flux
     temp_out = mo_getcircuitproperties('fase1');
-    f1 = temp_out(3)*2*p;
+    f1 = temp_out(3)*2*p/ps;
     temp_out = mo_getcircuitproperties('fase2');
-    f2 = temp_out(3)*2*p;
+    f2 = temp_out(3)*2*p/ps;
     temp_out = mo_getcircuitproperties('fase3');
-    f3 = temp_out(3)*2*p;
+    f3 = temp_out(3)*2*p/ps;
     fdq = abc2dq(f1,f2,f3,th*pi/180);
 
     % evaluate rotor flux
@@ -162,6 +162,11 @@ end
 
 T = -mo_gapintegral('AGap',0);
 
+mo_groupselectblock();
+we = mo_blockintegral(2)*2*p/ps;
+wc = mo_blockintegral(17)*2*p/ps;
+mo_clearblock();
+
 mo_close, mi_close
 closefemm
 
@@ -174,6 +179,8 @@ SOL.iq = iq/Nbob;
 SOL.fd = fdq(1)*Nbob;
 SOL.fq = fdq(2)*Nbob;
 SOL.T  = T;
+SOL.we = we;
+SOL.wc = wc;
 
 SOL.IM.ir      = iR;
 SOL.IM.fdr     = fdqR(1);

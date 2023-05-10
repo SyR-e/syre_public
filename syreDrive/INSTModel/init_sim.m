@@ -1,5 +1,3 @@
-
-clear;
 warning off;
 InverterModel = 'Switching';    
 %InverterModel = 'Average';     
@@ -8,7 +6,7 @@ load motorModel;
 
 % S-fun Parameters
 Tstep = 2e-6;
-Ts    = 100e-6;
+Ts    = 1/motorModel.SyreDrive.Converter.fPWM;
 
 
 %% ----------------Machine and Converter  Parameters------------------------%
@@ -48,13 +46,15 @@ th0 = 0; %initial mechanical angle
 F0_alpha = Fd0*cos(th0) - Fq0*sin(th0);
 F0_beta  = Fd0*sin(th0) + Fq0*cos(th0);
 
-if motorModel.data.axisType == 'SR' & motorModel.data.motorType == 'SR'
+if strcmp(motorModel.data.axisType,'SR') && strcmp(motorModel.data.motorType,'SR')
     Quad_Maps = 0; %SyR Convention - 1st quadrant maps
-elseif motorModel.data.axisType == 'SR' & motorModel.data.motorType == 'PM'
+elseif strcmp(motorModel.data.axisType,'SR') && strcmp(motorModel.data.motorType,'PM')
     Quad_Maps = 1; %PM-SyR - 1st and 4th quadrant maps
-elseif motorModel.data.axisType == 'PM' & motorModel.data.motorType == 'PM'
+elseif strcmp(motorModel.data.axisType,'PM') && strcmp(motorModel.data.motorType,'PM')
     Quad_Maps = 2; %IPM - 1st and 2st quadrant maps
 end
+
+
 %% ---------------Magnet Flux Estimation----------------------------%
 
 Idd=motorModel.FluxMap_dq.Id;
@@ -85,28 +85,37 @@ switch(Quad_Maps)
 end
 
 
-
-
-
-
 %% ----------------dqt Inverse Flux Maps ------------------------%
 
-Fd_max = max(motorModel.FluxMapInv_dqt.dataF.Fd,[],'all');
-Fq_max = max(motorModel.FluxMapInv_dqt.dataF.Fq,[],'all');
-Fd_min = min(motorModel.FluxMapInv_dqt.dataF.Fd,[],'all');
-Fq_min = min(motorModel.FluxMapInv_dqt.dataF.Fq,[],'all');
-th_min = min(motorModel.FluxMapInv_dqt.dataF.th,[],'all');
-th_max = max(motorModel.FluxMapInv_dqt.dataF.th,[],'all');
-th_dqt = motorModel.FluxMapInv_dqt.dataF.th;
+% dq or dqt model
+switch motorModel.SyreDrive.FMapsModel
+    case 'dq Model'
+        FMapsModel = 1;
+        
+        Fd_v = unique(motorModel.FluxMapInv_dq.Fd);
+        Fq_v = unique(motorModel.FluxMapInv_dq.Fq);
+        
+    case 'dqt Model'
+        FMapsModel = -1;
 
-Fd_v=linspace(Fd_min,Fd_max,256);
-Fq_v=linspace(Fq_min,Fq_max,256);
-th_v=linspace(min(th_dqt,[],'all'),max(th_dqt,[],'all'),256);
-[Fd_dqt,Fq_dqt,th_dqt]=meshgrid(Fd_v,Fq_v,th_v);
+        Fd_max = max(motorModel.FluxMapInv_dqt.dataF.Fd,[],'all');
+        Fq_max = max(motorModel.FluxMapInv_dqt.dataF.Fq,[],'all');
+        Fd_min = min(motorModel.FluxMapInv_dqt.dataF.Fd,[],'all');
+        Fq_min = min(motorModel.FluxMapInv_dqt.dataF.Fq,[],'all');
+        th_min = min(motorModel.FluxMapInv_dqt.dataF.th,[],'all');
+        th_max = max(motorModel.FluxMapInv_dqt.dataF.th,[],'all');
+        th_dqt = motorModel.FluxMapInv_dqt.dataF.th;
 
-Id_dqt=interpn(motorModel.FluxMapInv_dqt.dataF.Fd,motorModel.FluxMapInv_dqt.dataF.Fq,motorModel.FluxMapInv_dqt.dataF.th,motorModel.FluxMapInv_dqt.dataF.Id,Fd_dqt,Fq_dqt,th_dqt,'cubic');
-Iq_dqt=interpn(motorModel.FluxMapInv_dqt.dataF.Fd,motorModel.FluxMapInv_dqt.dataF.Fq,motorModel.FluxMapInv_dqt.dataF.th,motorModel.FluxMapInv_dqt.dataF.Iq,Fd_dqt,Fq_dqt,th_dqt,'cubic');
-T_dqt=interpn(motorModel.FluxMapInv_dqt.dataF.Fd,motorModel.FluxMapInv_dqt.dataF.Fq,motorModel.FluxMapInv_dqt.dataF.th,motorModel.FluxMapInv_dqt.dataF.T,Fd_dqt,Fq_dqt,th_dqt,'cubic');
+        Fd_v=linspace(Fd_min,Fd_max,256);
+        Fq_v=linspace(Fq_min,Fq_max,256);
+        th_v=linspace(min(th_dqt,[],'all'),max(th_dqt,[],'all'),256);
+        [Fd_dqt,Fq_dqt,th_dqt]=meshgrid(Fd_v,Fq_v,th_v);
+
+        Id_dqt=interpn(motorModel.FluxMapInv_dqt.dataF.Fd,motorModel.FluxMapInv_dqt.dataF.Fq,motorModel.FluxMapInv_dqt.dataF.th,motorModel.FluxMapInv_dqt.dataF.Id,Fd_dqt,Fq_dqt,th_dqt,'cubic');
+        Iq_dqt=interpn(motorModel.FluxMapInv_dqt.dataF.Fd,motorModel.FluxMapInv_dqt.dataF.Fq,motorModel.FluxMapInv_dqt.dataF.th,motorModel.FluxMapInv_dqt.dataF.Iq,Fd_dqt,Fq_dqt,th_dqt,'cubic');
+        T_dqt=interpn(motorModel.FluxMapInv_dqt.dataF.Fd,motorModel.FluxMapInv_dqt.dataF.Fq,motorModel.FluxMapInv_dqt.dataF.th,motorModel.FluxMapInv_dqt.dataF.T,Fd_dqt,Fq_dqt,th_dqt,'cubic');
+end
+
 
 %------------------dq Inverse Flux Maps------------------------%
 
@@ -115,6 +124,27 @@ Fq     = motorModel.FluxMapInv_dq.Fq;
 Id     = motorModel.FluxMapInv_dq.Id;
 Iq     = motorModel.FluxMapInv_dq.Iq;
 T      = motorModel.FluxMapInv_dq.T;
+
+
+%% -----------------Iron Loss Model-------------------------------%%
+
+switch motorModel.SyreDrive.IronLoss
+    case 'No'
+        IronLoss = 0;
+    case 'Yes'
+        IronLoss = 1;
+        Pfe_h = motorModel.IronPMLossMap_dq.Pfes_h + motorModel.IronPMLossMap_dq.Pfer_h;
+        Pfe_c = motorModel.IronPMLossMap_dq.Pfes_c + motorModel.IronPMLossMap_dq.Pfer_c;
+        Ppm   = motorModel.IronPMLossMap_dq.Ppm;
+        n0    = motorModel.IronPMLossMap_dq.n0;
+        expH  = motorModel.IronPMLossMap_dq.expH;
+        expC  = motorModel.IronPMLossMap_dq.expC;
+        expPM = motorModel.IronPMLossMap_dq.expPM;
+
+        Id_fe = motorModel.IronPMLossMap_dq.Id;
+        Iq_fe = motorModel.IronPMLossMap_dq.Iq;
+end  
+
 
 %% --------------------User Settings-------------------------%
 
@@ -126,6 +156,14 @@ switch motorModel.SyreDrive.Ctrl_type
         Ctrl_type = 2;
     case 'Speed control'
         Ctrl_type = 3;
+end
+
+% Ctrl Strategy 
+switch motorModel.SyreDrive.Ctrl_strategy
+    case 'FOC'
+        Ctrl_strategy = 0;
+    case 'DFVC'
+        Ctrl_strategy = 1;
 end
 
 
@@ -161,14 +199,6 @@ switch motorModel.SyreDrive.SS_settings.HS_ctrl
         HS_ctrl = 1;
 end
 
-% dq or dqt model
-switch motorModel.SyreDrive.FMapsModel
-    case 'dq Model'
-        FMapsModel = 1;
-        
-    case 'dqt Model'
-        FMapsModel = -1;
-end
 
  %% coordinate transformations
 %3-ph to 2-ph
@@ -200,9 +230,3 @@ switch(InverterModel)
         set_param([Slx_name '/Inverter Model/Converter (Three-Phase)'],'device_type','ee.enum.converters.switchingdevice.averaged');
         set_param([Slx_name '/Inverter Model/Converter (Three-Phase)'],'Ron','Rd');
 end
-
-
-    
-    
-
-clear motorModel

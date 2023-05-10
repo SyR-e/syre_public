@@ -60,8 +60,8 @@ if ~isfield(geo,'axisType')
 end
 
 if ~strcmp(geo.axisType,dataIn.axisType)
-    geo.axisType = dataIn.axisType;
-    if strcmp(geo.axisType,'PM')
+    %geo.axisType = dataIn.axisType;
+    if strcmp(dataIn.axisType,'PM')
         geo.th0 = geo.th0 - 90;
     else
         geo.th0 = geo.th0 + 90;
@@ -83,7 +83,7 @@ per.tempPP          = tempPP;
 switch MapQuadrants
     case 1
         %if (strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')) || strcmp(dataSet.axisType,'PM')
-        if strcmp(geo.axisType,'PM')
+        if strcmp(dataIn.axisType,'PM')
             idvect = linspace(-SimulatedCurrent,0,NumGrid);
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
         else
@@ -91,7 +91,7 @@ switch MapQuadrants
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
         end
     case 2
-        if strcmp(geo.axisType,'PM')
+        if strcmp(dataIn.axisType,'PM')
             idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
         else
@@ -143,6 +143,8 @@ Fq   = zeros(size(Id));
 T    = zeros(size(Id));
 dT   = zeros(size(Id));
 dTpp = zeros(size(Id));
+We   = zeros(size(Id));
+Wc   = zeros(size(Id));
 SOL  = cell(size(Id));
 if isfield(OUT{1},'Pfes_h')
     Pfes_h = zeros(size(Id));
@@ -169,6 +171,8 @@ for ii=1:length(Id)
     T(ii)    = OUT{ii}.T;
     dT(ii)   = OUT{ii}.dT;
     dTpp(ii) = OUT{ii}.dTpp;
+    We(ii)   = OUT{ii}.We;
+    Wc(ii)   = OUT{ii}.Wc;
     SOL{ii}  = OUT{ii}.SOL;
     
     if isfield(OUT{ii},'Pfes_h')
@@ -198,6 +202,8 @@ Fq   = reshape(Fq,[nR,nC]);
 T    = reshape(T,[nR,nC]);
 dT   = reshape(dT,[nR,nC]);
 dTpp = reshape(dTpp,[nR,nC]);
+We   = reshape(We,[nR,nC]);
+Wc   = reshape(Wc,[nR,nC]);
 SOL  = reshape(SOL,[nR,nC]);
 
 if isfield(OUT{1},'Pfes_h')
@@ -227,6 +233,8 @@ F_map.Fq   = Fq;
 F_map.T    = T;
 F_map.dT   = dT;
 F_map.dTpp = dTpp;
+F_map.We   = We;
+F_map.Wc   = Wc;
 
 if exist('Pfes_h','var')
     F_map.Pfes_h = Pfes_h;
@@ -273,6 +281,10 @@ end
 
 % NewDir = [pathname resFolder filemot(1:end-4) '_F_map_' Idstr 'x' Iqstr '_' int2str(per.tempPP) 'deg'];
 NewDir = [pathname resFolder 'F_map_' Idstr 'x' Iqstr '_' int2str(per.tempPP) 'deg_' int2str(MapQuadrants) 'Q'];
+if sum(per.flag3phaseSet)~=geo.win.n3phase
+    NewDir = [NewDir '_' mat2str(per.flag3phaseSet)];
+end
+
 if exist('Pfes_h')
     nStr = int2str(per.EvalSpeed);
     nStr = strrep(nStr,'.','rpm');
@@ -303,6 +315,7 @@ dataSet.NumOfRotPosPP    = NumOfRotPosPP;
 dataSet.AngularSpanPP    = AngularSpanPP;
 dataSet.NumGrid          = NumGrid;
 dataSet.EvalSpeed        = per.EvalSpeed;
+dataSet.axisType         = dataIn.axisType;
 
 save([NewDir,'F_map','.mat'],'dataSet','geo','per','mat','-append');
 save([NewDir,'fdfq_idiq_n256.mat'],'dataSet','geo','per','mat','-append'); 

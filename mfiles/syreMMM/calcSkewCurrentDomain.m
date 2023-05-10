@@ -51,8 +51,18 @@ end
 
 switch axisType
     case 'SR'
-        lim.IdMax = Iabs*cos(Iangle+thSKW);
-        lim.IqMax = Iabs*sin(Iangle-thSKW);
+        % Trovo le rette ruotate ed interseco
+        [xD1,yD1] = rot_point(IdMax,IqMax,thSKW/2*pi/180);
+        [xD2,yD2] = rot_point(IdMax,0,thSKW/2*pi/180);
+        [xQ1,yQ1] = rot_point(IdMax,IqMax,-thSKW/2*pi/180);
+        [xQ2,yQ2] = rot_point(0,IqMax,-thSKW/2*pi/180);
+        [aD,bD,cD] = retta_per_2pti(xD1,yD1,xD2,yD2);
+        [aQ,bQ,cQ] = retta_per_2pti(xQ1,yQ1,xQ2,yQ2);
+        [IdTmp,IqTmp] = intersezione_tra_rette(aD,bD,cD,aQ,bQ,cQ);
+        lim.IdMax = IdTmp;
+        lim.IqMax = IqTmp;
+%         lim.IdMax = Iabs*cos(Iangle+thSKW/2);
+%         lim.IqMax = Iabs*sin(Iangle-thSKW/2);
         switch numQuad
             case 1
                 lim.IdMin = 0;
@@ -71,8 +81,18 @@ switch axisType
                 lim.nQ = 2*nPoints-1;
         end
     case 'PM'
-        lim.IdMin = Iabs*cos(Iangle-thSKW);
-        lim.IqMax = Iabs*sin(Iangle+thSKW);
+        % Trovo le rette ruotate ed interseco
+        [xD1,yD1] = rot_point(IdMin,IqMax,-thSKW/2*pi/180);
+        [xD2,yD2] = rot_point(IdMin,0,-thSKW/2*pi/180);
+        [xQ1,yQ1] = rot_point(IdMin,IqMax,thSKW/2*pi/180);
+        [xQ2,yQ2] = rot_point(0,IqMax,thSKW/2*pi/180);
+        [aD,bD,cD] = retta_per_2pti(xD1,yD1,xD2,yD2);
+        [aQ,bQ,cQ] = retta_per_2pti(xQ1,yQ1,xQ2,yQ2);
+        [IdTmp,IqTmp] = intersezione_tra_rette(aD,bD,cD,aQ,bQ,cQ);
+        lim.IdMin = IdTmp;
+        lim.IqMax = IqTmp;
+%         lim.IdMin = Iabs*cos(Iangle-thSKW/2);
+%         lim.IqMax = Iabs*sin(Iangle+thSKW/2);
         switch numQuad
             case 1
                 lim.IdMax = 0;

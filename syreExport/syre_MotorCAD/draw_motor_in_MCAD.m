@@ -24,7 +24,7 @@ invoke(mcad,'SetComponentMaterial','Magnet',tmp);
 
 %% Stator and Rotor
 invoke(mcad,'SetVariable','StatorRotation',0);
-invoke(mcad,'SetVariable','RotorRotation',(90/geo.p));
+% invoke(mcad,'SetVariable','RotorRotation',(90/geo.p));
 
 draw_stator_in_MCAD(mcad,geo,0,0,dataSet)
 draw_rotor_in_MCAD(mcad,geo,0,0)

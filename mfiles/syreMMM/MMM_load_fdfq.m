@@ -47,10 +47,32 @@ if isfield(data,'Id')
     else
         tempPM = NaN;
     end
+    if isfield(data,'We')
+        fdfq.We = data.We;
+        fdfq.Wc = data.Wc;
+    end
     
     if isfield(data,'IM')
         fdfq.IM = data.IM;
     end
+
+%     % check axis style
+%     if ~isfield(data.dataSet,'axisType')
+%         if strcmp(data.dataSet.TypeOfRotor,'SPM')||strcmp(data.dataSet.TypeOfRotor,'Vtype')
+%             data.dataSet.axisType = 'PM';
+%         else
+%             data.dataSet.axisType = 'SR';
+%         end
+%     end
+%     if ~strcmp(data.dataSet.axisType,motorModel.data.axisType)
+%         tmp.FluxMap_dq = fdfq;
+%         if strcmp(dataSet.axisType,'SR')
+%             tmp = MMM_sr2pm(tmp);
+%         else
+%             tmp = MMM_pm2sr(tmp);
+%         end
+%         fdfq = tmp.FluxMap_dq;
+%     end
 else
     fdfq = [];
     tempPM = [];

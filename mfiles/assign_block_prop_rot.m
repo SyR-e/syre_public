@@ -82,7 +82,7 @@ for ii=1:length(BLKLABELSrot.xy(:,1))
         case 9 % sleeve
             mi_addblocklabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
             mi_selectlabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
-            mi_setblockprop(mat.Sleeve.MatName,0,fem.res_traf,'None',0,300,0);
+            mi_setblockprop(mat.Sleeve.MatName,0,fem.res_traf,'None',0,199,0);
             mi_clearselected;
 
     end

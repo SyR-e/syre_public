@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function eval_operatingPoint(dataIn)
+function [out,senseOut] = eval_operatingPoint(dataIn)
 
 % simulates single or multiple (id,iq) conditions
 % example inputs:
@@ -56,8 +56,8 @@ if ~isfield(geo,'axisType')
 end
 
 if ~strcmp(geo.axisType,dataIn.axisType)
-    geo.axisType = dataIn.axisType;
-    if strcmp(geo.axisType,'PM')
+    %geo.axisType = dataIn.axisType;
+    if strcmp(dataIn.axisType,'PM')
         geo.th0 = geo.th0 - 90;
     else
         geo.th0 = geo.th0 + 90;
@@ -142,7 +142,11 @@ for ii = 1:length(SimulatedCurrent)
         FILENAME = ['T_eval_',iStr,'_',gammaStr '_' int2str(dataIn.tempPP) 'deg'];
         %     FILENAME = [filemot(1:end-4) '_T_eval_',iStr,'_',gammaStr];
     end
-    
+
+    if sum(per.flag3phaseSet)~=geo.win.n3phase
+        FILENAME = [FILENAME '_' mat2str(per.flag3phaseSet)];
+    end
+
     switch eval_type
         case 'flxdn'
             FILENAME = [FILENAME '_flxdn'];
@@ -175,8 +179,9 @@ for ii = 1:length(SimulatedCurrent)
         movefile(dirIn, dirDest);
         clear file_name1 dirIn dirDest
     else
-        save([newDir filemot(1:end-4) '_' FILENAME '.mat'],'geo','per','mat','out');
-        copyfile([dirName filemot],[newDir filemot(1:end-4) '_' FILENAME '.fem']);
+        %save([newDir filemot(1:end-4) '_' FILENAME '.mat'],'geo','per','mat','out');
+        save([newDir filemot(1:end-4) '_OpPointResults.mat'],'geo','per','mat','out');
+        copyfile([dirName filemot],[newDir filemot(1:end-4) '_solved.fem']);
     end
     
     % plot and save figs
@@ -196,6 +201,8 @@ for ii = 1:length(SimulatedCurrent)
     end
     
 end
+
+senseOut = [];
 
 % extra figs, if input current is array
 if length(CurrLoPP)>1
@@ -289,5 +296,7 @@ if length(CurrLoPP)>1
     
 end
 
-
+if nargout()==0
+    clear out senseOut
+end
 

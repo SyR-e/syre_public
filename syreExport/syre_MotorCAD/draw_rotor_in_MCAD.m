@@ -3,6 +3,7 @@ function draw_rotor_in_MCAD(mcad,geo,per,mat)
 switch geo.RotType
     case 'Circular'
         invoke(mcad,'SetVariable','MotorType_MotorLAB','SYNCREL');
+        invoke(mcad,'SetVariable','BPMRotor','13'); %U
         % rotor parameters
         invoke(mcad,'SetVariable','Shaft_Dia',geo.Ar*2);
         invoke(mcad,'SetVariable','Pole_number',geo.p*2);
@@ -78,7 +79,7 @@ switch geo.RotType
         
     case 'Seg'
         invoke(mcad,'SetVariable','MotorType_MotorLAB','BPM');
-        invoke(mcad,'SetVariable','BPMRotor','13'); %interior V (web)
+        invoke(mcad,'SetVariable','BPMRotor','13'); %U
         
         tmp=geo.Ar*2;
         invoke(mcad,'SetVariable','Shaft_Dia',tmp);

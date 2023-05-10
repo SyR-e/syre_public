@@ -24,6 +24,7 @@ function BarName = defineBlockNames(BarCenter,geo)
 
 indAir=1;
 indPMs=1;
+indBar=1;
 ind=1;
 
 rotType=geo.RotType;
@@ -45,6 +46,10 @@ for ii=1:length(BarCenter(:,3))
         BarName{ind}=['Magnet_Bar_' int2str(indPMs)];
         ind=ind+1;
         indPMs=indPMs+1;
+    elseif BarCenter(ii,3)==codMatCuRot
+        BarName{ind}=['Bar_' int2str(indBar)];
+        ind=ind+1;
+        indBar=indBar+1;
     end
 end
 

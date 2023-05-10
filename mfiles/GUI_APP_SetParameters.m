@@ -69,13 +69,6 @@ switch f.dx
         set(app.CarrierDesignDropDown,'Value','Flux carrier thickness proportional to d-flux');
 end
 
-switch f.ks
-    case 0
-        set(app.SaturationFactorDropDown,'Value','Neglect saturation factor');
-    case 1
-        set(app.SaturationFactorDropDown,'Value','Compute saturation factor');
-end
-
 switch f.i0
     case 0
         set(app.syrmDesignThermalInputDropDown,'Value','Constant thermal loading kj');
@@ -83,12 +76,11 @@ switch f.i0
         set(app.syrmDesignThermalInputDropDown,'Value','Constant current density J');
 end
 
-switch f.gf
-    case 0
-        set(app.syrmDesignGammaFixDropDown,'Value','Current angle imposed');
-    case 1
-        set(app.syrmDesignGammaFixDropDown,'Value','FEAfix MTPA correction');
-end
+set(app.MTPApointButton,'Value',f.gf);
+set(app.CharcurrentButton,'Value',f.ichf);
+set(app.HWCSCcurrentButton,'Value',f.scf);
+set(app.DemagratedButton,'Value',f.demag0);
+set(app.DemagHWCButton,'Value',f.demagHWC);
 
 %% Stator panel
 set(app.ToothLengEdit,'Value',num2str(dataSet.ToothLength));
@@ -330,8 +322,8 @@ set(app.MassBarEditField,'Enable','on','Editable','off','Value',num2str(dataSet.
 nameCols = cell(1,size(dataSet.PMdim,2));
 wCols    = cell(1,size(dataSet.PMdim,2));
 for ii=1:length(nameCols)
-    nameCols{ii} = ['Layer ' int2str(ii)];
-    wCols{ii} = 75;
+    nameCols{ii} = ['Layer' int2str(ii)];
+    wCols{ii} = 60;
 end
 
 nameRows{1} = 'Central width [mm]';
@@ -342,38 +334,52 @@ nameCols = cell(1,size(dataSet.PMdim,2));
 wCols    = cell(1,size(dataSet.PMdim,2));
 for ii=1:length(nameCols)
     nameCols{ii} = ['Layer ' int2str(ii)];
-    wCols{ii} = 75;
+    wCols{ii} = 60;
 end
-nameRows{1} = 'Central PM gap [mm]';
-nameRows{2} = 'External PM gap [mm]';
+nameRows{1} = 'Central air gap [mm]';
+nameRows{2} = 'External air gap [mm]';
 set(app.PMclearanceTable,'ColumnName',nameCols,'RowName',nameRows,'Data',round(dataSet.PMclear,4),'ColumnWidth',wCols);
 
+nameRows{1} = 'Central segments';
+nameRows{2} = 'External segments';
+set(app.PMNcSegmentsTable,'ColumnName',nameCols,'RowName',nameRows,'Data',round(dataSet.PMNc),'ColumnWidth',wCols);
+
+set(app.PMNaSegments,'Value',num2str(dataSet.PMNa));
 set(app.PMtemperatureEdit,'Value',num2str(dataSet.PMtemp));
 set(app.CarCurEdit,'Value',num2str(dataSet.CurrPM,2));
 set(app.BrPMEdit,'Value',num2str(dataSet.Br));
 if strcmp(dataSet.FluxBarrierMaterial,'Air')
     set(app.PMdimTable,'Enable','off','ColumnEditable',false(1))
     set(app.PMclearanceTable,'Enable','off','ColumnEditable',false(1))
+    set(app.PMNcSegmentsTable,'Enable','off','ColumnEditable',false(1))
     set(app.PMDesignPush,'Enable','off')
     set(app.PMtemperatureEdit,'Enable','off')
     set(app.BrPMEdit,'Enable','off')
     set(app.CarCurEdit,'Enable','off')
+    set(app.PMNaSegments,'Enable','off')
 else
     set(app.PMtemperatureEdit,'Enable','on')
     set(app.BrPMEdit,'Enable','on')
     if (strcmp(dataSet.TypeOfRotor,'SPM')||strcmp(dataSet.TypeOfRotor,'Fluid'))
         set(app.PMdimTable,'Enable','off','ColumnEditable',false(1))
         set(app.PMclearanceTable,'Enable','off','ColumnEditable',false(1))
+        set(app.PMNcSegmentsTable,'Enable','off','ColumnEditable',false(1))
+        set(app.PMNaSegments,'Enable','off')
         set(app.PMDesignPush,'Enable','off')
         set(app.CarCurEdit,'Enable','off')
     else
         set(app.PMdimTable,'Enable','on','ColumnEditable',true(1))
         set(app.PMclearanceTable,'Enable','on','ColumnEditable',true(1))
+        set(app.PMNcSegmentsTable,'Enable','on','ColumnEditable',true(1))
+        set(app.PMNaSegments,'Enable','on')
         set(app.PMDesignPush,'Enable','on')
         set(app.CarCurEdit,'Enable','on')
     end
 end
 
+if (strcmp(dataSet.TypeOfRotor,'Circular')||strcmp(dataSet.TypeOfRotor,'Vtype'))
+    set(app.PMNcSegmentsTable,'Enable','off','ColumnEditable',false(1))
+end
 
 % Optimization panel
 set(app.MaxGenEdit,'Value',num2str(dataSet.MaxGen));
@@ -713,6 +719,7 @@ end
 set(app.Active3phasesetsEditField,'Value',mat2str(dataSet.Active3PhaseSets));
 %Custom Current
 set(app.CustomCurrentFile,'Value',dataSet.CustomCurrentFilename);
+set(app.AxistypeDropDown,'Value',dataSet.axisType);
 
 
 switch dataSet.EvalType
@@ -731,6 +738,7 @@ switch dataSet.EvalType
         set(app.StartPProAnsysPush,'Enable','on');
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','on');
+        set(app.AxistypeDropDown,'Enable','on');
     case 'singm'
         set(app.EvalTypePopUp,'Value','Flux Map');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -747,10 +755,11 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','on');
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
+        set(app.AxistypeDropDown,'Enable','on');
     case 'demagArea'
         set(app.EvalTypePopUp,'Value','Demagnetization Analysis');
         set(app.SpanEltPPEdit,'Enable','off');
-        set(app.GammaPPEdit,'Enable','off');
+        set(app.GammaPPEdit,'Enable','on');
         set(app.CurrLoPPEdit,'Enable','on');
         set(app.CurrentPP,'Enable','on')
         set(app.NumOfRotorPosiPPEdit,'Enable','off');
@@ -763,6 +772,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','off');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
+        set(app.AxistypeDropDown,'Enable','on');
     case 'idemag'
         set(app.EvalTypePopUp,'Value','Demagnetization Curve');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -779,6 +789,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','off');
         set(app.CustomCurrentSwitch,'Value','Off');    % no custom current
+        set(app.AxistypeDropDown,'Enable','off');
     case 'ichval'
         set(app.EvalTypePopUp,'Value','Characteristic Current');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -795,6 +806,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','off');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
+        set(app.AxistypeDropDown,'Enable','off');
     case 'flxdn'
         set(app.EvalTypePopUp,'Value','Flux Density Analysis');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -811,6 +823,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');    % no custom current
+        set(app.AxistypeDropDown,'Enable','on');
     case 'izero'
         set(app.EvalTypePopUp,'Value','Current Offset');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -827,6 +840,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
+        set(app.AxistypeDropDown,'Enable','on');
     case 'force'
         set(app.EvalTypePopUp,'Value','Airgap Force');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -843,6 +857,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
+        set(app.AxistypeDropDown,'Enable','on');
     case 'singtIron'
         set(app.EvalTypePopUp,'Value','Iron Loss - Single Point');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -858,6 +873,7 @@ switch dataSet.EvalType
         set(app.StartPProAnsysPush,'Enable','on');
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','on');
+        set(app.AxistypeDropDown,'Enable','on');
     case 'singmIron'
         set(app.EvalTypePopUp,'Value','Iron Loss - Flux Map');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -874,6 +890,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','on');
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');   % no custom current
+        set(app.AxistypeDropDown,'Enable','on');
     case 'structural'
         set(app.EvalTypePopUp,'Value','Structural Analysis');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -889,6 +906,7 @@ switch dataSet.EvalType
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','off');
+        set(app.AxistypeDropDown,'Enable','off');
     case 'shortCircuit'
         set(app.EvalTypePopUp,'Value','HWC Short-Circuit Current');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -905,6 +923,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','off');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
+        set(app.AxistypeDropDown,'Enable','on');
 end
 
 % set(app.CurrentPP,'Value',mat2str(dataSet.SimulatedCurrent))
@@ -1007,6 +1026,7 @@ else
         set(app.StartPProAnsysPush,'Enable','on');
         set(app.CurrLoPPEdit,'Enable','off');
         set(app.GammaPPEdit,'Enable','off');
+        set(app.CurrentPP,'Enable','off');
     end
 
     children = get(app.GridLayout13,'Children');    % preliminary design
@@ -1023,10 +1043,10 @@ else
     set(children,'Enable','on');
     children = get(app.GridLayout19,'Children');    % structural panel
     set(children,'Enable','on');
-    if ~strcmp(dataSet.FluxBarrierMaterial,'Air')
-        children = get(app.GridLayout26,'Children');    % PM panel
-        set(children,'Enable','on');
-    end
+%     if ~strcmp(dataSet.FluxBarrierMaterial,'Air')
+%         children = get(app.GridLayout26,'Children');    % PM panel
+%         set(children,'Enable','on');
+%     end
     children = get(app.GridLayout36,'Children');    % MCAD EM
     set(children,'Enable','on');
     children = get(app.GridLayout34,'Children');    % MCAD Thermal Build

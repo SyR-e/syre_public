@@ -419,7 +419,11 @@ end
 
 % Simulated current in post-processing tab
 if ~isfield(dataSet,'SimulatedCurrent')
-    per0 = calc_i0(geo,per);
+    if isfield(per,'kj')
+        per0 = calc_i0(geo,per);
+    else
+        per0.i0 = 0;
+    end
     dataSet.RatedCurrent = per0.i0;
     dataSet.SimulatedCurrent = dataSet.CurrLoPP*dataSet.RatedCurrent;
     if Dflag
@@ -980,6 +984,40 @@ if ~isfield(dataSet,'MassRotorBar')
     end
     flag=1;
 end
+
+% PM motor flag in syrmDesign
+if ~isfield(dataSet.syrmDesignFlag,'scf')
+    dataSet.syrmDesignFlag.ichf   = 0;
+    dataSet.syrmDesignFlag.scf    = 0;
+    dataSet.syrmDesignFlag.demagf = 0;
+    if Dflag
+        disp('2022 12 21 - added ich, iHWC, demag in syrmDesign/FEAfix')
+    end
+    flag=1;
+end
+
+% demagnetization in syrmDesign
+if ~isfield(dataSet.syrmDesignFlag,'demag0')
+    dataSet.syrmDesignFlag = rmfield(dataSet.syrmDesignFlag,'demagf');
+    dataSet.syrmDesignFlag.demag0   = 0;
+    dataSet.syrmDesignFlag.demagHWC = 0;
+    if Dflag
+        disp('2023 02 14 - added demagnetization @ rated and HWC-SC in FEAfix')
+    end
+    flag=1;
+end
+
+
+% Circumferential segmented magnets
+if ~isfield(dataSet,'PMNc')
+    dataSet.PMNc  = ones(2,geo.nlay);
+    dataSet.PMNa  = 1;
+    if Dflag
+        disp('2023 02 28 - added circumferential segmented magnets')
+    end
+    flag=1;
+end
+
 
 %%% Remove V-type geometry
 % if strcmp(geo.RotType,'V-type')

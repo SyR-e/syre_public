@@ -166,8 +166,10 @@ dataSet.RotorFilletTan2  = geo.RotorFilletTan2;
 % set(app.FillCorSlotEdit,'String',mat2str(round(100*geo.SFR)/100));
 dataSet.ShaftRadius = floor(geo.Ar*100)/100;
 
-dataSet.PMdim = geo.PMdim;
+dataSet.PMdim   = geo.PMdim;
 dataSet.PMclear = geo.PMclear;
+dataSet.PMNc    = geo.PMNc;
+dataSet.PMNa    = geo.PMNa;
 if isfield(geo,'AreaC')
     dataSet.PMdimPU = [geo.AreaC;geo.AreaE]./[geo.AreaCMax;geo.AreaEMax];
     dataSet.PMdimPU(isnan(dataSet.PMdimPU))=0;

@@ -33,7 +33,7 @@ Q1   = 6*p*q;
 % Call Koil_syre for the baseline 3phase winding
 path = pwd;
 cd(fullfile(path,'koil'));
-system(['koil_syre.exe',' ',num2str(Q1),' ',num2str(p),' ',num2str(yq*3*q)]);
+system(['koil_syre.exe',' ',num2str(Q1),' ',num2str(p),' ',num2str(3*q)]);
 cd(path);
 win1 = MatrixWin();
 
@@ -74,5 +74,18 @@ else
         win(:,ii:n3ph:end)=(abs(win1)+3*(ii-1)).*sign(win1);
     end
 end
+
+if yq<1
+    shift = Qs-round(Qs*yq);
+    tmp = win;
+%     win(2,(shift+1):end) = tmp(2,1:(end-shift)); 
+%     win(2,1:shift) = tmp(2,(end-shift+1):end);
+    win(2,1:(end-shift)) = tmp(2,(shift+1):end); 
+    win(2,(end-shift+1):end) = tmp(2,1:shift);
+end
+
+
+
+
 
 

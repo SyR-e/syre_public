@@ -19,11 +19,12 @@ load([dataIn.currentpathname dataIn.currentfilename])
 RatedCurrent = dataIn.RatedCurrent;
 CurrLoPP = dataIn.CurrLoPP(1);
 % SimulatedCurrent = dataIn.SimulatedCurrent;
-% GammaPP  = dataIn.GammaPP;
+GammaPP  = dataIn.GammaPP;
 BrPP = dataIn.BrPP;
 % NumOfRotPosPP = dataIn.NumOfRotPosPP;
 % AngularSpanPP = dataIn.AngularSpanPP;
 % NumGrid = dataIn.NumGrid;
+tempPP = dataIn.tempPP(1);
 
 per.EvalSpeed = dataIn.EvalSpeed;
 
@@ -38,8 +39,8 @@ if ~isfield(geo,'axisType')
 end
 
 if ~strcmp(geo.axisType,dataIn.axisType)
-    geo.axisType = dataIn.axisType;
-    if strcmp(geo.axisType,'PM')
+    %geo.axisType = dataIn.axisType;
+    if strcmp(dataIn.axisType,'PM')
         geo.th0 = geo.th0 - 90;
     else
         geo.th0 = geo.th0 + 90;
@@ -50,7 +51,8 @@ end
 per.overload = CurrLoPP;
 per.i0       = RatedCurrent;
 per.BrPP     = BrPP;
-per.tempPP   = dataIn.tempPP(1);
+per.tempPP   = tempPP;
+per.gamma    = GammaPP;
 
 
 Br = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,per.tempPP);
@@ -65,73 +67,37 @@ if ~exist([pathname outFolder],'dir')
     mkdir([pathname outFolder]);
 end
 
-resFolder = ['demagArea_' int2str(per.tempPP) 'deg_' int2str(per.i0*per.overload) 'Amp\'];
+resFolder = ['demagArea_' int2str(per.tempPP) 'degC_' int2str(per.i0*per.overload) 'Amp_' int2str(per.gamma) 'degGamma' dataIn.axisType '\'];
 mkdir([pathname outFolder resFolder]);
 resFolder = [pathname outFolder resFolder];
 
 eval_type    = 'demagArea';
 
-if strcmp(geo.axisType,'PM')
-    per.gamma = 180;
-else
-    per.gamma = 90;
-end
+% if strcmp(dataIn.axisType,'PM')
+%     per.gamma = 180;
+% else
+%     per.gamma = 90;
+% end
 
-nsim = 2;
-
-% Bd = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Bd,tempVect(tt));
-
-% per.BrPP = Br;
+[~,~,~,out,~] = FEMMfitness([],geo,per,mat,eval_type,[pathname filename(1:end-4) '.fem']);
 
 
-openfemm(1)
-opendocument([pathname filename(1:end-4) '.fem'])
-mi_saveas([resFolder filename(1:end-4) '.fem']);
-mi_close;
-
-dPM  = zeros(1,nsim);
-Bmin = zeros(1,nsim);
-xyC  = cell(1,nsim);
-xyV  = cell(1,nsim);
-xyB  = cell(1,nsim);
-SOL  = cell(1,nsim);
-
-
-for pp=1:nsim
-    [~,tmpFolder]=createTempDir();
-    
-    copyfile([resFolder filename(1:end-4) '.fem'],[tmpFolder filename(1:end-4) '.fem']);
-    
-    per.nsim_singt      = 1;
-    per.delta_sim_singt = (0.5*360/(6*geo.q*geo.win.n3phase))*(pp-1);
-    
-    SOL{pp} = simulate_xdeg(geo,per,mat,eval_type,tmpFolder,[filename(1:end-4) '.fem']);
-    
-    
-    dPM(pp)  = SOL{pp}.dPM;
-    Bmin(pp) = SOL{pp}.Bmin;
-    xyC{pp}  = SOL{pp}.xyDemagTmpC;
-    xyV{pp}  = SOL{pp}.xyDemagTmpV;
-    xyB{pp}  = SOL{pp}.xyDemagTmpB;
-    
-    
-end
 
 DemagArea.current     = per.i0*per.overload;
 DemagArea.temperature = per.tempPP;
-DemagArea.dPM         = dPM;
-DemagArea.Bmin        = Bmin;
-DemagArea.SOL         = SOL;
-DemagArea.xyC         = xyC;
-DemagArea.xyV         = xyV;
-DemagArea.xyB         = xyB;
+DemagArea.dPM         = out.SOL.dPM;
+DemagArea.Bmin        = out.SOL.Bmin;
+DemagArea.SOL         = out.SOL;
+DemagArea.xyC         = out.SOL.xyDemagTmpC;
+DemagArea.xyV         = out.SOL.xyDemagTmpV;
+DemagArea.xyB         = out.SOL.xyDemagTmpB;
 
 
 save([resFolder 'demagAreaResults.mat'],'DemagArea','geo','per','mat','dataSet');
 
 figure()
 figSetting(20,10)
-for ii=1:nsim
+for ii=1:2
     hax(ii) = axes(...
         'OuterPosition',[0+0.5*(ii-1) 0 0.5 1],...
         'XLim',[-1 geo.r+1],...
@@ -145,11 +111,11 @@ for ii=1:nsim
         set(hchild(jj),'Color','k','LineWidth',1.5);
     end
     
-    title([num2str(dPM(ii)*100) '\% of the PMs demagnetized'])
+    title([num2str(DemagArea.dPM(ii)*100) '\% of the PMs demagnetized'])
     
-    if ~isempty(xyV{ii})
-        vTmp = [xyV{ii};xyV{ii}(1,:)];
-        cTmp = xyC{ii};
+    if ~isempty(DemagArea.xyV{ii})
+        vTmp = [DemagArea.xyV{ii};DemagArea.xyV{ii}(1,:)];
+        cTmp = DemagArea.xyC{ii};
     else
         vTmp = [0];
         cTmp = [0];

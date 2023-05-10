@@ -94,8 +94,8 @@ switch eval_type
         thetaPark=th0(1)+[theta(1:nsim) theta(1)]; % disregard the last position
         iOffsetPU = 0;
     case {'idemag','idemagmap','demagArea'} % demagnetization
-        nsim = 1;
-        theta=per.delta_sim_singt;
+        nsim  = 2;
+        theta = 0.5*360/(6*geo.p*geo.q*geo.win.n3phase)*[0 1];
         thetaPark=th0(1)+theta;
         iOffsetPU = 0;
         tmp=geo.BLKLABELS.rotore.xy;
@@ -114,7 +114,7 @@ switch eval_type
         % initialize the additional variables for flux densities
         angIni  = 0;
         angFin  = 360/(2*p)*ps;
-        angRes  = 1000/(2*p)*ps+2;
+        angRes  = 3600/(2*p)*ps+2;
         angVect = linspace(angIni,angFin,angRes);
         angVect = angVect(2:end-1); % the first and the last point must be avoided because they are on the boundary
         
@@ -217,6 +217,8 @@ SOL.ic = zeros(n3phase,nsim);   % phase c current
 SOL.fa = zeros(n3phase,nsim);   % phase a flux linkage
 SOL.fb = zeros(n3phase,nsim);   % phase b flux linkage
 SOL.fc = zeros(n3phase,nsim);   % phase c flux linkage
+SOL.we = zeros(1,nsim);         % magnetic energy
+SOL.wc = zeros(1,nsim);         % magnetic coenergy
 
 phase_name = cell(n3phase*3,1);
 phase_name_neg = cell(n3phase*3,1);
@@ -257,29 +259,17 @@ end
 for jj = 1:nsim
     % assign the phase current values to the FEMM circuits
     for ik=0:(n3phase-1)
-        if flag3phSet(ik+1)
-        %if geo.win.avv_flag((3*ik)+1)==1 && geo.win.avv_flag((3*ik)+2)==1 && geo.win.avv_flag((3*ik)+3)==1
-            % healthy winding set
-            %             i123 = dq2abc(id,iq,thetaPark(jj)*pi/180,n3phase,ik);
-            %             i123 = dq2abc(id,iq,(thetaPark(jj)-ik*60/n3phase)*pi/180); % AS version
-            if custom_act
-                i_tmp((3*ik)+1,jj) = Ia_i(ik+1,jj);
-                i_tmp((3*ik)+2,jj) = Ib_i(ik+1,jj);
-                i_tmp((3*ik)+3,jj) = Ic_i(ik+1,jj);
-            else
-                i123 = dq2abc(id,iq,(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
-                i_tmp((3*ik)+1,jj) = i123(1)+iOffCoil;
-                i_tmp((3*ik)+2,jj) = i123(2)+iOffCoil;
-                i_tmp((3*ik)+3,jj) = i123(3)+iOffCoil;
-            end
+        if custom_act
+            i_tmp((3*ik)+1,jj) = Ia_i(ik+1,jj);
+            i_tmp((3*ik)+2,jj) = Ib_i(ik+1,jj);
+            i_tmp((3*ik)+3,jj) = Ic_i(ik+1,jj);
         else
-            % open-circuit winding set
-            %if geo.win.avv_flag((3*ik)+1)==0 && geo.win.avv_flag((3*ik)+2)==0 && geo.win.avv_flag((3*ik)+3)==0
-            i_tmp((3*ik)+1,jj) = 0;
-            i_tmp((3*ik)+2,jj) = 0;
-            i_tmp((3*ik)+3,jj) = 0;
-            %end
+            i123 = dq2abc(id,iq,(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
+            i_tmp((3*ik)+1,jj) = (i123(1)+iOffCoil)*flag3phSet(ik+1);
+            i_tmp((3*ik)+2,jj) = (i123(2)+iOffCoil)*flag3phSet(ik+1);
+            i_tmp((3*ik)+3,jj) = (i123(3)+iOffCoil)*flag3phSet(ik+1);
         end
+
         
         phase_name{3*ik+1}=strcat('fase',num2str(3*ik+1));
         phase_name{3*ik+2}=strcat('fase',num2str(3*ik+2));
@@ -326,7 +316,13 @@ for jj = 1:nsim
         else
             nPM = geo.ps*numel(tmp(tmp~=0))*2;
         end
+        
+        
+        tmp = geo.BLKLABELS.rotore.xy(:,3);
+        nPM = sum(tmp==6);
+
         indexPM = 200+(1:1:nPM);
+
         mi_selectgroup(22), mi_selectgroup(2);
         for kk=1:length(indexPM)
             mi_selectgroup(indexPM(kk));
@@ -410,13 +406,20 @@ for jj = 1:nsim
         T=mo_blockintegral(22)*2*p/ps;
         mo_clearblock;
     end
-    
+
+    mo_groupselectblock();
+    we = mo_blockintegral(2)*2*p/ps;
+    wc = mo_blockintegral(17)*2*p/ps;
+    mo_clearblock();
+
     SOL.th(jj) = thetaPark(jj);
     SOL.id(jj) = id/Nbob; % Divide by Ns (simulation done with one turn per coil)
     SOL.iq(jj) = iq/Nbob;
     SOL.fd(jj) = fd*Nbob; % Times Ns
     SOL.fq(jj) = fq*Nbob;
     SOL.T(jj)  = T;
+    SOL.we(jj) = we;
+    SOL.wc(jj) = wc;
     
     for ff=1:n3phase
         SOL.ia(ff,jj) = i_tmp(1+3*(ff-1),jj)/Nbob;
@@ -472,83 +475,71 @@ for jj = 1:nsim
             SOL.Fy = Fy;
 
         case {'idemag','idemagmap','demagArea'}
-            if (jj == nsim)
-                Br = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,per.tempPP);
-                Bd = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Bd,per.tempPP);
-                mo_showdensityplot(1,0,Bd,Br,'bmag');
-                
-                Bmin = Br;
-                
-                % get the PMs flux density
-                EleNo = mo_numelements;               % Number of mesh elements
-                pos = zeros(EleNo,1);                 % Mesh elements centroid coordinates as complex number
-                groNo = zeros(EleNo,1);               % group number
-                area = zeros(EleNo,1);
-                vert = zeros(EleNo,3);
-                for ee = 1:EleNo
-                    elm = mo_getelement(ee);
-                    pos(ee) = elm(4)+j*elm(5);
-                    groNo(ee) = elm(7);
-                    area(ee) = elm(6);
-                    for vv=1:3
-                        tmpV=mo_getnode(elm(vv));
-                        vert(ee,vv)=tmpV(1)+j*tmpV(2);
-                    end
+            Br = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,per.tempPP);
+            Bd = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Bd,per.tempPP);
+            mo_showdensityplot(1,0,Bd,Br,'bmag');
+
+            Bmin = Br;
+
+            % get the PMs flux density
+            EleNo = mo_numelements;               % Number of mesh elements
+            pos = zeros(EleNo,1);                 % Mesh elements centroid coordinates as complex number
+            groNo = zeros(EleNo,1);               % group number
+            area = zeros(EleNo,1);
+            vert = zeros(EleNo,3);
+            for ee = 1:EleNo
+                elm = mo_getelement(ee);
+                pos(ee) = elm(4)+j*elm(5);
+                groNo(ee) = elm(7);
+                area(ee) = elm(6);
+                for vv=1:3
+                    tmpV=mo_getnode(elm(vv));
+                    vert(ee,vv)=tmpV(1)+j*tmpV(2);
                 end
-                EleIn=1:1:EleNo;
-                EleOK=EleIn(groNo>=min(BrGro)&groNo<=max(BrGro));
-                groNo=groNo(groNo>=min(BrGro)&groNo<=max(BrGro));
-                num=0;
-                den=0;
-                xyDemagTmpC=[];
-                xyDemagTmpV=[];
-                xyDemagTmpB=[];
-                for ee=1:length(EleOK)
-                    tmp=mo_getpointvalues(real(pos(EleOK(ee))),imag(pos(EleOK(ee))));
-                    Btmp=abs(tmp(2)+j*tmp(3))*cos(angle(tmp(2)+j*tmp(3))-BrDir(groNo(ee)-200));
-                    
-                    if Btmp<Bmin
-                        Bmin=Btmp;
-                    end
-                    if Btmp<Bd
-                        num=num+area(EleOK(ee));
-                        xyDemagTmpC=[xyDemagTmpC, pos(EleOK(ee))];
-                        xyDemagTmpV=[xyDemagTmpV, vert(EleOK(ee),:).'];
-                        xyDemagTmpB=[xyDemagTmpB, Btmp];
-                    end
-                    den=den+area(EleOK(ee));
+            end
+            EleIn=1:1:EleNo;
+            EleOK=EleIn(groNo>=min(BrGro)&groNo<=max(BrGro));
+            groNo=groNo(groNo>=min(BrGro)&groNo<=max(BrGro));
+            num=0;
+            den=0;
+            xyDemagTmpC=[];
+            xyDemagTmpV=[];
+            xyDemagTmpB=[];
+            for ee=1:length(EleOK)
+                tmp=mo_getpointvalues(real(pos(EleOK(ee))),imag(pos(EleOK(ee))));
+                Btmp=abs(tmp(2)+j*tmp(3))*cos(angle(tmp(2)+j*tmp(3))-BrDir(groNo(ee)-200));
+
+                if Btmp<Bmin
+                    Bmin=Btmp;
                 end
+                if Btmp<Bd
+                    num=num+area(EleOK(ee));
+                    xyDemagTmpC=[xyDemagTmpC, pos(EleOK(ee))];
+                    xyDemagTmpV=[xyDemagTmpV, vert(EleOK(ee),:).'];
+                    xyDemagTmpB=[xyDemagTmpB, Btmp];
+                end
+                den=den+area(EleOK(ee));
+            end
+            VolDem=0;
+            VolTot=den;
+            if num>0
+                dPM=num/den;
+                VolDem=num;
+                VolTot=den;
+            else
+                dPM=0;
                 VolDem=0;
                 VolTot=den;
-                if num>0
-                    dPM=num/den;
-                    VolDem=num;
-                    VolTot=den;
-                    
-                    motFolder=[pathname 'critical machines\'];
-                    mkdir(motFolder);
-                    
-                    caseName=[motFolder 'pos_' int2str(theta/(0.5*360/(6*geo.q))) '_cur_' int2str(iAmp) '_temp_' int2str(per.tempPP)];
-                    
-                    mi_saveas([caseName '.fem']);
-                else
-                    dPM=0;
-                    VolDem=0;
-                    VolTot=den;
-                end
-                if jj>1
-                    xyDemagTmpC=xyDemagTmpC.*exp(-j*(thetaPark(jj) - thetaPark(jj-1))/p*pi/180); % rotation in zero position
-                    xyDemagTmpV=xyDemagTmpV.*exp(-j*(thetaPark(jj) - thetaPark(jj-1))/p*pi/180); % rotation in zero position
-                end
-                SOL.xyDemagTmpC=xyDemagTmpC;
-                SOL.xyDemagTmpV=xyDemagTmpV;
-                SOL.xyDemagTmpB=xyDemagTmpB;
-                
-                SOL.Bmin      = Bmin;
-                SOL.dPM       = dPM;
-                SOL.VolDem    = VolDem;
-                SOL.VolTot    = VolTot;
             end
+
+            SOL.xyDemagTmpC{jj} = xyDemagTmpC;
+            SOL.xyDemagTmpV{jj} = xyDemagTmpV;
+            SOL.xyDemagTmpB{jj} = xyDemagTmpB;
+
+            SOL.Bmin(jj)      = Bmin;
+            SOL.dPM(jj)       = dPM;
+            SOL.VolDem(jj)    = VolDem;
+            SOL.VolTot(jj)    = VolTot;
         case {'singtIron','singmIron'} % simulation with iron loss
             if jj==1 % store the mesh information
                 EleNo = mo_numelements;               % Number of mesh elements
@@ -572,7 +563,7 @@ for jj = 1:nsim
                 br    = zeros(nsim,EleNo);
                 am    = zeros(nsim,EleNo);
             end
-            
+
             % download from FEMM the flux density data for iron loss
             % computation (for each mesh element)
             for ee=1:EleNo

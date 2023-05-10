@@ -233,11 +233,8 @@ BarCenter = [BarCenter; xtemp ytemp codMatSleeve,fem.res_traf,1,NaN,NaN,NaN];
 end
 
 % Assign label names
-if strcmp(RotType,'IM')
-    BarName = [];
-else
-    BarName = defineBlockNames(BarCenter,geo);
-end
+
+BarName = defineBlockNames(BarCenter,geo);
 
 % Boundary conditions
 if (ps<2*geo.p)

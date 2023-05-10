@@ -113,7 +113,7 @@ for ii=1:size(xy,1)
     elseif xy(ii,3)==9 % sleeve
         if ~geo.custom
             mi_selectlabel(xy(ii,1),xy(ii,2));
-            mi_setblockprop(mat.Sleeve.MatName,1,0,'None',0,300,0);
+            mi_setblockprop(mat.Sleeve.MatName,1,0,'None',0,199,0);
             mi_clearselected;
         end
     end
@@ -183,12 +183,12 @@ for ii=1:numElements
     elements(2,ii)  = tmp(2);
     elements(3,ii)  = tmp(3);
     eleGroup(ii)    = tmp(7);
-    if (eleGroup(ii)~=22 && eleGroup(ii)<200)
+    if (eleGroup(ii)~=22 && eleGroup(ii)~=199 && eleGroup(ii)<200)
         filt(k)=ii;
         k=k+1;
     end
 
-    if eleGroup(ii)==300
+    if eleGroup(ii)==199
         index    = elements(:,ii);
         vertex   = nodes(:,index);
         vertex   = vertex';
@@ -224,8 +224,8 @@ if flagFull
         eleGroup = [eleGroup, base.group];
     end
     elementID = ones(1,numElements*(nRep+1));
-    elementID(eleGroup==300)=3; % sleeve
-    eleGroup(eleGroup==300)=0;
+    elementID(eleGroup==199)=3; % sleeve
+    eleGroup(eleGroup==199)=0;
     elementID(eleGroup>199)=2; % PM
 end
 

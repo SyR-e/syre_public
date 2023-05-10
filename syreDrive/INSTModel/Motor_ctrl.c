@@ -33,8 +33,8 @@
 
 // USER CODE ENDS HERE
 
-#define NINPUTS 	20
-#define NOUTPUTS 	34
+#define NINPUTS 	21
+#define NOUTPUTS 	42
 #define NPARAMS 	0
 
 
@@ -105,17 +105,17 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     Reset 				= U(9);			// Black button
     Go    				= U(10);	  // Blue  button
 		
-	Ctrl_type			= U(11);			
-    inj_waveform		= U(12);		// Injected waveform (sinusoidal or squarewave)
-    dem 			  	= U(13);		// Current or Flux demoduation
-	HS_ctrl		  		= U(14);		// High speed position error estimation technique (AF or APP)
-	SS_on				= U(15);		// Sensorless ON or OFF
-	accel				= U(16); 		// speed acceleration rpm/s
-	Quad_Maps			= U(17);
-    lambda_M            = U(18);
-    th0                 = U(19);
-
-    
+	Ctrl_type			= U(11);	
+    Ctrl_strategy       = U(12);
+    inj_waveform		= U(13);		// Injected waveform (sinusoidal or squarewave)
+    dem 			  	= U(14);		// Current or Flux demoduation
+	HS_ctrl		  		= U(15);		// High speed position error estimation technique (AF or APP)
+	SS_on				= U(16);		// Sensorless ON or OFF
+	accel				= U(17); 		// speed acceleration rpm/s
+	Quad_Maps			= U(18);
+    lambda_M            = U(19);
+    th0                 = U(20);
+   
   
     
    
@@ -211,7 +211,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
             
             // Current offset accumulation
             
-            if (counter>100){
+            if (counter>0.01f/Ts){
                 offset_in.ch0+=input.ch0;
                 offset_in.ch1+=input.ch1;
                 offset_in.ch2+=input.ch2;
@@ -219,7 +219,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
             
             // Offset computation and bootstrap
                      
-            if (counter==(100+200)){ 
+            if (counter==0.03/Ts){ 
                 offset_current_a=(float)(offset_in.ch0/200.0f);
                 offset_current_b=(float)(offset_in.ch1/200.0f);
                 offset_current_c=(float)(offset_in.ch2/200.0f);
@@ -236,7 +236,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 						
             // Switch to READY state
             
-            if (counter > 300){   
+            if (counter > 0.03/Ts){   
                 counter=0;
                 State = READY;
             }
@@ -259,26 +259,9 @@ static void mdlOutputs(SimStruct *S, int_T tid)
             
         case START:
 			
-			//-------------------Speed Compute----------------------------------//
-			
-			theta_elt_meas      = PP * theta_mec_meas;
-			while(theta_elt_meas > PI)
-				theta_elt_meas -= TWOPI;
-			while(theta_elt_meas < -PI)
-				theta_elt_meas += TWOPI;
-			SinCos_elt_meas.sin = sin(theta_elt_meas);
-			SinCos_elt_meas.cos = cos(theta_elt_meas);
-				
-			speed_compute_sc(SinCos_elt_meas, &SinCos_elt_meas_old, &omega_elt_meas);
-			_Filter(omega_elt_meas, omega_elt_meas_f, Ts*TWOPI*10);
-			omega_mec_meas      = omega_elt_meas/PP;
-			omega_mec_meas_f    = omega_elt_meas_f/PP;
-			omega_mec_meas_rpm  = omega_mec_meas_f*30/PI;
-				
-			SinCos_elt_meas_old.sin = SinCos_elt_meas.sin;
-			SinCos_elt_meas_old.cos = SinCos_elt_meas.cos;
+			//-------------------------Speed Compute---------------------------//
 								
-			//---------------------------------PLL-------------------------------//
+			//-------------------------Sensorless PLL--------------------------//
 			
 			if(SS_on) {	
 				PLL_par.kp   = 2*OMEGA_B_PLL;
@@ -302,12 +285,46 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 				position_error_real = asin(sin(theta_elt_meas - theta_PLL));
 
 			}		
-			
-			else { // Encoder
-				SinCos_elt.sin = sin(theta_elt_meas);
-				SinCos_elt.cos = cos(theta_elt_meas);
-				omega_elt = omega_elt_meas_f;
-				position_error_real = 0;
+			//-------------------------Encoder PLL-----------------------------//
+			else { 
+				while(theta_mec_meas > PI)
+				    theta_mec_meas -= TWOPI;
+			    while(theta_mec_meas < -PI)
+				    theta_mec_meas += TWOPI;
+               
+                SinCos_mec_meas.cos = cos(theta_mec_meas);
+                SinCos_mec_meas.sin = sin(theta_mec_meas);
+
+                theta_elt_meas      = PP * theta_mec_meas;
+			    while(theta_elt_meas > PI)
+			        theta_elt_meas -= TWOPI;
+			    while(theta_elt_meas < -PI)
+		            theta_elt_meas += TWOPI;
+ 				
+                SinCos_elt.sin = sin(theta_elt_meas);
+ 				SinCos_elt.cos = cos(theta_elt_meas);
+ 	            
+                PLL_mec_par.kp   = OMEGA_PLL;
+				PLL_mec_par.ki   = pow(OMEGA_PLL,2)*Ts*10;
+				PLL_mec_par.lim  = RPM2RAD*nmax_mot;
+				PLL_mec_var.ref  = SinCos_mec_meas.sin*SinCos_mec_PLL.cos-SinCos_mec_meas.cos*SinCos_mec_PLL.sin;
+				PLL_mec_var.fbk  = 0;
+                
+                PIReg(&PLL_mec_par, &PLL_mec_var);
+				omega_mec_PLL  = PLL_mec_var.out;
+				theta_mec_PLL += Ts*PLL_mec_var.out; 
+				_Filter(omega_mec_PLL, omega_mec, Ts*TWOPI*25);
+				
+				if(theta_mec_PLL >= TWOPI)
+					theta_mec_PLL -= TWOPI;
+				if (theta_mec_PLL < 0)
+					theta_mec_PLL +=TWOPI;
+				
+				SinCos_mec_PLL.sin = sin(theta_mec_PLL);
+				SinCos_mec_PLL.cos = cos(theta_mec_PLL);
+                
+                omega_elt = omega_mec*PP;
+                
 			}
 			
 			//-------------------------------Control Type ------------------------------//										
@@ -322,6 +339,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 				case 2: //TorqueControl
 					ReadLut(&ID_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &isdq_ref.d); 
 					ReadLut(&IQ_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &isdq_ref.q);
+                    ReadLut(&F_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &lambda_MTPA);
 					switch (Quad_Maps){
 						case 0:
 							isdq_ref.d = sgn(T_ext)*isdq_ref.d; 
@@ -352,6 +370,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 																	
 					ReadLut(&ID_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &isdq_ref.d); 
 					ReadLut(&IQ_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &isdq_ref.q);
+                    ReadLut(&F_REF[0], fabs(T_ext), TMAX, TMIN, DT, INV_DT, &lambda_MTPA);
 					switch (Quad_Maps){
 						case 0:
 							isdq_ref.d = sgn(T_ext)*isdq_ref.d; 
@@ -377,6 +396,12 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 			_rot(vsab_k0,SinCos_elt,vsdq_k0);
 			
 			FluxObserver();
+            SinCos_delta.cos = cos(delta);
+            SinCos_delta.sin = sin(delta);
+			
+            idsqs.d = isdq.d*cos(delta) + isdq.q*sin(delta);
+            idsqs.q = -isdq.d*sin(delta)+isdq.q*cos(delta);
+
 			//Compute_Inductance();
 			
 			//---------------------------Sensorless Position Estimation--------------------------//
@@ -470,28 +495,108 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 			if (counterHF >= ns)
 				counterHF = 0;
 			
-			//-----------------------Current Vector Control--------------------//
-			
-// 			kp_id = OMEGA_BI*ld;
-// 			ki_id = kp_id*OMEGA_BI/10;
-// 			kp_iq = OMEGA_BI*lq;
-// 			ki_iq = kp_iq*OMEGA_BI/10;
-//             
-            kp_id = OMEGA_BI*Ld_inic;
-			ki_id = kp_id*OMEGA_BI/10;
-			kp_iq = OMEGA_BI*Lq_inic;
-			ki_iq = kp_iq*OMEGA_BI/10;
+            //-------------------------Control Strategy------------------------//
 
-			id_par.kp   = kp_id;
-			id_par.ki   = ki_id*Ts;
-			iq_par.kp   = kp_iq;
-			iq_par.ki   = ki_iq*Ts;
 
-			//Current loop
-			Current_loop(vdc, Imax_mot, isdq_ref, isdq, &id_par, &id_var, &iq_par, &iq_var, &vsdq_ref);
-			vsdq_ref.d += RS*isdq.d - omega_elt*lambda_dq.q;
-			vsdq_ref.q += RS*isdq.q + omega_elt*lambda_dq.d;
+            switch(Ctrl_strategy){
+                case FOC:
+			//-----------------------FOC---------------------------------------//
+// 			
+//      		kp_id = OMEGA_BI*ld;
+//      		ki_id = kp_id*OMEGA_BI/10;
+//      		kp_iq = OMEGA_BI*lq;
+//      		ki_iq = kp_iq*OMEGA_BI/10;
+                
+	            kp_id = OMEGA_BI*Ld_inic;
+			    ki_id = kp_id*OMEGA_BI/10;
+			    kp_iq = OMEGA_BI*Lq_inic;
+			    ki_iq = kp_iq*OMEGA_BI/10;
+     
+			    id_par.kp   = kp_id;
+			    id_par.ki   = ki_id*Ts;
+			    iq_par.kp   = kp_iq;
+			    iq_par.ki   = ki_iq*Ts;
+    
+			    //Current loop
+			    Current_loop(vdc, Imax_mot, isdq_ref, isdq, &id_par, &id_var, &iq_par, &iq_var, &vsdq_ref);
+			    vsdq_ref.d += RS*isdq.d - omega_elt*lambda_dq.q;
+			    vsdq_ref.q += RS*isdq.q + omega_elt*lambda_dq.d;
+            
+                break;
+                case DFVC:
+                //---------------------Direct Flux Vector Control--------------//
+                T_ref = T_ext; 
+                lambda_ref = lambda_MTPA;
+                if(lambda_ref<lambda_MTPA_min)
+                    lambda_ref=lambda_MTPA_min;
+                if(lambda_ref>lambda_MTPA_max) 
+                   lambda_ref=lambda_MTPA_max;
+    
+                Flux_Lim = 0.85f*vdc*SQRT1OVER3/abs(omega_elt+1);
+                
+                if(Flux_Lim>lambda_MTPA_max)
+                    Flux_Lim=lambda_MTPA_max;
+                if(lambda_ref>Flux_Lim)
+                    lambda_ref = Flux_Lim;
+                
+             
+                 delta_par.kp = OMEGA_DELTA*lambda_ref/iqs_par.kp;
+                 delta_par.ki = delta_par.kp*0.1;
+                  
+                 if(Quad_Maps==0 || Quad_Maps==2){
+                    delta_var.ref = delta_MTPV_max;
+                    delta_var.fbk = fabs(delta)*180/PI;
+                 }
+                 if(Quad_Maps==1){
+                     if(T_ref>0){
+                        delta_var.ref = delta_MTPV_max;
+                        delta_var.fbk = delta*180/PI; 
+                     }
+                     else{
+                        delta_var.ref = delta_MTPV_max+180;
+                        delta_var.fbk = fabs(delta)*180/PI+90;
+                     }
+                 }  
 
+                 PIRegAsy(&delta_par,&delta_var,Imax_mot,0);
+                 i_MTPV = delta_var.out;
+               
+                    
+                
+                //Current Limitation
+                iqs_ref = T_ref/(1.5*PP*lambda_ref);
+                iqs_Lim = sqrt(pow(Imax_mot,2)-pow(idsqs.d,2))-i_MTPV;            
+                if(fabs(iqs_ref) >iqs_Lim)
+                    iqs_ref = iqs_Lim*sgn(T_ref);
+                
+                //Control Loops
+    
+                lambda_par.kp = OMEGA_BI*0.5;
+                lambda_par.ki = lambda_par.kp*OMEGA_BI*0.5/10*Ts;
+                iqs_par.kp = OMEGA_BI*Lq_inic;
+                iqs_par.ki = iqs_par.kp*OMEGA_BI/10*Ts;
+                lambda_par.lim = vdc*SQRT1OVER3/3;
+                iqs_par.lim=vdc*SQRT1OVER3;
+    
+                lambda_var.ref = lambda_ref;
+                lambda_var.fbk = lambda_OBS.amp;
+                PIReg(&lambda_par,&lambda_var);
+                vdsqs.d = lambda_var.out;
+                //iqs_par.lim = sqrt(pow(vdc*SQRT1OVER3,2)-pow(vdsqs.d,2));
+                
+    
+                iqs_var.ref = iqs_ref;
+                iqs_var.fbk = idsqs.q;
+                PIReg(&iqs_par,&iqs_var);
+                vdsqs.q = iqs_var.out;
+                vdsqs.q+= RS*idsqs.q + omega_elt*lambda_OBS.amp;
+                   
+     
+                vsdq_ref.d = vdsqs.d*cos(delta)-vdsqs.q*sin(delta);
+                vsdq_ref.q  = vdsqs.d*sin(delta)+vdsqs.q*cos(delta);
+                
+                break;
+            }
 
             //Phase advance
 
@@ -520,7 +625,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 				}
 			}	
 			
-		_invrot(vsdq_ref, SinCos_elt, vsab_ref);
+		_invrot(vsdq_ref, SinCos_elt_dTheta, vsab_ref);
 		_invclarke(vsab_ref, vsabc_ref);
 		PWMduty(vsabc_ref, vdc,&duty_abc);								
 	
@@ -587,7 +692,17 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 	y[31] = position_error_real*180/PI;
 	y[32] = pos_err_LS*180/PI;
 	y[33] = pos_err_HS*180/PI;
-   
+    y[34] = lambda_var.ref;
+    y[35] = lambda_var.fbk;
+    y[36] = iqs_var.ref;
+    y[37] = iqs_var.fbk;
+    y[38] =  delta_var.ref;
+    y[39] =  delta_var.fbk;
+    y[40] = delta_var.out;
+    y[41] = iqs_Lim;
+
+
+
 }
 
 /* Function: mdlTerminate ===================================================== */
@@ -645,8 +760,21 @@ void FluxObserver(void) {
 	
 	_rot(lambda_OBS, SinCos_elt, lambda_dq);
 	T_elt = 1.5f*PP*(lambda_OBS.alpha*isab.beta - lambda_OBS.beta*isab.alpha);	
-	delta = atan(lambda_dq.q/lambda_dq.d);
-	
+	if(fabs(T_elt)<0.02f){
+        switch(Quad_Maps){
+            case 0:
+                delta = 0;
+            break;
+            case 1:    
+                delta = -PI/2;
+            break;
+            case 2:
+                delta = 0;
+            break;    
+        }
+    }    
+    else
+        delta = atan2(lambda_dq.q,lambda_dq.d);
 }
 
 //----------------------------------------------------------------------------------------------------//
@@ -676,33 +804,37 @@ void Compute_Inductance(void) {
     
 	switch (Quad_Maps){
         case 0:
-            isdq.d = fabs(isdq.d);
-            isdq.q = fabs(isdq.q);
+            interp2d(&FD_LUT[0][0], fabs(isdq.d)+0.1, fabs(isdq.q), DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &tmp1);
+            ld_unfilt = (tmp1 - fabs(lambda_CM_dq.d))/0.1;
+            interp2d(&FQ_LUT[0][0], fabs(isdq.q)+0.1, fabs(isdq.d), DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &tmp1);
+            lq_unfilt = (tmp1 - fabs(lambda_CM_dq.q))/0.1;
+            interp2d(&FD_LUT[0][0], fabs(isdq.d), fabs(isdq.q)+0.1, DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &tmp1);
+            ldq_d = (tmp1 - fabs(lambda_CM_dq.d))/0.1;
+            interp2d(&FQ_LUT[0][0], fabs(isdq.q), fabs(isdq.d)+0.1, DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &tmp1);
+            ldq_q = (tmp1 - fabs(lambda_CM_dq.q))/0.1;
         case 1:
-			isdq.d = fabs(isdq.d);
+            interp2d(&FD_LUT[0][0], fabs(isdq.d)+0.1, isdq.q, DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &tmp1);
+            ld_unfilt = (tmp1 - fabs(lambda_CM_dq.d))/0.1;
+            interp2d(&FQ_LUT[0][0], isdq.q+0.1, fabs(isdq.d), DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &tmp1);
+            tmp1 = fabs(tmp1);
+            lq_unfilt = (tmp1 - fabs(lambda_CM_dq.q))/0.1;
+            interp2d(&FD_LUT[0][0], fabs(isdq.d), isdq.q+0.1, DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &tmp1);
+            ldq_d = (tmp1 - fabs(lambda_CM_dq.d))/0.1;
+            interp2d(&FQ_LUT[0][0], isdq.q, fabs(isdq.d)+0.1, DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &tmp1);
+            tmp1 = fabs(tmp1);
+            ldq_q = (tmp1 - fabs(lambda_CM_dq.q))/0.1;
         case 2:
-            isdq.q = fabs(isdq.q);
+            interp2d(&FD_LUT[0][0], isdq.d+0.1, fabs(isdq.q), DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &tmp1);
+            tmp1 = fabs(tmp1);
+            ld_unfilt = (tmp1 - fabs(lambda_CM_dq.d))/0.1;
+            interp2d(&FQ_LUT[0][0], fabs(isdq.q)+0.1, isdq.d, DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &tmp1);
+            lq_unfilt = (tmp1 - fabs(lambda_CM_dq.q))/0.1;
+            interp2d(&FD_LUT[0][0], isdq.d, fabs(isdq.q)+0.1, DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &tmp1);
+            tmp1 = fabs(tmp1);
+            ldq_d = (tmp1 - fabs(lambda_CM_dq.d))/0.1;
+            interp2d(&FQ_LUT[0][0], fabs(isdq.q), isdq.d+0.1, DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &tmp1);
+            ldq_q = (tmp1 - fabs(lambda_CM_dq.q))/0.1;
     }
-	
-		interp2d(&FD_LUT[0][0], isdq.d+0.1, isdq.q, DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &tmp1);
-    if(Quad_Maps == 2)
-        tmp1 = fabs(tmp1);
-    ld_unfilt = (tmp1 - fabs(lambda_CM_dq.d))/0.1;
-    
-    interp2d(&FQ_LUT[0][0], isdq.q+0.1, isdq.d, DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &tmp1);
-    if(Quad_Maps == 1)
-        tmp1 = fabs(tmp1);
-    lq_unfilt = (tmp1 - fabs(lambda_CM_dq.q))/0.1;
-
-    interp2d(&FD_LUT[0][0], isdq.d, isdq.q+0.1, DIDD, INV_DIDD, DIQD, INV_DIQD , ID_TAB_MAX, ID_TAB_MIN, IQ_TAB_MAX , IQ_TAB_MIN, n_size, &tmp1);
-    if(Quad_Maps == 2)
-        tmp1 = fabs(tmp1);
-    ldq_d = (tmp1 - fabs(lambda_CM_dq.d))/0.1;
-    
-    interp2d(&FQ_LUT[0][0], isdq.q, isdq.d+0.1, DIQQ, INV_DIQQ, DIQD, INV_DIQD , IQ_TAB_MAX, IQ_TAB_MIN, ID_TAB_MAX , ID_TAB_MIN, n_size, &tmp1);
-    if(Quad_Maps == 1)
-        tmp1 = fabs(tmp1);
-    ldq_q = (tmp1 - fabs(lambda_CM_dq.q))/0.1;
     ldq_unfilt = (ldq_d + ldq_q)/2*sgn(isdq.d)*sgn(isdq.q);
 	
 	_Filter(ld_unfilt,  ld,  Ts*TWOPI*100);		

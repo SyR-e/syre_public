@@ -7,6 +7,7 @@ int	Go_flag;
 int State;
 int counter=0;
 int Ctrl_type;
+int Ctrl_strategy;
 int Quad_Maps;
 float lambda_M;
 float th0;
@@ -34,8 +35,28 @@ float kp_w, ki_w, kp_id, ki_id, kp_iq, ki_iq;
 //Mechanical variables
 float omega_ref_in, omega_ref_ramp, accel, theta_ref;
 float omega_elt_meas, theta_elt_meas, theta_elt_meas_enc, omega_mec_meas, theta_mec_meas, omega_elt_meas_f, omega_mec_meas_f, omega_mec_meas_rpm;
-Xsc SinCos_ref, SinCos_elt_meas, SinCos_elt_meas_old, SinCos_elt;
+Xsc SinCos_ref, SinCos_elt_meas, SinCos_elt_meas_old, SinCos_elt,SinCos_elt_dTheta;
 float omega_elt;
+
+
+//Direct Flux Vector Control
+XPIRegPars lambda_par,iqs_par,delta_par;
+XPIRegVars lambda_var,iqs_var,delta_var;
+Xsc SinCos_delta;
+Xdq vdsqs,idsqs;
+float lambda_MTPA,Flux_Lim,lambda_ref,iqs_ref;
+Xdq isdq_aux,lambda_aux;
+float delta_mtpv,delta_max;
+float a,b;
+float tmp_1;
+float delta_ref;
+float Tmax_MTPV;
+float iqs_Lim;
+float Tmax_CrtLim;
+float T_Lim;
+float T_ref;
+float i_MTPV;
+
 
 // Flux observer
 Xdq lambda_dq, lambda_CM_dq; 
@@ -82,6 +103,11 @@ int SS_on, cnt = 0;
 int dem; 	 // CRNTDEM: current demodulation, FLUXDEM: flux demodulation
 int inj_waveform; // SINUS: pulsating, SQUARE: squarewave
 
+// Mechanical PLL
+Xsc SinCos_mec_PLL,SinCos_elt_meas,SinCos_mec_meas;
+XPIRegPars PLL_mec_par;
+XPIRegVars PLL_mec_var;
+float omega_mec_PLL,omega_mec,theta_mec_PLL;
 
 float Reset,  BlueBTN;
 

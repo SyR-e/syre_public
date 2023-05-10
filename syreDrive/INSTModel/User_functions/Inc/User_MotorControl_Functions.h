@@ -9,6 +9,7 @@
 //#include "../Inc/MotorData.h"
 
 void PIReg(XPIRegPars *par,XPIRegVars *var);
+void PIRegAsy(XPIRegPars *par,XPIRegVars *var, float lim_max, float lim_min);
 void PWMduty(Xabc vsabc_ref, float vdc, Xabc* duty_abc);
 void speed_compute_sc(Xsc sincos, Xsc *sincos_old, float* omega);
 void DTComp1(Xabc isabc, float amp_dt, Xabc *duty_abc);

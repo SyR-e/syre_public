@@ -86,6 +86,23 @@ if isfield(skinEffect,'T')
     end
     legend(hax(3),'show','Location','northeastoutside');
 
+    hfig(4) = figure();
+    figSetting();
+    set(hfig(4),'Filename',[pathname resFolder 'AClossModel_wEndWinding.fig'])
+    hax(4) = axes('OuterPosition',[0 0 1 1],...
+        'XLim',[0 max(f(:))]);
+    xlabel('$f$ [Hz]')
+    ylabel('$k_{AC}$ [p.u.] - with end winding')
+    Rs0   = motorModel.data.Rs;
+    temp0 = motorModel.data.tempCu;
+    l     = motorModel.data.l;
+    lend  = motorModel.data.lend;
+    Rs = calcRsTempFreq(Rs0,temp0,l,lend,skinEffect,'LUT',T,f);
+    for ii=1:length(tempVect)
+        plot(hax(4),f(ii,:),Rs(ii,:)/(Rs(ii,1)),'-o','DisplayName',['$\Theta_{Cu}=' int2str(tempVect(ii)) '^\circ$C'])
+    end
+    legend(hax(4),'show','Location','northwest');
+
 
 end
 

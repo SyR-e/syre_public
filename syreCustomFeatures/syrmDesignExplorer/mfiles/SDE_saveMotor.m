@@ -18,6 +18,9 @@ dataSet = map.dataSet;
 [dataSet,geo,per,mat] = back_compatibility(dataSet,map.geo,[],1);
 x = map.xSelect;
 b = map.bSelect;
+if dataSet.FEAfixN==0
+    dataSet.FEAfixN = 1;
+end
 
 dataSet.AirGapRadius    = x*dataSet.StatorOuterRadius;
 dataSet.ShaftRadius     = interp2(map.xx,map.bb,map.Ar,x,b);

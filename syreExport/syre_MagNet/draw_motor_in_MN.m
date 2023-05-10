@@ -106,6 +106,7 @@ materialCodes;  % load the material codes for BLKLABELS decodification
 indexCu  = 1;
 indexAir = 1;
 indexFe  = 1;
+indexCuRot = 1;
 xyStator = BLKLABELS.statore.xy;
 namesStator = BLKLABELS.statore.names;
 
@@ -129,7 +130,7 @@ end
 
 % Rotore
 xyRotor = BLKLABELS.rotore.xy;
-%namesRotor = BLKLABELS.names;
+namesRotor = BLKLABELS.rotore.BarName;
 indexAir = 1;
 indexPM  = 1;
 
@@ -152,6 +153,10 @@ for kk=1:length(xyRotor(:,1))
             end
         case codMatShaft % shaft
             h = MakeComponentMagnet(h,[xyRotor(kk,1), xyRotor(kk,2)],'shaft',l,BLKLABELS.materials(xyRotor(kk,3),:),'None',[0, 0, 1],-1);
+        case codMatCuRot
+            eleName = BLKLABELS.rotore.BarName{indexCuRot};
+            indexCuRot = indexCuRot+1;
+            h = MakeComponentMagnet(h,[xyRotor(kk,1) xyRotor(kk,2)],eleName,l,BLKLABELS.materials(xyRotor(kk,3),:),'None',[0, 0, 1],xyRotor(kk,4));
     end
 end
 % Traferro
@@ -181,6 +186,60 @@ for ii=1:n3ph
     coil_number = 3+3*(ii-1);
     MakeSimpleCoilMagnet_UVW
     
+end
+
+%%Induction motor
+if strcmp(geo.RotType, 'IM')
+    for ii=1:length(BLKLABELS.rotore.BarName)
+        coil_name = ['Rot' int2str(ii)];
+        coil_number = coil_number+1;
+        dh = h.documentHandler;
+        mh = h.magnetHandler;
+
+        invoke(mh,'processCommand',[CGDGV,'.selectObject("Bar_',num2str(ii),'", infoSetSelection)']);
+        % invoke(mh,'processCommand',['CALL getDocument().getView().selectObject("Bar_',num2str(ii+1),'",',ITIS,')']);
+
+        string=sprintf('REDIM ArrayOfValues(0)');
+        invoke(mh,'processCommand',string);
+        clear string
+        string=sprintf('ArrayOfValues(0)= "Bar_%d"',ii);
+        invoke(mh,'processCommand',string);
+        string=sprintf('%s.makeSimpleCoil(1, ArrayOfValues)',CGD);
+        invoke(mh,'processCommand',string);
+        string=sprintf('%s.renameObject("Coil#%g", "%s")',CGD,coil_number,coil_name);
+        invoke(mh,'processCommand',string);
+        string=sprintf('%s.setCoilNumberOfTurns("%s", 1)',CGD,coil_name);
+        invoke(mh,'processCommand',string);
+        string=sprintf('%s.setCoilType("%s", infoSolidCoil)',CGD, coil_name);
+        invoke(mh,'processCommand',string);
+
+        string=sprintf('%s.getCircuit().insertCoil("%s", 100 , %d)',CGD, coil_name, 100*ii);
+        invoke(mh,'processCommand',string);
+
+    end
+
+    for jj=1:2
+        for ii=1:length(BLKLABELS.rotore.BarName)-1
+            string=sprintf('%s.getCircuit().getPositionOfTerminal("Rot%d,T%d", TX1, TY1)',CGD, ii, jj);
+            invoke(mh,'processCommand',string);
+            string=sprintf('%s.getCircuit().getPositionOfTerminal("Rot%d,T%d", TX2, TY2)',CGD, ii+1, jj);
+            invoke(mh,'processCommand',string);
+            string=sprintf('REDIM XArrayOfValues(1)');
+            invoke(mh,'processCommand',string);
+            string=sprintf('XArrayOfValues(0)= TX1');
+            invoke(mh,'processCommand',string);
+            string=sprintf('XArrayOfValues(1)= TX2');
+            invoke(mh,'processCommand',string);
+            string=sprintf('REDIM YArrayOfValues(1)');
+            invoke(mh,'processCommand',string);
+            string=sprintf('YArrayOfValues(0)= TY1');
+            invoke(mh,'processCommand',string);
+            string=sprintf('YArrayOfValues(1)= TY2');
+            invoke(mh,'processCommand',string);
+            string=sprintf('%s.getCircuit().insertConnection(XArrayOfValues, YArrayOfValues)',CGD);
+            invoke(mh,'processCommand',string);
+        end
+    end
 end
 
 % Cancella tutte le linee di costruzione

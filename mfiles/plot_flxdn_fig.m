@@ -1,3 +1,18 @@
+% Copyright 2021
+%
+%    Licensed under the Apache License, Version 2.0 (the "License");
+%    you may not use this file except in compliance with the License.
+%    You may obtain a copy of the License at
+%
+%        http://www.apache.org/licenses/LICENSE-2.0
+%
+%    Unless required by applicable law or agreed to in writing, software
+%    distributed under the License is distributed on an "AS IS" BASIS,
+%    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%    See the License for the specific language governing permissions and
+%    limitations under the License.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function plot_flxdn_fig(geo,out,newDir,filemot)
 
 % 
@@ -11,7 +26,7 @@ Bg = out.SOL.Bg;
 Bt = out.SOL.Bt;
 By = out.SOL.By;
 
-Q = 6*geo.p*geo.q;
+Q = 6*geo.p*geo.q*geo.win.n3phase;
 alpha_th = geo.wt/(geo.r+geo.g)*180/pi;
 alpha_slot = 360/Q;
 Qs = geo.Qs;
@@ -63,7 +78,7 @@ plot(hax(3),By(:,1),By(:,2:end));
 for ii=1:3
     hchild=get(hax(ii),'Children');
     for jj=1:length(hchild)
-        set(hchild(end-jj+1),'DisplayName',['$\theta= ' num2str(out.SOL.th(ii)-geo.th0,2) '^\circ$']);
+        set(hchild(end-jj+1),'DisplayName',['$\theta= ' num2str(out.SOL.th(ii)-geo.th0(1),2) '^\circ$']);
     end
     legend(hax(ii),'show');
     set(hax(ii),'XLim',[min(Bg(:,1)) max(Bg(:,1))]);

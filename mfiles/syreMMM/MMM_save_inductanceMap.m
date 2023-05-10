@@ -17,7 +17,7 @@ function MMM_save_inductanceMap(motorModel)
 
 pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;
-resFolder = [motName '_results\MMM results\' 'Inductance Maps - ' int2str(motorModel.data.tempPM) 'deg\'];
+resFolder = [motName '_results\MMM results\' 'Incremental Inductance Maps - ' int2str(motorModel.data.tempPM) 'deg\'];
 
 if ~exist([pathname resFolder],'dir')
     mkdir([pathname resFolder])
@@ -30,6 +30,6 @@ ldq = motorModel.IncInductanceMap_dq.Ldq;
 lqd = motorModel.IncInductanceMap_dq.Lqd;
 lqq = motorModel.IncInductanceMap_dq.Lqq;
 
-save([pathname resFolder 'inductanceMap.mat'],'Id','Iq','ldd','ldq','lqd','lqq');
+save([pathname resFolder 'incInductanceMap.mat'],'Id','Iq','ldd','ldq','lqd','lqq');
 
 

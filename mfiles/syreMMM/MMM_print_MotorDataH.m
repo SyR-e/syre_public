@@ -110,17 +110,39 @@ StampaVarg(fid,fq_set,m,n+1,'FQ_REF','//MTPA - fq','%6.3f')
 StampaVarg(fid,f_set,m,n+1,'F_REF','//MTPA - flux amplitude','%6.3f')
 fprintf(fid,' \n');
 
-FMTPV = linspace(min(abs(MTPV.fd+1i*MTPV.fq)),max(abs(MTPV.fd+1i*MTPV.fq)),n+1);
-TMTPV = interp1(abs(MTPV.fd+1i*MTPV.fq),MTPV.T,FMTPV);
+lambda_amp_MTPA = abs(MTPA.fd+1j*MTPA.fq);
+fprintf(fid,'float lambda_MTPA_max = %4.3f;\n',max(lambda_amp_MTPA));
+fprintf(fid,'float lambda_MTPA_min = %4.3f;\n',min(lambda_amp_MTPA));
 
+if not(isempty(MTPV.iq))
+    lambda_amp_MTPV = abs(MTPV.fd+1j*MTPV.fq);
+    fprintf(fid,'float lambda_MTPV_max = %4.3f;\n',max(lambda_amp_MTPV));
+    fprintf(fid,'float lambda_MTPV_min = %4.3f;\n',min(lambda_amp_MTPV));
 
-fprintf(fid,'float FMIN    = %4.3f; //Vs\n',min(FMTPV));
-fprintf(fid,'float FMAX    = %4.3f; //Vs\n',max(FMTPV));
-step = (max(FMTPV)-min(FMTPV))/n;
-fprintf(fid,'float DF      = %4.4f; //Vs\n',step);
-fprintf(fid,'float INV_DF  = %4.4f; //Vs^-1\n',1/step);
-StampaVarg(fid,TMTPV,m,n+1,'T_MTPV','//MTPV - max torque vs Vs','%6.3f')
-fprintf(fid,' \n');
+    lambda_MTPV = linspace(min(abs(MTPV.fd+1i*MTPV.fq)),max(abs(MTPV.fd+1i*MTPV.fq)),n+1);
+    T_MTPV = interp1(abs(MTPV.fd+1i*MTPV.fq),MTPV.T,lambda_MTPV);
+    delta = angle(MTPV.fd+1j*MTPV.fq)*180/pi;
+    delta_set= interp1(MTPV.T,delta,T_MTPV);
+
+    step = (max(lambda_MTPV)-min(lambda_MTPV))/n;
+
+    StampaVarg(fid,T_MTPV,m,n+1,'T_MTPV','//MTPV - max torque vs Vs','%6.3f')
+    StampaVarg(fid,delta_set,m,n+1,'delta_MTPV','//MTPV - delta','%6.3f')
+
+    fprintf(fid,'float delta_MTPV_max    = %4.3f; //deg\n',max(delta_set));
+
+    fprintf(fid,'float FMIN    = %4.3f; //Vs\n',min(lambda_MTPV));
+    fprintf(fid,'float FMAX    = %4.3f; //Vs\n',max(lambda_MTPV));
+    step = (max(lambda_MTPV)-min(lambda_MTPV))/n;
+    fprintf(fid,'float DF      = %4.4f; //Vs\n',step);
+    fprintf(fid,'float INV_DF  = %4.4f; //Vs^-1\n',1/step);
+    fprintf(fid,' \n');
+else
+    fprintf(fid,'// MTPV not covered by existing maps');
+    fprintf(fid,' \n');
+    fprintf(fid,' \n');
+end
+
 fclose(fid);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

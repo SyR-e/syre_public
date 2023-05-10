@@ -20,16 +20,6 @@ Tw   = motorModel.TnSetup;
 motorModelUnScale = app.motorModelUnScale;
 motorModelUnSkew  = app.motorModelUnSkew;
 
-
-% main data
-% set(app.CurrentPathEditField,...
-%     'Value',motorModel.data.pathname,...
-%     'Enable','on',...
-%     'Editable','off');
-% set(app.ModelSavedCheckBox,...
-%     'Enable','off',...
-%     'Value',motorModel.data.flagSave);
-
 % motor data
 set(app.MotornameEditField,'Value',data.motorName)
 set(app.PathnameEditField,'Value',data.pathname)
@@ -49,11 +39,6 @@ set(app.MaximumspeedEditField,'Value',num2str(data.nmax));
 set(app.PhaseresistanceEditField,'Value',num2str(data.Rs));
 set(app.WindingtemperatureEditField,'Value',num2str(data.tempCu));
 set(app.EndwindinglengthEditField,'Value',num2str(data.lend));
-
-
-% set(app.PMtemperatureEditField,'Value',num2str(data.tempPM),...
-%     'Enable','on',...
-%     'Editable','off');
 
 tmpCell = cell(length(data.tempVectPM)+1,1);
 for ii=1:length(data.tempVectPM)
@@ -87,9 +72,11 @@ if ~isempty(motorModel.FluxMap_dq)
     set(app.PrintDQmodelButton,'Enable','on')
     set(app.EvaluateMTPAButton,'Enable','on')
     set(app.EvalInductanceButton,'Enable','on')
+    set(app.EvalAppInductanceButton,'Enable','on')
     set(app.EvalInverseDQButton,'Enable','on')
     set(app.PlotTgammaButton,'Enable','on')
     set(app.MaxTwPush,'Enable','on')
+    set(app.MaxTwPWMPush,'Enable','on')
     set(app.EvaluateShortCircuitTorqueButton,'Enable','on')
     set(app.WaveformShortCircuitButton,'Enable','on')
     set(app.ScaleMapPush,'Enable','on')
@@ -102,9 +89,11 @@ else
     set(app.PrintDQmodelButton,'Enable','off')
     set(app.EvaluateMTPAButton,'Enable','off')
     set(app.EvalInductanceButton,'Enable','off')
+    set(app.EvalAppInductanceButton,'Enable','off')
     set(app.EvalInverseDQButton,'Enable','off')
     set(app.PlotTgammaButton,'Enable','off')
     set(app.MaxTwPush,'Enable','off')
+    set(app.MaxTwPWMPush,'Enable','off')
     set(app.EvaluateShortCircuitTorqueButton,'Enable','off')
     set(app.WaveformShortCircuitButton,'Enable','off')
     set(app.ScaleMapPush,'Enable','off');
@@ -152,6 +141,19 @@ else
     set(app.PlotSkinEffectButton,'Enable','off')
     set(app.SaveSkinEffectButton,'Enable','off')
 end
+if ~isempty(motorModel.DemagnetizationLimit)
+    set(app.DemagnetizationLimitCheckBox,...
+        'Enable','on',...
+        'Value',1);
+    set(app.PlotDemagnetizationButton,'Enable','on')
+    set(app.SaveDemagnetizationButton,'Enable','on')
+else
+    set(app.DemagnetizationLimitCheckBox,...
+        'Enable','off',...
+        'Value',0);
+    set(app.PlotDemagnetizationButton,'Enable','off')
+    set(app.SaveDemagnetizationButton,'Enable','off')
+end
 % AOA (Admitted Operating Area) MTPA/MTPV
 if ~isempty(motorModel.controlTrajectories)
     set(app.AOACheckBox,...
@@ -188,8 +190,19 @@ else
     set(app.PlotInductanceButton,'Enable','off')
     set(app.SaveInductanceButton,'Enable','off')
 end
-% Current angle curves
-set(app.NumCurrLevelTgammaEditField,'Value',mat2str(data.nCurr));
+if ~isempty(motorModel.AppInductanceMap_dq)
+    set(app.AppInductanceMapCheckBox,...
+        'Enable','on',...
+        'Value',1);
+    set(app.PlotAppInductanceButton,'Enable','on')
+    set(app.SaveAppInductanceButton,'Enable','on')
+else
+    set(app.AppInductanceMapCheckBox,...
+        'Enable','off',...
+        'Value',0);
+    set(app.PlotAppInductanceButton,'Enable','off')
+    set(app.SaveAppInductanceButton,'Enable','off')
+end
 % inverse models
 if ~isempty(motorModel.FluxMapInv_dq)
     set(app.InversedqCheckBox,...
@@ -299,6 +312,7 @@ if (~isempty(motorModelUnScale)||~isempty(motorModelUnSkew))
     set(app.OpLimPush,'Enable','off')
     set(app.RatingsEvalPush,'Enable','off')
     set(app.MaxTwPush,'Enable','off')
+    set(app.MaxTwPWMPush,'Enable','off')
     set(app.PMtemperatureDropDown,'Enable','off')
     set(app.WaveformSingPointButton,'Enable','off')
     set(app.WaveformShortCircuitButton,'Enable','off')
@@ -331,9 +345,15 @@ set(app.TwAxis,...
     'XLim',[Tw.nmin Tw.nmax],...
     'YLim',[Tw.Tmin Tw.Tmax])
 
+if ~isfield(motorModel.SyreDrive,'SIM_path')
+    set(app.MaxTwPWMPush,'Enable','off')
+end
+
 % syreDrive
 set(app.ControltypeDropDown,'Value',motorModel.SyreDrive.Ctrl_type);
+set(app.ControlstrategyDropDown,'Value',motorModel.SyreDrive.Ctrl_strategy);
 set(app.FluxmapsmodelDropDown,'Value',motorModel.SyreDrive.FMapsModel);
+set(app.PWMFrequencyEditField,'Value',num2str(motorModel.SyreDrive.Converter.fPWM));
 set(app.ONthreasholdEditField,'Value',num2str(motorModel.SyreDrive.Converter.V0));
 set(app.InternalresistanceEditField,'Value',num2str(motorModel.SyreDrive.Converter.Rd));
 set(app.DeadtimeEditField,'Value',num2str(motorModel.SyreDrive.Converter.dT));
@@ -342,6 +362,8 @@ set(app.InjectedsignalDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.
 set(app.DemodulationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.dem));
 set(app.PositionerrorestimationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.HS_ctrl));
 set(app.ModeltypeDropDown,'Value',motorModel.SyreDrive.modelType);
+set(app.IronLossModelDropDown,'Value',motorModel.SyreDrive.IronLoss);
+
 
 if ~isfield(motorModel.SyreDrive,'SIM_path')
     set(app.RUNSimulinkModelButton,'Enable','off')

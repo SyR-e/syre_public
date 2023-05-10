@@ -23,16 +23,28 @@ Ldq = motorModel.IncInductanceMap_dq.Ldq;
 Lqd = motorModel.IncInductanceMap_dq.Lqd;
 Lqq = motorModel.IncInductanceMap_dq.Lqq;
 
+axisType = motorModel.data.axisType;
+
 pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;
-resFolder = [motName '_results\MMM results\' 'Inductance Maps - ' int2str(motorModel.data.tempPM) 'deg\'];
+resFolder = [motName '_results\MMM results\' 'Incremental Inductance Maps - ' int2str(motorModel.data.tempPM) 'deg\'];
 
 %% Surfaces
 figNames{1} = 'InducDD';
-figNames{2} = 'InducQQ';
-figNames{3} = 'InducDQ';
-figNames{4} = 'InducQD';
+figNames{2} = 'InducDQ';
+figNames{3} = 'InducQD';
+figNames{4} = 'InducQQ';
 figNames{5} = 'Anisotropy';
+
+switch axisType
+    case 'SR'
+        csi = Ldd./Lqq;
+        csiName = '$l_{dd}/l_{qq}$';
+    case 'PM'
+        csi = Lqq./Ldd;
+        csiName = '$l_{qq}/l_{dd}$';
+end
+
 
 for ii=1:length(figNames)
     hfig(ii) = figure();
@@ -59,8 +71,8 @@ for ii=1:length(figNames)
             zlabel('$l_{qq}$ [H]')
             set(gca,'ZLim',[min(Lqq,[],'all') max(Lqq,[],'all')]);
         case 5
-            zlabel('$l_{dd}/l_{qq}$')
-            set(gca,'ZLim',[min(Ldd./Lqq,[],'all') max(Ldd./Lqq,[],'all')]);
+            zlabel(csiName)
+            set(gca,'ZLim',[min(csi,[],'all') max(csi,[],'all')]);
     end
 end
 
@@ -68,7 +80,7 @@ surf(hax(1),Id,Iq,Ldd,'FaceColor','interp','EdgeColor','interp')
 surf(hax(2),Id,Iq,Ldq,'FaceColor','interp','EdgeColor','interp')
 surf(hax(3),Id,Iq,Lqd,'FaceColor','interp','EdgeColor','interp')
 surf(hax(4),Id,Iq,Lqq,'FaceColor','interp','EdgeColor','interp')
-surf(hax(5),Id,Iq,Ldd./Lqq,'FaceColor','interp','EdgeColor','interp')
+surf(hax(5),Id,Iq,csi,'FaceColor','interp','EdgeColor','interp')
 
 
 %% Save figures

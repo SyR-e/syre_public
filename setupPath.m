@@ -41,9 +41,6 @@ addpath(fullfile(syreDirectory,'mfiles','OctaveFunctions'));
 addpath (fullfile(syreDirectory,'materialLibrary'));
 addpath (fullfile(syreDirectory,'motorExamples'));
 
-% addpath (fullfile (thisfilepath,'results'));
-% addpath (fullfile (syreDirectory,'syreManipulateMM'));
-% addpath (fullfile (syreDirectory,'syreManipulateMM','mfiles'));
 addpath (fullfile (syreDirectory,'syreExport'));
 addpath(genpath(fullfile(syreDirectory,'syreExport\syre_Dxf')));
 addpath(genpath(fullfile(syreDirectory,'syreExport\syre_MagNet')));

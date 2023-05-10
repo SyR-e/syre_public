@@ -30,6 +30,10 @@ if ~strcmp(axisTypeNew,motorModel.data.axisType)
     if ~isempty(motorModel.IncInductanceMap_dq)
         motorModel.IncInductanceMap_dq = MMM_eval_inductanceMap(motorModel);
     end
+
+    if ~isempty(motorModel.AppInductanceMap_dq)
+        motorModel.AppInductanceMap_dq = MMM_eval_appInductanceMap(motorModel);
+    end
     
     if ~isempty(motorModel.FluxMapInv_dq)
         motorModel.FluxMapInv_dq = MMM_eval_inverseModel_dq(motorModel);
@@ -38,7 +42,28 @@ if ~strcmp(axisTypeNew,motorModel.data.axisType)
     if ~isempty(motorModel.FluxMapInv_dqt)
         motorModel.FluxMapInv_dqt = MMM_eval_inverse_dqtMap(motorModel);
     end
+
+    % check for other PM temperatures
+
+    for ii=1:length(motorModel.PMtempModels.tempVectPM)
+        % load tmp motorModel
+        tmp.FluxMap_dq       = motorModel.PMtempModels.FluxMap_dq{ii};
+        tmp.FluxMap_dqt      = motorModel.PMtempModels.FluxMap_dqt{ii};
+        tmp.IronPMLossMap_dq = motorModel.PMtempModels.IronPMLossMap_dq{ii};
+        
+        switch motorModel.data.axisType % opposite to first switch: motorModel.data.axisType is already updated
+            case 'PM'
+                tmp = MMM_sr2pm(tmp);
+            case 'SR'
+                tmp = MMM_pm2sr(tmp);
+        end
+        
+        motorModel.PMtempModels.FluxMap_dq{ii}       = tmp.FluxMap_dq;
+        motorModel.PMtempModels.FluxMap_dqt{ii}      = tmp.FluxMap_dqt;
+        motorModel.PMtempModels.IronPMLossMap_dq{ii} = tmp.IronPMLossMap_dq;
+    end
 end
 
-% check for other maps saved in the cache (other temperatures)
+
+
 

@@ -84,7 +84,9 @@ data.Fd = zeros(dS,qS,tS);
 data.Fq = zeros(dS,qS,tS);
 data.T  = zeros(dS,qS,tS);
 
-fInt = dqtMap.fInt;
+%fInt = dqtMap.fInt;
+
+
 % The 3-d inductances must be removed from dqtMap.data and then fInt must
 % be recomputed
 
@@ -214,7 +216,11 @@ fInt.Fd = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap
 fInt.Fq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fq,'linear','none');
 fInt.T  = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.T,'linear','none');
 
-dqtMap.fInt=fInt;
+% dqtMap.fInt=fInt;
+
+if isfield(dqtMap,'sets')
+    dqtMap = rmfield(dqtMap,'sets');
+end
 
 % Save output data
 Id   = mean(dqtMap.data.Id,3);
@@ -225,7 +231,7 @@ T    = griddedInterpolant(Id,Iq,mean(dqtMap.data.T,3),'linear','linear');
 dT   = griddedInterpolant(Id,Iq,std(dqtMap.data.T,0,3,'omitnan'),'linear','linear');
 dTpp = griddedInterpolant(Id,Iq,max(dqtMap.data.T,[],3,'omitnan')-min(dqtMap.data.T,[],3,'omitnan'),'linear','linear');
 
-[Id,Iq]=ndgrid(linspace(min(id),max(id),256),linspace(min(iq),max(iq),256));
+[Id,Iq]=ndgrid(linspace(min(id),max(id),257),linspace(min(iq),max(iq),257));
 
 Fd   = Fd(Id,Iq);
 Fq   = Fq(Id,Iq);

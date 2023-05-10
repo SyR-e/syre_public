@@ -31,7 +31,7 @@ currentFolder = strrep(currentFolder,'\','/');
 %iron python inside ansys path
 %ipypath='"C:\Program Files\AnsysEM\AnsysEM20.1\Win64\common\IronPython\ipy64.exe" "';
 %defipypath = 'C:\Program Files\AnsysEM\AnsysEM20.1\Win64\common\IronPython\ipy64.exe';
-ipypath    = 'C:\Program Files\AnsysEM\AnsysEM20.1\Win64\common\IronPython\';
+ipypath    = 'C:\Program Files\AnsysEM\v222\Win64\common\IronPython\';
 ipy64exe   = 'ipy64.exe';
 % [ipy64exe, ipypath] = uigetfile(defipypath,'Select ipy64.exe (Ansys) Directory');
 ipypath=strcat('"',ipypath,ipy64exe,'" "');
@@ -151,8 +151,8 @@ clear export
 %% Programm Start
 
 start={
-    'sys.path.append(r"C:/Program Files/AnsysEM/AnsysEM20.1/Win64")'
-    'sys.path.append(r"C:/Program Files/AnsysEM/AnsysEM20.1/Win64/PythonFiles/DesktopPlugin")'
+    'sys.path.append(r"C:/Program Files/AnsysEM/v222/Win64")'
+    'sys.path.append(r"C:/Program Files/AnsysEM/v222/Win64/PythonFiles/DesktopPlugin")'
     'import ScriptEnv'
     ''
     'ScriptEnv.Initialize("Ansoft.ElectronicsDesktop")'
@@ -540,8 +540,8 @@ pyfile = fopen([currentFolder '\syreExport\syre_AnsysMaxwell\close_projectAM.txt
 
 closer = {
     'import sys'
-    'sys.path.append(r"C:/Program Files/AnsysEM/AnsysEM20.1/Win64")'
-    'sys.path.append(r"C:/Program Files/AnsysEM/AnsysEM20.1/Win64/PythonFiles/DesktopPlugin")'
+    'sys.path.append(r"C:/Program Files/AnsysEM/v222/Win64")'
+    'sys.path.append(r"C:/Program Files/AnsysEM/v222/Win64/PythonFiles/DesktopPlugin")'
     'import ScriptEnv'
     'ScriptEnv.Initialize("Ansoft.ElectronicsDesktop")'
     'oDesktop.RestoreWindow()'

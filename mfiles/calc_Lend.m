@@ -56,7 +56,7 @@ else
         fin=c+1;
     end
     yq=fin-ini;
-    alpha=2*pi*yq/(6*geo.p*geo.q);  % coil pitch in radians
+    alpha=2*pi*yq/(6*geo.p*geo.q*geo.win.n3phase);  % coil pitch in radians
     taucp = (geo.r+geo.g+geo.lt/2)*alpha*1e-3;   % mean coil pitch (m)
     
     mu0 = 4e-7*pi;

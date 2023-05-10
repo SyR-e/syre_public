@@ -45,9 +45,14 @@ else
     setup.pathname = temp.currentpathname;
     setup.tempVect = temp.tempPP;
     setup.figFlag  = 1;
-    clear temp
+    
     
     load([setup.pathname setup.filename]);
+
+    dataSet.axisType = temp.axisType;
+    dataSet.tempPP   = setup.tempVect;
+    clear temp
+
     if ~isfield(dataSet,'axisType')
         if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'Vtype')
             dataSet.axisType = 'PM';
@@ -55,6 +60,19 @@ else
             dataSet.axisType = 'SR';
         end
     end
+
+    if ~strcmp(geo.axisType,dataSet.axisType)
+        %geo.axisType = dataIn.axisType;
+        if strcmp(dataSet.axisType,'PM')
+            geo.th0 = geo.th0 - 90;
+        else
+            geo.th0 = geo.th0 + 90;
+        end
+    end
+
+    
+
+
 end
 
 pathname = setup.pathname;
@@ -62,7 +80,6 @@ filename = setup.filename;
 tempVect = setup.tempVect;
 figFlag  = setup.figFlag;
 
-dataSet.tempPP      = setup.tempVect;
 
 per.nsim_singt      = dataSet.NumOfRotPosPP;
 per.delta_sim_singt = dataSet.AngularSpanPP;
@@ -81,6 +98,7 @@ save([resFolder 'demagCurveSetup.mat'],'setup');
 
 IdemagVect   = zeros(size(tempVect));
 dPMdemagVect = zeros(size(tempVect));
+BminVect     = zeros(size(tempVect));
 
 disp('Starting FEMM simulations...')
 openfemm(1)
@@ -89,18 +107,14 @@ opendocument([pathname filename(1:end-4) '.fem'])
 mi_saveas([resFolder filename(1:end-4) '.fem']);
 mi_close;
 
-geo0 = geo;
-mat0 = mat;
-per0 = per;
-
-% i0=calc_io(geo,per);
 i0 = per.i0;
 
 maxIter = 500;
 dPMtarget = 0.01;
 tolPU = 0.5;
+IstepLim = i0/100;
 
-if (strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'Vtype'))
+if strcmp(dataSet.axisType,'PM')
     per.gamma = 180;
 else
     per.gamma = 90;
@@ -110,7 +124,7 @@ for tt=1:length(tempVect)
     
     disp(['Temperature ' int2str(tt) ' of ' int2str(length(tempVect)) ' - ' int2str(tempVect(tt)) ' Celsius degree' ])
     
-    nsim = 2;
+    %nsim = 2;
     Br = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt));
     Bd = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Bd,tempVect(tt));
     
@@ -127,8 +141,6 @@ for tt=1:length(tempVect)
         figSetting();
         xlabel('$I_{demag} [$A$]$')
         ylabel('PM demag [$\%$]')
-        %plot(0,Br,'go','DisplayName',['$B_r=' num2str(Br) '\,T$'])
-        %plot(0,Bd,'ro','DisplayName',['$B_d=' num2str(Bd) '\,T$'])
         title(['$\theta_{PM}=' int2str(tempVect(tt)) '^\circ$C'])
         legend('show','Location','northeastoutside');
         set(gca,'YLim',[0 100],'YTick',0:10:100)
@@ -138,21 +150,16 @@ for tt=1:length(tempVect)
     
     ii=1;
     
-    Iiter = nan(1,maxIter);
+    Iiter   = nan(1,maxIter);
     dPMiter = zeros(1,maxIter);
+    Biter   = zeros(1,maxIter);
+    Titer   = zeros(1,maxIter);
     Istep = i0;
 
     while ~done
-%         if max(dPMiter,[],'omitnan')>=dPMtarget
-%             Istep = Istep/2;
-%         else
-%             Istep = i0;
-%         end
         if (ii==1)
-%             if (tt==1)
                 per.overload=0;
                 Istep = i0;
-%             end
         elseif ii==2
             if tt==1
                 per.overload=1;
@@ -162,12 +169,6 @@ for tt=1:length(tempVect)
                 Istep = per.overload*i0;
                 maxIter = 20;
             end
-            %                 BrOld = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt-1));
-            %                 BrNew = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt));
-            %                 BdOld = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt-1));
-            %                 BdNew = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt));
-            %                 per.overload=IdemagVect(tt-1)/i0*(BrNew/BrOld)*(1-BdNew/BdOld);
-            %             end
         else
             if max(dPMiter,[],'omitnan')==0
                 per.overload = max(Iiter,[],'omitnan')/i0*2;
@@ -183,35 +184,21 @@ for tt=1:length(tempVect)
                     per.overload = (Iiter(ii-1)+Istep)/i0;
                 end
             end
-            %per.overload = (Iiter(ii-2)+(Bd-Biter(ii-2))*(Iiter(ii-1)-Iiter(ii-2))/(Biter(ii-1)-Biter(ii-2)))/i0;
-%             dTmp = dPMiter(~isnan(Iiter));
-%             iTmp = Iiter(~isnan(Iiter));
-%             [dTmp,index] = sort(dTmp);
-%             iTmp = iTmp(index);
-%             per.overload = interp1(dTmp,iTmp,tolPU,'linear','extrap')/i0;
             if isnan(per.overload)
                 per.overload=0;
             end
             if per.overload<0
                 per.overload=-0;
             end
-            %             per.overload = Iiter(ii-2)/i0;
         end
         
-        for pp=1:nsim
-            [~,tmpFolder]=createTempDir();
-            
-            copyfile([resFolder filename(1:end-4) '.fem'],[tmpFolder filename(1:end-4) '.fem']);
-            
-            per.nsim_singt      = 1;
-            per.delta_sim_singt = (0.5*360/(6*geo.q*geo.win.n3phase))*(pp-1);
-            
-            SOL = simulate_xdeg(geo,per,mat,'idemag',tmpFolder,[filename(1:end-4) '.fem']);
-            
-            Iiter(ii)=abs(SOL.id+j*SOL.iq);
-            if SOL.dPM>dPMiter(ii)
-                dPMiter(ii)=SOL.dPM;
-            end
+        [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'idemag',[pathname filename(1:end-4) '.fem']);
+        
+        Iiter(ii) = abs(out.id+j*out.iq);
+        if out.dPM>=dPMiter(ii)
+            dPMiter(ii) = out.dPM;
+            Biter(ii)   = out.Bmin;
+            Titer(ii)   = out.T;
         end
         
         if figFlag
@@ -228,28 +215,35 @@ for tt=1:length(tempVect)
             Iiter(ii) = 0;
         elseif ii==maxIter % max number of iteration reached
             done=1;
-        elseif ((ii>2)&&(Iiter(ii)==Iiter(ii-1)))
+        elseif ((ii>2)&&(Iiter(ii)==Iiter(ii-1))) % two iterations at the same current level
             done = 1;
             Iiter(ii) = 0;
             dPMiter(ii) = dPMtarget;
+        elseif ((ii>2)&&abs(Iiter(ii)-Iiter(ii-1))<IstepLim)
+            done = 1;
+            Iiter(ii) = NaN;
         else
             done = 0;
             ii = ii+1;
         end
     end
     
-    dPMiter=dPMiter(~isnan(Iiter));
-    Iiter=Iiter(~isnan(Iiter));
+    dPMiter = dPMiter(~isnan(Iiter));
+    Biter   = Biter(~isnan(Iiter));
+    Iiter   = Iiter(~isnan(Iiter));
     if ~isempty(Iiter)
-        IdemagVect(tt)=Iiter(end);
+        IdemagVect(tt)   = Iiter(end);
         dPMdemagVect(tt) = dPMiter(end);
+        BminVect(tt)     = Biter(end);
     else
-        IdemagVect(tt)=NaN;
+        IdemagVect(tt)   = NaN;
         dPMdemagVect(tt) = NaN;
+        BminVect(tt)     = NaN;
     end
     eval(['detectionIter.temp_' int2str(tt) '.Iiter=Iiter;'])
     eval(['detectionIter.temp_' int2str(tt) '.dPMiter=dPMiter;'])
-    
+    eval(['detectionIter.temp_' int2str(tt) '.Biter=Biter;'])
+
     if figFlag
         saveas(hfig,[resFolder 'iterations_' int2str(tempVect(tt)) 'C.fig']);
     end
@@ -261,7 +255,7 @@ disp('FEMM simulations done!')
 figure()
 figSetting();
 xlabel('$\theta_{PM}$ [$^\circ$C]')
-ylabel('$I_{demag}$ [$A$]')
+ylabel('$I_{demag}$ [A]')
 plot(tempVect,IdemagVect,'-ro');
 title('Demagnetization limit @ 1\%')
 saveas(gcf,[resFolder 'Demagnetization limit.fig'])
@@ -277,9 +271,20 @@ plot(tempVect,dPMtarget*(1-tolPU)*ones(size(tempVect)),'-r','DisplayName','Targe
 title(['Demagnetization limit @ ' int2str(dPMtarget) '\%'])
 saveas(gcf,[resFolder 'Demagnetization limit vol.fig'])
 
+figure()
+figSetting();
+xlabel('$\theta_{PM}$ [$^\circ$C]')
+ylabel('$B_{min}$ [T]')
+plot(tempVect,BminVect,'-o','DisplayName','$B_{min}$');
+plot(tempVect,interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Bd,tempVect),'-','DisplayName','$B_d$')
+plot(tempVect,interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect),'-','DisplayName','$B_r$')
+title('Minimum PM flux density')
+saveas(gcf,[resFolder 'Demagnetization limit fluxDensity.fig'])
+
 demagLimit.temperature = tempVect;
 demagLimit.current     = IdemagVect;
 demagLimit.dPM         = dPMdemagVect;
+demagLimit.Bmin        = BminVect;
 demagLimit.setup       = setup;
 demagLimit.iterations  = detectionIter;
 

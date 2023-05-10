@@ -131,7 +131,7 @@ for tt=1:length(tempVect)
     
     disp(['Temperature ' int2str(tt) ' of ' int2str(length(tempVect)) ' - ' int2str(tempVect(tt)) ' Celsius degree' ])
     
-    nsim = 2;
+    %nsim = 2;
     Br = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Br,tempVect(tt));
     Bd = interp1(mat.LayerMag.temp.temp,mat.LayerMag.temp.Bd,tempVect(tt));
     
@@ -187,21 +187,21 @@ for tt=1:length(tempVect)
             %             per.overload = Iiter(ii-2)/i0;
         end
         
-        for pp=1:nsim
-            [~,tmpFolder]=createTempDir();
-            
-            copyfile([resFolder filename(1:end-4) '.fem'],[tmpFolder filename(1:end-4) '.fem']);
-            
-            per.nsim_singt      = 1;
-            per.delta_sim_singt = (0.5*360/(6*geo.q*geo.win.n3phase))*(pp-1);
-            
-            SOL = simulate_xdeg(geo,per,mat,'idemag',tmpFolder,[filename(1:end-4) '.fem']);
-            
-            Iiter(ii)=abs(SOL.id+j*SOL.iq);
-            if SOL.Bmin<Biter(ii)
-                Biter(ii)=SOL.Bmin;
-            end
-        end
+%         for pp=1:nsim
+%             [~,tmpFolder]=createTempDir();
+%             
+%             copyfile([resFolder filename(1:end-4) '.fem'],[tmpFolder filename(1:end-4) '.fem']);
+%             
+%             per.nsim_singt      = 1;
+%             per.delta_sim_singt = (0.5*360/(6*geo.q*geo.win.n3phase))*(pp-1);
+%             
+%             SOL = simulate_xdeg(geo,per,mat,'idemag',tmpFolder,[filename(1:end-4) '.fem']);
+%             
+%             Iiter(ii)=abs(SOL.id+j*SOL.iq);
+%             if SOL.Bmin<Biter(ii)
+%                 Biter(ii)=SOL.Bmin;
+%             end
+%         end
         
         if figFlag
             plot(hax,Iiter(ii)*[1 1],[Bd Biter(ii)],'-o','MarkerIndices',2,'DisplayName',['iteration ' int2str(ii)])

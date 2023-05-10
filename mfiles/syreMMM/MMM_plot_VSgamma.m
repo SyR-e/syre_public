@@ -23,11 +23,12 @@ Fq   = motorModel.FluxMap_dq.Fq;
 T    = motorModel.FluxMap_dq.T;
 dTpp = motorModel.FluxMap_dq.dTpp;
 
-nCurr = motorModel.data.nCurr;
-i0    = motorModel.data.i0;
-Imax  = motorModel.data.Imax;
+% nCurr = motorModel.data.nCurr;
+% i0    = motorModel.data.i0;
+% Imax  = motorModel.data.Imax;
 axisType = motorModel.data.axisType;
 
+Ivect = motorModel.WaveformSetup.CurrAmpl;
 
 pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;
@@ -35,10 +36,10 @@ resFolder = [motName '_results\MMM results\' 'plotVSgamma - ' int2str(motorModel
 
 IPF = sin(atan2(Iq,Id)-atan2(Fq,Fd));
 
-IdMax = max(abs(Id),[],'all');
-IqMax = max(abs(Iq),[],'all');
+% IdMax = max(abs(Id),[],'all');
+% IqMax = max(abs(Iq),[],'all');
 
-Imax = min([Imax,IdMax,IqMax]);
+% Imax = min([Imax,IdMax,IqMax]);
 
 numPoints = 46;
 
@@ -83,7 +84,7 @@ for ii=1:length(figNames)
     end
 end
 
-Ivect = nCurr*i0;
+% Ivect = nCurr*i0;
 
 % Ivect = Ivect(Ivect<=Imax);
 

@@ -25,9 +25,9 @@ materialCodes;  % load material codes
 
 xc   = temp.xc;
 yc   = temp.yc(~isnan(xc));
-xmag = temp.xmag(~isnan(xc));
-ymag = temp.ymag(~isnan(xc));
-zmag = temp.zmag(~isnan(xc));
+xmag = temp.xmag(~isnan(xc(1,:)));
+ymag = temp.ymag(~isnan(xc(1,:)));
+zmag = temp.zmag(~isnan(xc(1,:)));
 xc   = xc(~isnan(xc));
 
 if isfield(temp,'xair')
@@ -60,5 +60,3 @@ else
     zmag = [zmag';zmag'];
     BarCenter = [xc,yc,codMatBar*ones(length(xc),1),res*ones(length(xc),1),1*ones(length(xc),1),xmag,ymag,zmag];
 end
-
-

@@ -224,6 +224,66 @@ if ~isfield(motorModel.SyreDrive,'modelType')
     flag=1;
 end
 
+if ~isfield(motorModel.SyreDrive,'IronLoss')
+    motorModel.SyreDrive.IronLoss = 'No';
+    flag = 1;
+    if Dflag
+        disp('- Added IronLoss Syre Drive');
+    end
+end
+
+
+
+
+% Improved PM temperature management (no cache, but all-in-one-file)
+if ~isfield(motorModel,'PMtempModels')
+    motorModel.PMtempModels.tempVectPM          = motorModel.data.tempPM;
+    motorModel.PMtempModels.FluxMap_dq{1}       = motorModel.FluxMap_dq;
+    motorModel.PMtempModels.FluxMap_dqt{1}      = motorModel.FluxMap_dqt;
+    motorModel.PMtempModels.IronPMLossMap_dq{1} = motorModel.IronPMLossMap_dq;
+    motorModel.data.tempVectPM = motorModel.data.tempPM;
+    if Dflag
+        disp('- Included PM temperature map in one file')
+    end
+    flag=1;
+end
+
+% Apparent inductance map
+if ~isfield(motorModel,'AppInductanceMap_dq')
+    motorModel.AppInductanceMap_dq = [];
+    if Dflag
+        disp('- Added apparent inductance map (dq)')
+    end
+    flag=1;
+end
+
+% PWM Effy Maps
+if ~isfield(motorModel.SyreDrive.Converter,'fPWM')
+    motorModel.TnSetup.Control = 'Max efficiency';
+    motorModel.SyreDrive.Converter.fPWM = 10000;
+    if Dflag
+        disp('- Included PWM Efficiency Maps')
+    end
+    flag=1;
+end
+
+% Demagnetization
+if ~isfield(motorModel,'DemagnetizationLimit')
+    motorModel.DemagnetizationLimit = [];
+    if Dflag
+        disp('- Included Demagnetization Limit (current VS temperature)')
+    end
+    flag=1;
+end
+%
+if ~isfield(motorModel.SyreDrive,'Ctrl_strategy')
+    motorModel.SyreDrive.Ctrl_strategy = 'FOC';
+     if Dflag
+        disp('- Included Control strategy in syreDrive')
+    end
+    flag=1;
+end
+
 
 % message in command window if some data are added
 if flag && Dflag
@@ -232,6 +292,3 @@ if flag && Dflag
     %     f = warndlg(msg,title,'modal');
     warning(msg);
 end
-
-
-

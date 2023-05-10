@@ -1,3 +1,18 @@
+% Copyright 2021
+%
+%    Licensed under the Apache License, Version 2.0 (the "License");
+%    you may not use this file except in compliance with the License.
+%    You may obtain a copy of the License at
+%
+%        http://www.apache.org/licenses/LICENSE-2.0
+%
+%    Unless required by applicable law or agreed to in writing, software
+%    distributed under the License is distributed on an "AS IS" BASIS,
+%    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%    See the License for the specific language governing permissions and
+%    limitations under the License.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function plot_flxdn_gif(geo,out,newDir,filemot)
 
 % 
@@ -11,7 +26,7 @@ Bg = out.SOL.Bg;
 Bt = out.SOL.Bt;
 By = out.SOL.By;
 
-Q = 6*geo.p*geo.q;
+Q = 6*geo.p*geo.q*geo.win.n3phase;
 alpha_th = geo.wt/(geo.r+geo.g)*180/pi;
 alpha_slot = 360/Q;
 Qs = geo.Qs;
@@ -74,17 +89,17 @@ for ii=1:length(Bg(1,2:end))
     
     cla(hax(1))
     plot(hax(1),Bg(:,1),Bg(:,ii+1),'-b')
-    title(hax(1),['$\theta=' num2str(out.SOL.th(ii)-geo.th0,2) ' ^\circ$'])
+    title(hax(1),['$\theta=' num2str(out.SOL.th(ii)-geo.th0(1),2) ' ^\circ$'])
     drawnow
     
     cla(hax(2))
     plot(hax(2),Bt(:,1),Bt(:,ii+1),'-b')
-    title(hax(2),['$\theta=' num2str(out.SOL.th(ii)-geo.th0,2) ' ^\circ$'])
+    title(hax(2),['$\theta=' num2str(out.SOL.th(ii)-geo.th0(1),2) ' ^\circ$'])
     drawnow
     
     cla(hax(3))
     plot(hax(3),By(:,1),By(:,ii+1),'-b')
-    title(hax(3),['$\theta=' num2str(out.SOL.th(ii)-geo.th0,2) ' ^\circ$'])
+    title(hax(3),['$\theta=' num2str(out.SOL.th(ii)-geo.th0(1),2) ' ^\circ$'])
     drawnow
     
     for jj=1:3
