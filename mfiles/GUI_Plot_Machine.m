@@ -132,7 +132,6 @@ for ii = 1 : nrig
         keyboard
     end
 end
-%hold off % Perchè???
 
 
 

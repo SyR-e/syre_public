@@ -15,13 +15,12 @@
 function draw_airgap(geo,fem)
 
 ps       = geo.ps;
-g        = geo.g-geo.hs;
+g        = geo.g;
 p        = geo.p;
 % hs       = geo.hs;
-r        = geo.r+geo.hs;
+r        = geo.r;
 res_traf = fem.res_traf;
 RotType  = geo.RotType;
-lm       = geo.lm;
 
 groupGap = 20;
 
@@ -70,17 +69,17 @@ if ps<2*p % not full motor simulated
     yArcRot1 = 0;
     xArcRot2 = (r+1/3*g)*cos(pi/p*ps);
     yArcRot2 = (r+1/3*g)*sin(pi/p*ps);
-    if strcmp(RotType,'SPM')
-        xTrafRot1 = r-lm;
-        yTrafRot1 = 0;
-        xTrafRot2 = (r-lm)*cos(pi/p*ps);
-        yTrafRot2 = (r-lm)*sin(pi/p*ps);
-    else
+%     if strcmp(RotType,'SPM')
+%         xTrafRot1 = r;
+%         yTrafRot1 = 0;
+%         xTrafRot2 = (r)*cos(pi/p*ps);
+%         yTrafRot2 = (r)*sin(pi/p*ps);
+%     else
         xTrafRot1 = r;
         yTrafRot1 = 0;
         xTrafRot2 = (r)*cos(pi/p*ps);
         yTrafRot2 = (r)*sin(pi/p*ps);
-    end
+%     end
 
     mi_drawarc(xArcRot1,yArcRot1,xArcRot2,yArcRot2,360*ps/(2*p),res_traf);
     mi_selectarcsegment(xArcRot1,yArcRot1);

@@ -33,7 +33,7 @@ else
     flag3phSet = ones(1,n3phase);
 end
 
-% evaluation of the stator current (dq)
+% evaluation of the stator current (dq) and stator current FEMM update
 iAmp     = per.overload*per.i0;
 iAmpCoil = iAmp*Nbob;
 id       = iAmpCoil*cos(gamma*pi/180);
@@ -44,10 +44,25 @@ iq       = iAmpCoil*sin(gamma*pi/180);
 openfemm(1)
 opendocument([pathname filename])
 
-i123 = dq2abc(id,iq,th*pi/180);
-Ni1  = i123(1);
-Ni2  = i123(2);
-Ni3  = i123(3);
+for ik=0:(n3phase-1)
+    i123 = dq2abc(id,iq,th(ik+1)*pi/180);      % each 3phase set has its own offset angle
+    i_tmp((3*ik)+1,1) = (i123(1))*flag3phSet(ik+1);
+    i_tmp((3*ik)+2,1) = (i123(2))*flag3phSet(ik+1);
+    i_tmp((3*ik)+3,1) = (i123(3))*flag3phSet(ik+1);
+
+    phase_name{3*ik+1} = strcat('fase',num2str(3*ik+1));
+    phase_name{3*ik+2} = strcat('fase',num2str(3*ik+2));
+    phase_name{3*ik+3} = strcat('fase',num2str(3*ik+3));
+    mi_modifycircprop(phase_name{3*ik+1}, 1,i_tmp((3*ik)+1,1));
+    mi_modifycircprop(phase_name{3*ik+2}, 1,i_tmp((3*ik)+2,1));
+    mi_modifycircprop(phase_name{3*ik+3}, 1,i_tmp((3*ik)+3,1));
+end
+
+
+% i123 = dq2abc(id,iq,th*pi/180);
+% Ni1  = i123(1);
+% Ni2  = i123(2);
+% Ni3  = i123(3);
 
 if iq~= 0
     maxIter = 10; %% 10 is nosense .. maximum number of attempts is 3
@@ -83,12 +98,10 @@ while ~done
     end
     
     % rotor bar currents
-    ibar = kturns * dq2bar(0,iR,(th-thR-offset)*pi/180,Nbars/p);
+    ibar = kturns(1) * dq2bar(0,iR,(th(1)-thR-offset(1))*pi/180,Nbars/p);
 
-    % stator and rotor current in FEMM
-    mi_modifycircprop('fase1',1,Ni1);
-    mi_modifycircprop('fase2',1,Ni2);
-    mi_modifycircprop('fase3',1,Ni3);
+    % rotor current in FEMM
+    
     for jj  = 1:NbarSim
         circ_name = ['bar' num2str(jj)];
         mi_modifycircprop(circ_name,1,ibar(jj));
@@ -124,7 +137,7 @@ while ~done
         FbarTot = [FbarTot -FbarTot];
     end
     % flussi dq rotore (calcolo diretto da barre)
-    fdqR = kturns*Nbars/3*bar2dq(FbarTot',thR*pi/180,Nbars/p);
+    fdqR = kturns(1)*Nbars/3*bar2dq(FbarTot',thR*pi/180,Nbars/p);
 
     if iq==0
         kr=0;

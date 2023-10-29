@@ -28,7 +28,9 @@ end
 
 [~, ~, geo,per,mat] = data0(dataSet);
 [geo,gamma,mat] = interpretRQ(geo.RQ,geo,mat);
+
 geo.x0 = geo.r/cos(pi/2/geo.p);
+% geo.x0 = (geo.r-geo.hs)/cos(pi/2/geo.p);
 
 fem.res = 0;
 fem.res_traf = 0;
@@ -62,24 +64,6 @@ geo.lend = calc_endTurnLength(geo);
 
 % Rated current computation (thermal model)
 if  isnan(dataSet.SimIth0)
-%     if ~isnan(dataSet.ThermalLoadKj)
-%         dataSet.AdmiJouleLosses = dataSet.ThermalLoadKj*(2*pi*dataSet.StatorOuterRadius*dataSet.StackLength*1e-6);
-%         per.Loss = dataSet.AdmiJouleLosses;
-%         [i0,~,~] = calc_io(geo,per);
-%         dataSet.CurrentDensity = i0*geo.win.Nbob*2/(sqrt(2)*geo.Aslot*geo.win.kcu);
-%     elseif ~isnan(dataSet.AdmiJouleLosses)
-%         dataSet.ThermalLoadKj = dataSet.AdmiJouleLosses/(2*pi*dataSet.StatorOuterRadius*dataSet.StackLength*1e-6);
-%         [i0,~,~] = calc_io(geo,per);
-%         dataSet.CurrentDensity = i0*geo.win.Nbob*2/(sqrt(2)*geo.Aslot*geo.win.kcu);
-%     elseif ~isnan(dataSet.CurrentDensity)
-%         [~,~,geo0] = calc_io(geo,per);
-%         lend = geo0.lend;
-%         rocu = (1.7241e-08)*(234.5+per.tempcu)/(234.5+20);
-%         dataSet.ThermalLoadKj = (dataSet.CurrentDensity*sqrt(2)*1e6)^2*(geo.win.kcu*6*geo.p*geo.q*geo.win.n3phase*geo.Aslot/1e6)/4*rocu*(geo.l+lend)/geo.l/(pi*dataSet.StatorOuterRadius/1000);
-%         dataSet.AdmiJouleLosses = dataSet.ThermalLoadKj*(2*pi*dataSet.StatorOuterRadius*dataSet.StackLength*1e-6);
-%     else
-%         error('Wrong thermal parameters input')
-%     end
     per = calc_i0(geo,per,mat);
     per.tempcuest = temp_est_simpleMod(geo,per);
     
@@ -90,16 +74,6 @@ if  isnan(dataSet.SimIth0)
     dataSet.Rs                  = per.Rs;
     dataSet.SimulatedCurrent    = per.overload*per.i0;
     dataSet.EstimatedCopperTemp = per.tempcuest;
-
-
-
-%     per.kj = dataSet.ThermalLoadKj;
-%     per.Loss = dataSet.AdmiJouleLosses;
-%     per.tempcuest = temp_est_simpleMod(geo,per);
-%     dataSet.EstimatedCopperTemp = per.tempcuest;
-%     [dataSet.RatedCurrent,dataSet.Rs,geo] = calc_io(geo,per);
-%     dataSet.SimulatedCurrent = dataSet.RatedCurrent * dataSet.CurrLoPP;
-%     dataSet.EstimatedCopperTemp = per.tempcuest;
 end
 geo.lend = calc_endTurnLength(geo);
 per.i0 = dataSet.RatedCurrent;
@@ -130,6 +104,8 @@ dataSet.DepthOfBarrier = round(geo.dx,2);
 dataSet.HCpu = round(geo.hc_pu,2);
 dataSet.betaPMshape = round(geo.betaPMshape,2);
 dataSet.YokeLength = geo.ly;
+dataSet.RotorSlotFilletTop    = geo.IM.filletTop;
+dataSet.RotorSlotFilletBottom = geo.IM.filletBot;
 
 % dataSet.CurrentDensity = per.i0*geo.win.Nbob*2/(sqrt(2)*geo.Aslot*geo.win.kcu);
 %dataSet.CurrentDensity = per.i0/(sqrt(2)*geo.Aslot*geo.win.kcu*geo.win.pCond);
@@ -156,6 +132,9 @@ if (~strcmp(geo.RotType, 'SPM') && ~strcmp(geo.RotType,'IM'))
     dataSet.HCmm = round(100*geo.hc)/100;
 %     set(app.AlphadegreeEdit,'String',mat2str(dataSet.ALPHAdeg));
 %     set(app.hcmmEdit,'String',mat2str(dataSet.HCmm));
+elseif strcmp(geo.RotType,'SPM')
+    dataSet.ALPHAdeg = round(100*geo.dalpha*2)/100;
+    dataSet.HCmm     = round(100*geo.hc)/100;
 end
 
 dataSet.RadRibEdit = round(geo.pontR*100)/100;

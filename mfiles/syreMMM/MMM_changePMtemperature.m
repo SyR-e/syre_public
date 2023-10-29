@@ -62,7 +62,6 @@ if strcmp(tempPM,'Add')
 else
     % change PM temperature
     tempPM = eval(tempPM);
-    
     indexOld = find(motorModel.PMtempModels.tempVectPM==motorModel.data.tempPM);
     motorModel.PMtempModels.FluxMap_dq{indexOld}       = motorModel.FluxMap_dq;
     motorModel.PMtempModels.FluxMap_dqt{indexOld}      = motorModel.FluxMap_dqt;

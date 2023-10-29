@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function SDE_plot(map,flag3D)
+function [hfig] = SDE_plot(map,flag3D)
 
 
 figure()
@@ -73,4 +73,9 @@ legend('show','Location','northeastoutside');
 map = rmfield(map,'dataAvailable');
 map = rmfield(map,'dataSelect');
 set(gcf,'UserData',map);
+
+if nargout==1
+    hfig = gcf;
+end
+
 

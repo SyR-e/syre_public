@@ -20,8 +20,9 @@ function [sVonMises,R,structModel] = calcVonMisesStress(structModel,flagPlot)
 if nargin==1
     flagPlot=0;
 end
-
+tic 
 R = solvepde(structModel);
+time_feaInt=toc;
 
 [cgradx,cgrady,~] = evaluateCGradient(R);
 sxx = cgradx(:,1);

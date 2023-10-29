@@ -152,8 +152,8 @@ geo.racc_pont = 1 * geo.pont0;                  % radius of the fillet at the si
 geo.hfe_min   = 2*geo.pont0;                      % min tickness of each steel flux guide
 
 % winding description
-geo.win.kcu = dataIn.SlotFillFactor;                % slot filling factor (net copper/slot area)
-geo.win.avv = dataIn.WinMatr;
+geo.win.kcu        = dataIn.SlotFillFactor;                % slot filling factor (net copper/slot area)
+geo.win.avv        = dataIn.WinMatr;
 geo.win.avv_flag   = dataIn.WinFlag; %AS
 geo.win.n3phase    = dataIn.Num3PhaseCircuit; %AS stator 3-phase circuits number
 geo.win.kracc      = dataIn.PitchShortFac;       % pitch shortening factor (for end connections length estimation)
@@ -196,8 +196,8 @@ geo.IM.lt        = dataIn.RotorToothLength;
 geo.IM.wt        = dataIn.RotorToothWidth;
 geo.IM.acr       = dataIn.RotorSlotOpen;
 geo.IM.ttd       = dataIn.RotorToothTangDepth;
-geo.IM.filletTop = dataIn.RotorSlotFilletTop/5;
-geo.IM.filletBot = dataIn.RotorSlotFilletBottom/5;
+geo.IM.filletTop = dataIn.RotorSlotFilletTop;
+geo.IM.filletBot = dataIn.RotorSlotFilletBottom;
 [per.IM.Rring,per.IM.Lring] = calc_IMringParameters(geo,per,mat);
 
 [~,geo] = calc_endTurnLength(geo); % end-winding length [mm]
@@ -208,8 +208,8 @@ geo.nmax = dataIn.OverSpeed; % overspeed [rpm]
 geo.hs = dataIn.SleeveThickness; % sleeve thickness [mm]
 
 
-geo.lm = dataIn.ThicknessOfPM;
-geo.phi = dataIn.AngleSpanOfPM;
+% geo.hc = dataIn.HCpu(1)*dataIn.AirGapThickness;
+% geo.phi = dataIn.ALPHApu*180;
 
 % calc winding factor (kavv) and rotor offset (phase1_offset)
 [kw,phase1_offset] = calcKwTh0(geo);
@@ -236,9 +236,12 @@ geo.PMdir = 'r';    % radial direction
 % Mesh ratio (all_motor/air-gap)
 geo.mesh_K_MOOA = dataIn.Mesh_MOOA;    % optimization
 geo.mesh_K      = dataIn.Mesh;         % post-processing and manual design
+geo.mesh_kpm    = dataIn.mesh_kpm; 
 
 % Rotor
 geo.x0 = geo.r/cos(pi/2/geo.p);
+% geo.x0 = (geo.r-geo.hs)/cos(pi/2/geo.p);
+
 
 geo.dalpha_pu = dataIn.ALPHApu;
 geo.dalpha    = geo.dalpha_pu*(90/geo.p);   % [mec degrees]
@@ -310,7 +313,7 @@ end
 for ii=1:geo.nlay
     RQnames{rr} = ['hc_pu(' int2str(ii) ')'];
     if strcmp(geo.RotType,'SPM')
-        bounds(rr,:) = [geo.lm*dataIn.hcBou dataIn.hcBouCheck];
+        bounds(rr,:) = [geo.hc_pu*geo.g*dataIn.hcBou dataIn.hcBouCheck];
     else
         if strcmp(dataIn.optType,'Design')
             bounds(rr,:) = [dataIn.hcBou dataIn.hcBouCheck];
@@ -555,7 +558,8 @@ objs = [
     mat.Rotor.sigma_max     dataIn.MechStressOptCheck       0
     ];
 
-per.MechStressOptCheck =  dataIn.MechStressOptCheck;
+per.MechStressOptCheck = dataIn.MechStressOptCheck;
+per.flag_OptCurrConst  = dataIn.flag_OptCurrConst;
 
 filt_objs = (objs(:,2)==1);
 objs = objs(objs(:,2)==1,:);

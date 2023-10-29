@@ -37,6 +37,8 @@ flagIch      = dataSet.syrmDesignFlag.ichf;
 flagSC       = dataSet.syrmDesignFlag.scf;
 flagDemag0   = dataSet.syrmDesignFlag.demag0;
 flagDemagHWC = dataSet.syrmDesignFlag.demagHWC;
+flagMech     = dataSet.syrmDesignFlag.mech;
+flagTherm    = dataSet.syrmDesignFlag.therm;
 
 FEAfixN = dataSet.FEAfixN;
 
@@ -170,6 +172,11 @@ dPM0FEA    = zeros(1,length(xRaw));
 BminHWCFEA = zeros(1,length(xRaw));
 dPMHWCFEA  = zeros(1,length(xRaw));
 
+mechStress_radFEA = cell(1,length(xRaw));
+mechStress_tanFEA = cell(1,length(xRaw));
+thetaCuActFEA = ones(1,length(xRaw));
+thetaCuFEA    = ones(1,length(xRaw));
+
 fdMod      = zeros(1,length(xRaw));
 fqMod      = zeros(1,length(xRaw));
 fMMod      = zeros(1,length(xRaw));
@@ -182,6 +189,11 @@ Bmin0Mod   = ones(1,length(xRaw));
 dPM0Mod    = ones(1,length(xRaw));
 BminHWCMod = ones(1,length(xRaw));
 dPMHWCMod  = ones(1,length(xRaw));
+
+mechStressRad = cell(1,length(xRaw));
+mechStressTan = cell(1,length(xRaw));
+thetaCuAct = ones(1,length(xRaw));
+thetaCu    = ones(1,length(xRaw));
 
 if strcmp(eval_type,'flxdn')
     BtFEA = zeros(1,length(xRaw));
@@ -198,16 +210,17 @@ geo.OBJnames=OBJnames;
 per.nsim_singt      = 6;
 per.delta_sim_singt = 60;
 per.overload        = 1;
-geo.mesh_K          = 5;
+geo.mesh_K          = ceil(geo.R/80*geo.p);
 geo.mesh_K_MOOA     = 10;
 per.BrPP            = dataSet.Br;
 per.tempPP          = dataSet.PMtemp;
+per.flag3phaseSet   = ones(1,geo.win.n3phase);
 
 if dataSet.syrmDesignFlag.i0==0
     per.J    = NaN;
     per.kj   = dataSet.ThermalLoadKj;
     per.Loss = NaN;
-else
+elseif dataSet.syrmDesignFlag.i0==1
     per.J    = dataSet.CurrentDensity;
     per.kj   = NaN;
     per.Loss = NaN;
@@ -249,12 +262,22 @@ for mot=1:length(xRaw)
         end
     end
     
-    if (isnan(lt)||(temp_iq==0))
+    if (isnan(lt))
         errorFlag(mot)=1;
     else
         switch geo.RotType
             case 'SPM'
-                geo.hc_pu=interp2(xx,bb,map.bb*geo.g,geo.x,geo.b);
+                for ii=1:geo.nlay
+                    for mm=1:m
+                        for nn=1:n
+                            hcTmp(mm,nn)=map.hc_pu{mm,nn}(ii);
+                            dxTmp(mm,nn)=map.dx{mm,nn}(ii);
+                        end
+                    end
+                    geo.hc_pu(ii)=interp2(xx,bb,hcTmp,geo.x,geo.b);
+                    geo.dx(ii)=interp2(xx,bb,dxTmp,geo.x,geo.b);
+                end
+%                 geo.hc_pu=interp2(xx,bb,map.hc_pu,geo.x,geo.b);
                 per.i0 = interp2(map.xx,map.bb,map.i0,geo.x,geo.b);
                 % fill RQ
                 RQ(:,mot)=[geo.hc_pu r wt lt gamma]';
@@ -331,6 +354,11 @@ for mot=1:length(xRaw)
         end
         dPM0Mod(mot)   = 1;
         dPMHWCMod(mot) = 1;
+
+        mechStressRad{mot} = map.mechStressRad{1,1};
+        mechStressTan{mot} = map.mechStressTan{1,1};
+        thetaCuAct(mot) = interp2(map.xx,map.bb,map.dTempCu+per.temphous,geo.x,geo.b);
+        thetaCu(mot)    = interp2(map.xx,map.bb,map.dTempCu+per.temphous,geo.x,geo.b);
     end
 end
 
@@ -345,8 +373,6 @@ save('dataSet','dataSet');
 filemot = [dataSet.currentpathname dataSet.currentfilename];
 filemot = strrep(filemot,'.mat','.fem');
 
-
-
 if ~isempty(RQ)
     ppState=parallelComputingCheck();
     if ppState==0 && FEAfixN==1000
@@ -357,7 +383,7 @@ if ~isempty(RQ)
     end
     if ppState<1
         for mot=1:length(xRaw)
-            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC);
+            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC,flagMech,flagTherm);
             fdFEA(mot)      = FEA.fd;
             fqFEA(mot)      = FEA.fq;
             fMFEA(mot)      = FEA.fM;
@@ -373,11 +399,17 @@ if ~isempty(RQ)
             dPM0FEA(mot)    = FEA.dPM0;
             BminHWCFEA(mot) = FEA.BminHWC;
             dPMHWCFEA(mot)  = FEA.dPMHWC;
+
+            mechStress_radFEA{mot} = FEA.outMech.sigmaRadAvg;
+            mechStress_tanFEA{mot} = FEA.outMech.sigmaTanAvg;
+            thetaCuActFEA(mot)     = FEA.outTherm.maxTcu;
+            thetaCuFEA(mot)        = FEA.outTherm.maxTcuAct;
+
             disp([' - motor ' int2str(mot) ' of ' int2str(length(xRaw)) ' evaluated with ' int2str(FEA.nFEA) ' FEA'])
         end
     else
         parfor mot=1:length(xRaw)
-            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC);
+            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC,flagMech,flagTherm);
             fdFEA(mot)      = FEA.fd;
             fqFEA(mot)      = FEA.fq;
             fMFEA(mot)      = FEA.fM;
@@ -393,6 +425,12 @@ if ~isempty(RQ)
             dPM0FEA(mot)    = FEA.dPM0;
             BminHWCFEA(mot) = FEA.BminHWC;
             dPMHWCFEA(mot)  = FEA.dPMHWC;
+
+            mechStress_radFEA{mot} = FEA.outMech.sigmaRadAvg;
+            mechStress_tanFEA{mot} = FEA.outMech.sigmaTanAvg;
+            thetaCuActFEA(mot)     = FEA.outTherm.maxTcuAct;
+            thetaCuFEA(mot)        = FEA.outTherm.maxTcu;
+
             disp([' - motor ' int2str(mot) ' of ' int2str(length(xRaw)) ' evaluated with ' int2str(FEA.nFEA) ' FEA'])
         end
     end
@@ -403,9 +441,9 @@ else
 end
 
 if strcmp(geo.RotType,'SPM')
-    kdRaw = fdFEA./fdMod;
     kqRaw = fqFEA./fqMod;
-    kmRaw = zeros(size(fdFEA));
+    kdRaw = (fdFEA)./(fdMod);
+    kmRaw = fMFEA./fMMod;
     k0Raw = zeros(size(fdFEA));
 elseif strcmp(geo.RotType,'Vtype')
     kmRaw = fMFEA./fMMod;
@@ -413,18 +451,30 @@ elseif strcmp(geo.RotType,'Vtype')
     kdRaw = (fdFEA-fMFEA)./(fdMod-fMMod);
     kqRaw = fqFEA./fqMod;
 else
-    kdRaw       = fdFEA./fdMod;
-    kqRaw       = (fqFEA+fMFEA)./(fqMod+fMMod);
-    kmRaw       = fMFEA./fMMod;
-    k0Raw       = zeros(size(fdFEA));
-    kmPMRaw     = mPMFEA./mPMMod;
-    kichRaw     = ichFEA./ichMod;
-    kiHWCRaw    = iHWCFEA./iHWCMod;
-    kBmin0Raw   = Bmin0FEA./Bmin0Mod;
-    kdPM0Raw    = dPM0FEA./dPM0Mod;
-    kBminHWCRaw = BminHWCFEA./BminHWCMod;
-    kdPMHWCRaw  = dPMHWCFEA./dPMHWCMod;
+    kdRaw = fdFEA./fdMod;
+    kqRaw = (fqFEA+fMFEA)./(fqMod+fMMod);
+    kmRaw = fMFEA./fMMod;
+    k0Raw = zeros(size(fdFEA));
 end
+
+kmPMRaw     = mPMFEA./mPMMod;
+kichRaw     = ichFEA./ichMod;
+kiHWCRaw    = iHWCFEA./iHWCMod;
+kBmin0Raw   = Bmin0FEA./Bmin0Mod;
+kdPM0Raw    = dPM0FEA./dPM0Mod;
+kBminHWCRaw = BminHWCFEA./BminHWCMod;
+kdPMHWCRaw  = dPMHWCFEA./dPMHWCMod;
+
+[Mraw,Mcol] = size(mechStress_radFEA);
+for ii=1:Mraw
+    for jj=1:Mcol
+        kmechradRaw{ii,jj}    = mechStress_radFEA{ii,jj}./mechStressRad{ii,jj} ;
+        kmechtanRaw{ii,jj}    = mechStress_tanFEA{ii,jj}./mechStressTan{ii,jj} ;
+    end
+end
+
+kthetaCuActRaw = thetaCuActFEA./thetaCuAct;
+kthetaCuRaw    = thetaCuFEA./thetaCu;
 
 if gammaFix
     kgRaw = gFEA./gMod;
@@ -448,6 +498,11 @@ kdPM0Raw    = kdPM0Raw(~errorFlag);
 kBminHWCRaw = kBminHWCRaw(~errorFlag);
 kdPMHWCRaw  = kdPMHWCRaw(~errorFlag);
 
+kmechradRaw    = kmechradRaw(~errorFlag);
+kmechtanRaw    = kmechtanRaw(~errorFlag);
+kthetaCuActRaw = kthetaCuActRaw(~errorFlag);
+kthetaCuRaw    = kthetaCuRaw(~errorFlag);
+
 if FEAfixN==1
     kd       = kdRaw*ones(size(xx));
     kq       = kqRaw*ones(size(xx));
@@ -462,6 +517,11 @@ if FEAfixN==1
     kdPM0    = kdPM0Raw*ones(size(xx));
     kBminHWC = kBminHWCRaw*ones(size(xx));
     kdPMHWC  = kdPMHWCRaw*ones(size(xx));
+
+    kmechrad    = repmat(kmechradRaw,length(xx(:,1)),length(xx(1,:)));
+    kmechtan    = repmat(kmechtanRaw,length(xx(:,1)),length(xx(1,:)));
+    kthetaCuAct = kthetaCuActRaw*ones(size(xx));
+    kthetaCu    = kthetaCuRaw*ones(size(xx));
 else
     kd       = scatteredInterpolant(xRaw',bRaw',kdRaw','linear');
     kq       = scatteredInterpolant(xRaw',bRaw',kqRaw','linear');
@@ -477,6 +537,29 @@ else
     kBminHWC = scatteredInterpolant(xRaw',bRaw',kBminHWCRaw','linear');
     kdPMHWC  = scatteredInterpolant(xRaw',bRaw',kdPMHWCRaw','linear');
 
+    kmechrad = cell(size(xx));
+    kmechtan = cell(size(xx));
+    for ii=1:length(kmechradRaw{1,1})
+        fun = @(kmechradRaw) kmechradRaw(ii);
+        kmechradRawTmp = cellfun(fun,kmechradRaw);
+        kmechtanRawTmp = cellfun(fun,kmechtanRaw);
+
+        kmechradTmp  = scatteredInterpolant(xRaw',bRaw',kmechradRawTmp','linear');
+        kmechtanTmp  = scatteredInterpolant(xRaw',bRaw',kmechtanRawTmp','linear');
+        kmechradTmp  = kmechradTmp(xx,bb);
+        kmechtanTmp  = kmechtanTmp(xx,bb);
+
+        [Mraw1,Mcol1] = size(kmechradTmp);
+        for jj=1:Mraw1
+            for kk=1:Mcol1
+                kmechrad{jj,kk} = [kmechrad{jj,kk} kmechradTmp(jj,kk)];
+                kmechtan{jj,kk} = [kmechtan{jj,kk} kmechtanTmp(jj,kk)];
+            end
+        end
+    end
+    kthetaCuAct = scatteredInterpolant(xRaw',bRaw',kthetaCuActRaw','linear');
+    kthetaCu    = scatteredInterpolant(xRaw',bRaw',kthetaCuRaw','linear');
+
     kd       = kd(xx,bb);
     kq       = kq(xx,bb);
     km       = km(xx,bb);
@@ -490,6 +573,10 @@ else
     kdPM0    = kdPM0(xx,bb);
     kBminHWC = kBminHWC(xx,bb);
     kdPMHWC  = kdPMHWC(xx,bb);
+  
+    kthetaCuAct = kthetaCuAct(xx,bb);
+    kthetaCu    = kthetaCu(xx,bb);
+
 end
 
 disp('End of FEAfix calibration')
@@ -509,6 +596,12 @@ FEAfixOut.kBmin0   = kBmin0;
 FEAfixOut.kdPM0    = kdPM0;
 FEAfixOut.kBminHWC = kBminHWC;
 FEAfixOut.kdPMHWC  = kdPMHWC;
+
+FEAfixOut.kmechrad    = kmechrad;
+FEAfixOut.kmechtan    = kmechtan;
+FEAfixOut.kthetaCuAct = kthetaCuAct;
+FEAfixOut.kthetaCu    = kthetaCu;
+
 FEAfixOut.xRaw     = xRaw;
 FEAfixOut.bRaw     = bRaw;
 

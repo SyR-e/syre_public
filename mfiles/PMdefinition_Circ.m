@@ -216,5 +216,8 @@ temp.yPME2b = yPME2b;
 temp.xPME2t = xPME2t;
 temp.yPME2t = yPME2t;
 
+temp.mirrorFlag = ones(1,length(xc));
+temp.mirrorFlagAir = ones(1,length(xair));
+
 mat.LayerMag.Br = [Br Br];
 

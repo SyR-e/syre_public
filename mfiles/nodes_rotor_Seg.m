@@ -14,23 +14,24 @@
 
 function [geo,mat,temp]=nodes_rotor_Seg(geo,mat)
 %% Input
-r      = geo.r;                 % Raggio del rotore al traferro
-x0     = geo.x0;                % Centro fittizio
-Ar     = geo.Ar;
-pont0  = geo.pont0;             % minimum mechanical tolerance
-pontT  = geo.pontT;             % Airgap ribs [mm]
-p      = geo.p;                 % Paia poli
-nlay   = geo.nlay;              % N° layers
-dalpha = geo.dalpha;            % Angoli dalpha
-alpha  = cumsum(dalpha); 
-dx     = geo.dx;
-dxIB   = geo.dxIB;
-kOB    = geo.kOB;
-delta_FBS   = geo.delta_FBS;    % flux barrier shift angle
-hfe_min     = geo.hfe_min;
+r               = geo.r;                % Raggio del rotore al traferro
+x0              = geo.x0;               % Centro fittizio
+Ar              = geo.Ar;
+pont0           = geo.pont0;            % minimum mechanical tolerance
+pontT           = geo.pontT;            % Airgap ribs [mm]
+p               = geo.p;                % Paia poli
+nlay            = geo.nlay;             % N° layers
+dalpha          = geo.dalpha;           % Angoli dalpha
+alpha           = cumsum(dalpha); 
+dx              = geo.dx;
+dxIB            = geo.dxIB;
+kOB             = geo.kOB;
+delta_FBS       = geo.delta_FBS;        % flux barrier shift angle
+hfe_min         = geo.hfe_min;
 RotorFilletTan1 = geo.RotorFilletTan1;
 RotorFilletTan2 = geo.RotorFilletTan2;
-hcShrink = geo.hcShrink;
+hcShrink        = geo.hcShrink;
+hs              = geo.hs;               % sleeve thickness [mm]
 
 %% Initialitation
 
@@ -79,17 +80,20 @@ yC02k = nan(1,nlay);
 % Check array
 LowDimBarrier = zeros(1,nlay);
 
+% new rotor radius: sleeve thickness is inside the rotor space
+% r = r-hs;
+
 %% Computation of the circumferences centered in (x0,0) to draw the barriers 
 
 % Find xpont ypont
 beta = 180/pi * calc_apertura_cerchio(pi/180*alpha,r,x0);      
 rbeta = (x0 - r * cos(alpha*pi/180))./(cos(beta*pi/180)); 
-[xpont,ypont] = calc_intersezione_cerchi(r-pontT, rbeta, x0);
+[xpont,ypont] = calc_intersezione_cerchi(r-pontT-hs, rbeta, x0);
 
 % Check
 ii = (imag(xpont)~=0 | imag(ypont)~=0);
-xpont(ii) = (r-2*pontT(ii)).*cos(alpha(ii)*pi/180);
-ypont(ii) = (r-2*pontT(ii)).*sin(alpha(ii)*pi/180);
+xpont(ii) = (r-2*pontT(ii)-hs).*cos(alpha(ii)*pi/180);
+ypont(ii) = (r-2*pontT(ii)-hs).*sin(alpha(ii)*pi/180);
 LowDimBarrier(ii) = 1;
 
 Bx0 = x0-(rbeta);
@@ -374,23 +378,23 @@ for ii=1:nlay
         % Inner side
         [a1,b1,c1] = retta_per_2pti(XpBar1(ii),YpBar1(ii),xxD1k(ii),yyD1k(ii));
         [a1p,b1p,c1p] = calc_retta_offset(a1,b1,c1,RotorFilletTan1(ii));
-        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-RotorFilletTan1(ii),a1p,b1p,c1p);
+        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-RotorFilletTan1(ii)-hs,a1p,b1p,c1p);
         xC01k(ii) = real(xTmp(1));
         yC01k(ii) = real(yTmp(1));
         [xC1k(ii),yC1k(ii)] = proiezione_punto_retta(a1,b1,c1,xC01k(ii),yC01k(ii));
         [a10,b10,c10] = retta_per_2pti(xC01k(ii),yC01k(ii),0,0);
-        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii),a10,b10,c10);
+        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-hs,a10,b10,c10);
         xC2k(ii) = real(xTmp(1));
         yC2k(ii) = real(yTmp(1));
         % Outer side
         [a2,b2,c2] = retta_per_2pti(XpBar2(ii),YpBar2(ii),xxD2k(ii),yyD2k(ii));
         [a2p,b2p,c2p] = calc_retta_offset(a2,b2,c2,-RotorFilletTan2(ii));
-        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-RotorFilletTan2(ii),a2p,b2p,c2p);
+        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-RotorFilletTan2(ii)-hs,a2p,b2p,c2p);
         xC02k(ii) = real(xTmp(1));
         yC02k(ii) = real(yTmp(1));
         [xC4k(ii),yC4k(ii)] = proiezione_punto_retta(a2,b2,c2,xC02k(ii),yC02k(ii));
         [a20,b20,c20] = retta_per_2pti(xC02k(ii),yC02k(ii),0,0);
-        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii),a20,b20,c20);
+        [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-hs,a20,b20,c20);
         xC3k(ii) = real(xTmp(1));
         yC3k(ii) = real(yTmp(1));
 
@@ -401,12 +405,12 @@ for ii=1:nlay
             RotorFilletTan2(ii) = pont0;
             [a2,b2,c2] = retta_per_2pti(XpBar2(ii),YpBar2(ii),xxD2k(ii),yyD2k(ii));
             [a2p,b2p,c2p] = calc_retta_offset(a2,b2,c2,-RotorFilletTan2(ii));
-            [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-RotorFilletTan2(ii),a2p,b2p,c2p);
+            [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-RotorFilletTan2(ii)-hs,a2p,b2p,c2p);
             xC02k(ii) = real(xTmp(1));
             yC02k(ii) = real(yTmp(1));
             [xC4k(ii),yC4k(ii)] = proiezione_punto_retta(a2,b2,c2,xC02k(ii),yC02k(ii));
             [a20,b20,c20] = retta_per_2pti(xC02k(ii),yC02k(ii),0,0);
-            [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii),a20,b20,c20);
+            [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-pontT(ii)-hs,a20,b20,c20);
             xC3k(ii) = real(xTmp(1));
             yC3k(ii) = real(yTmp(1));
         end

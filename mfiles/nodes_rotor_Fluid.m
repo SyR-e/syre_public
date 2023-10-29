@@ -15,7 +15,7 @@
 function [geo,mat,temp]=nodes_rotor_Fluid(geo,mat)
 
 l=geo.l;
-r = geo.r;            % Raggio del rotore al traferro
+r = geo.r-geo.hs;            % Raggio del rotore al traferro
 rlim=r;
 p = geo.p;              % Paia poli
 nlay = geo.nlay;        % N° layers

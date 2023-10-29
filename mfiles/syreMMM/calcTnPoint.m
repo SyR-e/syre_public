@@ -17,11 +17,12 @@ function [out] = calcTnPoint(motorModel,Tref,nref)
 % fdfq   = motorModel.FluxMap_dq;
 % TwData = motorModel.TnSetup;
 
-Id  = motorModel.FluxMap_dq.Id;
-Iq  = motorModel.FluxMap_dq.Iq;
-Fd  = motorModel.FluxMap_dq.Fd;
-Fq  = motorModel.FluxMap_dq.Fq;
-Tem = motorModel.FluxMap_dq.T;
+Id   = motorModel.FluxMap_dq.Id;
+Iq   = motorModel.FluxMap_dq.Iq;
+Fd   = motorModel.FluxMap_dq.Fd;
+Fq   = motorModel.FluxMap_dq.Fq;
+Tem  = motorModel.FluxMap_dq.T;
+dTpp = motorModel.FluxMap_dq.dTpp;
 
 p         = motorModel.data.p;
 axisType  = motorModel.data.axisType;
@@ -43,6 +44,8 @@ SkinEffectFlag   = motorModel.TnSetup.SkinEffectFlag;
 SkinEffectMethod = motorModel.TnSetup.SkinEffectMethod;
 MechLoss         = motorModel.TnSetup.MechLoss;
 Control          = motorModel.TnSetup.Control;
+DemagLimit       = motorModel.DemagnetizationLimit;
+ACSsafeFlag      = motorModel.TnSetup.ASCsafeFlag;
 
 if strcmp(motorType,'IM')
     IM = motorModel.FluxMap_dq.IM;
@@ -142,13 +145,36 @@ Pmech = polyval(MechLoss,abs(nref));
 % 9) Total loss map computation
 Ploss = Pfe+Prot+3/2*Rs*n3phase.*abs(Io).^2+Pmech;
 
-% 10) Voltage and current limits
+% 10) Voltage and current limits + ASC safe limits (if selected)
 Io_m = abs(Io);
 Voc_m = abs(Voc);
 
 lim = ones(size(Id));
 lim(Voc_m>Vdc) = NaN;
 lim(Io_m>Imax) = NaN;
+if strcmp(axisType,'SR')
+    lim(angle(I)>pi/0) = NaN;
+    lim(angle(I)<0)    = NaN;
+else
+    lim(angle(I)>pi)   = NaN;
+    lim(angle(I)<pi/2) = NaN;
+end
+
+if strcmp(ACSsafeFlag,'Yes')
+    Idemag = interp1(DemagLimit.tempPM,DemagLimit.Idemag,motorModel.data.tempPM);
+    switch motorModel.data.axisType
+        case 'SR'
+            iTmp = unique(Iq);
+            fTmp = interp2(Id,Iq,Fq,zeros(size(iTmp)),iTmp);
+        case 'PM'
+            iTmp = unique(Id);
+            fTmp = -interp2(Id,Iq,Fd,iTmp,zeros(size(iTmp)));
+            Idemag = -abs(Idemag);
+    end
+    FlimASC = interp1(iTmp,fTmp,Idemag);
+    
+    lim(abs(Fd+j*Fq)>=FlimASC) = NaN;
+end
 
 Ploss = Ploss.*lim;
 
@@ -190,20 +216,16 @@ end
 
 % update figure and matrices
 if ((Tref==0)&&(nref==0))
-    IdMin = 0;
-    IqMin = 0;
-    FdMin = +interp2(Id,Iq,Fd,IdMin,IqMin);
-    FqMin = +interp2(Id,Iq,Fq,IdMin,IqMin);
-
+    out.Id = 0;
+    out.Iq = 0;
+    out.Fd = +interp2(Id,Iq,Fd,out.Id,out.Iq);
+    out.Fq = +interp2(Id,Iq,Fq,out.Id,out.Iq);
+    
     out.T     = Tref;
-    out.Id    = IdMin;
-    out.Iq    = IqMin;
-    out.Fd    = FdMin;
-    out.Fq    = FqMin;
     out.Tem   = 0;
     out.Vo    = 0;
     out.Io    = 0;
-    out.Im    = IdMin+j*IqMin;
+    out.Im    = out.Id+j*out.Iq;
     out.Iph   = 0;
     out.Vph   = 0;
     out.PF    = NaN;
@@ -220,6 +242,7 @@ if ((Tref==0)&&(nref==0))
     out.Pmech = 0;
     out.Eo    = 0;
     out.Ife   = 0;
+    out.dTpp  = interp2(Id,Iq,dTpp,id,iq);
     if strcmp(motorType,'IM')
         out.slip  = 0;
         out.Ir    = 0;
@@ -233,39 +256,35 @@ elseif ~isnan(limIso)
     if Tref<0
         if strcmp(motorType,'PM')
             if strcmp(axisType,'SR') % invert d current for generator (PM on -q)
-                IdMin = -id;
-                FdMin = -interp2(Id,Iq,Fd,id,iq);
-                IqMin = +iq;
-                FqMin = +interp2(Id,Iq,Fq,id,iq);
+                out.Id = -id;
+                out.Fd = -interp2(Id,Iq,Fd,id,iq);
+                out.Iq = +iq;
+                out.Fq = +interp2(Id,Iq,Fq,id,iq);
             else % invert q current for generator (PM on d axis)
-                IdMin = +id;
-                FdMin = +interp2(Id,Iq,Fd,id,iq);
-                IqMin = -iq;
-                FqMin = -interp2(Id,Iq,Fq,id,iq);
+                out.Id = +id;
+                out.Fd = +interp2(Id,Iq,Fd,id,iq);
+                out.Iq = -iq;
+                out.Fq = -interp2(Id,Iq,Fq,id,iq);
             end
-            IqMin = iq;
-            FqMin = interp2(Id,Iq,Fq,id,iq);
+            % IqMin = iq;
+            % FqMin = interp2(Id,Iq,Fq,id,iq);
         else    % SyR motor: invert q current for generator
-            IdMin = +id;
-            FdMin = +interp2(Id,Iq,Fd,id,iq);
-            IqMin = -iq;
-            FqMin = -interp2(Id,Iq,Fq,id,iq);
+            out.Id = +id;
+            out.Fd = +interp2(Id,Iq,Fd,id,iq);
+            out.Iq = -iq;
+            out.Fq = -interp2(Id,Iq,Fq,id,iq);
         end
     else
-        IdMin = +id;
-        FdMin = +interp2(Id,Iq,Fd,id,iq);
-        IqMin = +iq;
-        FqMin = +interp2(Id,Iq,Fq,id,iq);
+        out.Id = +id;
+        out.Fd = +interp2(Id,Iq,Fd,id,iq);
+        out.Iq = +iq;
+        out.Fq = +interp2(Id,Iq,Fq,id,iq);
     end
     out.T     = Tref;
-    out.Id    = IdMin;
-    out.Iq    = IqMin;
-    out.Fd    = FdMin;
-    out.Fq    = FqMin;
     out.Tem   = interp2(Id,Iq,Tem,id,iq);
     out.Vo    = interp2(Id,Iq,Voc_m,id,iq);
     out.Io    = interp2(Id,Iq,Io_m,id,iq);
-    out.Im    = IdMin+j*IqMin;
+    out.Im    = out.Id+j*out.Iq;
     out.Iph   = interp2(Id,Iq,Io,id,iq);
     out.Vph   = interp2(Id,Iq,Vof,id,iq);
     out.PF    = interp2(Id,Iq,cosfi,id,iq);
@@ -282,6 +301,7 @@ elseif ~isnan(limIso)
     out.Pmech = Pmech;
     out.Eo    = interp2(Id,Iq,Vind,id,iq);
     out.Ife   = interp2(Id,Iq,Ife,id,iq);
+    out.dTpp  = interp2(Id,Iq,dTpp,id,iq);
     if strcmp(motorType,'IM')
         out.slip  = interp2(Id,Iq,Wslip./(2*pi*FreqElet),id,iq);
         out.Ir    = interp2(Id,Iq,IM.Ir,id,iq);
@@ -325,4 +345,48 @@ else
     out.Ir    = NaN;
     out.Rs    = NaN;
     out.eff   = NaN;
+    out.dTpp  = NaN;
 end
+
+% ASC, UGO and demagnetization
+
+switch motorModel.data.axisType
+    case 'SR'
+        iTmp = unique(Iq);
+        fTmp = interp2(Id,Iq,Fq,zeros(size(iTmp)),iTmp);
+    case 'PM'
+        iTmp = unique(Id);
+        fTmp = -interp2(Id,Iq,Fd,iTmp,zeros(size(iTmp)));
+        iTmp = -iTmp;
+end
+out.IHWC = interp1(fTmp,iTmp,abs(out.Fd+j*out.Fq),'linear','extrap');
+
+out.F0 = interp2(Id,Iq,abs(Fd+j*Fq),0,0);
+out.VUGO = out.F0*nref*pi/30*p*sqrt(3);
+
+
+
+if ~isempty(DemagLimit)
+    out.Idemag = interp1(DemagLimit.tempPM,DemagLimit.Idemag,motorModel.data.tempPM);
+else
+    out.Idemag = NaN;
+end
+
+if out.VUGO<Vdc
+    out.UGOsafe = 1;
+else
+    out.UGOsafe = 0;
+end
+
+if isnan(out.Idemag)
+    out.ASCsafe = NaN;
+else
+    if out.Idemag>out.IHWC
+        out.ASCsafe = 1;
+    else
+        out.ASCsafe = 0;
+    end
+end
+
+
+

@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [iabc2] = MMM_eval_SyreDrivePoint(motorModel,Idq,n)
+function [iabc2] = MMM_eval_SyreDrivePoint(motorModel,syreDriveSingt)
 
 fPWM = motorModel.SyreDrive.Converter.fPWM;
 p    = motorModel.geo.p;
@@ -22,14 +22,18 @@ p    = motorModel.geo.p;
 open(motorModel.SyreDrive.SIM_path)
 init_sim
 
-id_MTPA = Idq(1);
-iq_MTPA = Idq(2);
-n0 = 2*n;   
+n = syreDriveSingt.n;  
+
+id_MTPA = syreDriveSingt.Id;
+iq_MTPA = syreDriveSingt.Iq;
+T0      = syreDriveSingt.T;
+n0      = 2*n;   
+tSim    = syreDriveSingt.tSim;
 
 flagwp = 1;
 
 options = simset('SrcWorkspace','current', 'DstWorkspace', 'current');
-out = sim(motorModel.SyreDrive.SIM_path,0.45,options);   % Starts simulation
+out = sim(motorModel.SyreDrive.SIM_path,tSim,options);   % Starts simulation
 
 % without movemean and percentage gap computed as
 % delta% = (|a-b|/(a+b)/2)*100
@@ -37,7 +41,7 @@ out = sim(motorModel.SyreDrive.SIM_path,0.45,options);   % Starts simulation
 Time_dq = out.Out_M.Idq_m.Time;
 Id = out.Out_M.Idq_m.Data(:,1);
 Iq = out.Out_M.Idq_m.Data(:,2);
-
+T_m = out.Out_M.T_m.Data;
 % Id_ref = out.Outputs.id_ref.Data(:);
 % Iq_ref = out.Outputs.iq_ref.Data(:);
 
@@ -75,7 +79,7 @@ t = 60/(out.Out_M.n_m.Data(length(out.Out_M.n_m.Data(:)))*motorModel.data.p);
 [~,ind_st2] = min(abs((Time_dq - (Time_dq(end)-t))));
 Id_exp2 = Id(ind_st2:end);
 Iq_exp2 = Iq(ind_st2:end);
-
+T_mexp2    = T_m(ind_st2:end);
 
 %% Conversion in abc
 NUMSTEP = 2*fPWM/(n*p/60)*100;
@@ -85,8 +89,9 @@ th_vect = linspace(th0*pi/180,(th0+360)*pi/180,NUMSTEP);
 % Id1 = interp1(linspace(0,1,length(Id_exp1)),Id_exp1,linspace(0,1,NUMSTEP));
 % Iq1 = interp1(linspace(0,1,length(Iq_exp1)),Iq_exp1,linspace(0,1,NUMSTEP));
 
-Id2 = interp1(linspace(0,1,length(Id_exp2)),Id_exp2,linspace(0,1,NUMSTEP));
-Iq2 = interp1(linspace(0,1,length(Iq_exp2)),Iq_exp2,linspace(0,1,NUMSTEP));
+Id2  = interp1(linspace(0,1,length(Id_exp2)),Id_exp2,linspace(0,1,NUMSTEP));
+Iq2  = interp1(linspace(0,1,length(Iq_exp2)),Iq_exp2,linspace(0,1,NUMSTEP));
+T_m2 = interp1(linspace(0,1,length(T_mexp2)),T_mexp2,linspace(0,1,NUMSTEP));
 
 % iabc1 = dq2abc(Id1,Iq1,th_vect);
 iabc2 = dq2abc(Id2,Iq2,th_vect);
@@ -97,8 +102,17 @@ iabc2 = dq2abc(Id2,Iq2,th_vect);
 % plot(iabc1(2,:),'g','LineWidth',2)
 % plot(iabc1(3,:),'r','LineWidth',2)
 
+time = linspace(0,60/n/p,length(iabc2(1,:)));
+
+iabc2 = [iabc2; time];
+
 figure
-figSetting
-plot(iabc2(1,:),'b','LineWidth',2)
-plot(iabc2(2,:),'g','LineWidth',2)
-plot(iabc2(3,:),'r','LineWidth',2)
+figSetting(14,10,12)
+% title(['$I_d$ = ' num2str(round(id_MTPA,2)) 'A - $I_q$ = ' num2str(round(iq_MTPA,2)) ' A - n = ' num2str(round(n)) ' rpm'])
+title(['$T$ = ' num2str(round(mean(T_m2),2)) ' Nm - n = ' num2str(round(n)) ' rpm'])
+plot(time*1000,iabc2(1,:),'b','LineWidth',2)
+plot(time*1000,iabc2(2,:),'g','LineWidth',2)
+plot(time*1000,iabc2(3,:),'r','LineWidth',2)
+xlim([0 t(end)*1000])
+xlabel('$t$ [ms]')
+ylabel('$I$ [A]')

@@ -15,7 +15,7 @@
 function eval_vonMisesStress(dataIn)
 
 % Run Structural Simulation in Matlab, at the considered rotor speed.
-
+% profile on
 custom = dataIn.custom;
 
 pathname = dataIn.currentpathname;
@@ -49,22 +49,42 @@ simSetup.evalSpeed = evalSpeed;
 simSetup.meshSize  = 'fine';    % fine or coarse
 simSetup.flagFull  = 0;         % 0-->Qs simulation / 1-->full motor simulation
 simSetup.shaftBC   = 2;         % 1-->locked shaft / 0-->free shaft / 2-->spring ring
+simSetup.meshShaft = 0;         % 0-->shaft not meshed / 1-->shaft meshed
+% if simSetup.meshShaft
+%     simSetup.shaftBC   = 2;
+% end
+
+if simSetup.shaftBC==2
+    simSetup.meshShaft = 1;
+else
+    simSetup.meshShaft = 0;
+end
+
+
+% if ~custom
+%     if dataIn.Qs == 6*dataIn.NumOfSlots*dataIn.NumOfPolePairs*dataSet.Num3PhaseCircuit
+%         simSetup.flagFull  = 1;
+%         simSetup.shaftBC   = 2;
+%         simSetup.meshShaft = 1;
+%     end
+% end
 
 warning('off')
 disp(['Creation of the PDE model...'])
 tic
 
 % if (custom)
-    [structModel,data4GeoMat] = femm2pde(geo,mat,simSetup);
-% else
+%     [structModel,data4GeoMat] = femm2pde(geo,mat,simSetup);
+    [structModel] = femm2pde(geo,mat,simSetup);
+
+    % else
 %     [structModel] = syre2pde(geo,mat,simSetup);
 % end
 
 tEnd = toc();
 warning('on')
 disp(['PDE model created in ' num2str(tEnd) ' s'])
-save([newDir filename(1:end-4) '_structModel.mat'],'structModel','dataSet','geo','per','mat','data4GeoMat');
-
+% save([newDir filename(1:end-4) '_structModel.mat'],'structModel','dataSet','geo','per','mat','data4GeoMat');
 
 hfig = figure();
 figSetting();
@@ -81,6 +101,7 @@ disp(['PDE model solved in ' num2str(tEnd) ' s'])
 save([newDir filename(1:end-4) '_structModel.mat'],'structModel','sVonMises','R','dataSet','geo','per','mat');
 
 [out] = eval_maxStress(structModel,sVonMises,geo,mat);
+
 
 save([newDir filename(1:end-4) '_structModel.mat'],'out','-append');
 

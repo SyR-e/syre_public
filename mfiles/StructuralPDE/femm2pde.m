@@ -15,7 +15,7 @@
 function [structModel,data4GeoMat] = femm2pde(geo,mat,simSetup)
 
 meshSize  = simSetup.meshSize;
-shaftBC   = simSetup.shaftBC;
+shaftBC   = simSetup.shaftBC; 
 flagFull  = simSetup.flagFull;
 evalSpeed = simSetup.evalSpeed;
 filename  = simSetup.filename;
@@ -29,20 +29,20 @@ pathname  = simSetup.pathname;
 
 switch meshSize
     case 'coarse'
-        Hmax  = 5*geo.pont0/1e3;
-        Hmin  = geo.pont0/1e3/2;
-        Hgrad = 1.2;
-        Hedge = geo.pont0/1e3/10;
+        Hmax  = geo.pont0/1e3*4;
+        Hmin  = geo.pont0/1e3*0.8;
+        Hgrad = 2;
+        Hedge = Hmin;
         warning('Coarse mesh selected!!!')
     case 'fine'
-        %         Hmax  = geo.pont0/1e3;
-        %         Hmin  = geo.pont0/1e3/5;
-        %         Hgrad = 2;
-        %         Hedge = geo.pont0/1e3/5;
-        Hmax  = 2*geo.pont0/1e3;
-        Hmin  = geo.pont0/1e3/2;
+        Hmax  = geo.pont0/1e3*2;
+        Hmin  = geo.pont0/1e3*0.5;
         Hgrad = 2;
-        Hedge = geo.pont0/1e3/2;
+        Hedge = geo.pont0/1e3*0.5;
+        %         Hmax  = geo.pont0/1e3*2;
+        %         Hmin  = geo.pont0/1e3*1;
+        %         Hgrad = 1;
+        %         Hedge = geo.pont0/1e3*1.5;
     otherwise
         Hmax  = geo.pont0/1e3/2;
         Hmin  = geo.pont0/1e3/5;
@@ -71,10 +71,12 @@ structModel = createpde(2);
 filename  = strrep(filename,'.mat','.fem');
 % fileans   = strrep(filename,'.fem','.ans');
 
-syreDirectory = fileparts(which('GUI_Syre.mlapp'));
+% syreDirectory = fileparts(which('GUI_Syre.mlapp'));
 
-copyfile([pathname filename],[syreDirectory '\tmp\' filename])
-newFile = [syreDirectory '\tmp\' filename];
+[~,tmpath]=createTempDir();
+copyfile([pathname filename],[tmpath filename])
+
+newFile = [tmpath filename];
 
 openfemm(1);
 opendocument(newFile);
@@ -88,9 +90,11 @@ for ii=1:size(xy,1)
             mi_clearselected;
         end
     elseif xy(ii,3)==7 % Shaft
-        mi_selectlabel(xy(ii,1),xy(ii,2));
-        mi_setblockprop('Air',1,0,'None',0,400,0);
-        mi_clearselected;
+        if simSetup.meshShaft
+            mi_selectlabel(xy(ii,1),xy(ii,2));
+            mi_setblockprop('Air',1,0,'None',0,400,0);
+            mi_clearselected;
+        end
     elseif xy(ii,3)==6 % PM
         if ~geo.custom
             mi_selectlabel(xy(ii,1),xy(ii,2));
@@ -119,39 +123,38 @@ for ii=1:size(xy,1)
     end
 end
 
-
-
-% add shaft ring spring
-if shaftBC==2
-    ArIn = geo.Ar/10;
-    if geo.ps==2*geo.p
-        mi_addnode(+ArIn,0);
-        mi_addnode(-ArIn,0);
-        mi_addarc(+ArIn,0,-ArIn,0,180,2);
-        mi_addarc(-ArIn,0,+ArIn,0,180,2);
-        mi_addblocklabel(ArIn/2,0);
-        mi_selectlabel(ArIn/2,0);
-        mi_setblockprop('Air',1,0,'None',0,2,0);
-        mi_clearselected();
-    else
-        x1 = ArIn;
-        y1 = 0;
-        [x2,y2] = rot_point(x1,y1,pi/geo.p*geo.ps);
-        mi_addnode(x1,y1);
-        mi_addnode(x2,y2);
-        mi_addarc(x1,y1,x2,y2,180/geo.p*geo.ps,2);
-        [x0,y0] = rot_point(x1/2,y1/2,pi/geo.p*geo.ps/2);
-        mi_addblocklabel(x0,y0);
-        mi_selectlabel(x0,y0);
-        mi_setblockprop('Air',1,0,'None',0,2,0);
-        mi_clearselected();
-        mi_selectsegment(x1/2,y1/2);
-        mi_selectsegment(x2/2,y2/2);
-        mi_setsegmentprop('None',1,0,0,2);
-        mi_clearselected();
+% % add shaft ring spring
+if simSetup.meshShaft
+    if shaftBC==2
+        ArIn = geo.Ar/10;
+        if geo.ps==2*geo.p
+            mi_addnode(+ArIn,0);
+            mi_addnode(-ArIn,0);
+            mi_addarc(+ArIn,0,-ArIn,0,180,2);
+            mi_addarc(-ArIn,0,+ArIn,0,180,2);
+            mi_addblocklabel(ArIn/2,0);
+            mi_selectlabel(ArIn/2,0);
+            mi_setblockprop('Air',1,0,'None',0,2,0);
+            mi_clearselected();
+        else
+            x1 = ArIn;
+            y1 = 0;
+            [x2,y2] = rot_point(x1,y1,pi/geo.p*geo.ps);
+            mi_addnode(x1,y1);
+            mi_addnode(x2,y2);
+            mi_addarc(x1,y1,x2,y2,180/geo.p*geo.ps,2);
+            [x0,y0] = rot_point(x1/2,y1/2,pi/geo.p*geo.ps/2);
+            mi_addblocklabel(x0,y0);
+            mi_selectlabel(x0,y0);
+            mi_setblockprop('Air',1,0,'None',0,2,0);
+            mi_clearselected();
+            mi_selectsegment(x1/2,y1/2);
+            mi_selectsegment(x2/2,y2/2);
+            mi_setsegmentprop('None',1,0,0,2);
+            mi_clearselected();
+        end
     end
 end
-
 
 mi_createmesh;
 mi_analyze(1);
@@ -175,7 +178,9 @@ end
 k=1; %zz=1; jj=1; 
 psMagnet = polyshape;
 psSleeve = polyshape;
-psShaft  = polyshape;
+% if simSetup.meshShaft
+    psShaft  = polyshape;
+% end
 
 for ii=1:numElements
     tmp=mo_getelement(ii);
@@ -196,12 +201,14 @@ for ii=1:numElements
         psSleeve = union(psSleeve,psTemp);
         elementID(ii) = 3;
     elseif (eleGroup(ii)==400)
-        index = elements(:,ii);
-        vertex   = nodes(:,index);
-        vertex   = vertex';
-        psTemp   = polyshape(vertex);
-        psShaft = union(psShaft,psTemp);
-        elementID(ii) = 4;
+%         if simSetup.meshShaft
+            index = elements(:,ii);
+            vertex   = nodes(:,index);
+            vertex   = vertex';
+            psTemp   = polyshape(vertex);
+            psShaft = union(psShaft,psTemp);
+            elementID(ii) = 4;
+%         end
     elseif (eleGroup(ii)>199)
         index    = elements(:,ii);
         vertex   = nodes(:,index);
@@ -245,7 +252,7 @@ delete(newFile)
 geometryFromMesh(structModel,nodes,elements);
 generateMesh(structModel,'Hmax',Hmax,'Hmin',Hmin,'Hgrad',Hgrad,'GeometricOrder','quadratic','Hedge',{1:1:structModel.Geometry.NumEdges, Hedge});
 
-% Boundary condition: shaft is fixed
+% Boundary condition
 
 hfig = figure();
 figSetting();
@@ -260,14 +267,21 @@ r  = abs(xy(1,:)+j*xy(2,:));
 th = angle(xy(1,:)+j*xy(2,:));
 index = 1:1:length(r);
 indexShaft = index(r==min(r));
-indexSpider1 = index(th==min(th));
-indexSpider2 = index(th==max(th));
+% indexSpider1 = index(th==min(th));
+% indexSpider2 = index(th==max(th));
 indexAirgap  = index(r==max(r));
+
+thMin = min(th);
+thMax = max(th);
+thTol = 1*pi/180;
+indexSpider1 = index(th<thMin+thTol);
+indexSpider2 = index(th>thMax-thTol);
+
 
 close(hfig);
 
 if geo.ps==2*geo.p
-    if shaftBC
+    if shaftBC>0
         applyBoundaryCondition(structModel,...
             'dirichlet',...
             'Edge',indexShaft,...
@@ -275,7 +289,7 @@ if geo.ps==2*geo.p
     end
 else
     %'Edge',[indexShaft indexSpider1 indexSpider2],...
-    if shaftBC
+    if shaftBC>0
         applyBoundaryCondition(structModel,...
             'dirichlet',...
             'Edge',[indexShaft],...
@@ -299,6 +313,11 @@ else
         'dirichlet',...
         'Edge',[indexSpider1 indexSpider2],...
         'u',[0,0]);
+    applyBoundaryCondition(structModel,...
+        'dirichlet',...
+        'Edge',[indexSpider1 indexSpider2],...
+        'r',@(location,state)slidingBCr(location,state),...
+        'h',@(location,state)slidingBCh(location,state));
 end
 % Create c matrix for PDE (reference from pdeModeler for plane stress)
 cMat = [
@@ -319,8 +338,6 @@ meshData = structModel.Mesh;
 xyNodes  = meshData.Nodes(1,:)+j*meshData.Nodes(2,:);
 eleData  = [xyNodes(meshData.Elements(1,:));xyNodes(meshData.Elements(2,:));xyNodes(meshData.Elements(3,:))];
 % eleG     = mean(eleData,1);
-
-
 
 dataForCF.kgm3_Fe     = mat.Rotor.kgm3;
 dataForCF.kgm3_PM     = mat.LayerMag.kgm3;
@@ -356,7 +373,9 @@ data4GeoMat.E_sleeve       = mat.Sleeve.E*1e9;
 data4GeoMat.nu             = 0.3;
 data4GeoMat.sigmaMaxFe     = mat.Rotor.sigma_max*1e6;
 data4GeoMat.sigmaMaxSleeve = mat.Sleeve.sigma_max*1e6;
-data4GeoMat.psShaft        = psShaft;
+% if simSetup.meshShaft
+    data4GeoMat.psShaft        = psShaft;
+% end
 data4GeoMat.kgm3_shaft     = 0;
 data4GeoMat.E_shaft        = mat.Rotor.E*1e9*1e-6;
 
@@ -366,12 +385,27 @@ end
 
 
 % if (strcmp(geo.RotType,'IM')||geo.hs>0||~strcmp(mat.LayerMag.MatName,'Air'))
-    specifyCoefficients(structModel,...
+%     specifyCoefficients(structModel,...
+%         'm',0,...
+%         'd',0,...
+%         'c',@(x,y)defineCmatrix(x,y,data4GeoMat),...
+%         'a',0,...
+%         'f',@(x,y)centrifugalForce(x,y,data4GeoMat));
+
+ specifyCoefficients(structModel,...
         'm',0,...
         'd',0,...
-        'c',@(x,y)defineCmatrix(x,y,data4GeoMat),...
+        'c',cMat,...
         'a',0,...
         'f',@(x,y)centrifugalForce(x,y,data4GeoMat));
+
+%     specifyCoefficients(structModel,...
+%     'm',0,...
+%     'd',0,...
+%     'c',cMat,...
+%     'a',0,...
+%     'f',@(x,y)centrifugalForce(x,y,dataForCF));
+
 % else
 %     specifyCoefficients(structModel,...
 %         'm',0,...

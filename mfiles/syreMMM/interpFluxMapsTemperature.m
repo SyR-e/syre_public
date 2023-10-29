@@ -12,5 +12,5 @@ for ii=1:numel(fdfq.Id)
     fdfq.T(ii)  = interp1([temp1 temp2],[fdfq1.T(ii) fdfq2.T(ii)],temp);
 end
 
-fdfq.dT   = nan(size(fdfq.Id));
-fdfq.dTpp = nan(size(fdfq.Id));
+fdfq.dT   = zeros(size(fdfq.Id));
+fdfq.dTpp = zeros(size(fdfq.Id));

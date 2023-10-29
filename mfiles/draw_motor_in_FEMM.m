@@ -94,6 +94,8 @@ mi_addboundprop('AGap', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity+2,0,0);
 
 % nodes
 geo.x0 = geo.r/cos(pi/2/geo.p);
+% geo.x0 = (geo.r-geo.hs)/cos(pi/2/geo.p);
+
 
 [rotor,BLKLABELSrot,geo,mat] = ROTmatr(geo,fem,mat); % rotor and BLKLABELSrot describe the rotor
 geo.rotor = rotor;
@@ -128,10 +130,23 @@ for ii=1:2
         mi_clearselected;
     end
 end
+
 for ii=3:4
     mi_selectsegment(BLKLABELSrot.boundary(ii,1),BLKLABELSrot.boundary(ii,2));
     if (BLKLABELSrot.boundary(ii,3)==10)
         mi_setsegmentprop('APr2', 0, 1, 0, 2);
+        mi_clearselected;
+    elseif(BLKLABELSrot.boundary(ii,3)==0)
+        mi_selectarcsegment(BLKLABELSrot.boundary(ii,1),BLKLABELSrot.boundary(ii,2))
+        mi_setarcsegmentprop(fem.res, 'A=0', 0, 2);
+        mi_clearselected;
+    end
+end
+
+for ii=5:6
+    mi_selectsegment(BLKLABELSrot.boundary(ii,1),BLKLABELSrot.boundary(ii,2));
+    if (BLKLABELSrot.boundary(ii,3)==10)
+        mi_setsegmentprop('APr3', 0, 1, 0, 2);
         mi_clearselected;
     elseif(BLKLABELSrot.boundary(ii,3)==0)
         mi_selectarcsegment(BLKLABELSrot.boundary(ii,1),BLKLABELSrot.boundary(ii,2))

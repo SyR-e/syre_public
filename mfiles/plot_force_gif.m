@@ -10,8 +10,8 @@ function plot_force_gif(geo,out,newDir,filemot)
 Fr = out.SOL.Fr;
 Ft = out.SOL.Ft;
 
-names{1} = '$F_{r}$ [$Nm$]';
-names{2} = '$F_{t}$ [$Nm$]';
+names{1} = '$F_{r}$ [Nm/m$^2$]';
+names{2} = '$F_{t}$ [Nm/m$^2$]';
 
 filenames{1} = [newDir filemot(1:end-4) '_Fr.gif'];
 filenames{2} = [newDir filemot(1:end-4) '_Ft.gif'];
@@ -54,14 +54,14 @@ for ii=1:length(Fr(1,2:end))
     th = Fr(:,1)*pi/180;
     set(hplot(1),'XData',am.*cos(th),'YData',am.*sin(th));
     %     title(hax(1),['$F_r$ @ $\theta=' num2str(out.SOL.th(ii)-geo.th0(1),2) '^\circ$'])
-    title(hax(1),['$F_r$ @ $\theta=' sprintf('%1.0f',out.SOL.th(ii)-geo.th0(1)) '^\circ$'])
+    title(hax(1),['$p_r$ @ $\theta=' sprintf('%1.0f',out.SOL.th(ii)-geo.th0(1)) '^\circ$'])
     
     
     am = (geo.r+geo.g-Ft(:,ii+1));
     th = Fr(:,1)*pi/180;
     set(hplot(2),'XData',am.*cos(th),'YData',am.*sin(th));
 %     title(hax(2),['$F_t$ @ $\theta=' num2str(out.SOL.th(ii)-geo.th0(1),2) '^\circ$'])
-    title(hax(2),['$F_t$ @ $\theta=' sprintf('%1.0f',out.SOL.th(ii)-geo.th0(1)) '^\circ$'])
+    title(hax(2),['$p_t$ @ $\theta=' sprintf('%1.0f',out.SOL.th(ii)-geo.th0(1)) '^\circ$'])
     
     for jj=1:2
         frame = getframe(hfig(jj));

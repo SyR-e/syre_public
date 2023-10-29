@@ -14,15 +14,21 @@
 
 function [map,filename] = SDE_loadPlane(pathname,filename)
 
-if nargin()~=2
-    [filename,pathname,~] = uigetfile([cd '\*.fig'],'Select xb design plane');
+if nargin()==1
+    map = pathname;
+    filename = 'Map not saved';
+else
+    if nargin()~=2
+        [filename,pathname,~] = uigetfile([cd '\*.fig'],'Select xb design plane');
+    end
+
+    filename = erase(filename,'.fig');
+
+    hfig = openfig([pathname filename],'invisible');
+    map = get(hfig,'UserData');
+    close(hfig);
 end
 
-filename = erase(filename,'.fig');
-
-hfig = openfig([pathname filename],'invisible');
-map = get(hfig,'UserData');
-close(hfig);
 
 if isfield(map,'dataAvailable')
     map = rmfield(map,'dataAvailable');
@@ -49,6 +55,9 @@ else
     tmp = rmfield(tmp,'bSelect');
     tmp = rmfield(tmp,'Vdc');
     tmp = rmfield(tmp,'geo');
+    
+    tmp = orderfields(tmp);
+
     map.dataAvailable = fieldnames(tmp);
     map.dataSelect = [];
 end

@@ -30,13 +30,14 @@ if nargin==1
     lMax  = eval(answer{2});
     NsMin = eval(answer{3});
     NsMax = eval(answer{4});
-    setup.lVect  = linspace(lMin,lMax,51);
-    setup.NsVect = linspace(NsMin,NsMax,51);
+    setup.lVect  = linspace(lMin,lMax,101);
+    setup.NsVect = linspace(NsMin,NsMax,101);
 end
 
 if isempty(motorModel.controlTrajectories)
     motorModel.controlTrajectories = MMM_eval_AOA(motorModel,'LUT');
 end
+
 MTPA = motorModel.controlTrajectories.MTPA;
 
 Imax = motorModel.data.Imax;
@@ -47,6 +48,16 @@ lend = motorModel.data.lend;
 Ns0  = motorModel.data.Ns;
 p    = motorModel.data.p;
 R    = motorModel.data.R;
+
+if strcmp(motorModel.data.motorType,'PM')
+    if ~isempty(motorModel.DemagnetizationLimit)
+        Idemag0 = interp1(motorModel.DemagnetizationLimit.tempPM,motorModel.DemagnetizationLimit.Idemag,motorModel.data.tempPM);
+    else
+        Idemag0 = NaN;
+    end
+else
+    Idemag0 = NaN;
+end
 
 [l,Ns] = meshgrid(setup.lVect,setup.NsVect);
 
@@ -79,12 +90,12 @@ for ii=1:length(index)
 
     n(ii) = real(w_A)*30/pi/p;
     T(ii) = interp1(abs(id_MTPA+j*iq_MTPA),T_MTPA,Imax);
-
-
 end
 
 loss = 3/2*Rs.*abs(id+j*iq).^2;
 kj = loss./(2*pi*R/1000*l/1000);
+
+Idemag = Idemag0./kN;
 
 % Save data in the output structure
 mapScale.l          = l;
@@ -106,6 +117,7 @@ if isfield(motorModel,'geo')
 else
     mapScale.J = NaN;
 end
+mapScale.Idemag     = Idemag;
 mapScale.motorModel = motorModel;
 
 % figure
@@ -131,6 +143,19 @@ plot(l0,Ns0,'ko','MarkerFaceColor','k','DisplayName','Baseline')
 legend('show','Location','northeast');
 title(['($L,N_s)$ map - $V_{dc}=' int2str(Vdc) '$ V / $I_{max}=' int2str(Imax) '$ Apk'])
 set(hfig(1),'FileName',[pathname resFolder 'mapScaling.fig'],'UserData',mapScale);
+
+hfig(2) = figure();
+figSetting()
+xlabel('$L$ [mm]')
+ylabel('$N_s$')
+colors = get(gca,'ColorOrder');
+contour(mapScale.l,mapScale.Ns,mapScale.T,'-','LineColor',colors(2,:),'LineWidth',1.5,'ShowText','on','DisplayName','$T$ [Nm]')
+contour(mapScale.l,mapScale.Ns,mapScale.n,'-','LineColor',colors(1,:),'LineWidth',1.5,'ShowText','on','DisplayName','$n$ [rpm]')
+contour(mapScale.l,mapScale.Ns,mapScale.kj/1000,'-','LineColor',colors(3,:),'LineWidth',1.5,'ShowText','on','DisplayName','$k_j$ [kW/m$^2$]')
+plot(l0,Ns0,'ko','MarkerFaceColor','k','DisplayName','Baseline')
+legend('show','Location','northeast');
+title(['($L,N_s)$ map - $V_{dc}=' int2str(Vdc) '$ V / $I_{max}=' int2str(Imax) '$ Apk'])
+set(hfig(2),'FileName',[pathname resFolder 'mapScaling_T_n_kj.fig'],'UserData',mapScale);
 
 % save data and figures
 

@@ -14,7 +14,7 @@
 
 function [geo,mat,temp]=nodes_rotor_ISeg(geo,mat)
 
-r = geo.r;                    % Raggio del rotore al traferro
+r = geo.r-geo.hs;                    % Raggio del rotore al traferro (con sleeve incluso)
 x0 = geo.x0;                    % Centro fittizio
 Ar=geo.Ar;
 rshaft=geo.Ar;

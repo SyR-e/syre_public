@@ -42,7 +42,7 @@ for jj = 2:length(angles_all)
 end
 
 if (0)
-    figure(1)
+    figure()
     plot(x*180/pi,abs(Fs),'LineWidth',2), grid on, axis([ph 180 0 1]);
     hold on
     plot(x*180/pi,abs(y),'k','LineWidth',2)

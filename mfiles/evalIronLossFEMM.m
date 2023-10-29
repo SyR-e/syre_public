@@ -46,25 +46,31 @@ function [SOL] = evalIronLossFEMM(geo,per,mat,SOL,method)
 % load data from input structures
 p       = geo.p;
 if strcmp(geo.RotType,'Seg')
-    PMdim1   = geo.PMdim(geo.PMdim>0);
-    PMNc1    = geo.PMNc(geo.PMdim>0);
-    PMclear1 = geo.PMclear(geo.PMdim>0);
-    hc1      = [geo.hc(geo.PMdim(1,:)>0)'; geo.hc(geo.PMdim(2,:)>0)'];
+    PMdim0 = geo.PMdim;
+    PMdim0(1,:) = PMdim0(1,:)*2;
+    PMdim1   = PMdim0(PMdim0>0);
+    
+    PMNc0      = geo.PMNc;
+    PMNc0(1,:) = PMNc0(1,:)/2;
+    PMNc1      = PMNc0(geo.PMdim>0);
+    PMNc1(PMNc1<1) = 1;
+    PMclear1   = geo.PMclear(geo.PMdim>0);
+    hc1        = [geo.hc(geo.PMdim(1,:)>0)'; geo.hc(geo.PMdim(2,:)>0)'];
 
-    PMdim = [];
+    PMdim   =[];
     PMclear =[];
     hc      =[];
     PMNc    =[];
     for ii=1:length(PMNc1)
-        PMdim   = [PMdim; repmat(PMdim1(ii),[PMNc1(ii) 1])];
-        PMclear = [PMclear; repmat(PMclear1(ii),[PMNc1(ii) 1])];
-        PMNc    = [PMNc; repmat(PMNc1(ii),[PMNc1(ii) 1])];
-        hc      = [hc; repmat(hc1(ii),[PMNc1(ii) 1])];
+        PMdim   = [PMdim; repmat(PMdim1(ii),[PMNc1(ii)*2 1])];
+        PMclear = [PMclear; repmat(PMclear1(ii),[PMNc1(ii)*2 1])];
+        PMNc    = [PMNc; repmat(PMNc1(ii),[PMNc1(ii)*2 1])];
+        hc      = [hc; repmat(hc1(ii),[PMNc1(ii)*2 1])];
     end
-    PMdim   = [PMdim; PMdim];
-    PMNc    = [PMNc; PMNc];
-    PMclear = [PMclear; PMclear];
-    hc      = [hc; hc];
+%     PMdim   = [PMdim; PMdim];
+%     PMNc    = [PMNc; PMNc];
+%     PMclear = [PMclear; PMclear];
+%     hc      = [hc; hc];
 end
 l       = geo.l/geo.PMNa;
 
@@ -291,7 +297,7 @@ switch method
 
         psh = zeros(1,EleNo);
 
-
+        sigma = -100*0; %% for kmech (mech stress impact on stator) from Yamazaki
 
         for ii=1:nS
             for dd=1:2
@@ -308,6 +314,7 @@ switch method
                     y = imag(y);
                 end
                 [major,minor] = minorLoopDetection(x,y);
+             
                 if ~isempty(major.y)
                     dt = (major.x(2)-major.x(1))*(pi/180)/(2*pi*f0);
                     dB = diff([major.y major.y(1)]);
@@ -321,8 +328,9 @@ switch method
                             dB = diff([minor(mm).y minor(mm).y(1)]);
                             DB = max(minor(mm).y)-min(minor(mm).y);
                             Pminor(mm) = 1/(dt*length(minor(mm).x))*trapz(dt*(0:1:numel(minor(mm).x)-1),kiS*abs(dB/dt).^alphaS*DB^(betaS-alphaS));
-                            kdc_min = 0.65*mean(abs(minor(mm).y))^2.1+1;
-                            Pminor(mm) = Pminor(mm)*kdc_min;
+                            kdc_min   = 0.65*mean(abs(minor(mm).y))^2.1+1;
+                            kmech_min = 1 + (4.9-1)*exp(-mean(abs(minor(mm).y))/0.7)*(1-exp(sigma/100));
+                            Pminor(mm) = Pminor(mm)*kdc_min*kmech_min;
                             Tminor(mm) = dt*length(minor(mm).x);
                         end
                     else
@@ -331,10 +339,12 @@ switch method
                     end
                     %%dc bias
                     kdc_maj = 0.65*mean(abs(bs(:,index(ii))))^2.1+1;
-                    psh(index(ii)) = psh(index(ii))+sum([Pmajor*kdc_maj Pminor].*[Tmajor Tminor])/sum([Tmajor Tminor]);
+                    kmech_maj = 1 + (4.9-1)*exp(-mean(abs(bs(:,index(ii))))/0.7)*(1-exp(sigma/100));
+                    psh(index(ii)) = psh(index(ii))+sum([Pmajor*kdc_maj*kmech_maj Pminor].*[Tmajor Tminor])/sum([Tmajor Tminor]);
                 end
             end
         end
+
 
         % rotor
         index = 1:1:EleNo;
@@ -371,8 +381,8 @@ switch method
                             dB = diff([minor(mm).y minor(mm).y(1)]);
                             DB = max(minor(mm).y)-min(minor(mm).y);
                             Pminor(mm) = 1/(dt*length(minor(mm).x))*trapz(dt*(0:1:numel(minor(mm).x)-1),kiR*abs(dB/dt).^alphaR*DB^(betaR-alphaR));
-                            kdc_min = 0.65*mean(abs(minor(mm).y))^2.1+1;
-                            Pminor(mm) = Pminor(mm)*kdc_min;
+                            kdc_min(mm) = 0.65*mean(abs(minor(mm).y))^2.1+1;
+                            Pminor(mm) = Pminor(mm)*kdc_min(mm);
                             Tminor(mm) = dt*length(minor(mm).x);
                         end
                     else
@@ -455,8 +465,8 @@ switch method
             end
         end
 
-        ppm_noRF = 1/2*mat.LayerMag.sigmaPM*(2*pi*freq).^2.*(abs(Jm)).^2.*vol;
-        ppm_RF = 1/2*mat.LayerMag.sigmaPM*(2*pi*freq).^2.*(abs(Jm)).^2.*vol.*Crf;
+        ppm_noRFno3D = 1/2*mat.LayerMag.sigmaPM*(2*pi*freq).^2.*(abs(Jm)).^2.*vol;
+        ppm_no3D = 1/2*mat.LayerMag.sigmaPM*(2*pi*freq).^2.*(abs(Jm)).^2.*vol.*Crf;
         ppm = 1/2*mat.LayerMag.sigmaPM*(2*pi*freq).^2.*(abs(Jm)).^2.*vol.*Crf.*Cef;
         
 %         tmp = sum(ppm_noRF,2);
@@ -658,10 +668,10 @@ SOL.psh   = psh;
 SOL.psc   = psc;
 SOL.prh   = prh;
 SOL.prc   = prc;
-SOL.ppm       = ppm;
-SOL.ppm_RF    = ppm_RF;  
-SOL.ppm_noRF  = ppm_noRF;
-SOL.ppm_PM    = ppm_PM;
+SOL.ppm           = ppm;
+SOL.ppm_no3D      = ppm_no3D;  
+SOL.ppm_noRFno3D  = ppm_noRFno3D;
+SOL.ppm_PM        = ppm_PM;
 SOL.freq  = freq;
 % SOL.bs    = bs;
 % SOL.br    = br;

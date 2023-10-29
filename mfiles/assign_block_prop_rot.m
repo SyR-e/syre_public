@@ -53,7 +53,7 @@ for ii=1:length(BLKLABELSrot.xy(:,1))
                 mi_addmaterial([mat.LayerMag.MatName '_' num2str(kk)], mat.LayerMag.mu, mat.LayerMag.mu, Hc, 0, mat.LayerMag.sigmaPM/1e6);
                 mi_addblocklabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
                 mi_selectlabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
-                mi_setblockprop([mat.LayerMag.MatName '_' num2str(kk)], 0, fem.res,'None', magdir, 200+kk, 0);
+                mi_setblockprop([mat.LayerMag.MatName '_' num2str(kk)], 0, fem.res/geo.mesh_kpm,'None', magdir, 200+kk, 0);
                 mi_clearselected;
                 kk=kk+1;
             end

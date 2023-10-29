@@ -106,6 +106,10 @@ else
     end
 end
 
-if strcmp(geo.RotType,'SPM')&&ismember('hc(1)',geo.RQnames)
-    geo.lm = geo.hc_pu;
+if strcmp(geo.RotType,'SPM')
+    geo.hc = geo.hc_pu*geo.g;
 end
+
+% if strcmp(geo.RotType,'SPM')&&ismember('hc(1)',geo.RQnames)
+%     geo.lm = geo.hc_pu;
+% end

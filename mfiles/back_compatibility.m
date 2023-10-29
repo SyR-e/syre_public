@@ -20,7 +20,7 @@ function [dataSet,geo,per,mat] = back_compatibility(dataSet,geo,per,Dflag)
 % INPUT : dataSet
 %         geo
 %         per
-%         Dflag =1-->disp the modification / =0-->don't plot anything
+%         Dflag =1 --> disp the modification / =0 --> don't plot anything
 % OUTPUT: dataSet
 %         geo (geometry)
 %         per (performance)
@@ -34,37 +34,37 @@ end
 
 %% geo and per
 % new fields of geo and per
-if ~isfield(geo,'mesh_K')
-    if Dflag
-        disp('rev420 - new names in geo, mesh_K, mesh_K_MOOA');
-    end
-    flag=1;
-end
-
-if isfield(geo,'delta_sim_MOOA')
-    if Dflag
-        disp('rev420 - nsim and delta_sim fields moved from geo to per');
-    end
-    flag=1;
-end
-
-if ~isfield(geo,'win')
-    if Dflag
-        disp('rev420 - new names in geo, mesh_K, mesh_K_MOOA');
-    end
-    flag=1;
-    geo.win.avv = geo.avv;
-    geo.win.avv_flag = geo.avv_flag;
-    geo.win.Ns = geo.Ns;
-    geo.win.kcu = geo.kcu;
-    geo.win.Nbob = geo.Nbob;
-    geo.win.n3phase = geo.n3phase;
-    geo.win.slot_layer_pos = geo.slot_layer_pos;
-    geo.win.kracc = geo.kracc;
-    fields = {'avv','avv_flag','Ns','kcu','Nbob','n3phase','slot_layer_pos'};
-    geo = rmfield(geo,fields);
-    
-end
+% if ~isfield(geo,'mesh_K')
+%     if Dflag
+%         disp('rev420 - new names in geo, mesh_K, mesh_K_MOOA');
+%     end
+%     flag=1;
+% end
+% 
+% if isfield(geo,'delta_sim_MOOA')
+%     if Dflag
+%         disp('rev420 - nsim and delta_sim fields moved from geo to per');
+%     end
+%     flag=1;
+% end
+% 
+% if ~isfield(geo,'win')
+%     if Dflag
+%         disp('rev420 - new names in geo, mesh_K, mesh_K_MOOA');
+%     end
+%     flag=1;
+%     geo.win.avv = geo.avv;
+%     geo.win.avv_flag = geo.avv_flag;
+%     geo.win.Ns = geo.Ns;
+%     geo.win.kcu = geo.kcu;
+%     geo.win.Nbob = geo.Nbob;
+%     geo.win.n3phase = geo.n3phase;
+%     geo.win.slot_layer_pos = geo.slot_layer_pos;
+%     geo.win.kracc = geo.kracc;
+%     fields = {'avv','avv_flag','Ns','kcu','Nbob','n3phase','slot_layer_pos'};
+%     geo = rmfield(geo,fields);
+%     
+% end
 
 
 %% dataSet
@@ -90,7 +90,7 @@ if ~isfield(dataSet,'HousingTemp')
 end
 
 if ~isfield(dataSet,'EstimatedCopperTemp')
-    dataSet.EstimatedCopperTemp = per.tempcu;
+    dataSet.EstimatedCopperTemp = NaN;
     if Dflag
         disp('v1.4 - added estimated copper temperature')
     end
@@ -113,24 +113,24 @@ if ~isfield(dataSet,'MagLoadingTooth')
     flag = 1;
 end
 
-if ~isfield(dataSet,'ThicknessOfPM')
-    dataSet.ThicknessOfPM = geo.g*6;
-    if Dflag
-        disp('v1.4 - added thickness of PM (SPM)')
-    end
-    flag = 1;
-end
+% if ~isfield(dataSet,'ThicknessOfPM')
+%     dataSet.ThicknessOfPM = geo.g*6;
+%     if Dflag
+%         disp('v1.4 - added thickness of PM (SPM)')
+%     end
+%     flag = 1;
+% end
 
-if ~isfield(dataSet,'AngleSpanOfPM')
-    dataSet.AngleSpanOfPM = 150;
-    if Dflag
-        disp('v1.4 - added angle span of PM (SPM)')
-    end
-    flag = 1;
-end
+% if ~isfield(dataSet,'AngleSpanOfPM')
+%     dataSet.AngleSpanOfPM = 150;
+%     if Dflag
+%         disp('v1.4 - added angle span of PM (SPM)')
+%     end
+%     flag = 1;
+% end
 
 if ~isfield(dataSet,'DepthOfBarrier')
-    dataSet.DepthOfBarrier = ones(1,geo.nlay);
+    dataSet.DepthOfBarrier = ones(1,dataSet.NumOfLayers);
     if Dflag
         disp('v1.4 - added depth of barrier')
     end
@@ -148,7 +148,7 @@ if ~isfield(dataSet,'StatorSlotOpenBou')
 end
 
 if ~isfield(dataSet,'ToothTangDepthBou')
-    dataSet.ToothTangDepthBou = geo.g*[1 3];
+    dataSet.ToothTangDepthBou = dataSet.AirGapThickness*[1 3];
     dataSet.ToothTangDepthBouCheck = 0;
     if Dflag
         disp('v1.4 - added boundaries for ttd optimization')
@@ -175,7 +175,8 @@ if length(dataSet.ALPHApu)~=dataSet.NumOfLayers && ~strcmp(dataSet.TypeOfRotor,'
 end
 
 if length(dataSet.DepthOfBarrier)~=dataSet.NumOfLayers && ~strcmp(dataSet.TypeOfRotor,'SPM')
-    dataSet.DepthOfBarrier = geo.dx;
+    dataSet.DepthOfBarrier = ones(1,dataSet.NumOfLayers);
+    %dataSet.DepthOfBarrier = geo.dx;
     dataSet.DepthOfBarrier = dataSet.DepthOfBarrier(1:dataSet.NumOfLayers);
     if Dflag
         disp('v1.4 - correct dataSet.DepthOfBarrier')
@@ -220,7 +221,7 @@ if ~isfield(dataSet,'TorqueOptCheck')
 end
 
 if ~isfield(dataSet,'Qs')
-    Q = 6*geo.p*geo.q;
+    Q = 6*dataSet.NumOfPolePairs*dataSet.NumOfSlots;
     t2 = gcd(round(dataSet.NumOfSlots*6*dataSet.NumOfPolePairs),2*dataSet.NumOfPolePairs);
     dataSet.Qs = Q/t2;
     clear t2;
@@ -270,7 +271,7 @@ end
 
 if ~isfield(dataSet,'RadRibCheck')
     dataSet.RadRibCheck = 0;
-    dataSet.RadRibEdit = zeros(1,geo.nlay);
+    dataSet.RadRibEdit = zeros(1,dataSet.NumOfLayers);
     if Dflag
         disp('rev261 - added radial ribs in GUI')
     end
@@ -287,21 +288,6 @@ if ~isfield(dataSet,'Bfe')
     flag = 1;
 end
 
-% %% PMs area in Seg and ISeg for bonded-to-real PMs (Walter Ventura Master Thesis)
-% if ~isfield(dataSet,'Areavert')
-%     dataSet.Areavert  = zeros(1,4);
-%     dataSet.Areaob    = zeros(1,4);
-%     dataSet.Areatot   = zeros(1,4);
-%     dataSet.Areavert0 = zeros(1,4);
-%     dataSet.Areaob0   = zeros(1,4);
-%     dataSet.dob       = ones(1,4);
-%     dataSet.dvert     = ones(1,4);
-%     %if Dflag
-%     %    disp('rev309 - added PMs area evaluation for Seg and ISeg')
-%     %end
-%     %flag = 1;
-% end
-
 % Multi 3-phase option (Simone Adamo)
 if ~isfield(dataSet,'Num3PhaseCircuit') %AS
     dataSet.Num3PhaseCircuit=1;
@@ -312,19 +298,6 @@ if ~isfield(dataSet,'Num3PhaseCircuit') %AS
     end
     flag = 1;
 end
-
-% Added parameters in dataSet for Vtype rotor geometry (Marco Gallo Master Thesis)
-% if ~isfield(dataSet,'SlopeBarrier')
-% 
-%     dataSet.SlopeBarrier=60;
-%     dataSet.SlopeBarrBou=[10 89];
-%     dataSet.SlopeBarrBouCheck=0;
-%     
-%     if Dflag
-%         disp('rev325 - added Vtype rotor geometry')
-%     end
-%     flag = 1;
-% end
 
 % Added parameters in dataSet for optimization Vtype rotor (Marco Gallo Master Thesis)
 if ~isfield(dataSet,'MaxPMMass')
@@ -401,7 +374,7 @@ end
 
 % Tangential ribs edit
 if ~isfield(dataSet,'TanRibEdit')
-    dataSet.TanRibEdit = dataSet.MinMechTol*ones(1,geo.nlay);
+    dataSet.TanRibEdit = dataSet.MinMechTol*ones(1,dataSet.NumOfLayers);
     if Dflag
         disp('rev343 - added variables tangential ribs')
     end
@@ -451,7 +424,7 @@ if ~isfield(dataSet,'PMdim')
     if strcmp(dataSet.TypeOfRotor,'Seg')
         if isfield(dataSet,'Areavert')
             dataSet.PMdim      = [dataSet.Areaob;dataSet.Areavert];
-            dataSet.PMdim      = dataSet.PMdim(:,1:dataSet.NumOfLayers)./[geo.hc;geo.hc];
+            dataSet.PMdim      = dataSet.PMdim(:,1:dataSet.NumOfLayers)./[dataSet.HCmm;dataSet.HCmm];
             dataSet.PMdim(2,1) = 0;
             dataSet = rmfield(dataSet,'dob');
             dataSet = rmfield(dataSet,'dvert');
@@ -529,7 +502,7 @@ if ~isfield(dataSet,'betaPMshape')
         dataSet=rmfield(dataSet,'Barfillfac');
     end
     dataSet.BetaPMshapeBouCheck = dataSet.SlopeBarrBouCheck;
-    dataSet.BetaPMshapeBou       = dataSet.SlopeBarrBou;
+    dataSet.BetaPMshapeBou      = dataSet.SlopeBarrBou;
     dataSet = rmfield(dataSet,'SlopeBarrBou');
     dataSet = rmfield(dataSet,'SlopeBarrBouCheck');
     
@@ -545,7 +518,8 @@ if ~isfield(dataSet,'Lend')
         disp('rev421 - end turn inductance (Lend) added');
     end
     flag=1;
-    dataSet.Lend = calc_Lend(geo);
+    %dataSet.Lend = calc_Lend(geo);
+    dataSet.Lend = NaN;
 %     dataSet.Lend = 0;
 end
 
@@ -566,7 +540,7 @@ if ~isfield(dataSet,'SlotConductorType')
     dataSet.SlotConductorRadius     = dataSet.MinMechTol;
     dataSet.SlotConductorWidth      = 2*dataSet.MinMechTol;
     dataSet.SlotConductorHeight     = 2*dataSet.MinMechTol;
-    dataSet.SlotConductorNumber     = geo.win.Nbob*2;
+    dataSet.SlotConductorNumber     = dataSet.TurnsInSeries/dataSet.NumOfPolePairs/(dataSet.NumOfSlots);
     dataSet.SlotConductorFrequency  = [1 10 50 100 200 300 400 500 600 700 800 900 1000 1100 1200 1300 1400 1500];
     if Dflag
         disp('rev432 - added slot model on GUI')
@@ -616,7 +590,7 @@ end
 
 % Temperature for slot model
 if ~isfield(dataSet,'SlotConductorTemperature')
-    dataSet.SlotConductorTemperature = dataSet.EstimatedCopperTemp;
+    dataSet.SlotConductorTemperature = 20:20:180;
     if Dflag
         disp('rev486 - added temperature for slot model evaluation')
     end
@@ -651,8 +625,8 @@ end
 % SEG updates 
 if ~isfield(dataSet,'RadShiftInner')
     dataSet.RadShiftInner = zeros(1,dataSet.NumOfLayers);
-    dataSet.NarrowFactor = ones(1,dataSet.NumOfLayers);
-    dataSet.RadRibSplit = dataSet.RadRibSplit*ones(1,dataSet.NumOfLayers);
+    dataSet.NarrowFactor  = ones(1,dataSet.NumOfLayers);
+    dataSet.RadRibSplit   = dataSet.RadRibSplit*ones(1,dataSet.NumOfLayers);
     if Dflag
         disp('2021 02 23 - Added improved Seg barriers parameters')
     end
@@ -734,7 +708,7 @@ end
 % Slot model - Bottom conductor gap 
 if ~isfield(dataSet,'SlotConductorBottomGap')
     dataSet.SlotConductorBottomGap  = 0;
-    geo.win.gapBotCond = 0;
+    %geo.win.gapBotCond = 0;
     
     if Dflag
         disp('2021 05 03 - Added bottom conductor gap')
@@ -777,7 +751,8 @@ end
 
 % End windigs
 if ~isfield(dataSet,'EndWindingsLength')
-    dataSet.EndWindingsLength = calc_endTurnLength(geo);
+%     dataSet.EndWindingsLength = calc_endTurnLength(geo);
+    dataSet.EndWindingsLength = NaN;
     if Dflag
         disp('2021 06 14 - Added End-windings length')
     end
@@ -1010,7 +985,7 @@ end
 
 % Circumferential segmented magnets
 if ~isfield(dataSet,'PMNc')
-    dataSet.PMNc  = ones(2,geo.nlay);
+    dataSet.PMNc  = ones(2,dataSet.NumOfLayers);
     dataSet.PMNa  = 1;
     if Dflag
         disp('2023 02 28 - added circumferential segmented magnets')
@@ -1018,6 +993,41 @@ if ~isfield(dataSet,'PMNc')
     flag=1;
 end
 
+% Circumferential segmented magnets
+if ~isfield(dataSet,'flag_OptCurrConst')
+    dataSet.flag_OptCurrConst  = 0;
+    if Dflag
+        disp('2023 05 17 - added optimizations with constant currents')
+    end
+    flag=1;
+end
+
+% Structural simulations in syrmDesign/FEAfix
+if ~isfield(dataSet.syrmDesignFlag,'mech')
+    dataSet.syrmDesignFlag.mech = 0;
+    if Dflag
+        disp('2023 05 22 - added structural simulation in FEAfix')
+    end
+    flag=1;
+end
+
+% Thermal simulations in syrmDesign/FEAfix
+if ~isfield(dataSet.syrmDesignFlag,'mech')
+    dataSet.syrmDesignFlag.therm = 0;
+    if Dflag
+        disp('2023 09 22 - added thermal simulation in FEAfix')
+    end
+    flag=1;
+end
+
+% Number of stator slots
+if ~isfield(dataSet,'NumOfStatorSlots')
+    dataSet.NumOfStatorSlots = 6*dataSet.NumOfPolePairs*dataSet.NumOfSlots*dataSet.Num3PhaseCircuit;
+    if Dflag
+        disp('2023 06 12 - added number of stator slots display')
+    end
+    flag=1;
+end
 
 %%% Remove V-type geometry
 % if strcmp(geo.RotType,'V-type')
@@ -1028,6 +1038,38 @@ end
 %     end
 %     flag=1;
 % end
+
+% MCAD - rev to thermal simulations
+if ~isfield(dataSet,'CustomLossMCADCheck')
+    dataSet.CustomLossMCADCheck = 0;
+    dataSet.HousingType = 'Water Jacket (Spiral)';
+    if Dflag
+        disp('2023 06 20 - updated the Motor-CAD thermal simulation')
+    end
+    flag=1;
+end
+
+
+% mesh update with PWM supply (custom current)
+if ~isfield(dataSet,'mesh_kpm')
+    dataSet.mesh_kpm = 1;
+%     dataSet.mesh_kfe = 1;
+    if Dflag
+        disp('2023 07 31 - updated mesh with PWM supply')
+    end
+    flag=1;
+end
+
+% Thermal simulations in syrmDesign/FEAfix
+if ~isfield(dataSet.syrmDesignFlag,'therm')
+    dataSet.syrmDesignFlag.therm = 0;
+    if Dflag
+        disp('2023 09 22 - added thermal simulation in FEAfix')
+    end
+    flag=1;
+end
+
+
 
 %% remove old fields of dataSet
 flagClear = 0;
@@ -1102,6 +1144,18 @@ if isfield(dataSet,'pontRoffsetEdit')
     flagClear = 1;
 end
 
+if isfield(dataSet,'ThicknessOfPM')
+    if strcmp(dataSet.TypeOfRotor,'SPM')
+        dataSet.HCmm     = dataSet.ThicknessOfPM;
+        dataSet.HCpu     = dataSet.ThicknessOfPM/dataSet.AirGapThickness;
+        dataSet.ALPHAdeg = dataSet.AngleSpanOfPM;
+        dataSet.ALPHApu  = dataSet.AngleSpanOfPM/180;
+    end
+    dataSet = rmfield(dataSet,'ThicknessOfPM');
+    dataSet = rmfield(dataSet,'AngleSpanOfPM');
+    flagClear = 1;
+end
+
 % if flagClear && Dflag
 %     disp('Removed old dataSet fields')
 % end
@@ -1109,6 +1163,7 @@ end
 if ~isfield(dataSet,'RMVTmp')
     dataSet.RMVTmp = 'ON';
 end
+
 
 
 % rewriting geo, per and mat (and check if mat exist)
@@ -1135,6 +1190,3 @@ if flag && Dflag
 end
 
 end
-
-
-

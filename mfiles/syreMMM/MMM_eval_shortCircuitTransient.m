@@ -264,6 +264,12 @@ for ii=1:length(hleg)
     end
 end
 
+for ii=1:length(hfig)
+    tmp = get(hfig(ii),'FileName');
+    [~,name,~] = fileparts(tmp);
+    set(hfig(ii),'Name',name);
+end
+
 disp('Transient short-circuit computation...')
 fprintf(' %06.2f%%',0)
 

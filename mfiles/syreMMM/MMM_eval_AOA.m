@@ -207,6 +207,41 @@ if strcmp(method,'Fit')
         end
     end
     AOA.method = 'Fit';
+    
+    % filt for trajectories outside the domain
+    index = find(MTPA.id>max(Id,[],'all'));
+    MTPA.id(index) = NaN;
+    MTPA.iq(index) = NaN;
+    index = find(MTPA.id<min(Id,[],'all'));
+    MTPA.id(index) = NaN;
+    MTPA.iq(index) = NaN;
+    index = find(MTPA.iq>max(Iq,[],'all'));
+    MTPA.id(index) = NaN;
+    MTPA.iq(index) = NaN;
+    index = find(MTPA.iq<min(Iq,[],'all'));
+    MTPA.id(index) = NaN;
+    MTPA.iq(index) = NaN;
+
+    index = ~isnan(MTPA.id);
+    MTPA.id = MTPA.id(index);
+    MTPA.iq = MTPA.iq(index);
+    
+    index = find(MTPV.id>max(Id,[],'all'));
+    MTPV.id(index) = NaN;
+    MTPV.iq(index) = NaN;
+    index = find(MTPV.id<min(Id,[],'all'));
+    MTPV.id(index) = NaN;
+    MTPV.iq(index) = NaN;
+    index = find(MTPV.iq>max(Iq,[],'all'));
+    MTPV.id(index) = NaN;
+    MTPV.iq(index) = NaN;
+    index = find(MTPV.iq<min(Iq,[],'all'));
+    MTPV.id(index) = NaN;
+    MTPV.iq(index) = NaN;
+
+    index = ~isnan(MTPV.id);
+    MTPV.id = MTPV.id(index);
+    MTPV.iq = MTPV.iq(index);
 else
     AOA.method = 'LUT';
 end

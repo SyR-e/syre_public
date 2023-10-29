@@ -39,8 +39,8 @@ fdq = fd + j*fq;
 % nbase = f_elet/pi*60;
 nbase = w_elet*30/pi/p;
 Pbase =  T.*w_elet/p;
-fUGOpu = (abs(fdq))./fM;
+% fUGOpu = (abs(fdq))./fM;
 
-map.fUGOpu = fUGOpu;
+% map.fUGOpu = fUGOpu;
 map.nbase = nbase;
 map.Pbase = Pbase;

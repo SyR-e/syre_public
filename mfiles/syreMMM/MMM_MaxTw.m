@@ -29,37 +29,44 @@ TVect = linspace(TwData.Tmin,TwData.Tmax,TwData.Tstep);
 % Initialize matrix results
 [nmap,Tmap] = meshgrid(nVect,TVect);
 
-TwMap.n     = nmap;             % speed reference [rpm]
-TwMap.T     = Tmap;             % torque (mechanical) reference [Nm]
-TwMap.Tem   = nan(size(nmap));  % electro-magnetic torque [Nm]
-TwMap.Tout  = nan(size(nmap));  % torque produced (mechanical, for operating limits) [Nm]
-TwMap.Id    = nan(size(nmap));  % d-axis magnetizing current [A]
-TwMap.Iq    = nan(size(nmap));  % q-axis magnetizing current [A]
-TwMap.Im    = nan(size(nmap));  % dq magnetizing current [A]
-TwMap.Iph   = nan(size(nmap));  % dq phase current [A]
-TwMap.Vph   = nan(size(nmap));  % dq phase voltage [A]
-TwMap.Fd    = nan(size(nmap));  % d-axis magnetizing flux linkage [Vs]
-TwMap.Fq    = nan(size(nmap));  % q-axis magnetizing flux linkage [Vs]
-TwMap.Vo    = nan(size(nmap));  % peak line voltage [V]
-TwMap.Io    = nan(size(nmap));  % peak phase current [A]
-TwMap.PF    = nan(size(nmap));  % power factor
-TwMap.P     = nan(size(nmap));  % Output power [W]
-TwMap.Ploss = nan(size(nmap));  % Total loss [W]
-TwMap.Pjs   = nan(size(nmap));  % Stator Joule loss (total) [W]
-TwMap.PjDC  = nan(size(nmap));  % Stator Joule loss (only DC) [W]
-TwMap.PjAC  = nan(size(nmap));  % Stator Joule loss (only AC) [W]
-TwMap.Pfe   = nan(size(nmap));  % Total iron loss [W]
-TwMap.Pfes  = nan(size(nmap));  % Stator iron loss [W]
-TwMap.Pfer  = nan(size(nmap));  % Rotor iron loss [W]
-TwMap.Ppm   = nan(size(nmap));  % Permanent magnet loss [W]
-TwMap.Pjr   = nan(size(nmap));  % Rotor Joule loss [W]
-TwMap.Pmech = nan(size(nmap));  % Mechanical loss [W]
-TwMap.Eo    = nan(size(nmap));  % Back-emf [V]
-TwMap.Ife   = nan(size(nmap));  % Current for iron loss [A]
-TwMap.slip  = nan(size(nmap));  % Rotor slip
-TwMap.Ir    = nan(size(nmap));  % Rotor current [A]
-TwMap.Rs    = nan(size(nmap));  % Stator resistance [Ohm]
-TwMap.eff   = nan(size(nmap));  % Efficiency [pu]
+TwMap.n       = nmap;             % speed reference [rpm]
+TwMap.T       = Tmap;             % torque (mechanical) reference [Nm]
+TwMap.Tem     = nan(size(nmap));  % electro-magnetic torque [Nm]
+TwMap.Tout    = nan(size(nmap));  % torque produced (mechanical, for operating limits) [Nm]
+TwMap.Id      = nan(size(nmap));  % d-axis magnetizing current [A]
+TwMap.Iq      = nan(size(nmap));  % q-axis magnetizing current [A]
+TwMap.Im      = nan(size(nmap));  % dq magnetizing current [A]
+TwMap.Iph     = nan(size(nmap));  % dq phase current [A]
+TwMap.Vph     = nan(size(nmap));  % dq phase voltage [A]
+TwMap.Fd      = nan(size(nmap));  % d-axis magnetizing flux linkage [Vs]
+TwMap.Fq      = nan(size(nmap));  % q-axis magnetizing flux linkage [Vs]
+TwMap.Vo      = nan(size(nmap));  % peak line voltage [V]
+TwMap.Io      = nan(size(nmap));  % peak phase current [A]
+TwMap.PF      = nan(size(nmap));  % power factor
+TwMap.P       = nan(size(nmap));  % Output power [W]
+TwMap.Ploss   = nan(size(nmap));  % Total loss [W]
+TwMap.Pjs     = nan(size(nmap));  % Stator Joule loss (total) [W]
+TwMap.PjDC    = nan(size(nmap));  % Stator Joule loss (only DC) [W]
+TwMap.PjAC    = nan(size(nmap));  % Stator Joule loss (only AC) [W]
+TwMap.Pfe     = nan(size(nmap));  % Total iron loss [W]
+TwMap.Pfes    = nan(size(nmap));  % Stator iron loss [W]
+TwMap.Pfer    = nan(size(nmap));  % Rotor iron loss [W]
+TwMap.Ppm     = nan(size(nmap));  % Permanent magnet loss [W]
+TwMap.Pjr     = nan(size(nmap));  % Rotor Joule loss [W]
+TwMap.Pmech   = nan(size(nmap));  % Mechanical loss [W]
+TwMap.Eo      = nan(size(nmap));  % Back-emf [V]
+TwMap.Ife     = nan(size(nmap));  % Current for iron loss [A]
+TwMap.slip    = nan(size(nmap));  % Rotor slip
+TwMap.Ir      = nan(size(nmap));  % Rotor current [A]
+TwMap.Rs      = nan(size(nmap));  % Stator resistance [Ohm]
+TwMap.dTpp    = nan(size(nmap));  % Peak-to-peak torque ripple [Nm]
+TwMap.eff     = nan(size(nmap));  % Efficiency [pu]
+TwMap.Idemag  = nan(size(nmap));  % Demagnetization limit [Apk]
+TwMap.IHWC    = nan(size(nmap));  % Peak current during ASC (HWC) [Apk]
+TwMap.F0      = nan(size(nmap));  % Flusso a vuoto [Vs]
+TwMap.VUGO    = nan(size(nmap));  % Tensione a vuoto [Vs]
+TwMap.ASCsafe = nan(size(nmap));  % Safe area for ASC
+TwMap.UGOsafe = nan(size(nmap));  % Safe area for UGO
 
 
 if nargin==1
@@ -98,35 +105,42 @@ for ii=1:numel(TwMap.n)
         set(hg,'XData',xdata,'YData',ydata);
         drawnow();
         
-        TwMap.Tout(ii)  = out.T;
-        TwMap.Id(ii)    = out.Id;
-        TwMap.Iq(ii)    = out.Iq;
-        TwMap.Fd(ii)    = out.Fd;
-        TwMap.Fq(ii)    = out.Fq;
-        TwMap.Tem(ii)   = out.Tem;
-        TwMap.Vo(ii)    = out.Vo;
-        TwMap.Io(ii)    = out.Io;
-        TwMap.Im(ii)    = out.Im;
-        TwMap.Iph(ii)   = out.Iph;
-        TwMap.Vph(ii)   = out.Vph;
-        TwMap.PF(ii)    = out.PF;
-        TwMap.P(ii)     = out.P;
-        TwMap.Ploss(ii) = out.Ploss;
-        TwMap.Pjs(ii)   = out.Pjs;
-        TwMap.PjDC(ii)  = out.PjDC;
-        TwMap.PjAC(ii)  = out.PjAC;
-        TwMap.Pfe(ii)   = out.Pfe;
-        TwMap.Pfes(ii)  = out.Pfes;
-        TwMap.Pfer(ii)  = out.Pfer;
-        TwMap.Ppm(ii)   = out.Ppm;
-        TwMap.Pjr(ii)   = out.Pjr;
-        TwMap.Pmech(ii) = out.Pmech;
-        TwMap.Eo(ii)    = out.Eo;
-        TwMap.Ife(ii)   = out.Ife;
-        TwMap.slip(ii)  = out.slip;
-        TwMap.Ir(ii)    = out.Ir;
-        TwMap.Rs(ii)    = out.Rs;
-        TwMap.eff(ii)   = out.eff;
+        TwMap.Tout(ii)    = out.T;
+        TwMap.Id(ii)      = out.Id;
+        TwMap.Iq(ii)      = out.Iq;
+        TwMap.Fd(ii)      = out.Fd;
+        TwMap.Fq(ii)      = out.Fq;
+        TwMap.Tem(ii)     = out.Tem;
+        TwMap.Vo(ii)      = out.Vo;
+        TwMap.Io(ii)      = out.Io;
+        TwMap.Im(ii)      = out.Im;
+        TwMap.Iph(ii)     = out.Iph;
+        TwMap.Vph(ii)     = out.Vph;
+        TwMap.PF(ii)      = out.PF;
+        TwMap.P(ii)       = out.P;
+        TwMap.Ploss(ii)   = out.Ploss;
+        TwMap.Pjs(ii)     = out.Pjs;
+        TwMap.PjDC(ii)    = out.PjDC;
+        TwMap.PjAC(ii)    = out.PjAC;
+        TwMap.Pfe(ii)     = out.Pfe;
+        TwMap.Pfes(ii)    = out.Pfes;
+        TwMap.Pfer(ii)    = out.Pfer;
+        TwMap.Ppm(ii)     = out.Ppm;
+        TwMap.Pjr(ii)     = out.Pjr;
+        TwMap.Pmech(ii)   = out.Pmech;
+        TwMap.Eo(ii)      = out.Eo;
+        TwMap.Ife(ii)     = out.Ife;
+        TwMap.slip(ii)    = out.slip;
+        TwMap.Ir(ii)      = out.Ir;
+        TwMap.Rs(ii)      = out.Rs;
+        TwMap.dTpp(ii)    = out.dTpp;
+        TwMap.eff(ii)     = out.eff;
+        TwMap.Idemag(ii)  = out.Idemag;
+        TwMap.IHWC(ii)    = out.IHWC;
+        TwMap.F0(ii)      = out.F0;
+        TwMap.VUGO(ii)    = out.VUGO;
+        TwMap.ASCsafe(ii) = out.ASCsafe;
+        TwMap.UGOsafe(ii) = out.UGOsafe;
     else
         xdata = [get(hr,'XData') nmap(ii)];
         ydata = [get(hr,'YData') Tmap(ii)];
@@ -143,7 +157,7 @@ end
 disp(' ')
 disp('Maps Evaluated');
 
-TwMap.dTpp = interp2(motorModel.FluxMap_dq.Id,motorModel.FluxMap_dq.Iq,motorModel.FluxMap_dq.dTpp,TwMap.Id,TwMap.Iq);
+%TwMap.dTpp = interp2(motorModel.FluxMap_dq.Id,motorModel.FluxMap_dq.Iq,motorModel.FluxMap_dq.dTpp,TwMap.Id,TwMap.Iq);
 
 TwMap.T_top_W = max(TwMap.Tout);
 TwMap.T_top_W(TwMap.T_top_W<0) = 0;
@@ -178,6 +192,10 @@ figNames{17} = 'Rotor Joule loss map';
 figNames{18} = 'Rotor slip map';
 figNames{19} = 'Rotor current map';
 figNames{20} = 'Torque ripple';
+figNames{21} = 'ASC safe';
+figNames{22} = 'UGO safe';
+figNames{23} = 'ASC HWC current';
+figNames{24} = 'No load voltage';
 
 flagPlot = 1:1:numel(figNames);
 if strcmp(TwData.IronLossFlag,'No')
@@ -208,6 +226,7 @@ for ii=1:length(flagPlot)
     hfig(ii) = figure();
     figSetting();
     set(hfig(ii),'FileName',[pathname resFolder figNames{flagPlot(ii)} '.fig']);
+    set(hfig(ii),'Name',figNames{flagPlot(ii)});
     hax(ii) = axes(...
         'XLim',[TwData.nmin TwData.nmax],...
         'YLim',[TwData.Tmin TwData.Tmax]);
@@ -313,6 +332,22 @@ for ii=1:length(flagPlot)
             [c,h] = contourf(TwMap.n,TwMap.T,TwMap.dTpp);
             clabel(c,h)
             colorbar
+        case 21
+            title('Active Short Circuit safe state area')
+            plot(TwMap.n(TwMap.ASCsafe==1),TwMap.T(TwMap.ASCsafe==1),'g.')
+            plot(TwMap.n(TwMap.ASCsafe==0),TwMap.T(TwMap.ASCsafe==0),'r.')
+        case 22
+            title('Uncontrolled Generator Operation safe state area')
+            plot(TwMap.n(TwMap.UGOsafe==1),TwMap.T(TwMap.UGOsafe==1),'g.')
+            plot(TwMap.n(TwMap.UGOsafe==0),TwMap.T(TwMap.UGOsafe==0),'r.')
+        case 23
+            title('Active Short Circuit Hyper-Worst-Case current [Apk]')
+            contourf(TwMap.n,TwMap.T,TwMap.IHWC,'ShowText','on');
+            colorbar
+        case 24
+            title('Line no-load voltage in UGO [Vpk]')
+            contourf(TwMap.n,TwMap.T,TwMap.VUGO,'ShowText','on');
+            colorbar
     end
     if flagPlot(ii)>1
         plot(unique(TwMap.n),TwMap.T_top_W,'-k')
@@ -325,6 +360,7 @@ ii=ii+1;
 hfig(ii) = figure();
 figSetting();
 set(hfig(ii),'FileName',[pathname resFolder 'Control locus.fig']);
+set(hfig(ii),'Name','Control locus');
 hax(ii) = axes(...
     'XLim',[min(Id,[],'all') max(Id,[],'all')],...
     'YLim',[min(Id,[],'all') max(Iq,[],'all')],...
@@ -349,9 +385,9 @@ if strcmp(answer,'Yes')
         mkdir([pathname resFolder]);
     end
     
+    save([pathname resFolder 'TwMap.mat'],'motorModel','TwMap','TwData');
+
     for ii=1:length(hfig)
         savePrintFigure(hfig(ii));
     end
-    save([pathname resFolder 'TwMap.mat'],'motorModel','TwMap','TwData');
-    
 end

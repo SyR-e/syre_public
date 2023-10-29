@@ -25,7 +25,7 @@ ps      = geo.ps;
 th_FBS  = geo.th_FBS;
 r       = geo.r;
 % Ar      = geo.Ar;
-lm      = geo.lm;
+lm      = geo.hc_pu*geo.g;
 RotType = geo.RotType;
 matFBS  = mat;
 hs      = geo.hs;
@@ -115,9 +115,9 @@ end
 
 % complete the matrix geometry (outer rotor, shaft and pole sides if needed)
 if strcmp(RotType,'SPM')
-    re = r-lm;
+    re = r-lm-hs;
 else
-    re = r;
+    re = r-hs;
 end
 
 materialCodes;
@@ -148,10 +148,15 @@ if (ps<2*p)
         ];
 
     if hs>0
-        xrs2 = re+hs;
+        xre2 = r-hs;
+        yre2 = 0;
+        xre3 = (r-hs)*cos(pi/p*ps);
+        yre3 = (r-hs)*sin(pi/p*ps);
+
+        xrs2 = r;
         yrs2 = 0;
-        xrs3 = (re+hs)*cos(pi/p*ps);
-        yrs3 = (re+hs)*sin(pi/p*ps);
+        xrs3 = (r)*cos(pi/p*ps);
+        yrs3 = (r)*sin(pi/p*ps);
 
         rotor = [rotor
             xre2 yre2 xrs2 yrs2  NaN  NaN  0 codMatSleeve indexEle+3
@@ -228,7 +233,7 @@ BarCenter = [BarCenter; xtemp ytemp codMatShaft,fem.res,1,NaN,NaN,NaN];
 
 % add label for sleeve (if present)
 if hs>0
-    [xtemp,ytemp] = rot_point(r+hs/2,0,pi/2/p);
+    [xtemp,ytemp] = rot_point(r-hs/2,0,pi/2/p);
 BarCenter = [BarCenter; xtemp ytemp codMatSleeve,fem.res_traf,1,NaN,NaN,NaN];
 end
 
@@ -246,15 +251,18 @@ end
 % shaft boundary
 [xShaftBound1,yShaftBound1] = rot_point(mean([0,Ar]),0,-90/p*pi/180);
 [xShaftBound2,yShaftBound2] = rot_point(mean([0,Ar]),0,(ps-1/2)*180/p*pi/180);
-% rotor boundary
+% rotor and sleeve boundary
 if strcmp(geo.RotType,'SPM')
-    [xRotBound1,yRotBound1] = rot_point(mean([Ar,r+hs]),0,-90/p*pi/180);
-    [xRotBound2,yRotBound2] = rot_point(mean([Ar,r+hs]),0,(ps-1/2)*180/p*pi/180);
+    [xRotBound1,yRotBound1] = rot_point(mean([Ar,r-hs]),0,-90/p*pi/180);
+    [xRotBound2,yRotBound2] = rot_point(mean([Ar,r-hs]),0,(ps-1/2)*180/p*pi/180);
+    [xSleeveBound1,ySleeveBound1] = rot_point(mean([r-hs,r]),0,-90/p*pi/180);
+    [xSleeveBound2,ySleeveBound2] = rot_point(mean([r-hs,r]),0,(ps-1/2)*180/p*pi/180);
 else
-    [xRotBound1,yRotBound1] = rot_point(mean([Ar,r-lm+hs]),0,-90/p*pi/180);          % for SPM motor
-    [xRotBound2,yRotBound2] = rot_point(mean([Ar,r-lm+hs]),0,(ps-1/2)*180/p*pi/180);
+    [xRotBound1,yRotBound1] = rot_point(mean([Ar,r-lm-hs]),0,-90/p*pi/180);          % for SPM motor
+    [xRotBound2,yRotBound2] = rot_point(mean([Ar,r-lm-hs]),0,(ps-1/2)*180/p*pi/180);
+    [xSleeveBound1,ySleeveBound1] = rot_point(mean([r-lm-hs,r]),0,-90/p*pi/180);
+    [xSleeveBound2,ySleeveBound2] = rot_point(mean([r-lm-hs,r]),0,(ps-1/2)*180/p*pi/180);
 end
-% sleeve boundary
 
 
 %%% OUTPUT DATA %%%
@@ -268,10 +276,12 @@ BLKLABELSrot.BarName =   BarName';
 
 % Boundaries %%%
 BLKLABELSrot.boundary = [
-    xShaftBound1 yShaftBound1 codBound_periodic;
-    xShaftBound2 yShaftBound2 codBound_periodic;
-    xRotBound1   yRotBound1   codBound_periodic;
-    xRotBound2   yRotBound2   codBound_periodic
+    xShaftBound1  yShaftBound1  codBound_periodic;
+    xShaftBound2  yShaftBound2  codBound_periodic;
+    xRotBound1    yRotBound1    codBound_periodic;
+    xRotBound2    yRotBound2    codBound_periodic;
+    xSleeveBound1 ySleeveBound1 codBound_periodic;
+    xSleeveBound2 ySleeveBound2 codBound_periodic;
     ];
 % Rotate boundary selection points
 [xtemp,ytemp]=rot_point(BLKLABELSrot.boundary(:,1),BLKLABELSrot.boundary(:,2),90/p*pi/180);

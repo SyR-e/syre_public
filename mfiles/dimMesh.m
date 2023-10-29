@@ -18,7 +18,7 @@ function fem = dimMesh(geo,eval_type)
 % - thicker if in multi-objective optimization (according to K_mesh_MOOA)
 % - thinner if in single machine evaluation (post-proc, according to K_mesh)
 
-res_max=1/3*geo.g;
+% res_max=1/3*geo.g;
 
 if strcmp(eval_type,'MO_GA')||strcmp(eval_type,'MO_OA')
     fem.res_traf=1/geo.p;

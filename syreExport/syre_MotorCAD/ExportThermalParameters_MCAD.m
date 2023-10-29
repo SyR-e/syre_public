@@ -45,7 +45,8 @@ if tmp == 2
             tmp(tmp=='.')=',';
             invoke(mcad,'SetVariable','WJ_Fluid_Inlet_Temperature',tmp);
             
-            invoke(mcad,'SetVariable','WJ_Channel-Lam',5);
+            invoke(mcad,'SetVariable','WJ_Channel-Lam',2);
+            invoke(mcad,'SetVariable','WJ_Channel_Spacing',2);
             invoke(mcad,'SetVariable','WJ_Channel_Height',5);
             
             
@@ -54,7 +55,7 @@ if tmp == 2
             tmp(tmp=='.')=',';
             invoke(mcad,'SetVariable','WJ_Fluid_Volume_Flow_Rate', tmp);   %l/min
             
-            %%Water-Glycol properties
+            %%Water-Glycol properties 50-50
             tmp = 0.399;
             tmp = num2str(tmp);
             tmp(tmp=='.')=',';

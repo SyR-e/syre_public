@@ -127,7 +127,7 @@ set(gca,...
     'XLim',[min(fdfq.Id,[],'all') max(fdfq.Id,[],'all')],...
     'YLim',[min(fdfq.Iq,[],'all') max(fdfq.Iq,[],'all')],...
     'DataAspectRatio',[1 1 1]);
-if ~sum(isnan(fdfq.dTpp))
+if (~sum(isnan(fdfq.dTpp(:)))&&(max(fdfq.dTpp(:))~=min(fdfq.dTpp(:))))
     set(gca,'Clim',[min(fdfq.dTpp,[],'all') max(fdfq.dTpp,[],'all')]);
 else
     set(gca,'Clim',[0 1]);
@@ -160,6 +160,14 @@ ylabel('$cos \varphi$')
 title('Power factor vs torque along MTPA')
 set(hfig(11),'FileName',[pathname resFolder 'powerFactorVStorque.fig'])
 plot(MTPA.T,sin(atan2(MTPA.iq,MTPA.id)-atan2(MTPA.fq,MTPA.fd)),'-b' )
+
+
+for ii=1:length(hfig)
+    tmp = get(hfig(ii),'FileName');
+    [~,name,~] = fileparts(tmp);
+    set(hfig(ii),'Name',name);
+end
+
 
 %% Save figures
 answer = 'No';

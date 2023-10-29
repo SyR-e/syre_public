@@ -18,11 +18,6 @@ function [geo,temp,mat] = drawPole(geo,mat,fem)
 % SyR-e), with labels matrix (BLKLABELSrot), 
 % 
 
-% Ar = geo.Ar;
-% r  = geo.r;
-% ps = geo.ps;
-% p  = geo.p;
-% lm = geo.lm;
 geo.delta_FBS=0; % no pole deformation
 flagVtype = 1; % if 0, use Marco Gallo Vtype version, else use Simone Ferrari version (ready for syrmDesign)
 if ~strcmp(geo.RotType,'SPM')

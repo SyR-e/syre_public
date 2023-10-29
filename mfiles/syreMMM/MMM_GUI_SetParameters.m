@@ -339,7 +339,8 @@ set(app.TwIronLossFactorEditField,'Value',num2str(Tw.IronLossFactor))
 set(app.TwPMlossDropDown,'Value',Tw.PMLossFlag)
 set(app.TwPMlossFactorEditField,'Value',num2str(Tw.PMLossFactor))
 set(app.TwSkinEffectDropDown,'Value',Tw.SkinEffectFlag)
-set(app.TwSkinEffectMethodDropDown,'Value',Tw.SkinEffectMethod)
+%set(app.TwSkinEffectMethodDropDown,'Value',Tw.SkinEffectMethod)
+set(app.ControlsafeASCDropDown,'Value',Tw.ASCsafeFlag)
 set(app.TwControlDropDown,'Value',Tw.Control)
 set(app.TwAxis,...
     'XLim',[Tw.nmin Tw.nmax],...

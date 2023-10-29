@@ -16,7 +16,7 @@ function motorModel = MMM_createSimulinkModel(motorModel)
 
 % Check models
 if isempty(motorModel.controlTrajectories)
-    motorModel.controlTrajectories = MMM_eval_AOA(motorModel);
+    motorModel.controlTrajectories = MMM_eval_AOA(motorModel,'LUT');
 end
 if isempty(motorModel.FluxMapInv_dq)
     motorModel.FluxMapInv_dq = MMM_eval_inverseModel_dq(motorModel);

@@ -64,6 +64,11 @@ else
 
     tmp   = min(Fq,[],1,'omitnan');     % min on q-axis
     FqMin = max(tmp,[],2,'omitnan');    % max on d-axis
+
+%     FdMax = max(Fd(:),[],'omitnan');
+%     FdMin = min(Fd(:),[],'omitnan');
+%     FqMax = max(Fq(:),[],'omitnan');
+%     FqMin = min(Fq(:),[],'omitnan');
     
 %     extrapolationMethod = 'none';
 end

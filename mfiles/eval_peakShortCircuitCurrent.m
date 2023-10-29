@@ -80,6 +80,9 @@ if ~flagFEAfix
     axis_type  = dataSet.axisType;
 end
 
+
+per = rmfield(per,'custom_act');
+
 % create result folder
 if flagSave
     outFolder = [filename(1:end-4) '_results\FEA results\'];
@@ -193,13 +196,14 @@ for ii=1:length(idq0)
         if ~flagFEAfix
             [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'singt',motname);
         else
+            RQ(end) = per.gamma;
             [~,~,~,out,~] = FEMMfitness(RQ,geo,per,mat,'singt',motname);
         end
 
         if strcmp(axis_type,'SR')
             fTest{ii}(jj) = out.fq;
         else
-            fTest{ii}(jj) = -out.fd;
+            fTest{ii}(jj) = out.fd;
         end
 
         if ~flagFEAfix
@@ -216,7 +220,7 @@ for ii=1:length(idq0)
                 fdq(ii) = j*fTest{ii}(jj);
             else
                 idq(ii) = -iTest{ii}(jj);
-                fdq(ii) = fTest{ii}(jj);
+                fdq(ii) = -fTest{ii}(jj);
             end
         end
 

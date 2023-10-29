@@ -143,6 +143,13 @@ clabel(c,h)
 colorbar
 plot(hax(ii),n_grid,T_grid,'or')
 
+for ii=1:length(hfig)
+    tmp = get(hfig(ii),'FileName');
+    [~,name,~] = fileparts(tmp);
+    set(hfig(ii),'Name',name);
+end
+
+
 %% Save figures
 for ii=1:length(hfig)
     savePrintFigure(hfig(ii));

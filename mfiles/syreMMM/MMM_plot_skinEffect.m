@@ -106,6 +106,13 @@ if isfield(skinEffect,'T')
 
 end
 
+for ii=1:length(hfig)
+    tmp = get(hfig(ii),'FileName');
+    [~,name,~] = fileparts(tmp);
+    set(hfig(ii),'Name',name);
+end
+
+
 %% Save figures
 answer = 'No';
 answer = questdlg('Save figures?','Save','Yes','No',answer);

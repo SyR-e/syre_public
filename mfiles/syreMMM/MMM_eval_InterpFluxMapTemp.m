@@ -16,7 +16,7 @@ function [motorModel] = MMM_eval_InterpFluxMapTemp(motorModel)
 
 path         = motorModel.data.pathname;
 file         = motorModel.data.motorName;
-targetPMtemp = motorModel.dataSet.targetPMtemp;
+targetPMtemp = motorModel.data.targetPMtemp;
 
 [filename1, pathname1] = uigetfile([path '\' file '_results\FEA results' '\*.mat'], 'Pick the low temperature Flux Map');
 fdfq1 = load([pathname1 filename1]);
@@ -28,6 +28,10 @@ fdfq2 = load([pathname2 filename2]);
 motorModel.FluxMap_dq      = fdfq;
 motorModel.data.tempVectPM = sort([motorModel.data.tempVectPM targetPMtemp]);
 motorModel.data.tempPM     = targetPMtemp;
+
+index = length(motorModel.PMtempModels.tempVectPM);
+motorModel.PMtempModels.FluxMap_dq{index+1} = fdfq;
+motorModel.PMtempModels.tempVectPM = [motorModel.PMtempModels.tempVectPM targetPMtemp];
 
 motorModel.FluxMap_dqt         = [];
 motorModel.controlTrajectories = [];

@@ -23,13 +23,15 @@ end
 load([pathname filename]);
 
 if exist('per','var')
-    n  = per.EvalSpeed;
-    p  = geo.p;
-    Rs = per.Rs;
+    n               = per.EvalSpeed;
+    p               = geo.p;
+    Rs              = per.Rs;
+    delta_sim_singt = per.delta_sim_singt;
 else
-    n  = motorModel.WaveformSetup.EvalSpeed;
-    p  = motorModel.data.p;
-    Rs = motorModel.data.Rs;
+    n               = motorModel.WaveformSetup.EvalSpeed;
+    p               = motorModel.data.p;
+    Rs              = motorModel.data.Rs;
+    delta_sim_singt = 360;
 end
 
 w   = n*pi/30*p;
@@ -39,20 +41,20 @@ if w==0
     warning(['speed equal to zero, set to ' int2str(w) ' rad/s'])
 end
 
-nRep = 360/per.delta_sim_singt; % number of repetition needed
+nRep = 360/delta_sim_singt; % number of repetition needed
 
-T  = [repmat(out.SOL.T,1,nRep)];    % last point added for plot
+T  = [repmat(out.SOL.T,1,nRep)];   % last point added for plot
 fd = [repmat(out.SOL.fd,1,nRep)];  % last point added for plot
 fq = [repmat(out.SOL.fq,1,nRep)];  % last point added for plot
 id = [repmat(out.SOL.id,1,nRep)];  % last point added for plot
 iq = [repmat(out.SOL.iq,1,nRep)];  % last point added for plot
 
-iph = phaseQuantityDecoding(out.SOL.ia,out.SOL.ib,out.SOL.ic,per.delta_sim_singt);
+iph = phaseQuantityDecoding(out.SOL.ia,out.SOL.ib,out.SOL.ic,delta_sim_singt);
 ia = [iph.a];
 ib = [iph.b];
 ic = [iph.c];
 
-fph = phaseQuantityDecoding(out.SOL.fa,out.SOL.fb,out.SOL.fc,per.delta_sim_singt);
+fph = phaseQuantityDecoding(out.SOL.fa,out.SOL.fb,out.SOL.fc,delta_sim_singt);
 fa = [fph.a];
 fb = [fph.b];
 fc = [fph.c];
@@ -73,9 +75,9 @@ vq = diff([fq(:,end) fq fq(:,1)]')'/dt+w*[fd fd(:,1)];
 
 tmpTime = tmpTime(1:end-1)+dt/2;
 
-va = interp1(tmpTime,va',time)'+Rs*ia;
-vb = interp1(tmpTime,vb',time)'+Rs*ib;
-vc = interp1(tmpTime,vc',time)'+Rs*ic;
+va = interp1(tmpTime,va',time)'+Rs*ia';
+vb = interp1(tmpTime,vb',time)'+Rs*ib';
+vc = interp1(tmpTime,vc',time)'+Rs*ic';
 
 vd = interp1(tmpTime,vd',time)+Rs*id;
 vq = interp1(tmpTime,vq',time)+Rs*iq;
@@ -90,6 +92,7 @@ wf.fq   = fq;
 wf.vd   = vd;
 wf.vq   = vq;
 wf.T    = T;
+wf.n    = n;
 wf.ia   = ia;
 wf.ib   = ib;
 wf.ic   = ic;

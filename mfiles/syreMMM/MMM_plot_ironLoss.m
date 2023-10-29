@@ -69,6 +69,7 @@ for ii=1:length(figNames)
             title('Total Iron Loss')
     end
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
+    set(hfig(ii),'Name',figNames{ii})
 end
 
 

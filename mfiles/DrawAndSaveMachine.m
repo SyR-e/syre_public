@@ -71,11 +71,8 @@ if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom))
     eval_type = 'singt';
 end
 
-% FEMM
-
 if dataSet.custom
     if isequal(button,'Yes')
-        
         [geo,mat] = draw_motor_in_FEMM(geo,mat, pathname, filename);
         mi_close, closefemm
         
@@ -83,17 +80,16 @@ if dataSet.custom
             fileTmp = [cd '\tmp\' filename];  
             copyfile(fileIn , fileTmp);
             copyfile(fileTmp,[pathname filename])
-            delete ([fileTmp])
+            delete (fileTmp)
 %         end
                 
         if isfile([pathname fileans])
             delete ([pathname fileans])
         end
-        
+         
         [geo,mat] = draw_motor_in_FEMM(geo,mat, pathname, filename);
         mi_close, closefemm
-        
-        
+
     else
         disp('Custom machine not saved')
     end

@@ -59,16 +59,19 @@ for ii=1:3
             ylabel('$I_{demag}$ [Apk]')
             set(hax(ii,1),'YLim',[0 max(demagLimit.Idemag)]);
             set(hfig(ii),'FileName',[pathname resFolder 'currentVStemperature.fig']);
+            set(hfig(ii),'Name','currentVStemperature');
             legend('show','Location','best')
         case 2
             ylabel('$B_{min}$ [T]')
             set(hax(ii,1),'YLim',[min(demagLimit.Bmin) max(demagLimit.Br)]);
             set(hfig(ii),'FileName',[pathname resFolder 'fluxDensityVStemperature.fig']);
+            set(hfig(ii),'Name','fluxDensityVStemperature');
             legend('show','Location','best')
         case 3
             ylabel('Volume of PM demagnetized [\%]')
             set(hax(ii,1),'YLim',[0 5]);
             set(hfig(ii),'FileName',[pathname resFolder 'volumeVStemperature.fig']);
+            set(hfig(ii),'Name','volumeVStemperature');
             legend('show','Location','best')
     end
 end
@@ -80,6 +83,7 @@ hax(4,2) = axes('OuterPosition',[0 2/4 1 1/4]);
 hax(4,3) = axes('OuterPosition',[0 1/4 1 1/4]);
 hax(4,4) = axes('OuterPosition',[0 0/4 1 1/4]);
 set(hfig(4),'FileName',[pathname resFolder 'iterations.fig'])
+set(hfig(4),'Name','iterations')
 
 yMax = max([test.Idemag,100,test.tempPM]);
 
@@ -122,12 +126,13 @@ hax(5,1) = axes('OuterPosition',[0 0 1 1]);
 xlabel('$\Theta_{PM}$ [$^\circ$C]')
 ylabel('$I_{demag}$ [Apk]')
 zlabel('PM demag [\%]')
-clim([0 100])
+% clim([0 100])
 zlim([0 100])
 colormap turbo
 colorbar
 view(3)
 set(hfig(5),'FileName',[pathname resFolder 'demagMap.fig']);
+set(hfig(5),'Name','demagMap');
 
 % Plot figures
 

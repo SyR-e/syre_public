@@ -37,7 +37,8 @@ end
 ss=1; %slot index
 ll=1; %layer index
 
-avv = windingCheck(geo);
+% avv = windingCheck(geo);
+avv = geo.win.avv;
 
 
 for kk=1:length(BLKLABELSstat.xy(:,1))

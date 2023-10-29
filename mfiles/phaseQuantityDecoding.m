@@ -36,5 +36,4 @@ switch xdeg
         out.a = nan(size(xa));
         out.b = nan(size(xb));
         out.c = nan(size(xc));
-        out.a = nan(1,round(360/xdeg*size(xa,1)));
 end

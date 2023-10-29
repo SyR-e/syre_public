@@ -37,7 +37,7 @@ file_mot=strrep(filename,'.mat','.mot');
 invoke(mcad,'SaveToFile',[pathname file_mot]);
 
 %% Winding
-windingSyreToMCAD(mcad,pathname,filename,file_mot)  
+windingSyreToMCAD(mcad,pathname,filename,file_mot,dataSet)  
 
 %% dxf
 syreToDxfMCAD(pathname,filename)              

@@ -144,11 +144,13 @@ if ~isempty(motorModel.FluxMap_dqt)
 %         dqtMap.fInt.Fc = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fc,'spline');
 %     end
     motorModel.FluxMap_dqt = dqtMap;
+    
+    if isfield(dqtMap,'sets')
+        dqtMap = rmfield(dqtMap,'sets');
+    end
+
 end
 
-if isfield(dqtMap,'sets')
-    dqtMap = rmfield(dqtMap,'sets');
-end
 
 % Demagnetization update
 if ~isempty(motorModel.DemagnetizationLimit)

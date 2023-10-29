@@ -42,6 +42,15 @@ q1 = 0;
 
 
 % calcolo raccordo superiore
+[~,yTmp] = calc_int_retta_circ_gen(0,0,r-ttd,a,b,c);
+tmp(1) = yTmp(1);
+tmp(2) = calc_distanza_retta_punto(a,b,c,x2,y2);
+filletTopMax = min(tmp*0.95);
+if filletTop>filletTopMax
+    filletTop = filletTopMax;
+end
+
+
 [ap,bp,cp] = calc_retta_offset(a,b,c,filletTop);
 [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-ttd,ap,bp,cp);
 x31 = xTmp(1);
@@ -52,17 +61,37 @@ y32 = yTmp(1);
 [xTmp,yTmp] = calc_int_retta_circ_gen(0,0,r-ttd-filletTop,ap,bp,cp);
 x30 = xTmp(1);
 y30 = yTmp(1);
+
+
 % calcolo fondo cava
-[ap,bp,cp] = calc_retta_offset(a,b,c,filletBot);
 aB = -1;
 bB = 0;
 cB = r-lt;
+
+[~,yTmp] = intersezione_tra_rette(a,b,c,aB,bB,cB);
+filletBotMax = yTmp(1)*0.95;
+if filletBot>filletBotMax
+    filletBot = filletBotMax;
+end
+
+[ap,bp,cp] = calc_retta_offset(a,b,c,filletBot);
 aBp = aB;
 bBp = bB;
 cBp = r-lt+filletBot;
 [x40,y40] = intersezione_tra_rette(ap,bp,cp,aBp,bBp,cBp);
 [x41,y41] = intersezione_tra_rette(a,b,c,aBp,bBp,cBp);
 [x42,y42] = intersezione_tra_rette(ap,bp,cp,aB,bB,cB);
+
+% if y42<0 % fillet too big
+%     filletBot = filletBot*0.9;
+%     [ap,bp,cp] = calc_retta_offset(a,b,c,filletBot);
+%     aBp = aB;
+%     bBp = bB;
+%     cBp = r-lt+filletBot;
+%     [x40,y40] = intersezione_tra_rette(ap,bp,cp,aBp,bBp,cBp);
+%     [x41,y41] = intersezione_tra_rette(a,b,c,aBp,bBp,cBp);
+%     [x42,y42] = intersezione_tra_rette(ap,bp,cp,aB,bB,cB);
+% end
 
 
 % creazione della matrice rotore
@@ -112,7 +141,8 @@ temp.y42 = y42;
 
 geo.rotor = rotor;
 geo.BLKLABELS.rotore.xy = xy;
-
+geo.IM.filletTop = filletTop;
+geo.IM.filletBot = filletBot;
 
 
 

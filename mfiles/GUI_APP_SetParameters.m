@@ -21,6 +21,8 @@ set(app.currentMotFileName,'Value',dataSet.currentfilename);
 % Main data panel
 set(app.PolePairsEdit,'Value',num2str(dataSet.NumOfPolePairs));
 set(app.NumOfSlotsEdit,'Value',num2str(dataSet.NumOfSlots));
+set(app.NumberofstatorslotsEditField,'Value',int2str(dataSet.NumOfStatorSlots));
+set(app.Numberof3phasesetsEditField,'Value',int2str(dataSet.Num3PhaseCircuit));
 set(app.GapThiEdit,'Value',num2str(dataSet.AirGapThickness));
 set(app.StatorOuterRadEdit,'Value',num2str(dataSet.StatorOuterRadius));
 set(app.AirGapRadiusEdit,'Value',num2str(dataSet.AirGapRadius));
@@ -103,11 +105,11 @@ if ~dataSet.ScaleCheck
     set(children,'Enable','on');
 end
 if strcmp(dataSet.TypeOfRotor,'SPM')
-    set(app.NumberOfLayersEdit,'Enable','off');
-    set(app.AlphapuEdit,'Enable','off','Value','NaN');
-    set(app.AlphadegreeEdit,'Enable','on','Editable','on','Value',mat2str(dataSet.AngleSpanOfPM));
-    set(app.hcpuEdit,'Enable','off','Value','NaN');
-    set(app.hcmmEdit,'Enable','on','Editable','on','Value',num2str(dataSet.ThicknessOfPM));
+    set(app.NumberOfLayersEdit,'Enable','off','Value',num2str(dataSet.NumOfLayers));
+    set(app.AlphapuEdit,'Enable','on','Editable','on','Value',mat2str(dataSet.ALPHApu));
+    set(app.AlphadegreeEdit,'Enable','on','Editable','on','Value',mat2str(dataSet.ALPHAdeg));
+    set(app.hcpuEdit,'Enable','on','Editable','on','Value',mat2str(dataSet.HCpu));
+    set(app.hcmmEdit,'Enable','on','Editable','on','Value',num2str(dataSet.HCmm));
     set(app.DxEdit,'Enable','on','Value',num2str(dataSet.DepthOfBarrier));
     set(app.BetaEdit,'Enable','on','Value',mat2str(dataSet.betaPMshape));
     set(app.ThetaFBSEdit,'Enable','off');
@@ -166,7 +168,7 @@ else
     end
     set(app.TanRibEdit,'Enable','on','Value',mat2str(dataSet.TanRibEdit));
     set(app.RadRibEdit,'Enable','on','Value',mat2str(dataSet.RadRibEdit));
-    
+
     if strcmp(dataSet.TypeOfRotor,'Seg')
         set(app.CentralBarriersShrinkEdit,'Enable','on','Value',mat2str(dataSet.CentralShrink));
         set(app.SplitRibsEditField,'Enable','on','Value',mat2str(dataSet.RadRibSplit));
@@ -186,28 +188,28 @@ else
         set(app.RotorFilletRadInEditField,'Enable','off','Value',mat2str(dataSet.RotorFilletIn));
         set(app.RotorFilletRadOutEditField,'Enable','off','Value',mat2str(dataSet.RotorFilletOut));
     end
-    
-    
+
+
     if any(dataSet.RadRibSplit)
         set(app.RadialRibsAngleEditField,'Enable','on','Value',mat2str(dataSet.pontRangEdit));
     else
         set(app.RadialRibsAngleEditField,'Enable','off','Value',mat2str(dataSet.pontRangEdit));
     end
-    
+
     if (strcmp(dataSet.TypeOfRotor,'Circular') &&  dataSet.TanRibCheck)
         set(app.RotorFilletTan1EditField,'Enable','on','Value',mat2str(dataSet.RotorFilletTan1,3));
         set(app.RotorFilletTan2EditField,'Enable','on','Value',mat2str(dataSet.RotorFilletTan2,3));
     end
-    
+
     set(app.RadRibCheck,'Enable','on','Value',dataSet.RadRibCheck);
     if dataSet.RadRibCheck
         set(app.RadRibEdit,'Enable','on')
         set(app.RotorFilletRadInEditField,'Enable','on')
-        set(app.RotorFilletRadOutEditField,'Enable','on')        
+        set(app.RotorFilletRadOutEditField,'Enable','on')
     else
         set(app.RadRibEdit,'Enable','off')
         set(app.RotorFilletRadInEditField,'Enable','off')
-        set(app.RotorFilletRadOutEditField,'Enable','off') 
+        set(app.RotorFilletRadOutEditField,'Enable','off')
     end
 end
 
@@ -242,6 +244,7 @@ set(app.Rsedit,'Enable','on','Value',num2str(dataSet.Rs),'Editable','off');
 set(app.OverSpeedEdit,'Value',num2str(dataSet.OverSpeed));
 set(app.MeshEdit,'Value',num2str(dataSet.Mesh));
 set(app.MeshMOOAEdit,'Value',num2str(dataSet.Mesh_MOOA));
+set(app.mesh_kpmEdit,'Value',num2str(dataSet.mesh_kpm));
 set(app.MecTolerEdit,'Value',num2str(dataSet.MinMechTol));
 set(app.RotorsleevethicknessmmEditField,'Value',num2str(dataSet.SleeveThickness));
 
@@ -410,28 +413,28 @@ else
 end
 
 if strcmp(dataSet.TypeOfRotor,'Seg')
-    
+
     set(app.CentralShrinkBouCheck,'Enable','on','Value',dataSet.CentralShrinkBouCheck);
     set(app.RadShiftInnerBouCheck,'Enable','on','Value',dataSet.RadShiftInnerBouCheck);
-    
+
     if dataSet.CentralShrinkBouCheck
         set(app.CentralShrinkBouEdit,'Enable','on');
     else
         set(app.CentralShrinkBouEdit,'Enable','off');
     end
-    
+
     if dataSet.RadShiftInnerBouCheck
         set(app.RadShiftInnerBouEdit,'Enable','on');
     else
         set(app.RadShiftInnerBouEdit,'Enable','off');
     end
-    
+
 else
     set(app.CentralShrinkBouCheck,'Enable','off','Value',dataSet.CentralShrinkBouCheck);
     set(app.RadShiftInnerBouCheck,'Enable','off','Value',dataSet.RadShiftInnerBouCheck);
     set(app.CentralShrinkBouEdit,'Enable','off');
     set(app.RadShiftInnerBouEdit,'Enable','off');
-    
+
 end
 
 set(app.hcBouCheck,'Enable','on','Value',dataSet.hcBouCheck);
@@ -551,7 +554,7 @@ else
 end
 
 if (strcmp(dataSet.TypeOfRotor,'Seg')||strcmp(dataSet.TypeOfRotor,'Circular'))
-    
+
     set(app.RadRibBouCheck,'Enable','on','Value',dataSet.RadRibBouCheck);
     set(app.TanRibBouCheck,'Enable','on','Value',dataSet.TanRibBouCheck);
 
@@ -559,7 +562,7 @@ if (strcmp(dataSet.TypeOfRotor,'Seg')||strcmp(dataSet.TypeOfRotor,'Circular'))
     set(app.FilletRadribsoutBouCheck,'Enable','on','Value',dataSet.FilletRad2BouCheck);
     set(app.FilletTanribsinBouCheck,'Enable','on','Value',dataSet.FilletTan1BouCheck);
     set(app.FilletTanribsoutBouCheck,'Enable','on','Value',dataSet.FilletTan2BouCheck);
-    
+
     if dataSet.RadRibBouCheck
         set(app.RadRibBouEdit,'Enable','on');
     else
@@ -599,7 +602,7 @@ else
     set(app.FilletRadribsoutBouCheck,'Enable','off','Value',0);
     set(app.FilletTanribsinBouCheck,'Enable','off','Value',0);
     set(app.FilletTanribsoutBouCheck,'Enable','off','Value',0);
-    
+
     set(app.RadRibBouEdit,'Enable','off');
     set(app.TanRibBouEdit,'Enable','off');
     set(app.FilletRadribsinBou,'Enable','off')
@@ -674,6 +677,7 @@ else
 end
 
 set(app.MechStressOptCheck,'Value',dataSet.MechStressOptCheck);
+set(app.flag_OptCurrConst,'Value',dataSet.flag_OptCurrConst);
 % if dataSet.MechStressOptCheck
 %     set(app.MaxExpMechStressEdit,'Enable','on');
 % else
@@ -720,7 +724,6 @@ set(app.Active3phasesetsEditField,'Value',mat2str(dataSet.Active3PhaseSets));
 %Custom Current
 set(app.CustomCurrentFile,'Value',dataSet.CustomCurrentFilename);
 set(app.AxistypeDropDown,'Value',dataSet.axisType);
-
 
 switch dataSet.EvalType
     case 'singt'
@@ -851,7 +854,7 @@ switch dataSet.EvalType
         set(app.BrPPEdit,'Enable','on');
         set(app.TempPPEdit,'Enable','on');
         set(app.NGridPPEdit,'Enable','off');
-        set(app.EvaluatedSpeedEdit,'Enable','off');
+        set(app.EvaluatedSpeedEdit,'Enable','on');
         set(app.StartPProMagnetPush,'Enable','off');
         set(app.StartPProAnsysPush,'Enable','off');
         set(app.MapQuadrantsPopUp,'Enable','off');
@@ -942,9 +945,10 @@ set(app.TimestepEditField,'Value',num2str(dataSet.TransientTimeStep));
 set(app.InitialTemperatureEditField,'Value',num2str(dataSet.InitTemp));
 set(app.AmbientTemperatureEditField,'Value',num2str(dataSet.AmbTemp));
 set(app.EvaluatedSpeedMirrorEdit,'Value',num2str(dataSet.EvalSpeed));
-set(app.CurrentPPMirror,'Value',mat2str(round(dataSet.SimulatedCurrent,2)));
-set(app.GammaPPMirrorEdit,'Value',mat2str(dataSet.GammaPP));
-set(app.TempPPMirrorEdit,'Value',num2str(dataSet.tempPP));
+% set(app.CurrentPPMirror,'Value',mat2str(round(dataSet.SimulatedCurrent,2)));
+% set(app.GammaPPMirrorEdit,'Value',mat2str(dataSet.GammaPP));
+% set(app.TempPPMirrorEdit,'Value',num2str(dataSet.tempPP));
+set(app.CustomLossMCADCheck,'Value',dataSet.CustomLossMCADCheck);
 
 %Thermal Limits
 set(app.TempCuLimitEdit,'Value',num2str(dataSet.TempCuLimit));
@@ -965,6 +969,9 @@ if dataSet.ScaleCheck
     set(app.NumOfSlotsEdit,'Enable','off');
     set(app.TypeOfRotorList,'Enable','off');
     set(app.StackLenghtEdit,'Enable','off');
+    set(app.NumberofstatorslotsEditField,'Enable','off');
+    set(app.Numberof3phasesetsEditField,'Enable','off');
+
     set(app.CustomLoad,'Enable','off');
     set(app.CustomClear,'Enable','off');
     set(app.StartPProPush,'Enable','off');
@@ -975,7 +982,7 @@ if dataSet.ScaleCheck
     set(app.DrawSlotModelPush,'Enable','off');
     set(app.EvalSlotModelPush,'Enable','off');
     set(app.OptimizePush,'Enable','off');
-    
+
     children = get(app.GridLayout13,'Children');    % preliminary design
     set(children,'Enable','off');
     children = get(app.GridLayout15,'Children');    % stator panel
@@ -1000,7 +1007,7 @@ if dataSet.ScaleCheck
     set(children,'Enable','off')
     children = get(app.GridLayout33,'Children');    % MCAD Thermal Sim
     set(children,'Enable','off');
-else 
+else
     % Main Data
     set(app.GapThiEdit,'Enable','on');
     set(app.AirGapRadiusEdit,'Enable','on');
@@ -1019,7 +1026,9 @@ else
     set(app.DrawSlotModelPush,'Enable','on');
     set(app.EvalSlotModelPush,'Enable','on');
     set(app.OptimizePush,'Enable','on');
-    
+    set(app.NumberofstatorslotsEditField,'Enable','on');
+    set(app.Numberof3phasesetsEditField,'Enable','on');
+
     if strcmp(app.CustomCurrentSwitch.Value,'On')
         set(app.StartPProPush,'Enable','on');
         set(app.StartPProMagnetPush,'Enable','off');
@@ -1043,10 +1052,13 @@ else
     set(children,'Enable','on');
     children = get(app.GridLayout19,'Children');    % structural panel
     set(children,'Enable','on');
-%     if ~strcmp(dataSet.FluxBarrierMaterial,'Air')
-%         children = get(app.GridLayout26,'Children');    % PM panel
-%         set(children,'Enable','on');
-%     end
+    if ~strcmp(dataSet.FluxBarrierMaterial,'Air')
+        children = get(app.GridLayout26,'Children');    % PM panel
+        set(children,'Enable','on');
+        if (strcmp(dataSet.TypeOfRotor,'Circular')||strcmp(dataSet.TypeOfRotor,'Vtype'))
+            set(app.PMNcSegmentsTable,'Enable','off','ColumnEditable',false(1))
+        end
+    end
     children = get(app.GridLayout36,'Children');    % MCAD EM
     set(children,'Enable','on');
     children = get(app.GridLayout34,'Children');    % MCAD Thermal Build

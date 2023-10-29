@@ -275,13 +275,22 @@ if ~isfield(motorModel,'DemagnetizationLimit')
     end
     flag=1;
 end
-%
+
+% Control strategy in syreDrive
 if ~isfield(motorModel.SyreDrive,'Ctrl_strategy')
     motorModel.SyreDrive.Ctrl_strategy = 'FOC';
      if Dflag
         disp('- Included Control strategy in syreDrive')
     end
     flag=1;
+end
+
+if ~isfield(motorModel.TnSetup,'ASCsafeFlag')
+   motorModel.TnSetup.ASCsafeFlag = 'No';
+   motorModel.TnSetup.SkinEffectMethod = 'LUT';
+   if Dflag
+       disp('- Added the possibility to control with ASC safe state in torque-speed map computation')
+   end
 end
 
 

@@ -49,16 +49,21 @@ if geo.ps==2*geo.p
     flagSG=0;
 end
 
+custom_act = 0;
+
 if isfield(per,'custom_act')
-    Ia         = per.custom_ia;
-    Ib         = per.custom_ib;
-    Ic         = per.custom_ic;
-    %time       = per.custom_time;
-    custom_act = per.custom_act;
-else
-    custom_act = 0;
+    if per.custom_act
+        Ia         = per.custom_ia;
+        Ib         = per.custom_ib;
+        Ic         = per.custom_ic;
+        %time       = per.custom_time;
+        custom_act = per.custom_act;
+    end
 end
 
+if ~isfield(per,'offset')
+    per.offset = 0;
+end
 
 switch eval_type
     case 'MO_OA' % optimization
@@ -110,23 +115,23 @@ switch eval_type
         theta=offset:sim_step:xdeg+offset;
         thetaPark=th0(1)+[theta(1:nsim) theta(1)]; % disregard the last position
         iOffsetPU = 0;
-        
+
         % initialize the additional variables for flux densities
         angIni  = 0;
         angFin  = 360/(2*p)*ps;
         angRes  = 3600/(2*p)*ps+2;
         angVect = linspace(angIni,angFin,angRes);
         angVect = angVect(2:end-1); % the first and the last point must be avoided because they are on the boundary
-        
+
         radTooth = geo.r+geo.g+geo.lt/2;
         xTooth   = radTooth*cosd(angVect);
         yTooth   = radTooth*sind(angVect);
-        
+
         geo.ly   = geo.R-geo.r-geo.g-geo.lt;
         radYoke  = geo.R-geo.ly/2;
         xYoke    = radYoke*cosd(angVect);
         yYoke    = radYoke*sind(angVect);
-        
+
         Bg = zeros(angRes-2,nsim+1);
         Bt = zeros(angRes-2,nsim+1);
         By = zeros(angRes-2,nsim+1);
@@ -149,7 +154,7 @@ switch eval_type
         theta=offset:sim_step:xdeg+offset;
         thetaPark=th0(1)+[theta(1:nsim) theta(1)]; % disregard the last position
         iOffsetPU = 0;
-        
+
         % initialize the additional variables for flux densities
         angIni  = 0;
         angFin  = 360/(2*p)*ps;
@@ -159,11 +164,12 @@ switch eval_type
         %angRef = cumsum(diff(angVect));
         angStp = angVect(2)-angVect(1);
         angRef = cumsum(diff(angVect))-angStp/2;
-        
+
         rF = geo.r+geo.g/6;
+        rF = geo.r+geo.g*5/6;
         xF = rF*cosd(angVect);
         yF = rF*sind(angVect);
-        
+
         Fr = zeros(angRes-1,nsim+1);
         Ft = zeros(angRes-1,nsim+1);
         Fr(:,1) = angRef';
@@ -174,7 +180,7 @@ switch eval_type
         xdeg = per.delta_sim_singt;
         nsim = round(per.nsim_singt*xdeg/per.delta_sim_singt);
         sim_step = xdeg/(nsim);               % during re-evaluation, regular position steps
-        offset = 0;
+        offset = per.offset;
         theta = offset:sim_step:xdeg+offset;
         thetaPark = th0(1)+[theta(1:nsim) theta(1)]; % disregard the last position
         iOffsetPU = 0;
@@ -226,29 +232,35 @@ phase_name_neg = cell(n3phase*3,1);
 %% Custom Current
 if custom_act
     sim_range = round(xdeg/360*length(Ia(1,:)));
-    
+
+    theta_custom = linspace(0,360,length(Ia));
+
     Ia_i = zeros(n3phase,nsim);
     Ib_i = zeros(n3phase,nsim);
     Ic_i = zeros(n3phase,nsim);
-    
+
     for ik=1:(n3phase)
-        Ia_i(ik,:) = interp1(1:sim_range,Ia(ik,1:sim_range),linspace(1,sim_range,nsim));
-        Ib_i(ik,:) = interp1(1:sim_range,Ib(ik,1:sim_range),linspace(1,sim_range,nsim));
-        Ic_i(ik,:) = interp1(1:sim_range,Ic(ik,1:sim_range),linspace(1,sim_range,nsim));
+        %         Ia_i(ik,:) = interp1(1:sim_range,Ia(ik,1:sim_range),linspace(1,sim_range,nsim));
+        %         Ib_i(ik,:) = interp1(1:sim_range,Ib(ik,1:sim_range),linspace(1,sim_range,nsim));
+        %         Ic_i(ik,:) = interp1(1:sim_range,Ic(ik,1:sim_range),linspace(1,sim_range,nsim));
+
+        Ia_i(ik,:) = interp1(theta_custom,Ia(ik,:),theta(1:end-1));
+        Ib_i(ik,:) = interp1(theta_custom,Ib(ik,:),theta(1:end-1));
+        Ic_i(ik,:) = interp1(theta_custom,Ic(ik,:),theta(1:end-1));
     end
-    
+
     figure
     figSetting
     title('Phase A - Current')
-     for ik=1:(n3phase)
-    plot(linspace(0,xdeg,nsim),Ia_i(ik,:),'DisplayName',['Interpolated - ' num2str(ik) ' 3phase set'] )
-    plot(linspace(0,xdeg,sim_range),Ia(ik,1:sim_range),'DisplayName',['Input - ' num2str(ik) ' 3phase set']')
-    %plot(linspace(0,xdeg,sim_range),Ib(1,1:sim_range),'DisplayName','B')
-    %plot(linspace(0,xdeg,sim_range),Ic(1,1:sim_range),'DisplayName','C')
+    for ik=1:(n3phase)
+        plot(linspace(0,xdeg,nsim),Ia_i(ik,:),'DisplayName',['Interpolated - ' num2str(ik) ' 3phase set'] )
+        plot(linspace(0,xdeg,sim_range),Ia(ik,1:sim_range),'DisplayName',['Input - ' num2str(ik) ' 3phase set']')
+        %plot(linspace(0,xdeg,sim_range),Ib(1,1:sim_range),'DisplayName','B')
+        %plot(linspace(0,xdeg,sim_range),Ic(1,1:sim_range),'DisplayName','C')
     end
     axis([0 xdeg -1.2*max(max(Ia)) 1.2*max(max(Ia))])
     legend show
-    
+
     %%% Nbob rescaling
     Ia_i = Ia_i*Nbob;
     Ib_i = Ib_i*Nbob;
@@ -270,14 +282,14 @@ for jj = 1:nsim
             i_tmp((3*ik)+3,jj) = (i123(3)+iOffCoil)*flag3phSet(ik+1);
         end
 
-        
+
         phase_name{3*ik+1}=strcat('fase',num2str(3*ik+1));
         phase_name{3*ik+2}=strcat('fase',num2str(3*ik+2));
         phase_name{3*ik+3}=strcat('fase',num2str(3*ik+3));
         phase_name_neg{3*ik+1}=strcat('fase',num2str(3*ik+1),'n');
         phase_name_neg{3*ik+2}=strcat('fase',num2str(3*ik+2),'n');
         phase_name_neg{3*ik+3}=strcat('fase',num2str(3*ik+3),'n');
-        
+
         % change current value in FEMM
         mi_modifycircprop(phase_name{3*ik+1}, 1,i_tmp((3*ik)+1,jj));
         mi_modifycircprop(phase_name{3*ik+2}, 1,i_tmp((3*ik)+2,jj));
@@ -285,9 +297,9 @@ for jj = 1:nsim
         mi_modifycircprop(phase_name_neg{3*ik+1}, 1,-i_tmp((3*ik)+1,jj));
         mi_modifycircprop(phase_name_neg{3*ik+2}, 1,-i_tmp((3*ik)+2,jj));
         mi_modifycircprop(phase_name_neg{3*ik+3}, 1,-i_tmp((3*ik)+3,jj));
-        
+
     end
-    
+
     % assign the Hc property to each of the bonded magnets
     %     if strcmp(geo.RotType,'SPM')
     %         mi_modifymaterial(mat.LayerMag.MatName,3,mat.LayerMag.Hc);
@@ -295,20 +307,20 @@ for jj = 1:nsim
     if length(mat.LayerMag.Hc)==1
         Hc_vect = mat.LayerMag.Hc*ones(1,length(geo.BLKLABELS.rotore.BarName));
     else
-        %             Hc_vect=[Hc Hc];  // DUBBIO -- a cosa serve? 2018 07 26
+        %  Hc_vect=[Hc Hc];  // DUBBIO -- a cosa serve? 2018 07 26
     end
     for ii = 1:length(Hc_vect)
         mi_modifymaterial([mat.LayerMag.MatName '_' num2str(ii)],3,Hc_vect(ii));
     end
     %     end
-    
+
     theta_r = theta(jj)/p;
     if flagSG
         % sliding gap (since 2019)
         mi_modifyboundprop('AGap',10,theta_r);  % modify inner boundary angle
     else
         % before sliding gap was introduced - delete the airgap arc prior to moving the rotor
-%         mi_selectgroup(20), mi_deleteselectedarcsegments;
+        %         mi_selectgroup(20), mi_deleteselectedarcsegments;
         % rotate the rotor
         tmp = geo.PMdim(:);
         if strcmp(geo.RotType,'Circular')
@@ -316,8 +328,8 @@ for jj = 1:nsim
         else
             nPM = geo.ps*numel(tmp(tmp~=0))*2;
         end
-        
-        
+
+
         tmp = geo.BLKLABELS.rotore.xy(:,3);
         nPM = sum(tmp==6);
 
@@ -336,15 +348,15 @@ for jj = 1:nsim
         if (ps<2*p)
             draw_airgap_arc_with_mesh(geo,theta_r,geo.mesh_res)
         else
-%             draw_airgap_arc_with_mesh_fullMachine(geo,theta_r,geo.mesh_res)
+            %             draw_airgap_arc_with_mesh_fullMachine(geo,theta_r,geo.mesh_res)
         end
     end
-    
+
     %     mi_modifycircprop('fase1', 1 ,0);
     %     mi_modifycircprop('fase1n', 1 ,0);
     mi_analyze(1);
     mi_loadsolution;
-    
+
     % load phase flux linkages
     for ii=0:(n3phase-1) %AS
         temp_out = mo_getcircuitproperties(phase_name{3*ii+1});
@@ -357,7 +369,7 @@ for jj = 1:nsim
         temp_out = temp_out - mo_getcircuitproperties(phase_name_neg{3*ii+3});
         f(3*ii+3) = temp_out(3) * 2 * p/ps;
     end
-    
+
     for ik=0:(n3phase-1) %AS
         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);
         %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)-ik*60/n3phase)*pi/180);
@@ -368,10 +380,10 @@ for jj = 1:nsim
         fb_temp(ik+1,jj)=f(3*ik+2);
         fc_temp(ik+1,jj)=f(3*ik+3);
     end
-    
+
     fd=mean(fd_temp(:,jj));
     fq=mean(fq_temp(:,jj));
-    
+
     % Torque computation. For old model, the rotor blocks are selected and
     % torque is computed as block integral. For new models (with
     % slidingGap), torque is directly computed from the airgap boundary
@@ -420,7 +432,7 @@ for jj = 1:nsim
     SOL.T(jj)  = T;
     SOL.we(jj) = we;
     SOL.wc(jj) = wc;
-    
+
     for ff=1:n3phase
         SOL.ia(ff,jj) = i_tmp(1+3*(ff-1),jj)/Nbob;
         SOL.ib(ff,jj) = i_tmp(2+3*(ff-1),jj)/Nbob;
@@ -429,7 +441,7 @@ for jj = 1:nsim
         SOL.fb(ff,jj) = f(2+3*(ff-1))*Nbob;
         SOL.fc(ff,jj) = f(3+3*(ff-1))*Nbob;
     end
-    
+
     switch eval_type
         case 'flxdn'
             for ff=1:angRes-2
@@ -444,7 +456,7 @@ for jj = 1:nsim
             SOL.Bg = Bg;
             SOL.Bt = Bt;
             SOL.By = By;
-            
+
         case 'force'
             for ff=1:length(angRef)
                 aS = angRef(ff)-angStp/2;
@@ -460,15 +472,15 @@ for jj = 1:nsim
                 tmp = mo_lineintegral(3);
                 fx = tmp(1);
                 fy = tmp(2);
-                fm = (fx^2+fy^2);
+                fm = (fx^2+fy^2)^0.5;
                 fa = atan2(fy,fx);
-                Fr(ff,jj+1) = fm*cos(fa-angRef(ff)*pi/180);
-                Ft(ff,jj+1) = fm*sin(fa-angRef(ff)*pi/180);
-                Fx(ff,jj+1) = fx;
-                Fy(ff,jj+1) = fy;
+                Fr(ff,jj+1) = fm*cos(fa-angRef(ff)*pi/180)/(rF/1000*angStp*pi/180*l/1000);
+                Ft(ff,jj+1) = fm*sin(fa-angRef(ff)*pi/180)/(rF/1000*angStp*pi/180*l/1000);
+                Fx(ff,jj+1) = fx/(rF/1000*angStp*pi/180*l/1000);
+                Fy(ff,jj+1) = fy/(rF/1000*angStp*pi/180*l/1000);
                 mo_clearcontour();
             end
-            
+
             SOL.Fr = Fr;
             SOL.Ft = Ft;
             SOL.Fx = Fx;
@@ -554,7 +566,7 @@ for jj = 1:nsim
                     area(ee) = elm(6);
                 end
                 EleIn = 1:1:EleNo;
-                EleOK = [EleIn(groNo==12) EleIn(groNo==22) EleIn(groNo>200)]; % select just the element of stator iron (group=12), rotor iron (group=22) and PMs (group=200)
+                EleOK = [EleIn(groNo==12) EleIn(groNo==22) EleIn(groNo>200)]; % select just the element of stator iron (group=12), rotor iron (group=22) and PMs (group>200)
                 EleNo = length(EleOK);
                 pos   = pos(EleOK);
                 groNo = groNo(EleOK);
@@ -578,7 +590,7 @@ for jj = 1:nsim
                 end
             end
     end
-    
+
     if strcmp(eval_type,'singtIron')
         disp(['Single point Iron loss evaluation - evaluated ' int2str(jj) ' of ' int2str(nsim)])
     end
@@ -587,28 +599,31 @@ end
 if (strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron'))
     % computation of the elements volume
     vol = (area/1e6)*(l/1000);
-    
+
     SOL.bs    = bs;
     SOL.br    = br;
     SOL.am    = am;
     SOL.pos   = pos;
     SOL.vol   = vol;
     SOL.groNo = groNo;
-    
-    [SOL] = evalIronLossFEMM(geo,per,mat,SOL,2);
-    % the last input of evalIronLossFEMM is the method of the iron loss
-    % computation:
-    % 0 --> use the standard method introduced by FEMM: harmonic
-    %       decomposition both for hysteresis and eddy current
-    % 1 --> use the iGSE along the main flux density axis for hysteresis
-    %       and harmonic decomposition for eddy current
-    % 2 --> use iGSE along the main and the quadrature flux density axis
-    %       for hysteresis (to account for the rotational loss) and harmonic
-    %       decomposition for eddy current.
-    % 3 --> use iGSE along the main and the quadrature flux density axis
-    %       for hysteresis (to account for the rotational loss) and harmonic
-    %       decomposition for eddy current. For the hysteresis, correction
-    %       factor are adopted.
+    if strcmp(eval_type,'singmIron')
+        [SOL] = evalIronLossFEMM(geo,per,mat,SOL,2);
+
+        % the last input of evalIronLossFEMM is the method of the iron loss
+        % computation:
+        % 0 --> use the standard method introduced by FEMM: harmonic
+        %       decomposition both for hysteresis and eddy current
+        % 1 --> use the iGSE along the main flux density axis for hysteresis
+        %       and harmonic decomposition for eddy current
+        % 2 --> use iGSE along the main and the quadrature flux density axis
+        %       for hysteresis (to account for the rotational loss) and harmonic
+        %       decomposition for eddy current.
+        % 3 --> use iGSE along the main and the quadrature flux density axis
+        %       for hysteresis (to account for the rotational loss) and harmonic
+        %       decomposition for eddy current. For the hysteresis, correction
+        %       factor are adopted.
+
+    end
 end
 
 mo_close, mi_close

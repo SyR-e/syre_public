@@ -1,4 +1,4 @@
-% Copyright 2019
+ % Copyright 2019
 %
 %    Licensed under the Apache License, Version 2.0 (the "License");
 %    you may not use this file except in compliance with the License.
@@ -28,9 +28,16 @@ function eval_fluxMap(dataIn)
 %             NumGrid: number of points in [0 Imax] for the single machine post-processing
 %=========================================================================
 
+if isfield(dataIn,'flagHWCMap')
+    dataIntmp = dataIn;
+end
 pathname=dataIn.currentpathname;
 filemot = strrep(dataIn.currentfilename,'.mat','.fem');
 load([dataIn.currentpathname dataIn.currentfilename]);
+
+if isfield(dataIn,'flagHWCMap')
+    dataIn = dataIntmp;
+end
 
 RatedCurrent = dataIn.RatedCurrent;
 CurrLoPP = dataIn.CurrLoPP;
@@ -46,6 +53,7 @@ tempPP = dataIn.tempPP;
 per.flag3phaseSet = dataIn.Active3PhaseSets;
 
 per.EvalSpeed = dataIn.EvalSpeed;
+per = rmfield(per,'custom_act');
 
 MapQuadrants = dataIn.MapQuadrants;
 
@@ -77,6 +85,7 @@ per.BrPP            = BrPP;
 per.nsim_singt      = NumOfRotPosPP;  % # simulated positions
 per.delta_sim_singt = AngularSpanPP;  % angular span of simulation
 per.tempPP          = tempPP;
+%per.offset          = 0;
 
 % iAmp = dataIn.SimulatedCurrent;
 
@@ -102,6 +111,20 @@ switch MapQuadrants
         idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
         iqvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
 end
+
+if isfield(dataIn,'flagHWCMap')
+    CurrStep = dataIn.SimulatedCurrent/NumGrid;
+    NumGridPM = ceil(dataIn.SimulatedCurrent_HWC/CurrStep);
+    if strcmp(dataIn.axisType,'PM')
+        idvect = linspace(-abs(dataIn.SimulatedCurrent_HWC),SimulatedCurrent,NumGrid+NumGridPM-1);
+%         idvect = linspace(-SimulatedCurrent,dataIn.SimulatedCurrent_HWC,NumGrid+NumGridPM-1);
+        iqvect = linspace(0,SimulatedCurrent,NumGrid);
+    else
+        idvect = linspace(0,SimulatedCurrent,NumGrid);
+        iqvect = linspace(-SimulatedCurrent,abs(dataIn.SimulatedCurrent_HWC),NumGrid+NumGridPM-1);
+    end
+end
+
 
 if strcmp(dataIn.TypeOfRotor,'IM')
     % remove the axis from the identification
@@ -285,7 +308,7 @@ if sum(per.flag3phaseSet)~=geo.win.n3phase
     NewDir = [NewDir '_' mat2str(per.flag3phaseSet)];
 end
 
-if exist('Pfes_h')
+if strcmp(dataIn.EvalType,'singmIron')
     nStr = int2str(per.EvalSpeed);
     nStr = strrep(nStr,'.','rpm');
     if ~strcmpi(nStr,'rpm')

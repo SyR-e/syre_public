@@ -166,6 +166,12 @@ plot(hax(3),real(Icc),imag(Icc),'-r','DisplayName','$I_{sc}$ [A]')
 plot3(hax(4),nVect,real(Icc),imag(Icc),'-bo');
 
 
+for ii=1:length(hfig)
+    tmp = get(hfig(ii),'FileName');
+    [~,name,~] = fileparts(tmp);
+    set(hfig(ii),'Name',name);
+end
+
 %% Save figures
 answer = 'No';
 answer = questdlg('Save results?','Save','Yes','No',answer);

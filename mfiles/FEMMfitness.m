@@ -47,6 +47,13 @@ if ~isempty(RQ)
     [geo,mat] = draw_motor_in_FEMM(geo,mat,pathname,filename);
 
     [~,geo] = calc_endTurnLength(geo);
+ 
+%     flag_OptCurrConst = 1;
+    if per.flag_OptCurrConst
+        per.kj   = NaN;
+        per.Loss = NaN;
+        per.J    = NaN;
+    end
     per = calc_i0(geo,per,mat);
 
     %     if any(strcmp(geo.OBJnames,'Fdq0'))
@@ -143,8 +150,8 @@ if flagSim
         out.Pfer_h        = sum(sum(SOL.prh))*(2*geo.p/geo.ps);
         out.Pfer_c        = sum(sum(SOL.prc))*(2*geo.p/geo.ps);
         out.Ppm           = sum(sum(SOL.ppm))*(2*geo.p/geo.ps);
-        out.ppm_RF        = sum(sum(SOL.ppm_RF))*(2*geo.p/geo.ps);
-        out.ppm_noRF      = sum(sum(SOL.ppm_noRF))*(2*geo.p/geo.ps);
+        out.ppm_no3D      = sum(sum(SOL.ppm_no3D))*(2*geo.p/geo.ps);
+        out.ppm_noRFno3D  = sum(sum(SOL.ppm_noRFno3D))*(2*geo.p/geo.ps);
         out.Ppm_breakdown = SOL.ppm_PM*(2*geo.p/geo.ps);
         out.Pfe           = out.Pfes_h + out.Pfes_c + out.Pfer_h + out.Pfer_c;
         out.velDim        = per.EvalSpeed;
@@ -156,8 +163,8 @@ if flagSim
             SOL = rmfield(SOL,'prh');
             SOL = rmfield(SOL,'prc');
             SOL = rmfield(SOL,'ppm');
-            SOL = rmfield(SOL,'ppm_RF');
-            SOL = rmfield(SOL,'ppm_noRF');
+            %SOL = rmfield(SOL,'ppm_RF');
+            %SOL = rmfield(SOL,'ppm_noRF');
             SOL = rmfield(SOL,'ppm_PM');
             SOL = rmfield(SOL,'freq');
             SOL = rmfield(SOL,'bs');

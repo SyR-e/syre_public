@@ -15,7 +15,11 @@
 function plot_singt(out,delta_sim_singt,newDir,filemot)
 % single working point has been simulated
 
-nRep = 360/delta_sim_singt; % number of repetition needed
+if delta_sim_singt<=360
+    nRep = 360/delta_sim_singt; % number of repetition needed
+else
+    nRep = 1;
+end
 
 T  = [repmat(out.SOL.T,1,nRep) out.SOL.T(1)];    % last point added for plot
 fd = [repmat(out.SOL.fd,1,nRep) out.SOL.fd(1)];  % last point added for plot
@@ -24,15 +28,25 @@ id = [repmat(out.SOL.id,1,nRep) out.SOL.id(1)];  % last point added for plot
 iq = [repmat(out.SOL.iq,1,nRep) out.SOL.iq(1)];  % last point added for plot
 
 if isfield(out.SOL,'ia')
-    iph = phaseQuantityDecoding(out.SOL.ia,out.SOL.ib,out.SOL.ic,delta_sim_singt);
-    ia = [iph.a iph.a(:,1)];
-    ib = [iph.b iph.b(:,1)];
-    ic = [iph.c iph.c(:,1)];
-    
-    fph = phaseQuantityDecoding(out.SOL.fa,out.SOL.fb,out.SOL.fc,delta_sim_singt);
-    fa = [fph.a fph.a(:,1)];
-    fb = [fph.b fph.b(:,1)];
-    fc = [fph.c fph.c(:,1)];
+    if nRep==1
+        ia = [out.SOL.ia out.SOL.ia(:,1)];
+        ib = [out.SOL.ib out.SOL.ib(:,1)];
+        ic = [out.SOL.ic out.SOL.ic(:,1)];
+
+        fa = [out.SOL.fa out.SOL.fa(:,1)];
+        fb = [out.SOL.fb out.SOL.fb(:,1)];
+        fc = [out.SOL.fc out.SOL.fc(:,1)];
+    else
+        iph = phaseQuantityDecoding(out.SOL.ia,out.SOL.ib,out.SOL.ic,delta_sim_singt);
+        ia = [iph.a iph.a(:,1)];
+        ib = [iph.b iph.b(:,1)];
+        ic = [iph.c iph.c(:,1)];
+
+        fph = phaseQuantityDecoding(out.SOL.fa,out.SOL.fb,out.SOL.fc,delta_sim_singt);
+        fa = [fph.a fph.a(:,1)];
+        fb = [fph.b fph.b(:,1)];
+        fc = [fph.c fph.c(:,1)];
+    end
 else
     ia = NaN;
     ib = NaN;
@@ -43,7 +57,13 @@ else
     fc = NaN;
 end
 
-th = linspace(0,360,length(T));
+% th = linspace(0,360,length(T));
+if length(out.SOL.th)>1
+    dth = out.SOL.th(2)-out.SOL.th(1);
+    th = 0:dth:dth*(length(T)-1);
+else
+    th = 0:60:360;
+end
 
 gamma = atan2(iq,id);
 delta = atan2(fq,fd);

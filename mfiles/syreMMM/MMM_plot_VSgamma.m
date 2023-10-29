@@ -65,6 +65,7 @@ for ii=1:length(figNames)
         'XTick',min(gammaVect):15:max(gammaVect));
     xlabel('$\gamma$ [$^\circ$]')
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig']);
+    set(hfig(ii),'Name',figNames{ii});
     switch ii
         case 1
             ylabel('$T$ [Nm]')

@@ -178,7 +178,7 @@ function MMM_SIMplot(motorModel)
     TimeIabc = motorModel.SyreDrive.simOut.Out_M.Iabc.Time;
     plot(TimeIabc,iA,TimeIabc,iB,TimeIabc,iC)
     xlabel('t (s)')
-    ylabel('$i_{dq}$ (A)')
+    ylabel('$i_{abc}$ (A)')
     xlim([t1 TimeIabc(end)])
     grid on
     title('abc Currents')

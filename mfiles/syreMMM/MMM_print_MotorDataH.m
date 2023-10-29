@@ -84,15 +84,15 @@ step = Tmax/n;
 T_set = 0:step:Tmax;
 
 id_set    = interp1(MTPA.T,MTPA.id,T_set);
-id_set(1) = 0;
+% id_set(1) = 0;
 iq_set    = interp1(MTPA.T,MTPA.iq,T_set);
-iq_set(1) = 0.2*i0;
+% iq_set(1) = 0.2*i0;
 fd_set    = interp1(MTPA.T,MTPA.fd,T_set);
-fd_set(1) = 0;
+% fd_set(1) = 0;
 fq_set    = interp1(MTPA.T,MTPA.fq,T_set);
-fq_set(1) = 0;
+% fq_set(1) = 0;
 f_set     = abs(fd_set+j*fq_set);
-f_set(1)  = 0;
+% f_set(1)  = 0;
 
 % print txt file (MTPA)
 fid = fopen(MotorDataH_path,'a');

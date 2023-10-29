@@ -81,21 +81,52 @@ if dataIn.CustomCurrentEnable
     per.custom_ic         = dataIn.CustomCurrentC;
     per.custom_time       = dataIn.CustomCurrentTime;
     per.custom_act        = dataIn.CustomCurrentEnable;
+else
+    per.custom_act = 0;
+end
+
+offset = zeros(1,length(CurrLoPP));
+
+% check parallel computing
+ppState=parallelComputingCheck();
+
+if ppState==0
+    ppState1 = 1;
+else
+    ppState1 = ppState;
+end
+
+if strcmp(eval_type,'singtIron')
+    CurrLoPP = CurrLoPP*ones(1,ppState1);
+    GammaPP  = GammaPP*ones(1,ppState1);
+    tmp      = linspace(0,AngularSpanPP,ppState1+1);
+    offset              = tmp(1,1:end-1);
+    if length(offset)>1
+        per.delta_sim_singt = offset(2);
+    end
+    per.nsim_singt      = ceil(per.nsim_singt/ppState1);
+    %     offset(1,2:end)     = offset(1,2:end)+offset(1,2)/per.nsim_singt;
 end
 
 % single point or array of points simulation
 performance = cell(1,length(CurrLoPP));
 output = cell(1,length(CurrLoPP));
+
 geometry = cell(1,length(CurrLoPP));
 tempDirName = cell(1,length(CurrLoPP));
 for ii = 1:length(CurrLoPP)
     performance{ii} = per;
     performance{ii}.overload = CurrLoPP(ii);
-    performance{ii}.gamma=GammaPP(ii);
+    performance{ii}.gamma    = GammaPP(ii);
+    performance{ii}.offset   = offset(ii);
 end
+
+% if strcmp(eval_type,'singtIron') && length(CurrLoPP)>1
+%     performance{1}.nsim_singt = performance{1}.nsim_singt+1;
+% end
+
 geo.RemoveTMPfile = 'OFF';
-% check parallel computing
-ppState=parallelComputingCheck();
+
 if (ppState==0 && length(CurrLoPP)>4)
     parpool();
     ppState=parallelComputingCheck();
@@ -122,20 +153,134 @@ else
     end
 end
 
+
+if (strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron'))
+    %
+    out.SOL.th    = [];
+    out.SOL.id    = [];
+    out.SOL.iq    = [];
+    out.SOL.fd    = [];
+    out.SOL.fq    = [];
+    out.SOL.T     = [];
+    out.SOL.ia    = [];
+    out.SOL.ib    = [];
+    out.SOL.ic    = [];
+    out.SOL.fa    = [];
+    out.SOL.fb    = [];
+    out.SOL.fc    = [];
+    out.SOL.we    = [];
+    out.SOL.wc    = [];
+    out.SOL.bs    = [];
+    out.SOL.br    = [];
+    out.SOL.am    = [];
+    out.SOL.pos   = [];
+    out.SOL.vol   = [];
+    out.SOL.groNo = [];
+    per.delta_sim_singt = AngularSpanPP;
+
+    for ii=1:length(output)
+        out.SOL.th    = [out.SOL.th output{ii}.SOL.th];
+        out.SOL.id    = [out.SOL.id output{ii}.SOL.id];
+        out.SOL.iq    = [out.SOL.iq output{ii}.SOL.iq];
+        out.SOL.fd    = [out.SOL.fd output{ii}.SOL.fd];
+        out.SOL.fq    = [out.SOL.fq output{ii}.SOL.fq];
+        out.SOL.T     = [out.SOL.T  output{ii}.SOL.T];
+        out.SOL.ia    = [out.SOL.ia output{ii}.SOL.ia];
+        out.SOL.ib    = [out.SOL.ib output{ii}.SOL.ib];
+        out.SOL.ic    = [out.SOL.ic output{ii}.SOL.ic];
+        out.SOL.fa    = [out.SOL.fa output{ii}.SOL.fa];
+        out.SOL.fb    = [out.SOL.fb output{ii}.SOL.fb];
+        out.SOL.fc    = [out.SOL.fc output{ii}.SOL.fc];
+        out.SOL.we    = [out.SOL.we output{ii}.SOL.we];
+        out.SOL.wc    = [out.SOL.wc output{ii}.SOL.wc];
+
+        out.SOL.bs    = [out.SOL.bs; output{ii}.SOL.bs];
+        out.SOL.br    = [out.SOL.br; output{ii}.SOL.br];
+        out.SOL.am    = [out.SOL.am; output{ii}.SOL.am];
+  
+    end
+        out.SOL.pos   = [out.SOL.pos output{1}.SOL.pos];
+        out.SOL.vol   = [out.SOL.vol output{1}.SOL.vol];
+        out.SOL.groNo = [out.SOL.groNo output{1}.SOL.groNo];
+
+    [SOL] = evalIronLossFEMM(geo,per,mat,out.SOL,2);
+    if isfield(SOL,'psh')
+        out.Pfes_h        = sum(sum(SOL.psh))*(2*geo.p/geo.ps);
+        out.Pfes_c        = sum(sum(SOL.psc))*(2*geo.p/geo.ps);
+        out.Pfer_h        = sum(sum(SOL.prh))*(2*geo.p/geo.ps);
+        out.Pfer_c        = sum(sum(SOL.prc))*(2*geo.p/geo.ps);
+        out.Ppm           = sum(sum(SOL.ppm))*(2*geo.p/geo.ps);
+        out.ppm_no3D      = sum(sum(SOL.ppm_no3D))*(2*geo.p/geo.ps);
+        out.ppm_noRFno3D  = sum(sum(SOL.ppm_noRFno3D))*(2*geo.p/geo.ps);
+        out.Ppm_breakdown = SOL.ppm_PM*(2*geo.p/geo.ps);
+        out.Pfe           = out.Pfes_h + out.Pfes_c + out.Pfer_h + out.Pfer_c;
+        out.velDim        = per.EvalSpeed;
+
+        if strcmp(eval_type,'singmIron')
+            % remove all the debug data from SOL, to avoid excessive data size
+            SOL = rmfield(SOL,'psh');
+            SOL = rmfield(SOL,'psc');
+            SOL = rmfield(SOL,'prh');
+            SOL = rmfield(SOL,'prc');
+            SOL = rmfield(SOL,'ppm');
+            %SOL = rmfield(SOL,'ppm_RF');
+            %SOL = rmfield(SOL,'ppm_noRF');
+            SOL = rmfield(SOL,'ppm_PM');
+            SOL = rmfield(SOL,'freq');
+            SOL = rmfield(SOL,'bs');
+            SOL = rmfield(SOL,'br');
+            SOL = rmfield(SOL,'am');
+            SOL = rmfield(SOL,'Jm');
+            SOL = rmfield(SOL,'pos');
+            SOL = rmfield(SOL,'vol');
+            SOL = rmfield(SOL,'groNo');
+            out.SOL = SOL;
+        end
+    end
+    % standard results
+    out.id     = mean(out.SOL.id);                                      % [A]
+    out.iq     = mean(out.SOL.iq);                                      % [A]
+    out.fd     = mean(out.SOL.fd);                                      % [Vs]
+    out.fq     = mean(out.SOL.fq);                                      % [Vs]
+    out.T      = mean(out.SOL.T);                                       % [Nm]
+    out.dT     = std(out.SOL.T);                                        % [Nm]
+    out.dTpu   = std(out.SOL.T)/out.T;                                  % [pu]
+    out.dTpp   = max(out.SOL.T)-min(out.SOL.T);                             % [Nm]
+    out.IPF    = sin(atan2(out.iq,out.id)-atan2(out.fq,out.fd));
+    out.We     = mean(out.SOL.we);                                      % [J]
+    out.Wc     = mean(out.SOL.wc);                                      % [J]
+%     out.SOL    = SOL;
+
+    % check Torque sign
+    if sign(out.T)~=sign(out.fd*out.iq-out.fq*out.id)
+        out.T = -out.T;
+        out.SOL.T = -out.SOL.T;
+    end
+
+    if isfield(out.SOL,'F')
+        out.F=mean(out.SOL.F);
+    end
+
+    output{1} =  out;
+    SimulatedCurrent = SimulatedCurrent(1);
+    CurrLoPP = CurrLoPP(1);
+    performance{1}.delta_sim_singt = AngularSpanPP;
+end
+
 % save output into individual folders
 for ii = 1:length(SimulatedCurrent)
-    
+
     geo = geometry{ii};
     out = output{ii};
     per = performance{ii};
     dirName = tempDirName{ii};
-    
+
     iStr=num2str(SimulatedCurrent(ii),3); iStr = strrep(iStr,'.','A');
     gammaStr=num2str(GammaPP(ii),4); gammaStr = strrep(gammaStr,'.','d');
     if ~contains(gammaStr, 'd')
         gammaStr = [gammaStr 'd'];
     end
-    
+
     if dataIn.CustomCurrentEnable
         FILENAME = ['T_eval_CustomCurrent_' datestr(now,30)];
     else
@@ -162,15 +307,15 @@ for ii = 1:length(SimulatedCurrent)
             end
             FILENAME = [FILENAME '_' nStr '_ironLoss'];
     end
-    
+
     resFolder = [filemot(1:end-4) '_results\FEA results\'];
     if ~exist([pathname resFolder],'dir')
         mkdir([pathname resFolder]);
     end
-    
+
     mkdir([pathname resFolder],FILENAME);
     newDir=[pathname resFolder FILENAME '\'];
-    
+
     if isoctave()            %OCT
         file_name1= strcat(newDir,filemot(1:end-4),'_',FILENAME,'.mat');
         save('-mat7-binary', file_name1,'geo','per','mat','out');
@@ -183,12 +328,12 @@ for ii = 1:length(SimulatedCurrent)
         save([newDir filemot(1:end-4) '_OpPointResults.mat'],'geo','per','mat','out');
         copyfile([dirName filemot],[newDir filemot(1:end-4) '_solved.fem']);
     end
-    
+
     % plot and save figs
     delta_sim_singt = per.delta_sim_singt;
-    
+
     plot_singt(out,delta_sim_singt,newDir,filemot);
-    
+
     switch eval_type
         case 'flxdn'
             plot_flxdn_fig(geo,out,newDir,filemot);
@@ -196,17 +341,18 @@ for ii = 1:length(SimulatedCurrent)
         case'force'
             plot_force_fig(geo,out,newDir,filemot);
             plot_force_gif(geo,out,newDir,filemot);
+            elab_singt_toothForce(geo,per,out,newDir);
         case 'singtIron'
             plot_singtIron(geo,out,newDir,filemot);
     end
-    
+
 end
 
 senseOut = [];
 
 % extra figs, if input current is array
 if length(CurrLoPP)>1
-    
+
     id = zeros(1,length(CurrLoPP));
     iq = zeros(1,length(CurrLoPP));
     T = zeros(1,length(CurrLoPP));
@@ -214,7 +360,7 @@ if length(CurrLoPP)>1
     dTpp = zeros(1,length(CurrLoPP));
     fd = zeros(1,length(CurrLoPP));
     fq = zeros(1,length(CurrLoPP));
-    
+
     for ii = 1:length(CurrLoPP)
         id(ii) = output{ii}.id;
         iq(ii) = output{ii}.iq;
@@ -227,7 +373,7 @@ if length(CurrLoPP)>1
     %dirPower = [pathname resFolder filemot(1:end-4) '_singT - ' int2str(dataIn.tempPP) 'deg\'];
     dirPower = [pathname resFolder 'senseOut - ' int2str(dataIn.tempPP) 'deg - ' datestr(now,30) '\'];
     mkdir(dirPower);
-    
+
     x = 1:length(CurrLoPP);
     figure();
     if ~isoctave()
@@ -245,7 +391,7 @@ if length(CurrLoPP)>1
     else
         saveas(gcf,[dirPower,filemot(1:end-4),'_torque_sens.fig'])
     end
-    
+
     figure()
     if ~isoctave()
         figSetting();
@@ -262,7 +408,7 @@ if length(CurrLoPP)>1
     else
         saveas(gcf,[dirPower,filemot(1:end-4),'_fdq_IPF_sens.fig'])
     end
-    
+
     figure()
     if ~isoctave()
         figSetting();
@@ -293,7 +439,7 @@ if length(CurrLoPP)>1
     senseOut.dTpp = dTpp;
     senseOut.PF   = abs(sin(atan(iq./id)-atan(fq./fd)));
     save([dirPower,filemot(1:end-4),'_senseResults.mat'],'senseOut');
-    
+
 end
 
 if nargout()==0

@@ -10,8 +10,8 @@ function plot_force_fig(geo,out,newDir,filemot)
 Fr = out.SOL.Fr;
 Ft = out.SOL.Ft;
 
-names{1} = '$F_{r}$ [$Nm$]';
-names{2} = '$F_{t}$ [$Nm$]';
+names{1} = '$F_{r}$ [Nm/m$^2$]';
+names{2} = '$F_{t}$ [Nm/m$^2$]';
 
 filenames{1} = 'Fr';
 filenames{2} = 'Ft';

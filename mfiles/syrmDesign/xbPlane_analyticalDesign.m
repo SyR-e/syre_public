@@ -1,4 +1,4 @@
-% Copyright 2016
+% Copyright 2023
 %
 %    Licensed under the Apache License, Version 2.0 (the "License");
 %    you may not use this file except in compliance with the License.
@@ -12,13 +12,17 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [map] = syrmDesign_SyR(dataSet,flags)
+function [map] = xbPlane_analyticalDesign(dataSet,flags)
 %
-% [map] = syrmDesign_SyRM(dataSet)
+% [map] = xbPlane_analyticalDesign(dataSet,flags), previous syrmDesign_SyR and syrmDesign_SPM
 %
-% Preliminary design for SyR machines. References:
+% Preliminary design for SyR, PM-SyR, IPM and SPM machines. References:
 % - Vagati's Tutorial 1994
-% - ECCE 2018 paper (FEAfix)
+% - ECCE 2017 paper (SPM old)
+% - ECCE 2018 paper (FEAfix SyR)
+% - TIA 2020 paper (FEAfix SyR)
+% - ICEM 2022 paper (IPM)
+% - IEMDC 2023 paper (IPM, PM-SyR)
 
 % input
 if nargin==1
@@ -41,6 +45,7 @@ if nargin==1
     
     flag_i0=f.i0;   % flag_i0=0 --> kj=constant
                     % flag_i0=1 --> J=constant
+                    % flag_i0=2 --> I=constant
 else
     flag_kw = flags.kw;
     flag_pb = flags.pb;
@@ -48,19 +53,23 @@ else
     flag_ks = flags.ks;
 end
 
-mu0     = 4e-7*pi;                  % air permeability
-Bs      = 2.0;                      % ribs flux density [T]
-Bfe     = dataSet.Bfe;              % steel loading (yoke flux density [T])
-kj      = dataSet.ThermalLoadKj;    % thermal loading (copper loss/stator outer surface [W/m^2])
-kt      = dataSet.kt;               % kt = wt/wt_unsat
-J       = dataSet.CurrentDensity;   % J= slot current density, expressed in [Apk/mm^2]
-loadpu  = 1;                        % current load in p.u. of i0
-kyr     = dataSet.RotorYokeFactor;  % kyr = lyr/lys = increase factor for rotor yoke length compared to stator yoke
-ky      = dataSet.StatorYokeFactor; % ky = ly/ly_ideal
-PMdimPU = dataSet.PMdimPU;          % per-unit PM dimension
-kPM     = dataSet.kPM;              % PM filling factor
-Br      = dataSet.Br;               % PM remanence @ design temperature
-tempPM  = dataSet.PMtemp;           % PM temperature
+gammaMin = 5*pi/180;                 % minimum current angle [elt deg] to avoid iq=0
+
+mu0      = 4e-7*pi;                  % air permeability
+Bs       = 2.0;                      % ribs flux density [T]
+Bfe      = dataSet.Bfe;              % steel loading (yoke flux density [T])
+kj       = dataSet.ThermalLoadKj;    % thermal loading (copper loss/stator outer surface [W/m^2])
+kt       = dataSet.kt;               % kt = wt/wt_unsat
+J        = dataSet.CurrentDensity;   % J= slot current density, expressed in [Apk/mm^2]
+% i0       = dataSet.CurrLoPP;
+loadpu   = 1;                        % current load in p.u. of i0
+kyr      = dataSet.RotorYokeFactor;  % kyr = lyr/lys = increase factor for rotor yoke length compared to stator yoke
+ky       = dataSet.StatorYokeFactor; % ky = ly/ly_ideal
+PMdimPU  = dataSet.PMdimPU;          % per-unit PM dimension
+kPM      = dataSet.kPM;              % PM filling factor
+Br       = dataSet.Br;               % PM remanence @ design temperature
+tempPM   = dataSet.PMtemp;           % PM temperature
+alpha_pu = dataSet.ALPHApu;          % alpha_pu
 
 if Br~=0
     mat = material_properties_layer(dataSet.FluxBarrierMaterial);
@@ -75,6 +84,7 @@ PMdimPU(isnan(PMdimPU)) = 0;
 PMdimPU = kPM*PMdimPU;
 
 [~, ~, geo, per, mat] = data0(dataSet);
+% i0 = per.i0;
 
 if flag_kw
     [kw, ~] = calcKwTh0(geo);
@@ -106,21 +116,28 @@ Nbob       = Ns/p/q/2;                                                   % condu
 
 tempcu = per.tempcu;
 
-% design domain according to b and x
-m = 31; n = 21;                                                     % m x n grid of evaluated machines
-b = linspace(dataSet.bRange(1),dataSet.bRange(2),m);                % iron/copper split factor
-x = linspace(dataSet.xRange(1),dataSet.xRange(2),n);                % rotor/stator split factor
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% parametric analysis: design domain (x,b)
-[xx,bb] = meshgrid(x,b);
-
-if q>=1
-    [~,~,kf1,kfm] = evalBgapSyrmDesign(q,kt);                     % airgap induction shape, first harmonic factor, mean value factor
+if length(dataSet.xRange)>1
+    % design domain according to b and x
+    m = 31; n = 21;                                                     % m x n grid of evaluated machines
+    b = linspace(dataSet.bRange(1),dataSet.bRange(2),m);                % iron/copper split factor
+    x = linspace(dataSet.xRange(1),dataSet.xRange(2),n);                % rotor/stator split factor
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % parametric analysis: design domain (x,b)
+    [xx,bb] = meshgrid(x,b);
 else
-    kf1 = 2/sqrt(3);    % ratio between peak arigap flux density and peak fundamental
-    kfm = 1;
+    xx = dataSet.xRange;
+    bb = dataSet.bRange;
+    m  = 1;
+    n  = 1;
 end
+
+% if q>=1
+%     [~,~,kf1,kfm] = evalBgapSyrmDesign(q,kt);                     % airgap flux density shape, first harmonic factor, mean value factor
+% else
+%     kf1 = 2/sqrt(3);    % ratio between peak arigap flux density and peak fundamental
+%     kfm = 1;
+% end
 
 
 r = R*xx;                                                               % rotor radius [m]
@@ -175,6 +192,10 @@ hf    = cell(m,n);
 dx    = cell(m,n);
 hc_pu = cell(m,n);
 Bx0   = cell(m,n);
+skv   = cell(m,n);
+sko   = cell(m,n);
+lrv   = zeros(m,n);
+lro   = zeros(m,n);
 delta = zeros(m,n);
 lr    = zeros(m,n);
 % slot
@@ -237,7 +258,6 @@ for rr=1:m
             PMdim{rr,cc} = [sk{rr,cc};zeros(size(sk{rr,cc}))].*PMdimPU;
         elseif strcmp(dataSet.TypeOfRotor,'Seg')|| strcmp(dataSet.TypeOfRotor,'ISeg')
             rpont_x0=sqrt(ypont.^2+(x0(rr,cc)-xpont).^2);
-            [alphapont,rpont] = cart2pol(xpont,ypont);
             Bx0=x0(rr,cc)-(rpont_x0);
             mo=1;
             y=ypont+mo*(Bx0-xpont);
@@ -260,6 +280,9 @@ for rr=1:m
             sk{rr,cc}    = skv{rr,cc}+sko{rr,cc};
             lr(rr,cc)    = lrv(rr,cc)+lro(rr,cc);
             PMdim{rr,cc} = [skv{rr,cc};sko{rr,cc}].*PMdimPU;
+        else
+            sk{rr,cc} = 0;
+            PMdim{rr,cc} = 0;
         end
         
         clear Bx0
@@ -311,7 +334,7 @@ for rr=1:m
             hc_pu{rr,cc}=hc{rr,cc}*(delta(rr,cc)*geo.nlay)/sum(hc{rr,cc});
         end
         % dx (flux carrier design)
-        alphad=[0 90-fliplr(geo.alpha)*geo.p 90];                   % 0<=alphad<=90 [° elt]
+        alphad=[0 90-fliplr(geo.alpha)*geo.p 90];                   % 0<=alphad<=90 [Â° elt]
         r_all=geo.R*xx(rr,cc);
         for ii=1:geo.nlay
             r_all=[r_all Bx0{rr,cc}(ii)+hc{rr,cc}(ii)/2 Bx0{rr,cc}(ii)-hc{rr,cc}(ii)/2];
@@ -429,28 +452,61 @@ for rr=1:m
     end
 end
 
+if strcmp(geo.RotType,'SPM')
+    % qui devo eliminare tutte le variabili che non servono per SPM (e
+    % metterle a NaN) e ricalcolare:
+    % - fM
+    % - PMdim (per massa PM)
+    % - hc (spessore magnete, da formula)
+    % - hc_pu
+    % - riassegnare dx=dataSet.DepthOfBarrier
+    lr    = zeros(m,n);
+    PMdim = mat2cell(nan(m,n),m,n);
+    hc    = kc*g/1e3./(4/pi*sin(alpha_pu*pi/2)*Br/Bfe./bb-1)*1e3.*kPM;  % PM thickness [mm]
+    la    = nan(m,n);
+    hcMin = hc;
+    skMax = nan(m,n);
+    Lfqpu = nan(m,n);
+    Lcqpu = nan(m,n);
+    pontR = zeros(m,n);
+    BrAvg = nan(m,n);
+    BrMax = nan(m,n);
+    BrMin = nan(m,n);
+    Abar  = nan(m,n);
+    fM    = kw*Ns*8/pi*sin(alpha_pu*pi/2)*Br./(1+kc*g./(hc)).*R/1e3.*l/1e3/p.*xx;
+    for rr=1:m
+        for cc=1:n
+            hc_pu{rr,cc} = hc(rr,cc)/g;
+            dx{rr,cc}    = 1;
+        end
+    end
+end
 
 %%
 % d axis
 
 Ht = interp1(mat.Stator.BH(:,1),mat.Stator.BH(:,2),Bfe./kt);
-Hy = interp1(mat.Stator.BH(:,1),mat.Stator.BH(:,2),Bfe);
+Hy = interp1(mat.Stator.BH(:,1),mat.Stator.BH(:,2),Bfe./ky);
 if flag_ks
     %ksat = 1+mu0*pi/2*(Hy*pi/(6*p*q)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe*kf1.*kc*g);
-    ksat = 1+mu0*(Hy*pi/(6*p*q*n3ph)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe*kf1.*kc*g);
+    % ksat = 1+mu0*(Hy*pi/(6*p*q*n3ph)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe*kf1.*kc*g);
+    ksat = 1+mu0*(Hy*pi/(6*p*q*n3ph)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe.*kc*g);
 else
     ksat=ones(size(xx));
     warning('saturation factor ksat not evaluated!!!')
 end
 
-Fmd = 2*(R*1e-3)*(l*1e-3)*kw*Ns*Bfe.*kf1/p.*xx.*bb;                 % flux linkage [Vs]
-id = pi*Bfe*kc*(g*1e-3)*p.*ksat/(mu0*3*kw*Ns).*bb;                    % id [A]
-%id = 2*Bfe*kc*(g*1e-3)*p.*ks/(mu0*3*kw*Ns).*bb;                    % id [A]
-
-Lmd = Fmd./id;                                                      % d magnetization inductance Lmd [Vs]
-
-Lbase=Lmd.*ksat;% base inductance for analytical model (unsaturated)
-%Lbase=mu0*pi*(R*1e-3)*(l*1e-3)*Ns^2./(2*p^2.*kc*(g*1e-3)).*x;
+if strcmp(geo.RotType,'SPM')
+    id = zeros(m,n);
+    Lbase = 6/pi*mu0*(kw*Ns/p).^2.*(R/1e3).*(l/1e3)./(kc.*(g+hc)/1e3).*xx;  % magnetizing unsaturated inductance (same as below, but with increased airgap due to PM thickness)
+    Lmd   = Lbase./ksat;    % magnetizing inductance with stator iron saturation partially accounted for
+else
+    Fmd = 2*(R*1e-3)*(l*1e-3)*kw*Ns*Bfe./p.*xx.*bb;     % flux linkage [Vs]
+    id = pi*Bfe*kc*(g*1e-3)*p.*ksat/(mu0*3*kw*Ns).*bb;  % id [A]
+    Lmd = Fmd./id;                                      % d-axis magnetizing inductance [H], with iron saturation
+    Lbase = Lmd.*ksat;  % base inductance for analytical model (unsaturated). The explicit equation is below
+    % Lbase = 6/pi*mu0*(kw*Ns/p)^2*(R/1e3)*(l/1e3)./(kc*g/1e3).*xx
+end
 
 % Rated current computation (from kj or J)
 
@@ -470,39 +526,43 @@ if flag_i0==0
     per0.J    = NaN;
     per0.kj   = kj;
     per0.Loss = NaN;
+    per0.i0   = NaN;
 elseif flag_i0==1
     per0.kj   = NaN;
     per0.Loss = NaN;
     per0.J    = J;
+    per0.i0   = NaN;
+elseif flag_i0==2
+    per0.kj   = NaN;
+    per0.Loss = NaN;
+    per0.J    = NaN;
 end
 
-
 per0 = calc_i0(geo0,per0,mat);
-
 Rs = per0.Rs;
+%i0 = real(per0.i0);
 
-i0 = real(per0.i0);
 kj = per0.kj.*ones(size(xx));
 J  = per0.J.*ones(size(xx));
-
-id(id>loadpu*i0)=loadpu*i0(id>loadpu*i0);
-gamma=acos(id./(loadpu*i0));
-iq=loadpu*i0.*sin(gamma);                                           % q-axis current [A] pk
-
-%iq = sqrt((loadpu*i0).^2 - id.^2); iq = real(iq);                  % q-axis current [A] pk
-%Am = Aslots.* id./(loadpu*i0);                                      % slots area dedicated to id [mm2]
+i0 = real(per0.i0).*ones(size(xx));
 
 
-A = 2*Nbob * loadpu*i0 ./ (r*2*pi/(q*6*p));                         % linear current density [A/mm] pk
+id(id>loadpu*i0) = loadpu*i0(id>loadpu*i0);
+
+gamma = acos(id./(loadpu*i0));      % current angle from d axis
+gamma(gamma<gammaMin) = gammaMin;   % current angle saturation to avoid iq=0
+iq    = (loadpu*i0).*sin(gamma);    % q-axis current [A] pk
+
+A = 2*Nbob * loadpu*i0 ./ (r*2*pi/(q*6*p)); % linear current density [A/mm] pk
 
 Ad = A.*cosd(gamma);
 Aq = A.*sind(gamma);
 
-% kj = kj*loadpu;
-% J  = J*loadpu;
 
 % copper overtemperature computation
+% barriers demagnetization index Ns*i0/hc
 dTempCu = zeros(m,n);
+NsI0_hc = cell(m,n);
 for rr=1:m
     for cc=1:n
         % slot area evaluation
@@ -517,24 +577,34 @@ for rr=1:m
         per0.Loss = kj(rr,cc)*(2*pi*R/1000*l/1000);
         
         dTempCu(rr,cc) = temp_est_simpleMod(geo0,per0);
+%         % demagnetization index
+%         hcTmp = hc{rr,cc};
+%         NsI0Tmp = dfQ*Ns*i0(rr,cc);
+%         NsI0_hc{rr,cc} = NsI0Tmp./hcTmp;
+
     end
 end
-dTempCu=dTempCu-per.temphous;
+dTempCu = dTempCu-per.temphous;
 
 % tangential ribs effect
-Lrib = 4/pi*kw*Ns*((2*pont+pontR)*1e-3)*(l*1e-3)*Bs./iq;
+if strcmp(geo.RotType,'SPM')
+    Lrib = nan(m,n);
+    Lmq = Lmd;  % SPM is isotropic
+else
+    Lrib = 4/pi*kw*Ns*((2*pont+pontR)*1e-3)*(l*1e-3)*Bs./iq;
+    Lrib(iq==0) = mean(Lrib(iq~=0));
+    Lrib(isnan(Lrib)) = 0;
+    Lmq = Lbase.*(Lcqpu+Lfqpu)+Lrib;
+end
 
-% q axis
-Lmq=Lbase.*(Lcqpu+Lfqpu)+Lrib;
-
-kdq=1-Lmq./Lmd;
+kdq = 1-Lmq./Lmd;
 
 % T = 3/2*p*(kdq.*Fmd.*iq);
 
 % stator leakage inductance Ls
-[dfs] = staircaseRegular(6*q);                                      % stator staircase
-f = cumsum(dfs);
-sumDf2s = sum(dfs.^2);
+% [dfs] = staircaseRegular(6*q);                                      % stator staircase
+% f = cumsum(dfs);
+% sumDf2s = sum(dfs.^2);
 d0 = ttd;
 d2 = lt- d0 - d1;
 beta = c1./c2;
@@ -551,21 +621,26 @@ Lspu = Ls./Lbase;
 Ld = Lmd+Ls;
 Lq = Lmq+Ls;
 
-fd = Ld.*id;        % d-axis flux linkage (SR axis)
-fq = Lq.*iq-fM;     % q-axis flux linkage (SR axis)
+if strcmp(geo.RotType,'SPM')
+    fd = fM;                    % d-axis flux linkage (PM axis)
+    fq = Lq.*iq;                % q-axis flux linkage (PM axis)
+    ich = fM./Ld;               % characteristic current
+    iHWC = abs(fd+j*fq)./Ld;    % Hyper-Worst-Case Peak Short-Circuit current
+else
+    fd = Ld.*id;                % d-axis flux linkage (SR axis)
+    fq = Lq.*iq-fM;             % q-axis flux linkage (SR axis)
+    ich = fM./Lq;               % characteristic current
+    iHWC = abs(fd+j*fq)./Lq;    % Hyper-Worst-Case Peak Short-Circuit current
+end
 
 T = 3/2*p*(fd.*iq-fq.*id);
 
-csi = Ld./Lq;
-gamma = atand(iq./id);      % current phase angle [deg]
-delta = atand(fq./fd);      % flux linkage phase angle [deg]
+gamma = atand(iq./id);      % current phase angle from d axis [deg]
+delta = atand(fq./fd);      % flux linkage phase angle from d axis [deg]
 
 PF = sind(gamma-delta);     % PF @ gamma (same gamma as torque)
-% PFmax = (Ld-Lq)./(Ld+Lq);   % PF @ max PF gamma
-% PF2 = (csi-1)./sqrt(csi.^2.*(sind(gamma)).^-2+(cosd(gamma)).^-2);  % alternative formula
 
-ich = fM./Lq;
-iHWC = abs(fd+j*fq)./Lq;
+% PFmax = (Ld-Lq)./(Ld+Lq);   % PF @ max PF gamma
 
 % active parts mass computation
 mCu = Aslots/1e6.*(l+lend)/1e3*mat.SlotCond.kgm3*kcu;
@@ -573,28 +648,39 @@ mPM = nan(size(xx));
 if strcmp(mat.LayerMag.MatName,'Air')
     mPM = zeros(size(xx));
 else
-    for ii=1:numel(xx)
-        mPM(ii) = sum(hc{ii}.*sum(PMdim{ii},1))/1e6.*l/1e3*2*(2*p)*mat.LayerMag.kgm3;
+    if strcmp(geo.RotType,'SPM')
+        mPM = pi*((R/1e3*xx).^2-(R/1e3*xx-hc/1e3).^2)*l/1e3*alpha_pu*mat.LayerMag.kgm3;
+    else
+        for ii=1:numel(xx)
+            mPM(ii) = sum(hc{ii}.*sum(PMdim{ii},1))/1e6.*l/1e3*2*(2*p)*mat.LayerMag.kgm3;
+        end
     end
 end
 
 % Demagnetization indicators
+% rev 01: Aqirr from Boazzo
+% rev 02: demagnetization volume and minimum PM flux density at i0 and iHWC
 tp = pi*r/p;
 if Br==0
-    Aqirr = zeros(size(xx));
+    Aqirr   = zeros(size(xx));
     Bmin0   = nan(size(xx));
     dPM0    = nan(size(xx));
     BminHWC = nan(size(xx));
     dPMHWC  = nan(size(xx));
 else
-    % ref: "Design of Ferrite-Assisted Synchronous Reluctance Machines
-    % Robust Toward Demagnetization", A. Vagati, 2014
-    Bdpu = Bd/Br;
-    dalpha = geo.dalpha(end)*pi/180;
-    fqn = 1;
-    Bm0pu = 1./(1+(skMax/1e3)./(la/1e3).*(g/1e3)./(tp/1e3)*2*pi/dalpha.*sin(dalpha/2));
-    Aqirr = pi/4*Br*(la/1e3)./(tp/1e3)/mu0/fqn.*(1-Bdpu./Bm0pu)*2/1e3;                      % multiplied *2 because the full pole is considered here, /1e3 to have it in A/mm
-    
+    if strcmp(geo.RotType,'SPM')
+        Bm0pu = nan(m,n);
+        Aqirr = nan(m,n);
+    else
+        % ref: "Design of Ferrite-Assisted Synchronous Reluctance Machines
+        % Robust Toward Demagnetization", A. Vagati, 2014
+        Bdpu = Bd/Br;
+        dalpha = geo.dalpha(end)*pi/180;
+        fqn = 1;
+        Bm0pu = 1./(1+(skMax/1e3)./(la/1e3).*(g/1e3)./(tp/1e3)*2*pi/dalpha.*sin(dalpha/2));
+        Aqirr = pi/4*Br*(la/1e3)./(tp/1e3)/mu0/fqn.*(1-Bdpu./Bm0pu)*2/1e3;                      % multiplied *2 because the full pole is considered here, /1e3 to have it in A/mm
+    end
+
     if dataSet.syrmDesignFlag.demag0
         Bmin0   = Bd*ones(size(xx));
         dPM0    = ones(size(xx));
@@ -611,69 +697,96 @@ else
     end
 end
 
+if dataSet.syrmDesignFlag.mech==1
+    mechStressRad = repmat({repmat(mat.Rotor.sigma_max*10^6,1,nlay)},length(xx(:,1)),length(xx(1,:)));
+    mechStressTan = repmat({repmat(mat.Rotor.sigma_max*10^6,1,nlay)},length(xx(:,1)),length(xx(1,:)));
+    kmechrad = repmat({repmat(1,1,nlay)},length(xx(:,1)),length(xx(1,:)));
+    kmechtan = repmat({repmat(1,1,nlay)},length(xx(:,1)),length(xx(1,:)));
+else
+    mechStressRad = cell(size(xx));
+    mechStressTan = cell(size(xx));
+    kmechrad = cell(size(xx));
+    kmechtan = cell(size(xx));
+end
+
+ktempCuMax    = nan(m,n);
+tempCuMax     = dTempCu + per.temphous;
+ktempCuMaxAct = nan(m,n);
+tempCuMaxAct  = dTempCu + per.temphous;
 
 
 %% save all the results in the map structure
-map.xx      = xx;
-map.bb      = bb;
-map.T       = T;
-map.PF      = PF;
-map.id      = id;
-map.iq      = iq;
-map.fd      = fd;
-map.fq      = fq;
-map.fM      = fM;
-map.wt      = wt;
-map.ws      = ws;
-map.lt      = lt;
-map.la      = la;
-map.Ar      = Ar;
-map.ArLim   = ArLim;
-map.hc_pu   = hc_pu;
-map.dx      = dx;
-map.geo     = geo;
-map.ly      = ly;
-map.ksat    = ksat;
-map.Lbase   = Lbase;
-map.Lmd     = Lmd;
-map.Lcqpu   = Lcqpu;
-map.Lfqpu   = Lfqpu;
-map.Lspu    = Lspu;
-map.Lrpu    = Lrib./Lbase;
-map.kdq     = kdq;
-map.dTempCu = dTempCu;
-map.Aslots  = Aslots;
-map.A       = A;
-map.Ad      = Ad;
-map.Aq      = Aq;
-map.Aqirr   = Aqirr;
-map.J       = J;
-map.kj      = kj;
-map.iAmp    = i0*loadpu;
-map.i0      = i0;
-map.gamma   = atan2(map.iq,map.id)*180/pi;
-map.lend    = lend;
-map.BrAvg   = BrAvg;
-map.BrMax   = BrMax;
-map.BrMin   = BrMin;
-map.Abar    = Abar;
-map.Rs      = Rs;
-map.hcMin   = hcMin;
-map.mCu     = mCu;
-map.mPM     = mPM;
-map.PMdim   = PMdim;
-map.NsI0    = map.i0*Ns;
-map.F0_Ns   = abs(map.fd+j*map.fq)/Ns;
-map.ich     = ich;
-map.iHWC    = iHWC;
-map.Bmin0   = Bmin0;
-map.dPM0    = dPM0;
-map.BminHWC = BminHWC;
-map.dPMHWC  = dPMHWC;
-map.NsIch   = Ns.*map.ich;
-map.NsIHWC  = Ns.*map.iHWC;
+map.xx            = xx;
+map.bb            = bb;
+map.T             = T;
+map.PF            = PF;
+map.id            = id;
+map.iq            = iq;
+map.fd            = fd;
+map.fq            = fq;
+map.fM            = fM;
+map.wt            = wt;
+map.ws            = ws;
+map.lt            = lt;
+map.la            = la;
+map.Ar            = Ar;
+map.ArLim         = ArLim;
+map.hc_pu         = hc_pu;
+map.hc            = hc;
+map.dx            = dx;
+map.geo           = geo;
+map.ly            = ly;
+map.ksat          = ksat;
+map.Lbase         = Lbase;
+map.Lmd           = Lmd;
+map.Lcqpu         = Lcqpu;
+map.Lfqpu         = Lfqpu;
+map.Lspu          = Lspu;
+map.Lrpu          = Lrib./Lbase;
+map.kdq           = kdq;
+map.dTempCu       = dTempCu;
+map.Aslots        = Aslots;
+map.A             = A;
+map.Ad            = Ad;
+map.Aq            = Aq;
+map.Aqirr         = Aqirr;
+map.J             = J;
+map.kj            = kj;
+map.iAmp          = i0*loadpu;
+map.i0            = i0;
+map.gamma         = atan2(map.iq,map.id)*180/pi;
+map.lend          = lend;
+map.BrAvg         = BrAvg;
+map.BrMax         = BrMax;
+map.BrMin         = BrMin;
+map.Abar          = Abar;
+map.Rs            = Rs;
+map.hcMin         = hcMin;
+map.mCu           = mCu;
+map.mPM           = mPM;
+map.PMdim         = PMdim;
+map.NsI0          = map.i0*Ns;
+map.F0_Ns         = abs(map.fd+1i*map.fq)/Ns;
+map.ich           = ich;
+map.iHWC          = iHWC;
+map.Bmin0         = Bmin0;
+map.dPM0          = dPM0;
+map.BminHWC       = BminHWC;
+map.dPMHWC        = dPMHWC;
+map.mechStressRad = mechStressRad;
+map.mechStressTan = mechStressTan;
+map.kmechrad      = kmechrad;
+map.kmechtan      = kmechtan;
+map.NsIch         = Ns.*map.ich;
+map.NsIHWC        = Ns.*map.iHWC;
+map.kUGO          = fM./(abs(fd+j*fq));
+map.ktempCuMax    = ktempCuMax; 
+map.tempCuMax     = tempCuMax; 
+map.ktempCuMaxAct = ktempCuMaxAct; 
+map.tempCuMaxAct  = tempCuMaxAct;
+map.NsI0_hc       = NsI0_hc;
 
-map.dataSet = dataSet;
+map.dataSet       = dataSet;
 
 
 

@@ -21,6 +21,8 @@ gamma     = motorModel.WaveformSetup.CurrAngle;
 motorName = motorModel.data.motorName;
 pathname  = motorModel.data.pathname;
 
+% interpolationMethod = 'spline';
+interpolationMethod = 'linear';
 
 id = iAmp.*cosd(gamma);
 iq = iAmp.*sind(gamma);
@@ -41,56 +43,64 @@ for ii=1:length(id)
     % SOL.fd = dqtMap.fInt.Fd(SOL.id,SOL.iq,SOL.th);
     % SOL.fq = dqtMap.fInt.Fq(SOL.id,SOL.iq,SOL.th);
     % SOL.T  = dqtMap.fInt.T(SOL.id,SOL.iq,SOL.th);
-    SOL.fd = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fd,SOL.id,SOL.iq,SOL.th,'spline');
-    SOL.fq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fq,SOL.id,SOL.iq,SOL.th,'spline');
-    SOL.T  = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.T,SOL.id,SOL.iq,SOL.th,'spline');
+    SOL.fd = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fd,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+    SOL.fq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fq,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+    SOL.T  = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.T,SOL.id,SOL.iq,SOL.th,interpolationMethod);
 
     if isfield(dqtMap.data,'Fa')
         % SOL.fa = dqtMap.fInt.Fa(SOL.id,SOL.iq,SOL.th);
         % SOL.fb = dqtMap.fInt.Fb(SOL.id,SOL.iq,SOL.th);
         % SOL.fc = dqtMap.fInt.Fc(SOL.id,SOL.iq,SOL.th);
-        SOL.fa = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fa,SOL.id,SOL.iq,SOL.th,'spline');
-        SOL.fb = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fb,SOL.id,SOL.iq,SOL.th,'spline');
-        SOL.fc = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fc,SOL.id,SOL.iq,SOL.th,'spline');
+        SOL.fa = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fa,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+        SOL.fb = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fb,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+        SOL.fc = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Fc,SOL.id,SOL.iq,SOL.th,interpolationMethod);
     else
-        SOL.fa = nan(size(SOL.th));
-        SOL.fb = nan(size(SOL.th));
-        SOL.fc = nan(size(SOL.th));
+        % SOL.fa = nan(size(SOL.th));
+        % SOL.fb = nan(size(SOL.th));
+        % SOL.fc = nan(size(SOL.th));
+        fabc = dq2abc(SOL.fd,SOL.fq,SOL.th*pi/180);
+        SOL.fa = fabc(1,:);
+        SOL.fb = fabc(2,:);
+        SOL.fc = fabc(3,:);
     end
     if isfield(dqtMap.data,'Ia')
         % SOL.ia = dqtMap.fInt.Ia(SOL.id,SOL.iq,SOL.th);
         % SOL.ib = dqtMap.fInt.Ib(SOL.id,SOL.iq,SOL.th);
         % SOL.ic = dqtMap.fInt.Ic(SOL.id,SOL.iq,SOL.th);
-        SOL.ia = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ia,SOL.id,SOL.iq,SOL.th,'spline');
-        SOL.ib = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ib,SOL.id,SOL.iq,SOL.th,'spline');
-        SOL.ic = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ic,SOL.id,SOL.iq,SOL.th,'spline');
+        SOL.ia = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ia,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+        SOL.ib = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ib,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+        SOL.ic = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.data.Ic,SOL.id,SOL.iq,SOL.th,interpolationMethod);
     else
-        SOL.ia = nan(size(SOL.th));
-        SOL.ib = nan(size(SOL.th));
-        SOL.ic = nan(size(SOL.th));
+        % SOL.ia = nan(size(SOL.th));
+        % SOL.ib = nan(size(SOL.th));
+        % SOL.ic = nan(size(SOL.th));
+        iabc = dq2abc(SOL.id,SOL.iq,SOL.th*pi/180);
+        SOL.ia = iabc(1,:);
+        SOL.ib = iabc(2,:);
+        SOL.ic = iabc(3,:);
     end
     
     if isfield(dqtMap,'sets')
         n3phase = length(dqtMap.sets);
         for ss=1:n3phase
-            SOL.ia(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.ib(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.ic(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.fa(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.fb(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.fc(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.ia(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.ib(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.ic(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.fa(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.fb(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.fc(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.thinterpolationMethod);
             
-            SOL.sets(ss).id = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Id,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.sets(ss).iq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Iq,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.sets(ss).fd = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fd,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.sets(ss).fq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fq,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).id = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Id,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).iq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Iq,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).fd = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fd,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).fq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fq,SOL.id,SOL.iq,SOL.thinterpolationMethod);
 
-            SOL.sets(ss).ia = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.sets(ss).ib = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.sets(ss).ic = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.sets(ss).fa = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.sets(ss).fb = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.th,'spline');
-            SOL.sets(ss).fc = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.th,'spline');
+            SOL.sets(ss).ia = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).ib = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).ic = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).fa = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).fb = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).fc = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.thinterpolationMethod);
         end
     end
     
@@ -278,7 +288,9 @@ if length(id)>1
     senseOut.dTpp = dTPlot;
     save([pathname resFolder 'senseResults.mat'],'senseOut')
     
-    
+else    
+    plot_singt_FFT('out.mat',[pathname resFolder]);
+    plot_singt_vsTime('out.mat',[pathname resFolder]);
 end
 
 

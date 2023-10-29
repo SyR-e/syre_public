@@ -22,7 +22,7 @@ dataAvailable = map.dataAvailable;
 disp(['-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-'])
 for ii=1:length(dataAvailable)
     switch dataAvailable{ii}
-        case {'hc_pu','dx','geo','Br','xRaw','bRaw','dataSet','PMdim','sk'}
+        case {'hc_pu','NsI0_hc','hc','dx','geo','Br','xRaw','bRaw','dataSet','PMdim','sk','mechStressRad','mechStressTan','kmechrad','kmechtan'}
             flagDisp=0;
 
         otherwise

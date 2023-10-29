@@ -42,8 +42,14 @@ if ~isempty(motorModel.FluxMap_dqt)
     motorModel.FluxMap_dqt.data.Iq = fliplr(-pagetranspose(dqtMap.data.Id));
     motorModel.FluxMap_dqt.data.Fd = fliplr(pagetranspose(dqtMap.data.Fq));
     motorModel.FluxMap_dqt.data.Fq = fliplr(-pagetranspose(dqtMap.data.Fd));
-    motorModel.FluxMap_dqt.data.T  = fliplr(pagetranspose(dqtMap.data.T));
-    motorModel.FluxMap_dqt.data.th = fliplr(pagetranspose(dqtMap.data.th));
+    %motorModel.FluxMap_dqt.data.T  = fliplr(pagetranspose(dqtMap.data.T));
+    %motorModel.FluxMap_dqt.data.th = fliplr(pagetranspose(dqtMap.data.th));
+    names = fieldnames(motorModel.FluxMap_dqt.data);
+    for ii=1:length(names)
+        if ~(strcmp(names{ii},'Id')||strcmp(names{ii},'Iq')||strcmp(names{ii},'Fd')||strcmp(names{ii},'Fq'))
+            motorModel.FluxMap_dqt.data.(names{ii}) = fliplr(pagetranspose(dqtMap.data.(names{ii})));
+        end
+    end
 
 %     motorModel.FluxMap_dqt.fInt.Id = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Id,'spline');
 %     motorModel.FluxMap_dqt.fInt.Iq = griddedInterpolant(motorModel.FluxMap_dqt.data.Id,motorModel.FluxMap_dqt.data.Iq,motorModel.FluxMap_dqt.data.th,motorModel.FluxMap_dqt.data.Iq,'spline');

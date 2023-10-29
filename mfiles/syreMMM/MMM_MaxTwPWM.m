@@ -123,6 +123,8 @@ Iwave = cell(Tstep,nstep);
 oldpath = pwd;
 cd([motorModel.data.pathname motorModel.data.motorName '_ctrl_INST'])
 
+syreDriveSingt.tSim = 0.45;
+
 for ii=1:numel(T_grid)
     %plot
     xdata = [get(hdrive,'XData') n_grid(ii)];
@@ -132,16 +134,17 @@ for ii=1:numel(T_grid)
 
     %%calculate
     [IdIq] = calcTnPoint(motorModel,T_grid(ii),n_grid(ii));
-    Id = IdIq.Id;
-    Iq = IdIq.Iq;
+    syreDriveSingt.Id = IdIq.Id;
+    syreDriveSingt.Iq = IdIq.Iq;
+    syreDriveSingt.T  = T_grid(ii);
+    syreDriveSingt.n  = n_grid(ii);
 
-    [i123] = MMM_eval_SyreDrivePoint(motorModel,[Id Iq],n_grid(ii));
+    [i123] = MMM_eval_SyreDrivePoint(motorModel,syreDriveSingt);
 
     Iwave{ii}.time = linspace(0,60/n_grid(ii)/p,length(i123(1,:)));
     Iwave{ii}.Ia   = i123(1,:);
     Iwave{ii}.Ib   = i123(2,:);
     Iwave{ii}.Ic   = i123(3,:);
-
 end
 
 tic

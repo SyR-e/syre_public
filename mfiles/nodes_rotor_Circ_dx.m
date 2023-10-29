@@ -22,6 +22,7 @@ l = geo.l;                      % Lunghezza pacco
 g = geo.g;                      % Traferro
 pont0 = geo.pont0;              % minimum mechanical tolerance
 pontT = geo.pontT;              % Airgap ribs [mm]
+hs    = geo.hs;                 % sleeve thickness [mm]
 
 p = geo.p;                      % Paia poli
 nlay = geo.nlay;                % N° layers
@@ -64,6 +65,9 @@ ycRac2 = nan(1,nlay);
 xxE2k  = nan(1,nlay);
 yyE2k  = nan(1,nlay);
 
+
+% new rotor radius: sleeve thickness is inside the rotor space
+r = r-hs;
 
 % CENTRO FITTIZIO DI COORDINATE (x0,0)
 beta = 180/pi * calc_apertura_cerchio(pi/180*alpha,r,x0);

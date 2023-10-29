@@ -54,6 +54,7 @@ for ii=1:length(figNames)
     ylabel('$i_q$ [A]')
     view(3)
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
+    set(hfig(ii),'Name',figNames{ii});
     switch ii
         case 1
             zlabel('$L_{d}$ [H]')

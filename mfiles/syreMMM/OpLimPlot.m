@@ -159,4 +159,8 @@ for ii=1:length(Plim)
     plot(hax(7),Plim{ii}.id_M,Plim{ii}.iq_M,'p','DisplayName','M')
 end
 
-
+for ii=1:length(hfig)
+    tmp = get(hfig(ii),'FileName');
+    [~,name,~] = fileparts(tmp);
+    set(hfig(ii),'Name',name);
+end

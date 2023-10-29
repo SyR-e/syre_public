@@ -105,7 +105,7 @@ while flag==1
     [~, WindingTemperature_Max(kk)] = invoke(mcad,'GetVariable','T_[Winding_Max]');
     %[~, MagnetTemperature(kk)]      = invoke(mcad,'GetVariable','Magnet_Temperature');
 
-    %chech the temperature
+    %check the temperature
     if (WindingTemperature_Max(kk)<TCu_lim-5 || WindingTemperature_Max(kk)>TCu_lim+5) && flagPM==0
         flag = 1;
     end

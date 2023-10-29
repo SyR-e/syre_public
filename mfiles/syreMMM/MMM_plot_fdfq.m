@@ -57,20 +57,21 @@ for ii=1:length(figNames)
             set(gca,'ZLim',[min(min(T)) max(max(T))])
         case 4
             zlabel('$\Delta T_{pp}$ [Nm]')
-            if ~isnan(max(dTpp(:)))
+            if (~isnan(max(dTpp(:)))&&~isempty(dTpp)&&max(dTpp(:))~=min(dTpp(:)))
                 set(gca,'ZLim',[min(min(dTpp)) max(max(dTpp))])
             else
                 set(gca,'ZLim',[0 1]);
             end
         case 5
             zlabel('$\Delta T_{rms}$ [Nm]')
-            if ~isnan(max(dT(:)))
+            if (~isnan(max(dT(:)))&&~isempty(dT)&&max(dT(:))~=min(dT(:)))
                 set(gca,'ZLim',[min(min(dT)) max(max(dT))])
             else
                 set(gca,'ZLim',[0 1]);
             end
     end
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
+    set(hfig(ii),'Name',figNames{ii})
 end
 
 surf(hax(1),Id,Iq,Fd,'FaceColor','interp','EdgeColor','interp')

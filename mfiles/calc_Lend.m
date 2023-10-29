@@ -65,8 +65,8 @@ else
     % Rosa and Grover (from MOTORCAD)
     LendROSA = Nm*mu0*taucp*N^2/2*(log(taucp*pi*sqrt(pi)/sqrt(2*As))-0.75);
     % Lipo (Introduction to AC machines Design - 3rd edition)
-    a = geo.lt*1e-3;
-    b = taucp;
+    a = geo.lt*1e-3;    % overhang length [mm]
+    b = taucp;          % coil pitch
     NumCondSlot = round(geo.win.Nbob * 2);  % conductors in one slot
     Acond = geo.Aslot*geo.win.kcu/NumCondSlot*1e-6;  % conductor cross section (m2)
     epsilon = sqrt(Acond/pi);   % radius of the conductor or winding bundle (m)

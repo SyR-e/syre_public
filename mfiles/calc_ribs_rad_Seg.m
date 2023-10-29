@@ -16,7 +16,7 @@
 function [temp,geo] = calc_ribs_rad_Seg(geo,mat,temp)
 
 x0 = geo.x0;
-r = geo.r;
+r = geo.r-geo.hs;
 l = geo.l;
 p = geo.p;
 pont0 = geo.pont0;              % Ponticelli al traferro (i ponticelli al traferro hanno lo spessore di un arco lungo pont0)

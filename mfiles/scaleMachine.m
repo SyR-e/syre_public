@@ -12,32 +12,34 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [dataSet] = scaleMachine(dataSet,preValue);
+function [dataSet] = scaleMachine(dataSet,preValue)
 
 ScaleFactor = dataSet.StatorOuterRadius/preValue;
 
 % Main Data
-dataSet.ShaftRadius = dataSet.ShaftRadius*ScaleFactor;
-dataSet.AirGapRadius = dataSet.AirGapRadius*ScaleFactor;
+dataSet.ShaftRadius     = dataSet.ShaftRadius*ScaleFactor;
+dataSet.AirGapRadius    = dataSet.AirGapRadius*ScaleFactor;
 dataSet.AirGapThickness = dataSet.AirGapThickness*ScaleFactor;
 
 % Geometry
-dataSet.ToothLength = dataSet.ToothLength*ScaleFactor;
-dataSet.ToothWidth = dataSet.ToothWidth*ScaleFactor;
+dataSet.ToothLength    = dataSet.ToothLength*ScaleFactor;
+dataSet.ToothWidth     = dataSet.ToothWidth*ScaleFactor;
 dataSet.ToothTangDepth = dataSet.ToothTangDepth*ScaleFactor;
-dataSet.FilletCorner = dataSet.FilletCorner*ScaleFactor;
-dataSet.RadShiftInner = dataSet.RadShiftInner*ScaleFactor;
+dataSet.FilletCorner   = dataSet.FilletCorner*ScaleFactor;
+dataSet.RadShiftInner  = dataSet.RadShiftInner*ScaleFactor;
 
 % Options
-dataSet.TanRibEdit = dataSet.TanRibEdit*ScaleFactor;
+dataSet.TanRibEdit      = dataSet.TanRibEdit*ScaleFactor;
 dataSet.RotorFilletTan1 = dataSet.RotorFilletTan1*ScaleFactor;
 dataSet.RotorFilletTan2 = dataSet.RotorFilletTan2*ScaleFactor;
-dataSet.RadRibEdit = dataSet.RadRibEdit*ScaleFactor;
-dataSet.RotorFilletIn = dataSet.RotorFilletIn*ScaleFactor;
-dataSet.RotorFilletOut = dataSet.RotorFilletOut*ScaleFactor;
+dataSet.RadRibEdit      = dataSet.RadRibEdit*ScaleFactor;
+dataSet.RotorFilletIn   = dataSet.RotorFilletIn*ScaleFactor;
+dataSet.RotorFilletOut  = dataSet.RotorFilletOut*ScaleFactor;
 
-dataSet.Mesh = dataSet.Mesh*ScaleFactor;
-dataSet.Mesh_MOOA = dataSet.Mesh_MOOA*ScaleFactor;
+dataSet.SleeveThickness = dataSet.SleeveThickness*ScaleFactor;
+
+dataSet.Mesh      = dataSet.Mesh*ScaleFactor;
+% dataSet.Mesh_MOOA = dataSet.Mesh_MOOA*ScaleFactor;
 dataSet.MinMechTol = dataSet.MinMechTol*ScaleFactor ;
 % dataSet.OverSpeed = dataSet.OverSpeed*ScaleFactor;
 

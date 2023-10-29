@@ -12,6 +12,13 @@ xNames{5} = '$P_{PM}$';
 
 set(gca,'XLim',[0.5 5.5],'XTick',1:1:5,'XTickLabel',xNames);
 
-bar([out.Pfes_h out.Pfes_c out.Pfer_h out.Pfer_c out.Ppm]);
+b=bar([out.Pfes_h out.Pfes_c out.Pfer_h out.Pfer_c out.Ppm]);
+xtips2 = b(1).XEndPoints;
+ytips2 = b(1).YEndPoints;
+labels2 = string(round(b(1).YData,2));
+text(xtips2,ytips2,labels2,'HorizontalAlignment','center',...
+    'VerticalAlignment','bottom')
+ax = gca;
+ylim([0 ax.YTick(end)+ax.YTick(2)])
 
 saveas(gcf,[newDir filemot(1:end-4) '_ironLoss.fig'])

@@ -1,4 +1,4 @@
-function draw_stator_in_MCAD(mcad,geo,per,mat,dataSet)
+function draw_stator_in_MCAD(mcad,geo,~,~,~)
 
 if geo.parallel_slot==0
     invoke(mcad,'SetVariable','SlotType',0);    %slot type (ParallelTooth)
@@ -9,7 +9,7 @@ end
 Q = 6*geo.p*geo.q;
 invoke(mcad,'SetVariable','Slot_number',Q);
 
-tmp = 2*dataSet.StatorOuterRadius;
+tmp = 2*geo.R;
 invoke(mcad,'SetVariable','Stator_Lam_Dia',tmp);
 
 tmp = geo.l;
@@ -17,7 +17,9 @@ invoke(mcad,'SetVariable','Stator_Lam_Length',tmp);
 invoke(mcad,'SetVariable','Rotor_Lam_Length',tmp);
 invoke(mcad,'SetVariable','Magnet_Length',tmp);
 
-tmp = 2.5*dataSet.StatorOuterRadius;
+invoke(mcad,'SetVariable','Motor_Length',tmp+80);
+
+tmp = 2*geo.R+20;
 invoke(mcad,'SetVariable','Housing_Dia',tmp);
 
 tmp = 2*(geo.r+geo.g);

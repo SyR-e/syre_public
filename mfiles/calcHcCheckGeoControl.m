@@ -18,7 +18,7 @@
 
 function geo = calcHcCheckGeoControl(geo)
 
-r = geo.r;              % Raggio del rotore al traferro
+r = geo.r-geo.hs;              % Raggio del rotore al traferro
 p = geo.p;              % Paia poli
 nlay = geo.nlay;        % N° layers
 R = geo.R;              % Raggio ext

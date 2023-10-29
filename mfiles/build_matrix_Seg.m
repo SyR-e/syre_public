@@ -17,7 +17,8 @@ function rotore = build_matrix_Seg(temp,geo)
 PMdimC   = geo.PMdim(1,:);
 PMdimE   = geo.PMdim(2,:);
 PMNcE    = geo.PMNc(2,:);
-PMNcC    = geo.PMNc(1,:);
+PMNcC    = geo.PMNc(1,:)/2;
+
 nlay     = geo.nlay;
 pontR    = geo.pontR;
 
@@ -147,8 +148,12 @@ for ii=1:nlay
     if pontR(ii)==0
         % tangential ribs shape
         if isnan(xC3k(ii)) % classical tangential rib
+            if PMdimC(ii)==0
+                rotore = [rotore
+                    XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadBarDx(ii) YpontRadBarDx(ii) NaN       NaN       0 codMatAirRot indexEle
+                    ];
+            end
             rotore = [rotore
-                XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadBarDx(ii) YpontRadBarDx(ii) NaN       NaN       0 codMatAirRot indexEle
                 XpontRadBarDx(ii) YpontRadBarDx(ii) XpBar2(ii)        YpBar2(ii)        NaN       NaN       0 codMatAirRot indexEle
                 XpBar2(ii)        YpBar2(ii)        xxD2k(ii)         yyD2k(ii)         NaN       NaN       0 codMatAirRot indexEle
                 XcRibTraf2(ii)    YcRibTraf2(ii)    xxD2k(ii)         yyD2k(ii)         xpont(ii) ypont(ii) 1 codMatAirRot indexEle
@@ -200,9 +205,14 @@ for ii=1:nlay
             indexEle = indexEle+1;
         else
             % central section
-            if flagPosSplitSx(2,ii)==0 % bottom side of the ribs on the central section
+            if PMdimC(ii)==0
                 rotore = [rotore
-                    XpontRadBarSx(ii)     YpontRadBarSx(ii)     XpontRadBarDx(ii)     YpontRadBarDx(ii)     NaN                   NaN                   0 codMatAirRot indexEle
+                    XpontRadBarSx(ii) YpontRadBarSx(ii) XpontRadBarDx(ii) YpontRadBarDx(ii) NaN       NaN       0 codMatAirRot indexEle
+                    ];
+            end
+            if flagPosSplitSx(2,ii)==0 % bottom side of the ribs on the central section
+
+                rotore = [rotore
                     XpontRadBarDx(ii)     YpontRadBarDx(ii)     XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) NaN                   NaN                   0 codMatAirRot indexEle
                     xI02k(ii)             yI02k(ii)             XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    1 codMatAirRot indexEle
                     XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    NaN                   NaN                   0 codMatAirRot indexEle
@@ -212,7 +222,6 @@ for ii=1:nlay
                 indexEle = indexEle+1;
             else
                 rotore = [rotore
-                    XpontRadBarSx(ii)     YpontRadBarSx(ii)     XpontRadBarDx(ii)     YpontRadBarDx(ii)     NaN                   NaN                   0 codMatAirRot indexEle
                     XpontRadBarDx(ii)     YpontRadBarDx(ii)     XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) NaN                   NaN                   0 codMatAirRot indexEle
                     xI02k(ii)             yI02k(ii)             XpontSplitBarDx(2,ii) YpontSplitBarDx(2,ii) XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    1 codMatAirRot indexEle
                     XpontSplitDx(2,ii)    YpontSplitDx(2,ii)    XpontSplitSx(2,ii)    YpontSplitSx(2,ii)    NaN                   NaN                   0 codMatAirRot indexEle
@@ -280,41 +289,55 @@ for ii=1:nlay
     end
     % PM
     if PMdimC(ii)>0
-%         Mag = [Mag
-%             xPMC1b(ii) yPMC1b(ii) xPMC2b(ii) yPMC2b(ii) NaN NaN 0 codMatBar indexEle
-%             xPMC2b(ii) yPMC2b(ii) xPMC2t(ii) yPMC2t(ii) NaN NaN 0 codMatBar indexEle
-%             xPMC2t(ii) yPMC2t(ii) xPMC1t(ii) yPMC1t(ii) NaN NaN 0 codMatBar indexEle
-%             xPMC1t(ii) yPMC1t(ii) xPMC1b(ii) yPMC1b(ii) NaN NaN 0 codMatBar indexEle
-%             ];
-%         indexEle = indexEle+1;
-        for jj=1:PMNcC(ii)
-          Mag = [Mag
-            xPMC1s(jj,ii)   yPMC1s(jj,ii)    xPMC2s(jj,ii)    yPMC2s(jj,ii)   NaN NaN 0 codMatBar indexEle
-            xPMC2s(jj,ii)   yPMC2s(jj,ii)    xPMC2s(jj+1,ii)  yPMC2s(jj+1,ii) NaN NaN 0 codMatBar indexEle
-            xPMC2s(jj+1,ii) yPMC2s(jj+1,ii)  xPMC1s(jj+1,ii)  yPMC1s(jj+1,ii) NaN NaN 0 codMatBar indexEle
-            xPMC1s(jj+1,ii) yPMC1s(jj+1,ii)  xPMC1s(jj,ii)    yPMC1s(jj,ii)   NaN NaN 0 codMatBar indexEle
-            ];
-        indexEle = indexEle+1;
-       end
+        %         Mag = [Mag
+        %             xPMC1b(ii) yPMC1b(ii) xPMC2b(ii) yPMC2b(ii) NaN NaN 0 codMatBar indexEle
+        %             xPMC2b(ii) yPMC2b(ii) xPMC2t(ii) yPMC2t(ii) NaN NaN 0 codMatBar indexEle
+        %             xPMC2t(ii) yPMC2t(ii) xPMC1t(ii) yPMC1t(ii) NaN NaN 0 codMatBar indexEle
+        %             xPMC1t(ii) yPMC1t(ii) xPMC1b(ii) yPMC1b(ii) NaN NaN 0 codMatBar indexEle
+        %             ];
+        %         indexEle = indexEle+1;
+        PMNcC1 = PMNcC;
+        PMNcC1(rem(PMNcC*2,2)==1) = PMNcC1(rem(PMNcC*2,2)==1)+0.5;
+        for jj=1:PMNcC1(ii)
+            if PMNcC(ii)>0.5 && rem(PMNcC(ii)*2,2)==0 
+                Mag = [Mag
+                    xPMC1s(jj,ii)   yPMC1s(jj,ii)    xPMC2s(jj,ii)    yPMC2s(jj,ii)   NaN NaN 0 codMatBar indexEle
+                    ];
+%             else 
+%                 PMNcC(ii) = PMNcC(ii)+0.5;
+            end
+            if radial_ribs_split(ii)==0 && pontR(ii)>0
+                Mag = [Mag
+                    xPMC1s(jj,ii)   yPMC1s(jj,ii)    xPMC2s(jj,ii)    yPMC2s(jj,ii)   NaN NaN 0 codMatBar indexEle
+                    ];
+            end
+            Mag = [Mag
+%                 xPMC1s(jj,ii)   yPMC1s(jj,ii)    xPMC2s(jj,ii)    yPMC2s(jj,ii)   NaN NaN 0 codMatBar indexEle
+                xPMC2s(jj,ii)   yPMC2s(jj,ii)    xPMC2s(jj+1,ii)  yPMC2s(jj+1,ii) NaN NaN 0 codMatBar indexEle
+                xPMC2s(jj+1,ii) yPMC2s(jj+1,ii)  xPMC1s(jj+1,ii)  yPMC1s(jj+1,ii) NaN NaN 0 codMatBar indexEle
+                xPMC1s(jj+1,ii) yPMC1s(jj+1,ii)  xPMC1s(jj,ii)    yPMC1s(jj,ii)   NaN NaN 0 codMatBar indexEle
+                ];
+            indexEle = indexEle+1;
+        end
     end
 
     if PMdimE(ii)>0
-%         Mag = [Mag
-%             xPME1b(ii) yPME1b(ii) xPME2b(ii) yPME2b(ii) NaN NaN 0 codMatBar indexEle
-%             xPME2b(ii) yPME2b(ii) xPME2t(ii) yPME2t(ii) NaN NaN 0 codMatBar indexEle
-%             xPME2t(ii) yPME2t(ii) xPME1t(ii) yPME1t(ii) NaN NaN 0 codMatBar indexEle
-%             xPME1t(ii) yPME1t(ii) xPME1b(ii) yPME1b(ii) NaN NaN 0 codMatBar indexEle
-%             ];
-       for jj=1:PMNcE(ii)
-          Mag = [Mag
-            xPME1s(jj,ii)   yPME1s(jj,ii)    xPME2s(jj,ii)    yPME2s(jj,ii)   NaN NaN 0 codMatBar indexEle
-            xPME2s(jj,ii)   yPME2s(jj,ii)    xPME2s(jj+1,ii)  yPME2s(jj+1,ii) NaN NaN 0 codMatBar indexEle
-            xPME2s(jj+1,ii) yPME2s(jj+1,ii)  xPME1s(jj+1,ii)  yPME1s(jj+1,ii) NaN NaN 0 codMatBar indexEle
-            xPME1s(jj+1,ii) yPME1s(jj+1,ii)  xPME1s(jj,ii)    yPME1s(jj,ii)   NaN NaN 0 codMatBar indexEle
-            ];
-        indexEle = indexEle+1;
-       end
-      
+        %         Mag = [Mag
+        %             xPME1b(ii) yPME1b(ii) xPME2b(ii) yPME2b(ii) NaN NaN 0 codMatBar indexEle
+        %             xPME2b(ii) yPME2b(ii) xPME2t(ii) yPME2t(ii) NaN NaN 0 codMatBar indexEle
+        %             xPME2t(ii) yPME2t(ii) xPME1t(ii) yPME1t(ii) NaN NaN 0 codMatBar indexEle
+        %             xPME1t(ii) yPME1t(ii) xPME1b(ii) yPME1b(ii) NaN NaN 0 codMatBar indexEle
+        %             ];
+        for jj=1:PMNcE(ii)
+            Mag = [Mag
+                xPME1s(jj,ii)   yPME1s(jj,ii)    xPME2s(jj,ii)    yPME2s(jj,ii)   NaN NaN 0 codMatBar indexEle
+                xPME2s(jj,ii)   yPME2s(jj,ii)    xPME2s(jj+1,ii)  yPME2s(jj+1,ii) NaN NaN 0 codMatBar indexEle
+                xPME2s(jj+1,ii) yPME2s(jj+1,ii)  xPME1s(jj+1,ii)  yPME1s(jj+1,ii) NaN NaN 0 codMatBar indexEle
+                xPME1s(jj+1,ii) yPME1s(jj+1,ii)  xPME1s(jj,ii)    yPME1s(jj,ii)   NaN NaN 0 codMatBar indexEle
+                ];
+            indexEle = indexEle+1;
+        end
+
     end
 end
 

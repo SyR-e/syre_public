@@ -25,7 +25,7 @@ disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
 % Matlab
 disp('Check Matlab release...')
 disp('   minimum requirement      : 2019b (9.7)  released 18-Jul-2019')
-disp('   suggested release        : 2022b (9.13) released 13-May-2022')
+disp('   suggested release        : 2023b (23.2) released 01-Aug-2023')
 
 tmp = ver('matlab');
 vMatlab = eval(tmp.Version);

@@ -47,9 +47,9 @@ if dataIn.CustomCurrentEnable
     per.custom_ib         = dataIn.CustomCurrentB;
     per.custom_ic         = dataIn.CustomCurrentC;
     per.custom_time       = dataIn.CustomCurrentTime;
-    per.custom_act        = dataIn.CustomCurrentEnable;
-    per.custom_ansyscount = dataIn.CustomCurrentAnsysCounter;
+    per.custom_ansyscount = dataIn.CustomCurrentAnsysCounter;    
 end
+per.custom_act        = dataIn.CustomCurrentEnable;
 
 overload_temp = CurrLoPP;   % current to be simulated
 gamma_temp    = GammaPP;    % current phase angle

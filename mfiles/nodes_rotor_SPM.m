@@ -18,10 +18,17 @@ function [geo,mat,temp] = nodes_rotor_SPM(geo,mat)
 
 r = geo.r;                      % rotor radius
 p = geo.p;                      % pole pairs
-phi = geo.phi/p;                % angle range of permanent magnet
-lm = geo.lm;                    % the thickness of permant magnet
+% phi = geo.phi/p;                % angle range of permanent magnet
+phi = geo.dalpha_pu*180/p;
+% lm = geo.lm;                    % the thickness of permant magnet
+lm  = geo.hc_pu*geo.g;
 % hc = 0;
 seg = geo.dx;                   % the number of segments of magnet
+hs  = geo.hs;                   % rotor sleeve thickness 
+
+r = r-hs;   % sleeve thickness inside the rotor space and not in the airgap
+
+
 
 if seg == 1
     PMdir = 'p';
@@ -34,9 +41,11 @@ if PMregular > 1
     PMregular =1;                      % limit to per unit
 end
 
-xPMco = r; yPMco = 0;
+xPMco = r;
+yPMco = 0;
 
-xPMregular = r-lm + PMregular*lm; yPMregular = 0;
+xPMregular = r-lm + PMregular*lm;
+yPMregular = 0;
 
 [xPMo,yPMo] = rot_point(xPMregular,yPMregular,phi/2*pi/180);    % PM edge point
 [xAiro, yAiro] = rot_point(xPMco,yPMco,90/p*pi/180);                  % Air zone point
@@ -150,5 +159,8 @@ temp.xmag = xmag;
 temp.ymag = ymag;
 temp.zmag = zmag;
 
-% geo.hc = hc;
+temp.mirrorFlag    = ones(1,length(xc));
+temp.mirrorFlagAir = ones(1,length(xc));
+
+geo.hc = lm;
 

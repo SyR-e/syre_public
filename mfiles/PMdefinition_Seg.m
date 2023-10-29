@@ -47,6 +47,7 @@ XpontSplitSx    = temp.XpontSplitSx;
 YpontSplitSx    = temp.YpontSplitSx;
 
 hcAngle         = temp.hcAngle-pi/2/geo.p;
+hcShrink        = geo.hcShrink;
 
 % from geo
 p         = geo.p;
@@ -91,7 +92,7 @@ b_end   = min(YpontSplitBarDx(2,:),YpontSplitBarSx(2,:));
 b = b_end - b_start;
 % b=min(b1,b2);
 
-AreaC = hc.*b;
+AreaC = (hc-PMclearC).*b;
 if FBS>0
     if flagPMFBS
         AreaCMax = AreaC;
@@ -110,7 +111,7 @@ PMdimC(PMdimC>b)=b(PMdimC>b);
 PMdimC(PMdimC<0)=0;
 % PMdimC=floor(PMdimC*100)/100;
 
-AreaC = PMdimC.*hc;
+AreaC = PMdimC.*(hc-PMclearC);
 
 % Check clearance size: the minimum PM thickness is set to pont0
 PMclearLim = hc-pont0*ones(size(hc));
@@ -130,6 +131,8 @@ xPMC1t = xPMC1b;
 yPMC1t = yPMC2t;
 
 deltaFBS=0;
+
+
 % point definition - external section
 xPME2b = XpontSplitBarDx(1,:)+pont0*cos(pi/2/p+deltaFBS/2+hcAngle);
 yPME2b = YpontSplitBarDx(1,:)+pont0*sin(pi/2/p+deltaFBS/2+hcAngle);
@@ -180,7 +183,7 @@ b  = min([b1;b2],[],1)-pont0/4;
 b(b<3*pont0) = 0;
 
 % b(1) = 0;
-AreaE = b.*hc;
+AreaE = b.*(hc-PMclearE);
 if FBS>0
     if flagPMFBS
         AreaEMax=AreaE;
@@ -199,12 +202,13 @@ PMdimE(PMdimE>b)=b(PMdimE>b);
 PMdimE(PMdimE<0)=0;
 PMdimE=floor(PMdimE*100)/100;
 
-AreaE = PMdimE.*hc;
+AreaE = PMdimE.*(hc-PMclearE);
 
 xPME2t = xPME2b+PMdimE.*cos(pi/2/p+deltaFBS/2+hcAngle);
 yPME2t = yPME2b+PMdimE.*sin(pi/2/p+deltaFBS/2+hcAngle);
 xPME1t = xPME1b+PMdimE.*cos(pi/2/p+deltaFBS/2+hcAngle);
 yPME1t = yPME1b+PMdimE.*sin(pi/2/p+deltaFBS/2+hcAngle);
+
 
 %% Segmention
 %EXTERNAL
@@ -253,11 +257,14 @@ end
 % axis equal
 
 %CENTRAL
-PMNcC(PMdimC==0) = 1;
-indexC = pontR==0 | pontSplit==1;
-%PMNcC(indexC) = floor(PMNcC(indexC)/2)*2;
-PMNcC(indexC) = 1;
+% PMNcC = [1 1];
+PMNcC(PMdimC<0.5) = 1;
+PMNcC = PMNcC/2;
+% indexC = pontR==0 | pontSplit==1;
+% PMNcC(indexC) = floor(PMNcC(indexC)/2)*2;
+% PMNcC(indexC) = 1;
 PMNcC(PMNcC==0) = 1;
+PMNcC(~pontSplit) = round(PMNcC(~pontSplit));
 
 PMdimC_seg = PMdimC./PMNcC;
 PMNcC(PMdimC_seg<1 & PMdimC_seg>0) = 1;
@@ -270,12 +277,26 @@ yPMC2s = yPMC2b;
 
 
 for jj=1:nlay
-    if PMNcC(jj)>1
-        for ii=2:(PMNcC(jj)+1)
+    if PMNcC(jj)>0.5
+        if rem(PMNcC(jj)*2, 2) == 0
+            for ii=2:(PMNcC(jj)+1)
+                xPMC1s(ii,jj) = xPMC1b(jj);
+                yPMC1s(ii,jj) = yPMC1s(ii-1,jj) + PMdimC_seg(jj);
+                xPMC2s(ii,jj) = xPMC2b(jj);
+                yPMC2s(ii,jj) = yPMC2s(ii-1,jj) + PMdimC_seg(jj);
+            end
+        else
+            ii=2;
             xPMC1s(ii,jj) = xPMC1b(jj);
-            yPMC1s(ii,jj) = yPMC1s(ii-1,jj) + PMdimC_seg(jj);
+            yPMC1s(ii,jj) = yPMC1s(ii-1,jj) + PMdimC_seg(jj)/2;
             xPMC2s(ii,jj) = xPMC2b(jj);
-            yPMC2s(ii,jj) = yPMC2s(ii-1,jj) + PMdimC_seg(jj);
+            yPMC2s(ii,jj) = yPMC2s(ii-1,jj) + PMdimC_seg(jj)/2;
+            for ii=3:PMNcC(jj)*2
+                xPMC1s(ii,jj) = xPMC1b(jj);
+                yPMC1s(ii,jj) = yPMC1s(ii-1,jj) + PMdimC_seg(jj);
+                xPMC2s(ii,jj) = xPMC2b(jj);
+                yPMC2s(ii,jj) = yPMC2s(ii-1,jj) + PMdimC_seg(jj);
+            end
         end
     else
         xPMC1s(2,jj) = xPMC1t(jj);
@@ -285,15 +306,19 @@ for jj=1:nlay
     end
 end
 
+PMNcC1 = PMNcC;
+PMNcC1(rem(PMNcC*2,2)==1) = PMNcC1(rem(PMNcC*2,2)==1)+0.5;
+
+
 % figure
 % figSetting
 % plot(xPMC1b,yPMC1b,'xk','DisplayName','PMC1b')
 % plot(xPMC2b,yPMC2b,'xb','DisplayName','PMC2b')
 % plot(xPMC2t,yPMC2t,'xg','DisplayName','PMC2t')
 % plot(xPMC1t,yPMC1t,'xc','DisplayName','PMC1t')
-% close all
-% plot(xPME2s,yPME2s,'xr','DisplayName','PME1t')
-% plot(xPME1s,yPME1s,'xr','DisplayName','PME1t')
+% 
+% plot(xPMC2s,yPMC2s,'xr','DisplayName','PME1t')
+% plot(xPMC1s,yPMC1s,'xr','DisplayName','PME1t')
 % axis equal
 
 %% Label
@@ -308,7 +333,7 @@ Br   = zeros(1,nlay+(sum(PMNcE)));
 % indexZone = repmat(1:1:2,[1,nlay]);
 indexZone = [];
 for ii=1:nlay
-    indexZone = [indexZone ones(1,PMNcC(ii)) 2*ones(1,PMNcE(ii))];
+    indexZone = [indexZone ones(1,PMNcC1(ii)) 2*ones(1,PMNcE(ii))];
 end
 
 % xc(indexZone==1) = (xPMC1b+xPMC1t+xPMC2b+xPMC2t)/4;
@@ -330,11 +355,17 @@ for jj=1:nlay
             angY(ii,jj) = sin(hcAngle(jj)+pi/2/p-pi/2);
         end
 
-        for ii=1:PMNcC(jj)
+        for ii=1:PMNcC1(jj)
             tmpXC(ii,jj) = (xPMC2s(ii,jj)+xPMC1s(ii,jj)+xPMC2s(ii+1,jj)+xPMC1s(ii+1,jj))/4;
             tmpYC(ii,jj) = (yPMC2s(ii,jj)+yPMC1s(ii,jj)+yPMC2s(ii+1,jj)+yPMC1s(ii+1,jj))/4;
         end
 end
+
+% remove the central PM segment
+% xPMC1s(1,PMNcC==1 | rem(PMNcC, 2) == 0) = nan;
+% yPMC1s(1,PMNcC==1 | rem(PMNcC, 2) == 0) = nan;
+% xPMC2s(1,PMNcC==1 | rem(PMNcC, 2) == 0) = nan;
+% yPMC2s(1,PMNcC==1 | rem(PMNcC, 2) == 0) = nan;
 
 
 tmpXE1 = tmpXE; 
@@ -388,6 +419,48 @@ filtClear = ones(size(PMclearC));
 filtClear(PMclearC>0) = NaN;
 xair(indexZone==1) = xair(indexZone==1).*filtClear; % if PMC are with clearance, rad rib labels must be disabled
 
+mirrorFlagAir = ones(1,length(xair));
+
+
+tmp = mirrorFlagAir(indexZone==2);
+tmp(PMclearC>0) = 0;
+mirrorFlagAir(indexZone==2) = tmp;
+
+tmp = mirrorFlagAir(indexZone==4);
+tmp(PMclearE>0 & PMclearC>0 & pontR==0 & hcShrink==0) = 0;
+% tmp(PMclearE>0 & PMclearC>0 & pontR==0) = 0;
+mirrorFlagAir(indexZone==4) = tmp;
+
+% mirrorFlagAir(isnan(xair)) = 0; 
+
+%mirror flag PM label
+zz = 1;
+flagOdd = 0;
+clear NcC
+for ii=1:nlay
+    for jj=1:PMNcC1(ii)
+        NcC(zz+jj-1) = PMNcC(ii);
+        if flagOdd
+            NcC(zz+jj-1) = NcC(zz+jj-1)+0.5;
+        end
+        if rem(PMNcC(ii)*2, 2) == 1
+            flagOdd = 1;
+        end
+        %         if (pontR(ii)>0 && pontSplit(ii)==0)
+        %             NcC(zz+jj-1) = 1000;
+        %         end
+    end
+    flagOdd = 0;
+    for kk=1:PMNcE(ii)
+        NcC(zz+jj+kk-1) = 0;
+    end
+    zz = length(NcC)+1;
+end
+mirrorFlag = ones(1,length(xc));
+% mirrorFlag(((NcC==1 | rem(NcC, 2) == 0) & NcC>0) & NcC < 1000) = 0;
+mirrorFlag((NcC*2)==1) = 0;
+mirrorFlag(rem(NcC*2, 2) == 1) = 0;
+
 %% save variables
 temp.AreaCMax = AreaCMax;
 temp.AreaEMax = AreaEMax;
@@ -399,16 +472,18 @@ geo.AreaEMax  = AreaEMax;
 geo.AreaC     = AreaC;
 geo.AreaE     = AreaE;
 geo.PMdim     = [PMdimC;PMdimE];
-geo.PMNc      = [PMNcC; PMNcE];
+geo.PMNc      = [PMNcC*2; PMNcE];
 geo.PMclear   = [PMclearC;PMclearE];
 
-temp.xc       = xc;
-temp.yc       = yc;
-temp.xair     = xair;
-temp.yair     = yair;
-temp.xmag     = xmag;
-temp.ymag     = ymag;
-temp.zmag     = zeros(size(xmag));
+temp.xc         = xc;
+temp.yc         = yc;
+temp.xair       = xair;
+temp.yair       = yair;
+temp.xmag       = xmag;
+temp.ymag       = ymag;
+temp.zmag       = zeros(size(xmag));
+temp.mirrorFlag    = mirrorFlag;
+temp.mirrorFlagAir = mirrorFlagAir;
 
 temp.xPMC1b  = xPMC1b;
 temp.yPMC1b  = yPMC1b;
@@ -435,5 +510,6 @@ temp.yPMC1s  = yPMC1s;
 temp.xPMC2s  = xPMC2s;
 temp.yPMC2s  = yPMC2s;
 temp.hcAngle = hcAngle;
+
 
 mat.LayerMag.Br = [Br Br];
