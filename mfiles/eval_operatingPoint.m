@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [out,senseOut] = eval_operatingPoint(dataIn)
+function [out,senseOut,newDir] = eval_operatingPoint(dataIn)
 
 % simulates single or multiple (id,iq) conditions
 % example inputs:
@@ -96,7 +96,13 @@ else
     ppState1 = ppState;
 end
 
-if strcmp(eval_type,'singtIron')
+flag_singtpp = 0;   %no parallel pool 
+% flag_singtpp = 1; % parallel pool 
+if ~strcmp(eval_type,'singt')
+    flag_singtpp = 0;
+end
+
+if (strcmp(eval_type,'singtIron') || flag_singtpp == 1)
     CurrLoPP = CurrLoPP*ones(1,ppState1);
     GammaPP  = GammaPP*ones(1,ppState1);
     tmp      = linspace(0,AngularSpanPP,ppState1+1);
@@ -154,8 +160,8 @@ else
 end
 
 
-if (strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron'))
-    %
+if (strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron')||flag_singtpp == 1)
+
     out.SOL.th    = [];
     out.SOL.id    = [];
     out.SOL.iq    = [];
@@ -193,48 +199,51 @@ if (strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron'))
         out.SOL.fc    = [out.SOL.fc output{ii}.SOL.fc];
         out.SOL.we    = [out.SOL.we output{ii}.SOL.we];
         out.SOL.wc    = [out.SOL.wc output{ii}.SOL.wc];
-
-        out.SOL.bs    = [out.SOL.bs; output{ii}.SOL.bs];
-        out.SOL.br    = [out.SOL.br; output{ii}.SOL.br];
-        out.SOL.am    = [out.SOL.am; output{ii}.SOL.am];
-  
+        if flag_singtpp == 0
+            out.SOL.bs    = [out.SOL.bs; output{ii}.SOL.bs];
+            out.SOL.br    = [out.SOL.br; output{ii}.SOL.br];
+            out.SOL.am    = [out.SOL.am; output{ii}.SOL.am];
+        end
     end
+    if flag_singtpp == 0
         out.SOL.pos   = [out.SOL.pos output{1}.SOL.pos];
         out.SOL.vol   = [out.SOL.vol output{1}.SOL.vol];
         out.SOL.groNo = [out.SOL.groNo output{1}.SOL.groNo];
+    end
+    if flag_singtpp == 0
+        [SOL] = evalIronLossFEMM(geo,per,mat,out.SOL,2);
+        if isfield(SOL,'psh')
+            out.Pfes_h        = sum(sum(SOL.psh))*(2*geo.p/geo.ps);
+            out.Pfes_c        = sum(sum(SOL.psc))*(2*geo.p/geo.ps);
+            out.Pfer_h        = sum(sum(SOL.prh))*(2*geo.p/geo.ps);
+            out.Pfer_c        = sum(sum(SOL.prc))*(2*geo.p/geo.ps);
+            out.Ppm           = sum(sum(SOL.ppm))*(2*geo.p/geo.ps);
+            out.ppm_no3D      = sum(sum(SOL.ppm_no3D))*(2*geo.p/geo.ps);
+            out.ppm_noRFno3D  = sum(sum(SOL.ppm_noRFno3D))*(2*geo.p/geo.ps);
+            out.Ppm_breakdown = SOL.ppm_PM*(2*geo.p/geo.ps);
+            out.Pfe           = out.Pfes_h + out.Pfes_c + out.Pfer_h + out.Pfer_c;
+            out.velDim        = per.EvalSpeed;
 
-    [SOL] = evalIronLossFEMM(geo,per,mat,out.SOL,2);
-    if isfield(SOL,'psh')
-        out.Pfes_h        = sum(sum(SOL.psh))*(2*geo.p/geo.ps);
-        out.Pfes_c        = sum(sum(SOL.psc))*(2*geo.p/geo.ps);
-        out.Pfer_h        = sum(sum(SOL.prh))*(2*geo.p/geo.ps);
-        out.Pfer_c        = sum(sum(SOL.prc))*(2*geo.p/geo.ps);
-        out.Ppm           = sum(sum(SOL.ppm))*(2*geo.p/geo.ps);
-        out.ppm_no3D      = sum(sum(SOL.ppm_no3D))*(2*geo.p/geo.ps);
-        out.ppm_noRFno3D  = sum(sum(SOL.ppm_noRFno3D))*(2*geo.p/geo.ps);
-        out.Ppm_breakdown = SOL.ppm_PM*(2*geo.p/geo.ps);
-        out.Pfe           = out.Pfes_h + out.Pfes_c + out.Pfer_h + out.Pfer_c;
-        out.velDim        = per.EvalSpeed;
-
-        if strcmp(eval_type,'singmIron')
-            % remove all the debug data from SOL, to avoid excessive data size
-            SOL = rmfield(SOL,'psh');
-            SOL = rmfield(SOL,'psc');
-            SOL = rmfield(SOL,'prh');
-            SOL = rmfield(SOL,'prc');
-            SOL = rmfield(SOL,'ppm');
-            %SOL = rmfield(SOL,'ppm_RF');
-            %SOL = rmfield(SOL,'ppm_noRF');
-            SOL = rmfield(SOL,'ppm_PM');
-            SOL = rmfield(SOL,'freq');
-            SOL = rmfield(SOL,'bs');
-            SOL = rmfield(SOL,'br');
-            SOL = rmfield(SOL,'am');
-            SOL = rmfield(SOL,'Jm');
-            SOL = rmfield(SOL,'pos');
-            SOL = rmfield(SOL,'vol');
-            SOL = rmfield(SOL,'groNo');
-            out.SOL = SOL;
+            if strcmp(eval_type,'singmIron')
+                % remove all the debug data from SOL, to avoid excessive data size
+                SOL = rmfield(SOL,'psh');
+                SOL = rmfield(SOL,'psc');
+                SOL = rmfield(SOL,'prh');
+                SOL = rmfield(SOL,'prc');
+                SOL = rmfield(SOL,'ppm');
+                %SOL = rmfield(SOL,'ppm_RF');
+                %SOL = rmfield(SOL,'ppm_noRF');
+                SOL = rmfield(SOL,'ppm_PM');
+                SOL = rmfield(SOL,'freq');
+                SOL = rmfield(SOL,'bs');
+                SOL = rmfield(SOL,'br');
+                SOL = rmfield(SOL,'am');
+                SOL = rmfield(SOL,'Jm');
+                SOL = rmfield(SOL,'pos');
+                SOL = rmfield(SOL,'vol');
+                SOL = rmfield(SOL,'groNo');
+                out.SOL = SOL;
+            end
         end
     end
     % standard results
@@ -249,7 +258,7 @@ if (strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron'))
     out.IPF    = sin(atan2(out.iq,out.id)-atan2(out.fq,out.fd));
     out.We     = mean(out.SOL.we);                                      % [J]
     out.Wc     = mean(out.SOL.wc);                                      % [J]
-%     out.SOL    = SOL;
+    %     out.SOL    = SOL;
 
     % check Torque sign
     if sign(out.T)~=sign(out.fd*out.iq-out.fq*out.id)
@@ -266,6 +275,13 @@ if (strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron'))
     CurrLoPP = CurrLoPP(1);
     performance{1}.delta_sim_singt = AngularSpanPP;
 end
+
+% if flag_singtpp == 1
+% %     output{1} =  out;
+%     SimulatedCurrent = SimulatedCurrent(1);
+%     CurrLoPP = CurrLoPP(1);
+%     performance{1}.delta_sim_singt = AngularSpanPP;
+% end
 
 % save output into individual folders
 for ii = 1:length(SimulatedCurrent)
@@ -443,6 +459,6 @@ if length(CurrLoPP)>1
 end
 
 if nargout()==0
-    clear out senseOut
+    clear out senseOut newDir
 end
 

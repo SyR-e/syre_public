@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function MMM_MaxTw(motorModel,hax)
+function [TwMap,resFolderOut] = MMM_MaxTw(motorModel,hax,saveFlag)
 
 % load data
 Id  = motorModel.FluxMap_dq.Id;
@@ -69,7 +69,7 @@ TwMap.ASCsafe = nan(size(nmap));  % Safe area for ASC
 TwMap.UGOsafe = nan(size(nmap));  % Safe area for UGO
 
 
-if nargin==1
+if (nargin==1)||isempty(hax)
     % no link to an existing axis...create a new axis
     figure()
     figSetting();
@@ -159,16 +159,19 @@ disp('Maps Evaluated');
 
 %TwMap.dTpp = interp2(motorModel.FluxMap_dq.Id,motorModel.FluxMap_dq.Iq,motorModel.FluxMap_dq.dTpp,TwMap.Id,TwMap.Iq);
 
-TwMap.T_top_W = max(TwMap.Tout);
-TwMap.T_top_W(TwMap.T_top_W<0) = 0;
-TwMap.T_bot_W = min(TwMap.Tout);
-TwMap.T_bot_W(TwMap.T_bot_W>0) = 0;
+TwMap.limits.n    = unique(TwMap.n)';
+TwMap.limits.Tmax = max(TwMap.Tout);
+TwMap.limits.Tmax(TwMap.limits.Tmax<0) = 0;
+TwMap.limits.Tmin = min(TwMap.Tout);
+TwMap.limits.Tmin(TwMap.limits.Tmin>0) = 0;
 
 %% plot results
 
 pathname = motorModel.data.pathname;
 motName = motorModel.data.motorName;
 resFolder = [motName '_results\MMM results\' 'TwMap_' datestr(now,30) '\'];
+
+resFolderOut = [pathname resFolder];
 
 indexFig = 1;
 
@@ -235,102 +238,83 @@ for ii=1:length(flagPlot)
     switch flagPlot(ii)
         case 1
             title('Torque limits')
-            plot(unique(TwMap.n),TwMap.T_top_W,'-bx')
-            plot(unique(TwMap.n),TwMap.T_bot_W,'-bx')
+            plot(TwMap.limits.n,TwMap.limits.Tmax,'-bx')
+            plot(TwMap.limits.n,TwMap.limits.Tmin,'-bx')
         case 2
             title('Efficiency map [p.u.]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.eff,[64:2:86 87:1:100]/100);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.eff,[64:2:86 87:1:100]/100,'ShowText','on');
             colorbar
         case 3
             title('Output power [W]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.P);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.P,'ShowText','on');
             colorbar
         case 4
             title('Total loss [W]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Ploss);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Ploss,'ShowText','on');
             colorbar
         case 5
             title('Stator Joule loss [W]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Pjs);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Pjs,'ShowText','on');
             colorbar
         case 6
             title('Stator Joule DC loss [W]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.PjDC);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.PjDC,'ShowText','on');
             colorbar
         case 7
             title('Stator Joule AC loss [W]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.PjAC);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.PjAC,'ShowText','on');
             colorbar
         case 8
             title('Iron loss [W]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Pfe);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Pfe,'ShowText','on');
             colorbar
         case 9
             title('Stator iron loss [W]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Pfes);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Pfes,'ShowText','on');
             colorbar
         case 10
             title('Rotor iron loss [W]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Pfer);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Pfer,'ShowText','on');
             colorbar
         case 11
             title('Permanent magnet loss [W]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Ppm);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Ppm,'ShowText','on');
             colorbar
         case 12
             title('Phase current map [Apk]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Io);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Io,'ShowText','on');
             colorbar
         case 13
             title('Line voltage map [Vpk]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Vo);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Vo,'ShowText','on');
             colorbar
         case 14
             title('Power factor map')
-            [c,h] = contourf(TwMap.n,TwMap.T,abs(TwMap.PF),[0.4:0.05:1]);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,abs(TwMap.PF),[0.4:0.05:1],'ShowText','on');
             colorbar
         case 15
             title('Mechanical loss map')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Pmech);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Pmech,'ShowText','on');
             colorbar
         case 16
             title('Iron + PM + mechanical loss map')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Pmech+TwMap.Pfes+TwMap.Pfer+TwMap.Ppm);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Pmech+TwMap.Pfes+TwMap.Pfer+TwMap.Ppm,'ShowText','on');
             colorbar
         case 17
             title('Rotor Joule loss map')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Pjr);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Pjr,'ShowText','on');
             colorbar
         case 18
             title('Rotor slip map')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.slip,[-1:0.1:1]);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.slip,[-1:0.1:1],'ShowText','on');
             colorbar
         case 19
             title('Rotor current map [A]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.Ir);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.Ir,'ShowText','on');
             colorbar
         case 20
             title('Peak-to-peak torque ripple [Nm]')
-            [c,h] = contourf(TwMap.n,TwMap.T,TwMap.dTpp);
-            clabel(c,h)
+            contourf(TwMap.n,TwMap.T,TwMap.dTpp,'ShowText','on');
             colorbar
         case 21
             title('Active Short Circuit safe state area')
@@ -350,8 +334,8 @@ for ii=1:length(flagPlot)
             colorbar
     end
     if flagPlot(ii)>1
-        plot(unique(TwMap.n),TwMap.T_top_W,'-k')
-        plot(unique(TwMap.n),TwMap.T_bot_W,'-k')
+        plot(TwMap.limits.n,TwMap.limits.Tmax,'-k')
+        plot(TwMap.limits.n,TwMap.limits.Tmin,'-k')
     end
 end
 
@@ -378,8 +362,17 @@ plot(TwMap.Id,TwMap.Iq)
 
 
 %% Save figures
-answer = 'No';
-answer = questdlg('Save figures?','Save','Yes','No',answer);
+if nargin()==2
+    answer = 'No';
+    answer = questdlg('Save figures?','Save','Yes','No',answer);
+else
+    if saveFlag
+        answer = 'Yes';
+    else
+        answer = 'No';
+    end
+end
+
 if strcmp(answer,'Yes')
     if ~exist([pathname resFolder],'dir')
         mkdir([pathname resFolder]);

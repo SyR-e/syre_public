@@ -14,22 +14,26 @@
 
 function [mapScale] = MMM_eval_mapScale(motorModel,setup)
 
-% Create the maps (kL,kN) of the scaled motor (digest ECCE 2022)
+% Create the maps (kL,kN) of the scaled motor (ECCE 2022)
 
 if nargin==1
-    prompt = {'Min axial length','Max axial length','Min number of turns','Max number of turns'};
+    prompt = {'Min axial length','Max axial length','Min number of turns','Max number of turns','DC link voltage [V]','Peak phase current [Apk]'};
     name   = 'Scaling map setup';
     answer = {
         num2str(floor(motorModel.data.l*0.5))
         num2str(ceil(motorModel.data.l*2))
         num2str(floor(motorModel.data.Ns*0.5))
         num2str(ceil(motorModel.data.Ns*2))
+        int2str(motorModel.data.Vdc)
+        int2str(motorModel.data.Imax)
         };
     answer = inputdlg(prompt,name,1,answer);
     lMin  = eval(answer{1});
     lMax  = eval(answer{2});
     NsMin = eval(answer{3});
     NsMax = eval(answer{4});
+    setup.Vdc   = eval(answer{5});
+    setup.Imax  = eval(answer{6});
     setup.lVect  = linspace(lMin,lMax,101);
     setup.NsVect = linspace(NsMin,NsMax,101);
 end
@@ -40,8 +44,8 @@ end
 
 MTPA = motorModel.controlTrajectories.MTPA;
 
-Imax = motorModel.data.Imax;
-Vdc  = motorModel.data.Vdc;
+Imax = setup.Imax;
+Vdc  = setup.Vdc;
 Rs0  = motorModel.data.Rs;
 l0   = motorModel.data.l;
 lend = motorModel.data.lend;
@@ -59,14 +63,29 @@ else
     Idemag0 = NaN;
 end
 
+% evaluation of the HWC current
+fdfq = motorModel.FluxMap_dq;
+if strcmp(motorModel.data.axisType,'SR')
+    iTmp = unique(fdfq.Iq);
+    fTmp = interp2(fdfq.Id,fdfq.Iq,fdfq.Fq,zeros(size(iTmp)),iTmp);
+else
+    iTmp = unique(fdfq.Id);
+    fTmp = interp2(fdfq.Id,fdfq.Iq,fdfq.Fd,iTmp,zeros(size(iTmp)));
+    iTmp = -iTmp;
+    fTmp = -fTmp;
+end
+
+
+
 [l,Ns] = meshgrid(setup.lVect,setup.NsVect);
 
-T  = nan(size(l));
-n  = nan(size(l));
-id = nan(size(l));
-iq = nan(size(l));
-fd = nan(size(l));
-fq = nan(size(l));
+T    = nan(size(l));
+n    = nan(size(l));
+id   = nan(size(l));
+iq   = nan(size(l));
+fd   = nan(size(l));
+fq   = nan(size(l));
+iHWC = nan(size(l));
 
 kL = l/l0;
 kN = Ns/Ns0;
@@ -90,12 +109,16 @@ for ii=1:length(index)
 
     n(ii) = real(w_A)*30/pi/p;
     T(ii) = interp1(abs(id_MTPA+j*iq_MTPA),T_MTPA,Imax);
+
+    iHWC(ii) = interp1(fTmp*kN(ii)*kL(ii),iTmp/kN(ii),abs(fd(ii)+j*fq(ii)),'linear','extrap');
 end
 
 loss = 3/2*Rs.*abs(id+j*iq).^2;
 kj = loss./(2*pi*R/1000*l/1000);
 
 Idemag = Idemag0./kN;
+fM     = interp2(fdfq.Id,fdfq.Iq,abs(fdfq.Fd+j*fdfq.Fq),0,0).*kN.*kL;
+nUGO   = n.*abs(fd+j*fq)./fM;
 
 % Save data in the output structure
 mapScale.l          = l;
@@ -118,6 +141,10 @@ else
     mapScale.J = NaN;
 end
 mapScale.Idemag     = Idemag;
+mapScale.iHWC       = iHWC;
+mapScale.fM         = fM;
+mapScale.nUGO       = nUGO;
+
 mapScale.motorModel = motorModel;
 
 % figure

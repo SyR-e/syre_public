@@ -86,7 +86,7 @@ switch eval_type
         xdeg=per.delta_sim_singt;
         nsim = round(per.nsim_singt*xdeg/per.delta_sim_singt);
         sim_step=xdeg/(nsim);               % during re-evaluation, regular position steps
-        offset=0;
+        offset = per.offset;
         theta=offset:sim_step:xdeg+offset;
         thetaPark=th0(1)+[theta(1:nsim) theta(1)]; % disregard the last position
         iOffsetPU = 0;

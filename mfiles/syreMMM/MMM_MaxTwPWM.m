@@ -30,7 +30,6 @@ nrange = str2num(answer{3});
 Trange = str2num(answer{4});
 
 
-
 %EXTRACT DATA
 %TwMap
 fPWM      = motorModel.SyreDrive.Converter.fPWM;
@@ -38,10 +37,10 @@ nmin      = nrange(1);
 nmax      = nrange(2);
 Tmin      = Trange(1);
 Tmax      = Trange(2);
-nminSIN   = motorModel.TnSetup.nmin;
-nmaxSIN   = motorModel.TnSetup.nmax;
-TmaxSIN   = motorModel.TnSetup.Tmax;
-TminSIN   = motorModel.TnSetup.Tmin;
+% nminSIN   = motorModel.TnSetup.nmin;
+% nmaxSIN   = motorModel.TnSetup.nmax;
+% TmaxSIN   = motorModel.TnSetup.Tmax;
+% TminSIN   = motorModel.TnSetup.Tmin;
 
 % General
 p        = motorModel.geo.p;
@@ -88,7 +87,7 @@ end
 Tlim1 = Plim.T;
 nlim  = Plim.n;
 
-Tlim  = interp1(nlim,Tlim1*0.9,n_eval);    %% T evaluated until 90% of the max value at each speed
+Tlim  = interp1(nlim,Tlim1*0.85,n_eval);    %% T evaluated until 90% of the max value at each speed
 % T_grid = (Tlim'*linspace(Tmin/max(Tlim),1,Tstep))';
 for ii=1:nstep
     T_grid(:,ii) = (Tlim(ii)*linspace(Tmin/Tlim(ii),1,Tstep))';
@@ -148,14 +147,14 @@ for ii=1:numel(T_grid)
 end
 
 tic
-cd([oldpath])
+cd(oldpath)
 
 %% FEMM simulation - Iron/PM Loss
 geo0 = motorModel.geo;
 mat0 = motorModel.mat;
 per0 = motorModel.per;
 
-eval_type       = 'singtIron';
+eval_type       = 'singmIron';
 per0.custom_act = 1; % activate custom current .
 per0.delta_sim_singt = 360/2;
 per0.gamma = 0;
@@ -210,6 +209,7 @@ R20 = Rs0/(1+0.004*(temp0-20));
 Rs  = R20.*(1+0.004*(Tcu-20));
 
 Pjs_PWMfix = zeros(Tstep,nstep);
+Pjs_SIN = zeros(Tstep,nstep);
 
 if fkac(1,end)<2*fPWM
     disp('AC Copper Loss: the max evaluated frequency is less than twice the PWM frequency! ')
@@ -234,8 +234,8 @@ parfor ii=1:numel(T_grid)
     kac_PWM(isnan(kac_PWM)) = 1;
     Ploss = 3/2*Rs*(kac_PWM*l/(lend+l)+lend/(lend+l)).*ILoss.^2;
     Pjs_PWMfix(ii) = sum(Ploss);
-    %     kac_SIN = interp2(fkac,Tkac,kac,Fw,Tcu.*ones(size(fLoss)));
-    %     Pjs_SIN{ii} = 3/2*Rs*(kac_SIN*l/(lend+l)+lend/(lend+l))*max(ILoss)^2;
+    kac_SIN = interp2(fkac,Tkac,kac,Fw,Tcu);
+    Pjs_SIN(ii) = 3/2*Rs*(kac_SIN*l/(lend+l)+lend/(lend+l))*max(ILoss)^2;
 end
 %% Sinusoidal Effy Map
 motorModel.TnSetup.PMLossFactor   = 1;

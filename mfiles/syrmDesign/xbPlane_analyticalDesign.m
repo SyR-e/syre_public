@@ -142,7 +142,7 @@ end
 
 r = R*xx;                                                               % rotor radius [m]
 rocu = 17.8*(234.5 + tempcu)/(234.5+20)*1e-9;                           % resistivity of copper [Ohm m]
-ssp = r * pi/(3*p*q);                                                   % stator slot pitch (x,b)
+ssp = r * pi/(3*p*q*n3ph);                                              % stator slot pitch (x,b)
 sso = ssp * acs;                                                        % stator slot opening (x,b)
 kc = ssp./(ssp-2/pi*g*(sso/g.*atan(sso/(2*g))-log(1+(sso/(2*g)).^2)));  % Carter coefficient (x,b)
 % ly = pi/2*R/p*xx.*bb*kfm;                                              % yoke or back iron (x,b) [mm]
@@ -502,10 +502,12 @@ if strcmp(geo.RotType,'SPM')
     Lmd   = Lbase./ksat;    % magnetizing inductance with stator iron saturation partially accounted for
 else
     Fmd = 2*(R*1e-3)*(l*1e-3)*kw*Ns*Bfe./p.*xx.*bb;     % flux linkage [Vs]
-    id = pi*Bfe*kc*(g*1e-3)*p.*ksat/(mu0*3*kw*Ns).*bb;  % id [A]
-    Lmd = Fmd./id;                                      % d-axis magnetizing inductance [H], with iron saturation
-    Lbase = Lmd.*ksat;  % base inductance for analytical model (unsaturated). The explicit equation is below
+    id = pi*Bfe*kc*(g*1e-3)*p.*ksat/(mu0*3*kw*Ns).*bb/n3ph;  % id [A]
+    %Lmd = Fmd./id/n3ph^2;                                   % d-axis magnetizing inductance [H], with iron saturation
+    %Lbase = Lmd.*ksat;  % base inductance for analytical model (unsaturated). The explicit equation is below
     % Lbase = 6/pi*mu0*(kw*Ns/p)^2*(R/1e3)*(l/1e3)./(kc*g/1e3).*xx
+    Lbase = 6/pi*mu0*(kw*Ns/p)^2*(R/1e3)*(l/1e3)./(kc*g/1e3).*xx;
+    Lmd = Lbase./ksat;
 end
 
 % Rated current computation (from kj or J)
@@ -553,7 +555,7 @@ gamma = acos(id./(loadpu*i0));      % current angle from d axis
 gamma(gamma<gammaMin) = gammaMin;   % current angle saturation to avoid iq=0
 iq    = (loadpu*i0).*sin(gamma);    % q-axis current [A] pk
 
-A = 2*Nbob * loadpu*i0 ./ (r*2*pi/(q*6*p)); % linear current density [A/mm] pk
+A = 2*Nbob * loadpu*i0 ./ (r*2*pi/(q*6*p*n3ph)); % linear current density [A/mm] pk
 
 Ad = A.*cosd(gamma);
 Aq = A.*sind(gamma);
@@ -566,15 +568,15 @@ NsI0_hc = cell(m,n);
 for rr=1:m
     for cc=1:n
         % slot area evaluation
-        geo0.r  = geo.R*xx(rr,cc);
-        geo0.wt = wt(rr,cc);
-        geo0.lt = lt(rr,cc);
-        geo0.ly = ly(rr,cc);
-        geo0.Aslot = Aslots(rr,cc)/(6*p*q*n3ph);
-        geo0.lend  = lend(rr,cc);
-        per0 = per;
+        geo0.r        = geo.R*xx(rr,cc);
+        geo0.wt       = wt(rr,cc);
+        geo0.lt       = lt(rr,cc);
+        geo0.ly       = ly(rr,cc);
+        geo0.Aslot    = Aslots(rr,cc)/(6*p*q*n3ph);
+        geo0.lend     = lend(rr,cc);
+        per0          = per;
         per0.overload = 1;
-        per0.Loss = kj(rr,cc)*(2*pi*R/1000*l/1000);
+        per0.Loss     = kj(rr,cc)*(2*pi*R/1000*l/1000);
         
         dTempCu(rr,cc) = temp_est_simpleMod(geo0,per0);
 %         % demagnetization index
@@ -591,7 +593,7 @@ if strcmp(geo.RotType,'SPM')
     Lrib = nan(m,n);
     Lmq = Lmd;  % SPM is isotropic
 else
-    Lrib = 4/pi*kw*Ns*((2*pont+pontR)*1e-3)*(l*1e-3)*Bs./iq;
+    Lrib = 4/pi*kw*Ns*((2*pont+pontR)*1e-3)*(l*1e-3)*Bs./(iq*n3ph);
     Lrib(iq==0) = mean(Lrib(iq~=0));
     Lrib(isnan(Lrib)) = 0;
     Lmq = Lbase.*(Lcqpu+Lfqpu)+Lrib;
@@ -614,7 +616,7 @@ ps = d0./c0 + d1./c0.*1./(c1./c0-1).*log(c1./c0)+d2./c2.*h;
 % Lspu = 4/pi*p*kc*g*sumDf2s.*ps./r;                                  % Ls/Lmd: p.u. leakage inductance
 
 % Ls = 2*mu0*(l/1000)*Ns^2/p*ps.*sumDf2s;     % According to Vagati's Tutorial (1994)
-Ls = 2*mu0*(l/1000)*Ns^2/p*ps/q;            % According to Lipo's Book (2017)
+Ls = 2*mu0*(l/1000)*Ns^2/p*ps/(q*n3ph);            % According to Lipo's Book (2017)
 Lspu = Ls./Lbase;
 
 % power factor
@@ -623,17 +625,17 @@ Lq = Lmq+Ls;
 
 if strcmp(geo.RotType,'SPM')
     fd = fM;                    % d-axis flux linkage (PM axis)
-    fq = Lq.*iq;                % q-axis flux linkage (PM axis)
+    fq = n3ph*(Lq.*iq);         % q-axis flux linkage (PM axis)
     ich = fM./Ld;               % characteristic current
     iHWC = abs(fd+j*fq)./Ld;    % Hyper-Worst-Case Peak Short-Circuit current
 else
-    fd = Ld.*id;                % d-axis flux linkage (SR axis)
-    fq = Lq.*iq-fM;             % q-axis flux linkage (SR axis)
+    fd = n3ph*(Ld.*id);         % d-axis flux linkage (SR axis)
+    fq = n3ph*(Lq.*iq)-fM;      % q-axis flux linkage (SR axis)
     ich = fM./Lq;               % characteristic current
     iHWC = abs(fd+j*fq)./Lq;    % Hyper-Worst-Case Peak Short-Circuit current
 end
 
-T = 3/2*p*(fd.*iq-fq.*id);
+T = 3/2*p*n3ph*(fd.*iq-fq.*id);
 
 gamma = atand(iq./id);      % current phase angle from d axis [deg]
 delta = atand(fq./fd);      % flux linkage phase angle from d axis [deg]

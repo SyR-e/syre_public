@@ -13,9 +13,20 @@
 %    limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [TccOut] = MMM_eval_shortCircuit(motorModel,vector)
+function [TccOut,resFolderOut] = MMM_eval_shortCircuit(motorModel,saveFlag,vector)
 
-expFlag = 0; % To evaluate the same speed points with measured temperatures of experimental data 
+%expFlag = 0; % To evaluate the same speed points with measured temperatures of experimental data
+if nargin()==1
+    saveFlag = [];
+    vector = [];
+    expFlag = 0;
+elseif nargin()==2
+    expFlag = 0;
+    vector = [];
+else
+    expFlag = 1;
+end
+
 
 Id      = motorModel.FluxMap_dq.Id;
 Iq      = motorModel.FluxMap_dq.Iq;
@@ -111,6 +122,8 @@ pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;
 resFolder = [motName '_results\MMM results\' 'ShortCircuit - ' int2str(motorModel.data.tempPM) 'degPM - ' int2str(temp) 'degCu' '\'];
 
+resFolderOut = [pathname resFolder];
+
 % create figures
 for ii=1:4
     hfig(ii) = figure();
@@ -158,9 +171,8 @@ plot(hax(2),nVect,real(Icc),'-b','DisplayName','$i_d$')
 plot(hax(2),nVect,imag(Icc),'-r','DisplayName','$i_q$')
 plot(hax(2),nVect,abs(Icc),'--g','DisplayName','$I_{sc}$')
 
-[c,h] = contourf(hax(3),Id,Iq,T,'DisplayName','$T$ [Nm]');
-clabel(c,h);
-[c,h] = contour(hax(3),Id,Iq,abs(Id+j*Iq),'-r','DisplayName','$I$ [A]');
+contourf(hax(3),Id,Iq,T,'DisplayName','$T$ [Nm]','ShowText','on');
+contour(hax(3),Id,Iq,abs(Id+j*Iq),'-r','DisplayName','$I$ [A]');
 plot(hax(3),real(Icc),imag(Icc),'-r','DisplayName','$I_{sc}$ [A]')
 
 plot3(hax(4),nVect,real(Icc),imag(Icc),'-bo');
@@ -173,8 +185,16 @@ for ii=1:length(hfig)
 end
 
 %% Save figures
-answer = 'No';
-answer = questdlg('Save results?','Save','Yes','No',answer);
+if isempty(saveFlag)
+    answer = 'No';
+    answer = questdlg('Save figures?','Save','Yes','No',answer);
+else
+    if saveFlag
+        answer = 'Yes';
+    else
+        answer = 'No';
+    end
+end
 if strcmp(answer,'Yes')
     if ~exist([pathname resFolder],'dir')
         mkdir([pathname resFolder]);

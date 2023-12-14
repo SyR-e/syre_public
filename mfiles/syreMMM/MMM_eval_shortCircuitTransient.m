@@ -13,7 +13,7 @@
 %    limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [SCresults] = MMM_eval_shortCircuitTransient(motorModel)
+function [SCresults,resFolderOut] = MMM_eval_shortCircuitTransient(motorModel,saveFlag)
 
 % load data
 fdfq   = motorModel.FluxMap_dq;
@@ -27,10 +27,14 @@ nCycle = motorModel.WaveformSetup.nCycle;
 nPoints = 1000;
 % flagPlot = 1;
 
-if nCycle<3
-    flagPlot = 1;
+if isfield(motorModel.WaveformSetup,'flagPlot')
+    flagPlot = motorModel.WaveformSetup.flagPlot;
 else
-    flagPlot = 0;
+    if nCycle<3
+        flagPlot = 1;
+    else
+        flagPlot = 0;
+    end
 end
 
 if n==0
@@ -130,6 +134,7 @@ if ~contains(gammaStr,'d')
 end
 resFolder = [motName '_results\MMM results\' 'TransientSC - ' iStr '_' gammaStr '_' int2str(n) 'rpm' '_' int2str(motorModel.data.tempPM) 'degPM_' int2str(motorModel.data.tempCu) 'degCu' '\'];
 
+resFolderOut = [pathname resFolder];
 
 hfig(1) = figure();
 figSetting();
@@ -366,14 +371,25 @@ SCresults.n       = n;
 
 %% save data and figures
 
-answer = 'No';
-answer = questdlg('Save results?','Save','Yes','No',answer);
+%% Save figures
+if nargin()==1
+    answer = 'No';
+    answer = questdlg('Save figures?','Save','Yes','No',answer);
+else
+    if saveFlag
+        answer = 'Yes';
+    else
+        answer = 'No';
+    end
+end
+
 if strcmp(answer,'Yes')
     if ~exist([pathname resFolder],'dir')
         mkdir([pathname resFolder]);
     end
     
-    save([pathname resFolder 'TransientShortCircuitResults.mat'],'SCresults')
+    save([pathname resFolder 'TransientShortCircuitResults.mat'],'motorModel','SCresults');
+
     for ii=1:length(hfig)
         savePrintFigure(hfig(ii));
     end

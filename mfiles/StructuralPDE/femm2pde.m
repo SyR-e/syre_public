@@ -21,6 +21,9 @@ evalSpeed = simSetup.evalSpeed;
 filename  = simSetup.filename;
 pathname  = simSetup.pathname;
 
+if ~isfield(geo,'custom')
+    geo.custom = 0;
+end
 
 % load data from input structures
 % rotor = geo.rotor;

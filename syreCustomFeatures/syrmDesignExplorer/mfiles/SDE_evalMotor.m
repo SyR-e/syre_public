@@ -12,26 +12,55 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function SDE_evalMotor(map)
+function [out] = SDE_evalMotor(map,flagOut)
+
+if nargin()==1
+    flagOut = 0;
+end
+
+if ~flagOut
+    out = [];
+end
 
 x = map.xSelect;
 b = map.bSelect;
 
-dataAvailable = map.dataAvailable;
+if isfield('dataAvailable',map)
+    dataAvailable = map.dataAvailable;
+else
+    dataAvailable = fieldnames(map);
+end
 
-disp(['-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-'])
+if ~flagOut
+    disp(['-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-'])
+end
+
 for ii=1:length(dataAvailable)
     switch dataAvailable{ii}
-        case {'hc_pu','NsI0_hc','hc','dx','geo','Br','xRaw','bRaw','dataSet','PMdim','sk','mechStressRad','mechStressTan','kmechrad','kmechtan'}
+        case {'hc_pu','NsI0_hc','hc','dx','geo','Br','xRaw','bRaw','dataSet','PMdim','sk','mechStressRad','mechStressTan','kmechrad','kmechtan','dataAvailable','dataSelect'}
             flagDisp=0;
 
         otherwise
             flagDisp=1;
     end
     if flagDisp
-        command = ['tmp = interp2(map.xx,map.bb,map.' dataAvailable{ii} '.*ones(size(map.xx)),x,b);'];
-        eval(command);
-        disp([dataAvailable{ii} ' = ' num2str(tmp)]);
+        % command = ['tmp = interp2(map.xx,map.bb,map.' dataAvailable{ii} '.*ones(size(map.xx)),x,b);'];
+        % eval(command);
+        tmp = interp2(map.xx,map.bb,map.(dataAvailable{ii}).*ones(size(map.xx)),x,b);
+        if ~flagOut
+            disp([dataAvailable{ii} ' = ' num2str(tmp)]);
+        else
+            out.(dataAvailable{ii}) = tmp;
+        end
     end
 end
-disp(['-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-'])
+
+if ~flagOut
+    disp(['-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-'])
+end
+
+
+if nargout()==0
+    clear out
+end
+

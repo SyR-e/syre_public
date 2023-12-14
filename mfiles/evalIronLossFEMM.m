@@ -469,16 +469,16 @@ switch method
         ppm_no3D = 1/2*mat.LayerMag.sigmaPM*(2*pi*freq).^2.*(abs(Jm)).^2.*vol.*Crf;
         ppm = 1/2*mat.LayerMag.sigmaPM*(2*pi*freq).^2.*(abs(Jm)).^2.*vol.*Crf.*Cef;
         
-%         tmp = sum(ppm_noRF,2);
+%         tmp = sum(ppm_noRFno3D,2);
 %         ppmold_plot = tmp((1:(nsim/2)-1));
 %         
 %         tmp = sum(ppm,2);
 %         ppm_plot = tmp((1:(nsim/2)-1));
 % 
 %         figure
-%         figSetting(13,7,10)
+%         figSetting(14,6,10)
 %         yyaxis left
-%         ylabel('$P_{pm}$ [W]')
+%         ylabel('$P_{PM,stat}$ [W]')
 %         xlabel('$f$ [kHz]')
 %         %bar(freq(1:(nsim/2)-1,5990)/1000,abs(Jm(1:(nsim/2)-1,5980)/max(Jm(1:(nsim/2)-1,5980))),0.5)
 %         bar(freq(1:(nsim/2)-1,1)/1000,ppmold_plot*(2*geo.p/geo.ps),'HandleVisibility','off')
@@ -486,8 +486,9 @@ switch method
 %         yyaxis right
 %         ylabel('$k$')
 %         plot(freq(1:(nsim/2)-1,1)/1000,Crf_array(1:(nsim/2)-1,1),'DisplayName','$k_{rf}$')
-%         plot(freq(1:(nsim/2)-1,1)/1000,Cef_array(1:(nsim/2)-1,1),'DisplayName','$k_{ef}$')
-%  
+%         plot(freq(2:(nsim/2)-1,1)/1000,Cef_array(2:(nsim/2)-1,1),'DisplayName','$k_{ef}$')
+%  xlim([0 35])
+% 
 %         figure
 %         figSetting
 %         plot(PMratio(1:(nsim/2)-1),Crf_array(1:(nsim/2)-1,1))

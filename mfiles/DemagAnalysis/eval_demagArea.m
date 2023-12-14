@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [DemagArea] = eval_demagArea(dataIn)
+function [DemagArea,resFolder] = eval_demagArea(dataIn)
 
 load([dataIn.currentpathname dataIn.currentfilename])
 

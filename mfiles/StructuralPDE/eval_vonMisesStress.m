@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function eval_vonMisesStress(dataIn)
+function [newDir] = eval_vonMisesStress(dataIn)
 
 % Run Structural Simulation in Matlab, at the considered rotor speed.
 % profile on

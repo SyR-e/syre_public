@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function SDE_saveMotor(map,saveFlag)
+function [dataSet] = SDE_saveMotor(map,saveFlag)
 
 dataSet = map.dataSet;
 if numel(map.xx)==1
@@ -103,6 +103,10 @@ else
             clear hApp
         end
     end
+end
+
+if nargout()==0
+    clear dataSet
 end
 
 

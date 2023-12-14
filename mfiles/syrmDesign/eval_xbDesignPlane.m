@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [dataSet,flagS,hfig] = eval_xbDesignPlane(dataSet,debug)
+function [dataSet,flagS,hfig,map] = eval_xbDesignPlane(dataSet,debug)
 %   syrmDesign
 %   Script for preliminary design of a Synchonous Reluctance Machine (SyRM)
 
@@ -114,7 +114,7 @@ if strcmp(dataSet.TypeOfRotor,'SPM')
     map.gamma   = map.gamma+map.dg;
     map.id      = map.iAmp.*cos(map.gamma*pi/180);
     map.iq      = map.iAmp.*sin(map.gamma*pi/180);
-    map.T       = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
+    map.T       = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id)*geo.win.n3phase;
     map.PF      = abs(sin(atan(map.iq./map.id)-atan(map.fq./map.fd)));
     map.mPM     = map.mPM.*map.kmPM;
     map.ich     = map.ich.*map.kich;
@@ -130,7 +130,7 @@ elseif strcmp(dataSet.TypeOfRotor,'Vtype')
     map.gamma = map.gamma+map.dg;
     map.id = map.iAmp.*cos(map.gamma*pi/180);
     map.iq = map.iAmp.*sin(map.gamma*pi/180);
-    map.T   = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
+    map.T   = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id)*geo.win.n3phase;
     map.ich = map.ich.*map.km./map.k0;
 else
     map.fd      = map.fd.*map.kd;
@@ -138,7 +138,7 @@ else
     map.gamma   = map.gamma+map.dg;
     map.id      = map.iAmp.*cos(map.gamma*pi/180);
     map.iq      = map.iAmp.*sin(map.gamma*pi/180);
-    map.T       = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id);
+    map.T       = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id)*geo.win.n3phase;
     map.PF      = abs(sin(atan(map.iq./map.id)-atan(map.fq./map.fd)));
     map.fM      = map.fM.*map.km;
     map.mPM     = map.mPM.*map.kmPM;

@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function eval_fluxMap(dataIn)
+function [NewDir] = eval_fluxMap(dataIn)
 
 % calculates the flux map(id,iq) of an existing machine
 % regular grid of (id,iq) combinations, d,q flux linkages versus id,iq
@@ -343,5 +343,7 @@ dataSet.axisType         = dataIn.axisType;
 save([NewDir,'F_map','.mat'],'dataSet','geo','per','mat','-append');
 save([NewDir,'fdfq_idiq_n256.mat'],'dataSet','geo','per','mat','-append'); 
 
-
+if nargout()==0
+    clear NewDir
+end
 

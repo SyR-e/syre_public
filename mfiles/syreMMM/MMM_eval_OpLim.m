@@ -13,7 +13,7 @@
 %    limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function MMM_eval_OpLim(motorModel)
+function [Plim] = MMM_eval_OpLim(motorModel,saveFlag)
 
 nCurr = motorModel.data.nCurr;
 Imax  = motorModel.data.Imax;
@@ -41,8 +41,17 @@ end
 [hfig,resPath] = OpLimPlot(Plim,Ivect,motorModel);
 
 %% Save figures
-answer = 'No';
-answer = questdlg('Save figures?','Save','Yes','No',answer);
+if nargin()==1
+    answer = 'No';
+    answer = questdlg('Save figures?','Save','Yes','No',answer);
+else
+    if saveFlag
+        answer = 'Yes';
+    else
+        answer = 'No';
+    end
+end
+
 if strcmp(answer,'Yes')
     if ~exist(resPath,'dir')
         mkdir(resPath);

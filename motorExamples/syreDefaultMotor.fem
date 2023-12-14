@@ -2,7 +2,7 @@
 [Frequency]   =  0
 [Precision]   =  1e-008
 [MinAngle]    =  15
-[DoSmartMesh] =  1
+[DoSmartMesh] =  0
 [Depth]       =  134
 [LengthUnits] =  millimeters
 [ProblemType] =  planar

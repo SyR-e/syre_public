@@ -99,7 +99,7 @@ save([pathname 'toothForceOut.mat'],'geo','per','out','forceOut');
 thGapPlot = repmat(thGap,1,size(pGapR,2));
 thRotPlot = repmat(thRot,size(pGapR,1),1);
 
-figure()
+hfig(1) = figure();
 figSetting()
 %view(3)
 xlabel('$\theta_{gap}$ (mech deg)')
@@ -108,8 +108,9 @@ title('$p_r$ (Pa)')
 %scatter3(thGapPlot(:),thRotPlot(:),pGapR(:),[],pGapR(:),'filled','MarkerEdgeColor','none');
 contourf(thGapPlot,thRotPlot,pGapR,'LineStyle','none');
 colorbar()
+set(gcf,'FileName',[pathname 'radial_pressure.fig'])
 
-figure()
+hfig(2) = figure();
 figSetting()
 %view(3)
 xlabel('$\theta_{gap}$ (mech deg)')
@@ -118,25 +119,32 @@ title('$p_t$ (Pa)')
 %scatter3(thGapPlot(:),thRotPlot(:),pGapT(:),[],pGapT(:),'filled','MarkerEdgeColor','none');
 contourf(thGapPlot,thRotPlot,pGapT,'LineStyle','none');
 colorbar()
+set(gcf,'FileName',[pathname 'tangential_pressure.fig'])
 
 nSlotPlot = repmat(1:1:nSlot,1,size(FrTooth,2));
 thRotPlot = repmat(thRot,size(FrTooth,1),1);
 
-figure()
+hfig(3) = figure();
 figSetting()
 view(3)
 xlabel('slot number')
 ylabel('$\theta_{rot}$ (elt deg)')
 zlabel('$F_r$ (Nm)')
 scatter3(nSlotPlot(:),thRotPlot(:),FrTooth(:),[],FrTooth(:),'filled','MarkerEdgeColor','none');
+set(gcf,'FileName',[pathname 'radial_tooth_force.fig'])
 
-figure()
+hfig(4) = figure();
 figSetting()
 view(3)
 xlabel('slot number')
 ylabel('$\theta_{rot}$ (elt deg)')
 zlabel('$F_t$ (Nm)')
 scatter3(nSlotPlot(:),thRotPlot(:),FtTooth(:),[],FtTooth(:),'filled','MarkerEdgeColor','none');
+set(gcf,'FileName',[pathname 'tangential_tooth_force.fig'])
+
+for ii=1:length(hfig)
+    savePrintFigure(hfig(ii));
+end
 
 if nargout()==0
     clear forceOut;

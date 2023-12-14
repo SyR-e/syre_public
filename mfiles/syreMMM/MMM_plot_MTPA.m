@@ -13,7 +13,7 @@
 %    limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function MMM_plot_MTPA(motorModel)
+function MMM_plot_MTPA(motorModel,saveFlag)
 
 MTPA = motorModel.controlTrajectories.MTPA;
 MTPV = motorModel.controlTrajectories.MTPV;
@@ -170,8 +170,17 @@ end
 
 
 %% Save figures
-answer = 'No';
-answer = questdlg('Save figures?','Save','Yes','No',answer);
+if nargin()==1
+    answer = 'No';
+    answer = questdlg('Save figures?','Save','Yes','No',answer);
+else
+    if saveFlag
+        answer = 'Yes';
+    else
+        answer = 'No';
+    end
+end
+
 if strcmp(answer,'Yes')
     if ~exist([pathname resFolder],'dir')
         mkdir([pathname resFolder]);
