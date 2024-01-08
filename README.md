@@ -1,5 +1,7 @@
 # SyR-e
 
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=SyR-e/syre_public)
+
 SyR-e stands for Synchronous Reluctance – evolution. It is an open-source code developed in Matlab/Octave under the Apache Version 2.0 license.
 
 Named after the Synchronous Reluctance machine, it covers the PM-assisted SyR, Interior PM and Surface Mounted PM machine types as well.
@@ -13,4 +15,4 @@ The installation of the magnetic FEA client FEMM is a mandatory prerequisite. Th
 
 Use the Wiki page of the syre_public repository for further information on installation and first run of SyR-e.
 
-[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=SyR-e/syre_public)
+
