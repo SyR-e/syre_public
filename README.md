@@ -12,3 +12,5 @@ SyR-e is available for download on Sourceforge and GitHub. It runs in Matlab 201
 The installation of the magnetic FEA client FEMM is a mandatory prerequisite. The recommended FEMM version is 4.2, updated on April, 21 2019 or later.
 
 Use the Wiki page of the syre_public repository for further information on installation and first run of SyR-e.
+
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=SyR-e/syre_public)
