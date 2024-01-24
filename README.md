@@ -2,6 +2,8 @@
 
 [![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=SyR-e/syre_public)
 
+[![View SyR-e on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://it.mathworks.com/matlabcentral/fileexchange/158216-syr-e)
+
 SyR-e stands for Synchronous Reluctance – evolution. It is an open-source code developed in Matlab/Octave under the Apache Version 2.0 license.
 
 Named after the Synchronous Reluctance machine, it covers the PM-assisted SyR, Interior PM and Surface Mounted PM machine types as well.
