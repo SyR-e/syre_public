@@ -47,7 +47,7 @@ setup.w    = setup.P/setup.T;
 setup.n    = setup.w*30/pi;
 setup.Fmax = setup.Vdc/(sqrt(3)*map.dataSet.NumOfPolePairs*setup.w);
 if isnan(setup.PF)
-    setup.PF   = setup.P/(sqrt(3)/2*setup.Vdc*setup.Imax);
+    setup.PF   = setup.P/(sqrt(3)/2*setup.Vdc*setup.Imax*map.dataSet.Num3PhaseCircuit);
 end
 nPoints = 1001;
 
@@ -74,7 +74,7 @@ colors = [colors;colors;colors;colors];
 colors = [colors;colors;colors;colors];
 
 contour(map.xx,map.bb,map.T,'-','EdgeColor',colors(2,:),'LineWidth',1,'ShowText','on','DisplayName','$T$ [Nm]');
-contour(map.xx,map.bb,map.PF,'-','EdgeColor',colors(1,:),'LineWidth',1,'ShowText','on','DisplayName','$cos \varphi$ [Nm]');
+contour(map.xx,map.bb,map.PF,'-','EdgeColor',colors(1,:),'LineWidth',1,'ShowText','on','DisplayName','$cos \varphi$');
 contour(map.xx,map.bb,map.T,'-','EdgeColor',colors(2,:),'LineWidth',2,'ShowText','on','DisplayName',['$T=' num2str(setup.T) '$ Nm'],'LevelList',setup.T);
 contour(map.xx,map.bb,map.PF,'-','EdgeColor',colors(1,:),'LineWidth',2,'ShowText','on','DisplayName',['$cos \varphi=' num2str(setup.PF) '$'],'LevelList',setup.PF);
 contour(map.xx,map.bb,map.NsI0./setup.Imax,'-','EdgeColor',colors(6,:),'LineWidth',1,'ShowText','on','DisplayName','$N_s\cdot I_{max}$','LevelList',setup.Ns,'LabelFormat','Ns=%d');
@@ -102,7 +102,7 @@ set(hfig(1),'UserData',map);
 
 
 contour(map.xx,map.bb,map.T,'-','EdgeColor','k','LineWidth',1,'ShowText','on','DisplayName','$T$ [Nm]');
-contour(map.xx,map.bb,map.PF,'--','EdgeColor','k','LineWidth',1,'ShowText','on','DisplayName','$cos \varphi$ [Nm]');
+contour(map.xx,map.bb,map.PF,'--','EdgeColor','k','LineWidth',1,'ShowText','on','DisplayName','$cos \varphi$');
 contour(map.xx,map.bb,map.T,'-','EdgeColor','k','LineWidth',2,'ShowText','on','DisplayName',['$T=' num2str(setup.T) '$ Nm'],'LevelList',setup.T);
 contour(map.xx,map.bb,map.PF,'--','EdgeColor','k','LineWidth',2,'ShowText','on','DisplayName',['$cos \varphi=' num2str(setup.PF) '$'],'LevelList',setup.PF);
 contour(map.xx,map.bb,map.NsI0./setup.Imax,':','EdgeColor','k','LineWidth',1,'ShowText','on','DisplayName','$N_s\cdot I_{max}$','LevelList',setup.Ns,'LabelFormat','Ns=%d');

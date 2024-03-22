@@ -30,22 +30,22 @@ syreDirectory = fileparts(which('GUI_Syre.mlapp'));
 addpath('C:\femm42\mfiles');
 addpath(fullfile(syreDirectory));
 addpath(fullfile(syreDirectory,'mfiles'));
-addpath(fullfile(syreDirectory,'mfiles','MODE'));
-addpath(fullfile(syreDirectory,'mfiles','syrmDesign'));
-addpath(fullfile(syreDirectory,'mfiles','DemagAnalysis'));
-addpath(fullfile(syreDirectory,'mfiles','MaterialLibraryFunctions'));
-addpath(fullfile(syreDirectory,'mfiles','StructuralPDE'));
-addpath(fullfile(syreDirectory,'mfiles','syreMMM'));
-addpath(fullfile(syreDirectory,'mfiles','OctaveFunctions'));
+addpath(genpath(fullfile(syreDirectory,'mfiles','MODE')));
+addpath(genpath(fullfile(syreDirectory,'mfiles','syrmDesign')));
+addpath(genpath(fullfile(syreDirectory,'mfiles','DemagAnalysis')));
+addpath(genpath(fullfile(syreDirectory,'mfiles','MaterialLibraryFunctions')));
+addpath(genpath(fullfile(syreDirectory,'mfiles','StructuralPDE')));
+addpath(genpath(fullfile(syreDirectory,'mfiles','syreMMM')));
+addpath(genpath(fullfile(syreDirectory,'mfiles','OctaveFunctions')));
 
 addpath (fullfile(syreDirectory,'materialLibrary'));
 addpath (fullfile(syreDirectory,'motorExamples'));
 
-addpath (fullfile (syreDirectory,'syreExport'));
-addpath(genpath(fullfile(syreDirectory,'syreExport\syre_Dxf')));
-addpath(genpath(fullfile(syreDirectory,'syreExport\syre_MagNet')));
-addpath(genpath(fullfile(syreDirectory,'syreExport\syre_MotorCAD')));
-addpath(genpath(fullfile(syreDirectory,'syreExport\syre_AnsysMaxwell')));
+addpath(genpath(fullfile(syreDirectory,'syreExport')));
+% addpath(genpath(fullfile(syreDirectory,'syreExport\syre_Dxf')));
+% addpath(genpath(fullfile(syreDirectory,'syreExport\syre_MagNet')));
+% addpath(genpath(fullfile(syreDirectory,'syreExport\syre_MotorCAD')));
+% addpath(genpath(fullfile(syreDirectory,'syreExport\syre_AnsysMaxwell')));
 
 % check additional features (custom functions)
 addpath(fullfile(syreDirectory,'syreCustomFeatures'));

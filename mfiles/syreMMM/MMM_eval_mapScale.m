@@ -86,6 +86,7 @@ iq   = nan(size(l));
 fd   = nan(size(l));
 fq   = nan(size(l));
 iHWC = nan(size(l));
+ich  = nan(size(l));
 
 kL = l/l0;
 kN = Ns/Ns0;
@@ -111,6 +112,7 @@ for ii=1:length(index)
     T(ii) = interp1(abs(id_MTPA+j*iq_MTPA),T_MTPA,Imax);
 
     iHWC(ii) = interp1(fTmp*kN(ii)*kL(ii),iTmp/kN(ii),abs(fd(ii)+j*fq(ii)),'linear','extrap');
+    ich(ii)  = interp1(fTmp*kN(ii)*kL(ii),iTmp/kN(ii),0,'linear','extrap');
 end
 
 loss = 3/2*Rs.*abs(id+j*iq).^2;
@@ -142,8 +144,10 @@ else
 end
 mapScale.Idemag     = Idemag;
 mapScale.iHWC       = iHWC;
+mapScale.ich        = ich;
 mapScale.fM         = fM;
 mapScale.nUGO       = nUGO;
+mapScale.P          = mapScale.T.*mapScale.n*pi/30;
 
 mapScale.motorModel = motorModel;
 

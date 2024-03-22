@@ -15,13 +15,50 @@
 
 function MMM_plot_VSgamma(motorModel)
 
+flag4Q = 1;
+if flag4Q
+    warning('Debug mode active...4Q plots')
+end
+
+fdfq = motorModel.FluxMap_dq;
+% mirror the flux maps, if needed
+if strcmp(motorModel.data.axisType,'SR')
+    if min(fdfq.Id,[],'all')>=0
+        fdfq.Id = [-fliplr(fdfq.Id(:,2:end)) fdfq.Id];
+        fdfq.Iq = [fdfq.Iq(:,2:end) fdfq.Iq];
+        fdfq.Fd = [-fliplr(fdfq.Fd(:,2:end)) fdfq.Fd];
+        fdfq.Fq = [fliplr(fdfq.Fq(:,2:end)) fdfq.Fq];
+        fdfq.T  = [-fliplr(fdfq.T(:,2:end)) fdfq.T];
+        fdfq.dTpp = [fliplr(fdfq.dTpp(:,2:end)) fdfq.dTpp];
+    end
+    if strcmp(motorModel.data.motorType,'SR')
+        if min(fdfq.Iq,[],'all')>=0
+            fdfq.Id = [fdfq.Id(2:end,:);fdfq.Id];
+            fdfq.Iq = [-flipud(fdfq.Iq(2:end,:));fdfq.Iq];
+            fdfq.Fd = [flipud(fdfq.Fd(2:end,:));fdfq.Fd];
+            fdfq.Fq = [-flipud(fdfq.Fq(2:end,:));fdfq.Fq];
+            fdfq.T  = [-flipud(fdfq.T(2:end,:));fdfq.T];
+            fdfq.dTpp  = [flipud(fdfq.dTpp(2:end,:));fdfq.dTpp];
+        end
+    end
+else
+    if min(fdfq.Iq,[],'all')>=0
+        fdfq.Id = [fdfq.Id(2:end,:);fdfq.Id];
+        fdfq.Iq = [-flipud(fdfq.Iq(2:end,:));fdfq.Iq];
+        fdfq.Fd = [flipud(fdfq.Fd(2:end,:));fdfq.Fd];
+        fdfq.Fq = [-flipud(fdfq.Fq(2:end,:));fdfq.Fq];
+        fdfq.T  = [-flipud(fdfq.T(2:end,:));fdfq.T];
+        fdfq.dTpp  = [flipud(fdfq.dTpp(2:end,:));fdfq.dTpp];
+    end
+end
+
 % load data
-Id   = motorModel.FluxMap_dq.Id;
-Iq   = motorModel.FluxMap_dq.Iq;
-Fd   = motorModel.FluxMap_dq.Fd;
-Fq   = motorModel.FluxMap_dq.Fq;
-T    = motorModel.FluxMap_dq.T;
-dTpp = motorModel.FluxMap_dq.dTpp;
+Id   = fdfq.Id;
+Iq   = fdfq.Iq;
+Fd   = fdfq.Fd;
+Fq   = fdfq.Fq;
+T    = fdfq.T;
+dTpp = fdfq.dTpp;
 
 % nCurr = motorModel.data.nCurr;
 % i0    = motorModel.data.i0;
@@ -41,12 +78,17 @@ IPF = sin(atan2(Iq,Id)-atan2(Fq,Fd));
 
 % Imax = min([Imax,IdMax,IqMax]);
 
-numPoints = 46;
-
-if strcmp(axisType,'SR')
-    gammaVect = linspace(0,90,numPoints);
+if flag4Q
+    numPoints = 500;
+    gammaVect = linspace(0,360,numPoints);
 else
-    gammaVect = linspace(90,180,numPoints);
+    numPoints = 46;
+    
+    if strcmp(axisType,'SR')
+        gammaVect = linspace(0,90,numPoints);
+    else
+        gammaVect = linspace(90,180,numPoints);
+    end
 end
 
 

@@ -99,6 +99,7 @@ while ~done
     
     % rotor bar currents
     ibar = kturns(1) * dq2bar(0,iR,(th(1)-thR-offset(1))*pi/180,Nbars/p);
+    ibar = repmat(ibar,[p 1]);
 
     % rotor current in FEMM
     
@@ -137,7 +138,7 @@ while ~done
         FbarTot = [FbarTot -FbarTot];
     end
     % flussi dq rotore (calcolo diretto da barre)
-    fdqR = kturns(1)*Nbars/3*bar2dq(FbarTot',thR*pi/180,Nbars/p);
+    fdqR = kturns(1)*Nbars/3*bar2dq(FbarTot(1:Nbars/p)',thR*pi/180,Nbars/p);
 
     if iq==0
         kr=0;
@@ -172,8 +173,11 @@ while ~done
     ii = ii+1;
 end
 
-
-T = -mo_gapintegral('AGap',0);
+if ps==2*p
+    T = 3/2*p*(fdq(1)*iq+fdq(2)*id);
+else
+    T = -mo_gapintegral('AGap',0);
+end
 
 mo_groupselectblock();
 we = mo_blockintegral(2)*2*p/ps;

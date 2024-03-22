@@ -49,7 +49,7 @@ if nargin==0
     
 else
     pathname = [dataSet.currentpathname dataSet.currentfilename(1:end-4) '_results\FEA results\' dataSet.currentfilename(1:end-4) '_slotModel\'];
-    filename = [dataSet.currentfilename(1:end-4) '_slotModel.fem'];
+    filename = ['slotModel.fem'];
     fRef     = dataSet.SlotConductorFrequency;
     tRef     = dataSet.SlotConductorTemperature;
 end

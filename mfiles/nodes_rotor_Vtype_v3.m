@@ -273,83 +273,6 @@ beta_pu = (1-beta*2/pi)*p/(p-1);
 
 %%MODIFICA
 
-%% Shaft check #2
-% shaft check is repeated after the barrier intersection check, since,
-% after this check, barriers can move towards the shaft. After this check,
-% the intersection barriers check is repeated, starting from the inner
-% barrier.
-
-% Bx0 = xcbar-(ycbar./tan(beta));                                
-% B1k = Bx0-hc/2./sin(beta);
-% B2k = Bx0+hc/2./sin(beta);
-% 
-% intShaft=B1k(end)-Ar-hfe_min;
-% if intShaft<0
-%     disp('#2bis barrier cross shaft after barrier intersection')
-%     tmp = calc_Vtype_angle_lim(geo);
-%     beta(end) = tmp(end);
-%     Bx0   = xcbar-(ycbar./tan(beta));
-%     B1k   = Bx0-hc/2./sin(beta);
-%     B2k   = Bx0+hc/2./sin(beta);
-% end
-% 
-% beta_pu = (1-beta*2/pi)*p/(p-1);
-% 
-% geo.betaPMshape = beta_pu;
-% geo.beta    = beta;
-% 
-% 
-% for ii=nlay:-1:2
-%     if B2k(ii)>(B1k(ii-1)-hfe_min)
-%         B1k(ii-1) = B2k(ii)+hfe_min;
-%         
-%         aTmp = (B1k(ii-1)-xcbar(ii-1)).^2-(hc(ii-1)/2).^2;
-%         bTmp = -2*(B1k(ii-1)-xcbar(ii-1)).*(0-ycbar(ii-1));
-%         cTmp = (0-ycbar(ii-1)).^2-(hc(ii-1)/2).^2;
-%         m1 = (-bTmp+(bTmp.^2-4*aTmp.*cTmp).^0.5)./(2*aTmp);
-%         m2 = (-bTmp-(bTmp.^2-4*aTmp.*cTmp).^0.5)./(2*aTmp);
-%         
-%         beta1 = atan(m1);
-%         beta2 = atan(m2);
-%         
-%         if beta1<0
-%             beta1=beta1+pi;
-%         end
-%         if beta1>pi/2
-%             beta1 = pi/2;
-%         end
-%         if beta1<betaLim(ii-1)
-%             beta1 = betaLim(ii-1);
-%         end
-%         
-%         if beta2<0
-%             beta2=beta2+pi;
-%         end
-%         if beta2>pi/2
-%             beta2 = pi/2;
-%         end
-%         if beta2<betaLim(ii-1)
-%             beta2 = betaLim(ii-1);
-%         end
-%                     
-%         if beta1>beta2                  
-%             beta(ii-1)=beta1;
-%         else
-%             beta(ii-1)=beta2;
-%         end
-%         
-%         Bx0(ii-1) = xcbar(ii-1)-(ycbar(ii-1)./tan(beta(ii-1)));
-%         B1k(ii-1) = Bx0(ii-1)-hc(ii-1)/2./sin(beta(ii-1));
-%         B2k(ii-1) = Bx0(ii-1)+hc(ii-1)/2./sin(beta(ii-1));
-%         
-%     end
-% end
-% 
-% beta_pu = (1-beta*2/pi)*p/(p-1);
-% 
-% geo.betaPMshape = beta_pu;
-% geo.beta    = beta;
-
 %% MODIFICA
 %Shaft check #3
 %First step
@@ -476,94 +399,52 @@ for ii=1:nlay % controlla se utilizzare calcolo matriciale invece di ciclo for
         YpontRadBarDx(ii) = 0;
         XpontRadBarSx(ii) = B1k(ii);
         YpontRadBarSx(ii) = 0;
-        
-%         xS01(ii)=NaN;
-%         yS01(ii)=NaN;
-%           
-%         xS02(ii)=NaN;
-%         yS02(ii)=NaN;
     else
-        
-        %         racc_pont = pont0;
-%         if pont0>abs(B2k(ii)-B1k(ii))
-%             racc_pont = (B2k(ii)-B1k(ii))/3;
-%         end
+        a0 = 0;
+        b0 = 1;
+        c0 = -pontR(ii)/2;
+        [a1,b1,c1] = retta_per_2pti(B1k(ii),0,xxD1k(ii),yyD1k(ii));
+        [a2,b2,c2] = retta_per_2pti(B2k(ii),0,xxD2k(ii),yyD2k(ii));
 
+        [m0,q0,~]=retta_abc2mq(a0,b0,c0);
+        [m1,q1,~]=retta_abc2mq(a1,b1,c1);
+        [m2,q2,~]=retta_abc2mq(a2,b2,c2);
 
-         
-  
-         a0 = 0;
-         b0 = 1;
-         c0 = -pontR(ii)/2;
-         [a1,b1,c1] = retta_per_2pti(B1k(ii),0,xxD1k(ii),yyD1k(ii));
-         [a2,b2,c2] = retta_per_2pti(B2k(ii),0,xxD2k(ii),yyD2k(ii));
-         
-         [m0,q0,~]=retta_abc2mq(a0,b0,c0);
-         [m1,q1,~]=retta_abc2mq(a1,b1,c1);
-         [m2,q2,~]=retta_abc2mq(a2,b2,c2);
-         
-          yp1=pontR(ii)/2;
-          xp1=(yp1-q1)./m1;
-          
-          yp2=yp1;
-          xp2=(yp2-q2)./m2;
-          
-          XpontRadSx(ii)=xp1+RotorFillet1(ii);
-          YpontRadSx(ii)=yp1;
-          
-          XpontRadDx(ii)=xp2-RotorFillet2(ii);
-          YpontRadDx(ii)=yp2;
-          
-          a=(1+m1.*m1);
-          b=-2*xp1+2*m1.*(q1-yp1);
-          c=-RotorFillet1(ii).*RotorFillet1(ii)+xp1.^2+(q1-yp1).^2;
-          XpontRadBarSx(ii)=(-b+sqrt(b.^2-4*a.*c))./(2*a);
-          YpontRadBarSx(ii)=m1.*XpontRadBarSx(1,(ii))+q1;
-          
-          a=(1+m2.*m2);
-          b=-2*xp2+2*m2.*(q2-yp2);
-          c=-RotorFillet2(ii).*RotorFillet2(ii)+xp2.^2+(q2-yp2).^2;
-          XpontRadBarDx(ii)=(-b+sqrt(b.^2-4*a.*c))./(2*a);
-          YpontRadBarDx(ii)=m2.*XpontRadBarDx(1,(ii))+q2;
-          
-          m1perp=-1/m1;
-          q1perp=YpontRadBarSx(ii)-m1perp*XpontRadBarSx(ii);
-          
-          m2perp=-1/m2;
-          q2perp=YpontRadBarDx(ii)-m2perp*XpontRadBarDx(ii);
-          
-          xS01(ii)=XpontRadSx(ii);
-          yS01(ii)=m1perp.*xS01(ii)+q1perp;
-          
-          xS02(ii)=XpontRadDx(ii);
-          yS02(ii)=m2perp.*xS02(ii)+q2perp;
-          
-%         a0 = 0;
-%         b0 = 1;
-%         c0 = -pontR(ii)/2;
-%         [a2,b2,c2] = retta_per_2pti(B2k(ii),0,xxD2k(ii),yyD2k(ii));
-%         [a1,b1,c1] = retta_per_2pti(B1k(ii),0,xxD1k(ii),yyD1k(ii));
-%         
-%         racc_pont = pont0;
-%         if pont0>abs(B2k(ii)-B1k(ii))
-%             racc_pont = (B2k(ii)-B1k(ii))/3;
-%         end
-%         
-%         [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0,a2,b2,c2);
-%         XpontRadDx(ii) = xTmp-racc_pont;
-%         YpontRadDx(ii) = yTmp;
-%         [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0-pont0,a2,b2,c2);
-%         XpontRadBarDx(ii) = xTmp;
-%         YpontRadBarDx(ii) = yTmp;
-%         
-%         [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0,a1,b1,c1);
-%         XpontRadSx(ii) = xTmp+racc_pont;
-%         YpontRadSx(ii) = yTmp;
-%         [xTmp,yTmp] = intersezione_tra_rette(a0,b0,c0-pont0,a1,b1,c1);
-%         XpontRadBarSx(ii) = xTmp;
-%         YpontRadBarSx(ii) = yTmp;
+        yp1=pontR(ii)/2;
+        xp1=(yp1-q1)./m1;
 
+        yp2=yp1;
+        xp2=(yp2-q2)./m2;
 
+        XpontRadSx(ii)=xp1+RotorFillet1(ii);
+        YpontRadSx(ii)=yp1;
+
+        XpontRadDx(ii)=xp2-RotorFillet2(ii);
+        YpontRadDx(ii)=yp2;
+
+        a=(1+m1.*m1);
+        b=-2*xp1+2*m1.*(q1-yp1);
+        c=-RotorFillet1(ii).*RotorFillet1(ii)+xp1.^2+(q1-yp1).^2;
+        XpontRadBarSx(ii)=(-b+sqrt(b.^2-4*a.*c))./(2*a);
+        YpontRadBarSx(ii)=m1.*XpontRadBarSx(1,(ii))+q1;
+
+        a=(1+m2.*m2);
+        b=-2*xp2+2*m2.*(q2-yp2);
+        c=-RotorFillet2(ii).*RotorFillet2(ii)+xp2.^2+(q2-yp2).^2;
+        XpontRadBarDx(ii)=(-b+sqrt(b.^2-4*a.*c))./(2*a);
+        YpontRadBarDx(ii)=m2.*XpontRadBarDx(1,(ii))+q2;
+
+        m1perp=-1/m1;
+        q1perp=YpontRadBarSx(ii)-m1perp*XpontRadBarSx(ii);
+
+        m2perp=-1/m2;
+        q2perp=YpontRadBarDx(ii)-m2perp*XpontRadBarDx(ii);
+
+        xS01(ii)=XpontRadSx(ii);
+        yS01(ii)=m1perp.*xS01(ii)+q1perp;
+
+        xS02(ii)=XpontRadDx(ii);
+        yS02(ii)=m2perp.*xS02(ii)+q2perp;
     end
 end
 
@@ -865,6 +746,9 @@ temp.xPME2b = xPME2b;
 temp.yPME2b = yPME2b;
 temp.xPME2t = xPME2t;
 temp.yPME2t = yPME2t;
+
+temp.mirrorFlag    = ones(size(xc));
+temp.mirrorFlagAir = ones(size(xair));
 
 %mat.LayerMag.Br = [mat.LayerMag.Br mat.LayerMag.Br];
 mat.LayerMag.Br = mat.LayerMag.Br(1).*ones(1,nlay*2);

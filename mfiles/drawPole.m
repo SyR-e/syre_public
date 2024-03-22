@@ -20,7 +20,7 @@ function [geo,temp,mat] = drawPole(geo,mat,fem)
 
 geo.delta_FBS=0; % no pole deformation
 flagVtype = 1; % if 0, use Marco Gallo Vtype version, else use Simone Ferrari version (ready for syrmDesign)
-if ~strcmp(geo.RotType,'SPM')
+if ~strcmp(geo.RotType,'SPM') || ~strcmp(geo.RotType,'Spoke-type')
     mat.LayerMag.Br = mat.LayerMag.Br.*ones(1,geo.nlay);   % replicate Br in case it is scalar
 end
 
@@ -56,6 +56,10 @@ switch geo.RotType
             [geo,mat,temp] = nodes_rotor_Vtype(geo,mat);
             rotor=build_matrix_Vtype(temp,geo);
         end
+    case 'Spoke-type'
+        % build nodes , lines and arcs for half a pole
+        [geo,mat,temp] = nodes_rotor_Spoke(geo,mat);
+        rotor = build_matrix_Spoke(temp,geo);
 end
 
 % check about the PM area (to add to the nodes_rotor_xxx.m functions)

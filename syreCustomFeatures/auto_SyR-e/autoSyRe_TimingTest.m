@@ -97,14 +97,15 @@ for ii=1:length(nVector)
     dataSet.FEAfixN = nVector(ii);
     
     % Design equations
-    switch dataSet.TypeOfRotor
-        case 'SPM'
-            map = syrmDesign_SPM(dataSet);
-        case 'Vtype'
-            map = syrmDesign_Vtype(dataSet);
-        otherwise
-            map = syrmDesign_SyR(dataSet);
-    end
+    % switch dataSet.TypeOfRotor
+    %     case 'SPM'
+    %         map = syrmDesign_SPM(dataSet);
+    %     case 'Vtype'
+    %         map = syrmDesign_Vtype(dataSet);
+    %     otherwise
+    %         map = syrmDesign_SyR(dataSet);
+    % end
+    map = xbPlane_analyticalDesign(dataSet);
     
     % FEAfix
     if dataSet.FEAfixN==0

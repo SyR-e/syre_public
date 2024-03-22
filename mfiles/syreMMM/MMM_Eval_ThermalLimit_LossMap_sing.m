@@ -24,6 +24,8 @@ invoke(mcad,'SetVariable','ShaftSpeed',speed);
 
 Pfe_s = loss(:,2);
 Pfe_s = Pfe_s(isfinite(Pfe_s));
+Pj_s = loss(:,5);
+Pj_s = Pj_s(isfinite(Pj_s));
 
 %%% stator loss split between yoke and teeth
 [~,wt]  = invoke(mcad,'GetVariable','Tooth_Width');
@@ -57,9 +59,11 @@ end
 
 while flag==1
     if kk==1
-        index = floor(length(Pfe_s)/4);
+        % index = floor(length(Pfe_s)/4);
+        index = floor(length(Pj_s)/6);
     elseif kk==2
-        index = floor(length(Pfe_s)/4*3);
+        % index = floor(length(Pfe_s)/4*3);
+        index = floor(length(Pj_s)/6*2);
     elseif kk>2 && kk<30
         %lossTest(kk-1) = loss(index,end);
         if flagPM
@@ -91,7 +95,7 @@ while flag==1
     Pfey_init = (1-ratio_pfe)*Pfe_init;
     Pfer_init = loss(index,3);
     Ppm_init  = loss(index,4);
-    Pjs_init  = loss(index,5);
+    Pjs_init  = loss(index,5)
     invoke(mcad,'SetVariable','Stator_Iron_Loss_@Ref_Speed_[Tooth]', Pfet_init);
     invoke(mcad,'SetVariable','Stator_Iron_Loss_@Ref_Speed_[Back_Iron]', Pfey_init);
     invoke(mcad,'SetVariable','Magnet_Iron_Loss_@Ref_Speed', Ppm_init);
@@ -121,7 +125,7 @@ while flag==1
             flagPM = 1;
             Tpm(jj) = MagnetTemperature;
             jj = jj + 1; 
-        elseif  (MagnetTemperature<Tpm_lim-5 || MagnetTemperature>Tpm_lim+5) && flagPM==1
+        elseif  (MagnetTemperature<Tpm_lim-15 || MagnetTemperature>Tpm_lim+15) && flagPM==1
             flag = 1;
             %flagPM = 1;
             Tpm(jj) = MagnetTemperature;
@@ -141,9 +145,9 @@ while flag==1
         plot(hax(1),loss(index,end),WindingTemperature_Max(kk),'o','DisplayName', [num2str(kk) ' iteration'])
         hleg(1) = legend(hax(1),'show');
         set(hleg(1),'Location','northwest');
-%         plot(hax(2),loss(index,end),MagnetTemperature,'o','DisplayName', [num2str(kk) ' iteration'])
-%         hleg(2) = legend(hax(2),'show');
-%         set(hleg(2),'Location','northwest');
+        plot(hax(2),loss(index,end),MagnetTemperature,'o','DisplayName', [num2str(kk) ' iteration'])
+        hleg(2) = legend(hax(2),'show');
+        set(hleg(2),'Location','northwest');
     end
 
     kk = kk + 1;

@@ -105,6 +105,24 @@ end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
+% Statistics and Machine Learning Toolbox
+disp('Statistics and Machine Learning Toolbox check...')
+flag=0;
+
+for ii=1:length(test)
+    if strcmp(test(ii).Name,'Statistics and Machine Learning Toolbox')
+        flag=1;
+    end
+end
+
+if ~flag
+    disp('(x)Statistics and Machine Learning Toolbox not available')
+else
+    disp('(v)Statistics and Machine Learning Toolbox available')
+end
+
+disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+
 % Simulink
 disp('Simulink/Simscape check...')
 flag=0;

@@ -22,22 +22,18 @@ function [geo,stator,BLKLABELSstat] = STATmatr(geo,fem)
 % the description of arches
 % the nodes where block labels must be placed
 
-Qs = geo.Qs;
-ps = geo.ps;
-% ns = geo.ns;
-%acs = geo.acs;
-avv = geo.win.avv;
-lt = geo.lt;
-wt = geo.wt;
-p = geo.p;
-q = geo.q;
-R = geo.R;
-r = geo.r;
-g = geo.g;
-n3ph = geo.win.n3phase;
-% ttd = geo.ttd;
-% tta = geo.tta;
-% RaccordoFC = geo.SFR;
+Qs           = geo.Qs;
+ps           = geo.ps;
+avv          = geo.win.avv;
+lt           = geo.lt;
+p            = geo.p;
+q            = geo.q;
+R            = geo.R;
+r            = geo.r;
+g            = geo.g;
+n3ph         = geo.win.n3phase;
+pont0        = geo.pont0;
+flagDivision = geo.statorYokeDivision;  % division line for end-winding extrusion (GalFer Challenge 2024)
 
 % mesh resolution
 res     = fem.res;
@@ -129,6 +125,11 @@ if (ps<2*p)
     ysi1 = 0;
     xsi2 = (r+g)*cos(pi/p*ps);
     ysi2 = (r+g)*sin(pi/p*ps);
+
+    xsm1 = RS5+pont0;
+    ysm1 = 0;
+    xsm2 = (RS5+pont0)*cos(pi/p*ps);
+    ysm2 = (RS5+pont0)*sin(pi/p*ps);
     
     stator = [stator
         xsi1 ysi1 xse1 yse1 NaN  NaN   0 codMatFeSta    indexEle+1
@@ -136,6 +137,11 @@ if (ps<2*p)
         xse2 yse2 xsi2 ysi2 NaN  NaN   0 codMatFeSta    indexEle+1
         0    0    xsi2 ysi2 xsi1 ysi1 -1 codMatFeSta    indexEle+1
         ];
+    if flagDivision
+        stator = [stator
+            0    0    xsm1 ysm1 xsm2 ysm2 +1 codMatFeSta    0
+            ];
+    end
 else
     % full machine
     xse1 = R;
@@ -147,6 +153,11 @@ else
     ysi1 = 0;
     xsi2 = -(r+g);
     ysi2 = 0;
+
+    xsm1 = RS5+pont0;
+    ysm1 = 0;
+    xsm2 = -(RS5+pont0);
+    ysm2 = 0;
     
     stator = [stator
         0 0 xse1 yse1 xse2 yse2 1 codMatFeSta indexEle+1
@@ -154,9 +165,15 @@ else
         0 0 xsi1 ysi1 xsi2 ysi2 1 codMatFeSta indexEle+1
         0 0 xsi2 ysi2 xsi1 ysi1 1 codMatFeSta indexEle+1
         ];
+    if flagDivision
+        stator = [stator
+            0 0 xsm1 ysm1 xsm2 ysm2 1 codMatFeSta 0
+            0 0 xsm2 ysm2 xsm1 ysm1 1 codMatFeSta 0
+            ];
+    end
 end
 
-% reorder the stator matrix (before the boundary conditions
+% reorder the stator matrix (before the boundary conditions)
 
 stator = [stator(end-3:end,:); stator(1:end-4,:)];
 
@@ -192,12 +209,18 @@ yBoundRSE = RSE*sin(thBoundRSE);
 
 BoundRSE = [xBoundRSE,yBoundRSE,codBound_FluxTan*ones(size(thBoundRSE))];
 
-[xBoundLAT1,yBoundLAT1]=rot_point(mean([RSI,RSE]),0,0);
-[xBoundLAT2,yBoundLAT2]=rot_point(mean([RSI,RSE]),0,Qs*alpha_slot);
+[xBoundLAT1,yBoundLAT1] = rot_point(mean([RSE,(RS5+pont0)]),0,0);
+[xBoundLAT2,yBoundLAT2] = rot_point(mean([RSE,(RS5+pont0)]),0,Qs*alpha_slot);
+
+[xBoundLAT3,yBoundLAT3] = rot_point(mean([RSI,(RS5+pont0)]),0,0);
+[xBoundLAT4,yBoundLAT4] = rot_point(mean([RSI,(RS5+pont0)]),0,Qs*alpha_slot);
+
 
 BoundLAT=[
     xBoundLAT1 yBoundLAT1 codBound_periodic
     xBoundLAT2 yBoundLAT2 codBound_periodic
+    xBoundLAT3 yBoundLAT3 codBound_periodic
+    xBoundLAT4 yBoundLAT4 codBound_periodic
     ];
 
 %% OUTPUT

@@ -14,55 +14,72 @@
 
 function motorModel = MMM_createSimulinkModel(motorModel)
 
-% Check models
+n_set = motorModel.data.n3phase;
+
+%% ------------------------- Compute Motor Maps----------------------------%
 if isempty(motorModel.controlTrajectories)
     motorModel.controlTrajectories = MMM_eval_AOA(motorModel,'LUT');
 end
-if isempty(motorModel.FluxMapInv_dq)
-    motorModel.FluxMapInv_dq = MMM_eval_inverseModel_dq(motorModel);
+
+motorModel.FluxMapInv_dq = MMM_eval_inverse_dq_Simulink(motorModel); 
+
+if isempty(motorModel.FluxMapInv_dqt)
+    motorModel.FluxMapInv_dqt = MMM_eval_inverse_dqtMap(motorModel);
 end
+
 if isempty(motorModel.IncInductanceMap_dq)
     motorModel.IncInductanceMap_dq = MMM_eval_inductanceMap(motorModel);
 end
 
-modelType = motorModel.SyreDrive.modelType;
+%% -----------------------------Simulink Generation-----------------------%
 
-switch(modelType)
-    case 'Average'
-        ctrlFolder_name = [motorModel.data.motorName '_ctrl_AVG'];
+if(n_set>1)
+    Generate_MultiThreePhase_Simulink(motorModel,n_set);
+else
 
-    case 'Istantaneous'
-        ctrlFolder_name = [motorModel.data.motorName '_ctrl_INST'];
+    modelType = motorModel.SyreDrive.modelType;
+    
+    switch(modelType)
+        case 'Average'
+            ctrlFolder_name = [motorModel.data.motorName '_ctrl_AVG'];
+    
+        case 'Istantaneous'
+            ctrlFolder_name = [motorModel.data.motorName '_ctrl_INST'];
+    end
+    
+    ctrlFolder_path = [motorModel.data.pathname ctrlFolder_name];
+    
+    syrePath = fileparts(which('GUI_Syre.mlapp'));
+    
+    switch(modelType)
+        case 'Average'
+            copyfile([syrePath '\syreDrive\AVGModel'], ctrlFolder_path);
+            movefile([ctrlFolder_path '\Motor_ctrl_AVG.slx'],[ctrlFolder_path '\' motorModel.data.motorName '_ctrl_AVG.slx']);
+        case 'Istantaneous'
+            copyfile([syrePath '\syreDrive\INSTModel'], ctrlFolder_path);
+            movefile([ctrlFolder_path '\Motor_ctrl_INST.slx'],[ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx']);
+    end
+    
+    
+    MMM_print_MotorDataH(motorModel);
+    
+    switch(modelType)
+        case 'Average'
+            motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_ctrl_AVG.slx'];
+    
+        case 'Istantaneous'
+            motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx'];
+    end
+    
+    save([ctrlFolder_path '\motorModel.mat'],'motorModel');
+    
+    disp('Simulink model created!')
+    disp(['pathname:'])
+    disp(['  ' ctrlFolder_path '\'])
+    disp(['filename:'])
+    disp(['  ' motorModel.data.motorName '_ctrl_INST.slx'])
+
+
 end
 
-ctrlFolder_path = [motorModel.data.pathname ctrlFolder_name];
 
-syrePath = fileparts(which('GUI_Syre.mlapp'));
-
-switch(modelType)
-    case 'Average'
-        copyfile([syrePath '\syreDrive\AVGModel'], ctrlFolder_path);
-        movefile([ctrlFolder_path '\Motor_ctrl_AVG.slx'],[ctrlFolder_path '\' motorModel.data.motorName '_ctrl_AVG.slx']);
-    case 'Istantaneous'
-        copyfile([syrePath '\syreDrive\INSTModel'], ctrlFolder_path);
-        movefile([ctrlFolder_path '\Motor_ctrl_INST.slx'],[ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx']);
-end
-
-
-MMM_print_MotorDataH(motorModel);
-
-switch(modelType)
-    case 'Average'
-        motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_ctrl_AVG.slx'];
-
-    case 'Istantaneous'
-        motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx'];
-end
-
-save([ctrlFolder_path '\motorModel.mat'],'motorModel');
-
-disp('Simulink model created!')
-disp(['pathname:'])
-disp(['  ' ctrlFolder_path '\'])
-disp(['filename:'])
-disp(['  ' motorModel.data.motorName '_ctrl_INST.slx'])

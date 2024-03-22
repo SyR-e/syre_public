@@ -29,11 +29,17 @@ motName  = motorModel.data.motorName;
 resFolder = [motName '_results\MMM results\' 'dq Flux Maps - ' int2str(motorModel.data.tempPM) 'deg\'];
 
 %% Surfaces
-figNames{1} = 'FluxD';
-figNames{2} = 'FluxQ';
-figNames{3} = 'Torque';
-figNames{4} = 'TorRipPP';
-figNames{5} = 'TorRip';
+figNames{1}  = 'FluxD_3D';
+figNames{2}  = 'FluxQ_3D';
+figNames{3}  = 'Torque_3D';
+figNames{4}  = 'TorRipPP_3D';
+figNames{5}  = 'TorRip_3D';
+figNames{6}  = 'FluxD_2D';
+figNames{7}  = 'FluxQ_2D';
+figNames{8}  = 'FluxDQ_2D';
+figNames{9}  = 'Torque_2D';
+figNames{10} = 'TorRipPP_2D';
+figNames{11} = 'TorRip_2D';
 
 for ii=1:length(figNames)
     hfig(ii) = figure();
@@ -42,33 +48,51 @@ for ii=1:length(figNames)
         'XLim',[min(min(Id)) max(max(Id))],...
         'YLim',[min(min(Iq)) max(max(Iq))],...
         'PlotBoxAspectRatio',[1 1 0.8]);
-    xlabel('$i_d$ [A]')
-    ylabel('$i_q$ [A]')
+    xlabel('$i_d$ (A)')
+    ylabel('$i_q$ (A)')
     view(3)
     switch ii
         case 1
-            zlabel('$\lambda_d$ [Vs]')
+            zlabel('$\lambda_d$ (Vs)')
             set(gca,'ZLim',[min(min(Fd)) max(max(Fd))])
         case 2
-            zlabel('$\lambda_q$ [Vs]')
+            zlabel('$\lambda_q$ (Vs)')
             set(gca,'ZLim',[min(min(Fq)) max(max(Fq))])
         case 3
-            zlabel('$T$ [Nm]')
+            zlabel('$T$ (Nm)')
             set(gca,'ZLim',[min(min(T)) max(max(T))])
         case 4
-            zlabel('$\Delta T_{pp}$ [Nm]')
+            zlabel('$\Delta T_{pp}$ (Nm)')
             if (~isnan(max(dTpp(:)))&&~isempty(dTpp)&&max(dTpp(:))~=min(dTpp(:)))
                 set(gca,'ZLim',[min(min(dTpp)) max(max(dTpp))])
             else
                 set(gca,'ZLim',[0 1]);
             end
         case 5
-            zlabel('$\Delta T_{rms}$ [Nm]')
+            zlabel('$\Delta T_{rms}$ (Nm)')
             if (~isnan(max(dT(:)))&&~isempty(dT)&&max(dT(:))~=min(dT(:)))
                 set(gca,'ZLim',[min(min(dT)) max(max(dT))])
             else
                 set(gca,'ZLim',[0 1]);
             end
+        case 6
+            view(2)
+            title('$\lambda_d$ (Vs)')
+        case 7
+            view(2)
+            title('$\lambda_q$ (Vs)')
+        case 8
+            view(2)
+            title('$|\lambda_{dq}|$ (Vs)')
+        case 9
+            view(2)
+            title('$T$ (Nm)')
+        case 10
+            view(2)
+            title('$\Delta T_{pp}$ (Nm)')
+        case 11
+            view(2)
+            title('$\Delta T_{rms}$ (Nm)')
     end
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
     set(hfig(ii),'Name',figNames{ii})
@@ -80,8 +104,19 @@ surf(hax(3),Id,Iq,T,'FaceColor','interp','EdgeColor','interp')
 surf(hax(4),Id,Iq,dTpp,'FaceColor','interp','EdgeColor','interp')
 surf(hax(5),Id,Iq,dT,'FaceColor','interp','EdgeColor','interp')
 
+contourf(hax(6),Id,Iq,Fd,'ShowText','on');
+contourf(hax(7),Id,Iq,Fq,'ShowText','on');
+contourf(hax(8),Id,Iq,abs(Fd+j*Fq),'ShowText','on');
+contourf(hax(9),Id,Iq,T,'ShowText','on');
+contourf(hax(10),Id,Iq,dTpp,'ShowText','on');
+contourf(hax(11),Id,Iq,dT,'ShowText','on');
+
+for ii=6:11
+    set(hax(ii),'Layer','top','GridColor','k','GridAlpha',1);
+end
+
 %% Curves
-hfig(6) = figure();
+hfig(12) = figure();
 figSetting()
 [~, index] = min(abs(Iq(:,1)));
 plot(Id(index,:),Fd(index,:),'Color',[0 0 0.9],'LineStyle','-','DisplayName','$\lambda_d(i_d,0)$')
@@ -92,10 +127,11 @@ plot(Id(end,:),Fd(end,:),'Color',[0 0 0.9],'LineStyle','--','DisplayName','$\lam
 plot(Iq(:,1),Fq(:,1),'Color',[0 0.9 0],'LineStyle',':','DisplayName','$\lambda_q(I_{d,min},i_q)$')
 plot(Iq(:,end),Fq(:,end),'Color',[0 0.9 0],'LineStyle','--','DisplayName','$\lambda_q(I_{d,max},i_q)$')
 legend('show','Location','NorthWest');
-xlabel('$i_{dq}$ [A]');
-ylabel('$\lambda_{dq}$ [Vs]');
-title('Magnetic Model')
-set(hfig(6),'FileName',[pathname resFolder 'Curves.fig'])
+xlabel('$i_{dq}$ (A)');
+ylabel('$\lambda_{dq}$ (Vs)');
+title('Saturation Curves')
+set(hfig(12),'FileName',[pathname resFolder 'SaturationCurves.fig'])
+set(hfig(12),'Name','SaturationCurves')
 
 
 

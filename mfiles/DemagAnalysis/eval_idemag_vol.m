@@ -17,7 +17,11 @@ function [demagLimit,resFolder] = eval_idemag_vol(setup)
 clc
 
 if nargin==0
-    load LastPath.mat
+    if exist('LastPath.mat','file')
+        load LastPath.mat
+    else
+        pathname = cd;
+    end
     [filename,pathname,~]=uigetfile([pathname '\.mat'],'Select a machine');
     
     load([pathname filename])
@@ -170,7 +174,7 @@ for tt=1:length(tempVect)
                 maxIter = 20;
             end
         else
-            if max(dPMiter,[],'omitnan')==0
+            if max(dPMiter,[],'omitnan')<dPMtarget
                 per.overload = max(Iiter,[],'omitnan')/i0*2;
                 Istep = per.overload*i0;
             elseif min(dPMiter,[],'omitnan')>dPMtarget

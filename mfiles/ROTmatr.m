@@ -30,7 +30,7 @@ RotType = geo.RotType;
 matFBS  = mat;
 hs      = geo.hs;
 
-if ~strcmp(geo.RotType,'SPM')
+if ~strcmp(geo.RotType,'SPM') || ~strcmp(geo.RotType,'Spoke-type')
     mat.LayerMag.Br = mat.LayerMag.Br.*ones(1,geo.nlay);   % replicate Br in case it is scalar
 end
 
@@ -204,6 +204,9 @@ if strcmp(RotType,'SPM')
     BarCenter = [BarCenter; xtemp ytemp codMatFeRot,fem.res,1,NaN,NaN,NaN];
 elseif strcmp(RotType,'IM')
     [xtemp,ytemp] = rot_point(mean([r-geo.IM.lt Ar]),0,pi/2/p);
+    BarCenter = [BarCenter; xtemp ytemp codMatFeRot,fem.res,1,NaN,NaN,NaN];
+elseif strcmp(RotType,'Spoke-type')
+    [xtemp,ytemp] = rot_point(mean([r-geo.pontT-geo.PMdim(1,1) Ar]),0,pi/2/p);
     BarCenter = [BarCenter; xtemp ytemp codMatFeRot,fem.res,1,NaN,NaN,NaN];
 else
     pointVect = sort([geo.Ar geo.B1k geo.B2k geo.r]);

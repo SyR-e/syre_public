@@ -149,6 +149,22 @@ elseif strcmp(dataSet.TypeOfRotor,'Vtype')
     set(app.RadialRibsAngleEditField,'Enable','off','Value',mat2str(dataSet.pontRangEdit));
     set(app.RotorFilletRadInEditField,'Enable','on','Value',mat2str(dataSet.RotorFilletIn));
     set(app.RotorFilletRadOutEditField,'Enable','on','Value',mat2str(dataSet.RotorFilletOut));
+elseif strcmp(dataSet.TypeOfRotor,'Spoke-type')
+    set(app.NumberOfLayersEdit,'Enable','off','Value',num2str(dataSet.NumOfLayers));
+    set(app.AlphapuEdit,'Enable','off','Value',mat2str(dataSet.ALPHApu));
+    set(app.AlphadegreeEdit,'Enable','off','Editable','off','Value',mat2str(dataSet.ALPHAdeg));
+    set(app.hcpuEdit,'Enable','off','Value',mat2str(dataSet.HCpu));
+    set(app.hcmmEdit,'Enable','on','Editable','on','Value',mat2str(dataSet.HCmm));
+    set(app.DxEdit,'Enable','off','Value',mat2str(dataSet.DepthOfBarrier));
+    set(app.BetaEdit,'Enable','off','Value',mat2str(dataSet.betaPMshape));
+    set(app.CentralBarriersShrinkEdit,'Enable','off','Value',mat2str(dataSet.CentralShrink));
+    set(app.NarrowFactorEdit,'Enable','off','Value',mat2str(dataSet.NarrowFactor));
+    set(app.RadShiftInnerEdit,'Enable','off','Editable','off','Value',mat2str(dataSet.RadShiftInner));
+    set(app.ThetaFBSEdit,'Enable','off');
+    set(app.TanRibEdit,'Enable','on','Value',mat2str(dataSet.TanRibEdit));
+    set(app.RadRibEdit,'Enable','on','Value',mat2str(dataSet.RadRibEdit));
+    set(app.SplitRibsEditField,'Enable','off','Value','0');
+    set(app.RadRibCheck,'Enable','on','Value',dataSet.RadRibCheck);
 else
     set(app.NumberOfLayersEdit,'Enable','on','Value',num2str(dataSet.NumOfLayers));
     set(app.AlphapuEdit,'Enable','on','Value',mat2str(dataSet.ALPHApu));
@@ -242,11 +258,10 @@ set(app.JouleLossesEdit,'Value',num2str(dataSet.AdmiJouleLosses));
 set(app.CurrentdensityEdit,'Value',num2str(dataSet.CurrentDensity));
 set(app.Rsedit,'Enable','on','Value',num2str(dataSet.Rs),'Editable','off');
 set(app.OverSpeedEdit,'Value',num2str(dataSet.OverSpeed));
-set(app.MeshEdit,'Value',num2str(dataSet.Mesh));
-set(app.MeshMOOAEdit,'Value',num2str(dataSet.Mesh_MOOA));
-set(app.mesh_kpmEdit,'Value',num2str(dataSet.mesh_kpm));
 set(app.MecTolerEdit,'Value',num2str(dataSet.MinMechTol));
 set(app.RotorsleevethicknessmmEditField,'Value',num2str(dataSet.SleeveThickness));
+set(app.RotorsleeveinterferencemmEditField,'Value',num2str(dataSet.SleeveInterference));
+set(app.RotorsleevetemperatureCEditField,'Value',num2str(dataSet.SleeveTemperature));
 
 
 %% Windings panel
@@ -265,6 +280,7 @@ if dataSet.NumOfSlots<1
 else
     set(app.PitchWindEdit,'Enable','on'); % distributed winding
 end
+set(app.SlotlinerthicknessmmEditField,'Value',num2str(dataSet.LinerThickness));
 
 
 % Winding table
@@ -370,6 +386,13 @@ else
         set(app.PMNaSegments,'Enable','off')
         set(app.PMDesignPush,'Enable','off')
         set(app.CarCurEdit,'Enable','off')
+    elseif strcmp(dataSet.TypeOfRotor,'Spoke-type')
+        set(app.PMdimTable,'Enable','on','ColumnEditable',true(1))
+        set(app.PMclearanceTable,'Enable','on','ColumnEditable',true(1))
+        set(app.PMNcSegmentsTable,'Enable','on','ColumnEditable',true(1))
+        set(app.PMNaSegments,'Enable','on')
+        set(app.PMDesignPush,'Enable','on')
+        set(app.CarCurEdit,'Enable','on')
     else
         set(app.PMdimTable,'Enable','on','ColumnEditable',true(1))
         set(app.PMclearanceTable,'Enable','on','ColumnEditable',true(1))
@@ -706,9 +729,9 @@ end
 set(app.SpanEltPPEdit,'Value',num2str(dataSet.AngularSpanPP));
 set(app.GammaPPEdit,'Value',mat2str(dataSet.GammaPP));
 set(app.CurrLoPPEdit,'Value',mat2str(dataSet.CurrLoPP));
-set(app.CurrentPP,'Value',mat2str(dataSet.CurrLoPP*dataSet.RatedCurrent));
+set(app.CurrentPP,'Value',mat2str(round(dataSet.CurrLoPP*dataSet.RatedCurrent,1)));
 set(app.NumOfRotorPosiPPEdit,'Value',num2str(dataSet.NumOfRotPosPP));
-set(app.BrPPEdit,'Value',mat2str(dataSet.BrPP));
+set(app.BrPPEdit,'Value',mat2str(round(dataSet.BrPP,3)));
 set(app.TempPPEdit,'Value',mat2str(dataSet.tempPP));
 set(app.NGridPPEdit,'Value',num2str(dataSet.NumGrid));
 set(app.EvaluatedSpeedEdit,'Value',mat2str(dataSet.EvalSpeed));
@@ -742,6 +765,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','on')
     case 'singm'
         set(app.EvalTypePopUp,'Value','Flux Map');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -759,6 +783,7 @@ switch dataSet.EvalType
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
         set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','on')
     case 'demagArea'
         set(app.EvalTypePopUp,'Value','Demagnetization Analysis');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -776,6 +801,7 @@ switch dataSet.EvalType
         set(app.Active3phasesetsEditField,'Enable','off');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
         set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','off')
     case 'idemag'
         set(app.EvalTypePopUp,'Value','Demagnetization Curve');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -793,6 +819,7 @@ switch dataSet.EvalType
         set(app.Active3phasesetsEditField,'Enable','off');
         set(app.CustomCurrentSwitch,'Value','Off');    % no custom current
         set(app.AxistypeDropDown,'Enable','off');
+        set(app.JMAGButton,'Enable','off')
     case 'ichval'
         set(app.EvalTypePopUp,'Value','Characteristic Current');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -810,6 +837,7 @@ switch dataSet.EvalType
         set(app.Active3phasesetsEditField,'Enable','off');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
         set(app.AxistypeDropDown,'Enable','off');
+        set(app.JMAGButton,'Enable','off')
     case 'flxdn'
         set(app.EvalTypePopUp,'Value','Flux Density Analysis');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -827,6 +855,7 @@ switch dataSet.EvalType
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');    % no custom current
         set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','off')
     case 'izero'
         set(app.EvalTypePopUp,'Value','Current Offset');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -844,6 +873,7 @@ switch dataSet.EvalType
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
         set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','off')
     case 'force'
         set(app.EvalTypePopUp,'Value','Airgap Force');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -861,6 +891,7 @@ switch dataSet.EvalType
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
         set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','off')
     case 'singtIron'
         set(app.EvalTypePopUp,'Value','Iron Loss - Single Point');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -877,6 +908,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','on')
     case 'singmIron'
         set(app.EvalTypePopUp,'Value','Iron Loss - Flux Map');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -894,6 +926,7 @@ switch dataSet.EvalType
         set(app.Active3phasesetsEditField,'Enable','on');
         set(app.CustomCurrentSwitch,'Value','Off');   % no custom current
         set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','on')
     case 'structural'
         set(app.EvalTypePopUp,'Value','Structural Analysis');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -910,6 +943,7 @@ switch dataSet.EvalType
         set(app.MapQuadrantsPopUp,'Enable','off');
         set(app.Active3phasesetsEditField,'Enable','off');
         set(app.AxistypeDropDown,'Enable','off');
+        set(app.JMAGButton,'Enable','off')
     case 'shortCircuit'
         set(app.EvalTypePopUp,'Value','HWC Short-Circuit Current');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -927,7 +961,12 @@ switch dataSet.EvalType
         set(app.Active3phasesetsEditField,'Enable','off');
         set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
         set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','off')
 end
+
+set(app.MeshEdit,'Value',num2str(dataSet.Mesh));
+set(app.MeshMOOAEdit,'Value',num2str(dataSet.Mesh_MOOA));
+set(app.mesh_kpmEdit,'Value',num2str(dataSet.mesh_kpm));
 
 % set(app.CurrentPP,'Value',mat2str(dataSet.SimulatedCurrent))
 

@@ -83,24 +83,24 @@ for ii=1:length(id)
     if isfield(dqtMap,'sets')
         n3phase = length(dqtMap.sets);
         for ss=1:n3phase
-            SOL.ia(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.ib(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.ic(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.fa(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.fb(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.fc(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.ia(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.ib(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.ic(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.fa(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.fb(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.fc(ss,:) = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.th,interpolationMethod);
             
-            SOL.sets(ss).id = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Id,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.sets(ss).iq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Iq,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.sets(ss).fd = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fd,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.sets(ss).fq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fq,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).id = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Id,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.sets(ss).iq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Iq,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.sets(ss).fd = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fd,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.sets(ss).fq = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fq,SOL.id,SOL.iq,SOL.th,interpolationMethod);
 
-            SOL.sets(ss).ia = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.sets(ss).ib = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.sets(ss).ic = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.sets(ss).fa = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.sets(ss).fb = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.thinterpolationMethod);
-            SOL.sets(ss).fc = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.thinterpolationMethod);
+            SOL.sets(ss).ia = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ia,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.sets(ss).ib = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ib,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.sets(ss).ic = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Ic,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.sets(ss).fa = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fa,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.sets(ss).fb = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fb,SOL.id,SOL.iq,SOL.th,interpolationMethod);
+            SOL.sets(ss).fc = interpn(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th,dqtMap.sets(ss).Fc,SOL.id,SOL.iq,SOL.th,interpolationMethod);
         end
     end
     

@@ -50,8 +50,8 @@
 #define KOBS 		    TWOPI*10.0f  // 300 rpm
 
 // PI Reg
-#define OMEGA_BW    	TWOPI*1.0f
-#define OMEGA_BI    	TWOPI*500.0f
+#define OMEGA_BW    	TWOPI*5.0f
+#define OMEGA_BI    	TWOPI*700.0f
 #define OMEGA_0_INJ 	TWOPI*50.0f 
 #define WB_PLL_PULS 	TWOPI*10.00f  
 #define OMEGA_PLL       TWOPI*25.00f

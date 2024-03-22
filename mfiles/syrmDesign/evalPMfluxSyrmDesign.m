@@ -13,7 +13,7 @@
 %    limitations under the License.
 
 function [fM] = evalPMfluxSyrmDesign(tmp)
-debug = 0;
+debug   = 0;
 nlay    = tmp.nlay;
 Br      = tmp.Br;
 Bs      = tmp.Bs.*ones(1,nlay);

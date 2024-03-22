@@ -84,15 +84,15 @@ step = Tmax/n;
 T_set = 0:step:Tmax;
 
 id_set    = interp1(MTPA.T,MTPA.id,T_set);
-% id_set(1) = 0;
+id_set(1) = 0;
 iq_set    = interp1(MTPA.T,MTPA.iq,T_set);
-% iq_set(1) = 0.2*i0;
+iq_set(1) = 0.2*i0;
 fd_set    = interp1(MTPA.T,MTPA.fd,T_set);
-% fd_set(1) = 0;
+fd_set(1) = 0;
 fq_set    = interp1(MTPA.T,MTPA.fq,T_set);
-% fq_set(1) = 0;
+fq_set(1) = 0;
 f_set     = abs(fd_set+j*fq_set);
-% f_set(1)  = 0;
+f_set(1)  = 0;
 
 % print txt file (MTPA)
 fid = fopen(MotorDataH_path,'a');
@@ -111,8 +111,14 @@ StampaVarg(fid,f_set,m,n+1,'F_REF','//MTPA - flux amplitude','%6.3f')
 fprintf(fid,' \n');
 
 lambda_amp_MTPA = abs(MTPA.fd+1j*MTPA.fq);
-fprintf(fid,'float lambda_MTPA_max = %4.3f;\n',max(lambda_amp_MTPA));
-fprintf(fid,'float lambda_MTPA_min = %4.3f;\n',min(lambda_amp_MTPA));
+lambda_amp_MTPA_max = max(lambda_amp_MTPA);
+lambda_amp_MTPA_min = min(lambda_amp_MTPA);
+
+if(lambda_amp_MTPA_min<0.001)
+   lambda_amp_MTPA_min =lambda_amp_MTPA_max/5;
+end   
+fprintf(fid,'float lambda_MTPA_max = %4.3f;\n',lambda_amp_MTPA_max);
+fprintf(fid,'float lambda_MTPA_min = %4.3f;\n',lambda_amp_MTPA_min);
 
 if not(isempty(MTPV.iq))
     lambda_amp_MTPV = abs(MTPV.fd+1j*MTPV.fq);

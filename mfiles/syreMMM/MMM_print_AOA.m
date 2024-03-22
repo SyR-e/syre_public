@@ -30,6 +30,7 @@ MTPV = motorModel.controlTrajectories.MTPV;
 m = 1;  % # of lines
 n = 20; % # of columns (table size is 1 x n)
 
+
 Tmax = MTPA.T(end);
 step = Tmax/n;
 T_set = 0:step:Tmax;

@@ -26,7 +26,7 @@ Q = 6*geo.q*geo.p;                    % number of slots
 if ((max(geo.betaPMshape)~=0)&&strcmp('Circular',geo.RotType))
     tmp = [mat.LayerMag.Br mat.LayerMag.Br];
     Br = repmat(tmp,1,geo.ps);
-elseif strcmp(geo.RotType,'SPM')
+elseif strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'Spoke-type')
     Br = mat.LayerMag.Br(1)*ones(size(BLKLABELSrot.xy(:,1)));
 end
 

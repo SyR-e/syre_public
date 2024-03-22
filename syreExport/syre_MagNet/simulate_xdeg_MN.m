@@ -433,7 +433,7 @@ if (xdeg == 360)
     SOL.PjrBar = PjrBar;
     SOL.Ppm    = Ppm;
 end
-SOL.th = (th)';
+SOL.th = th*180/pi;
 SOL.id = tmp1(2:end)';
 SOL.iq = tmp2(2:end)';
 SOL.fd = Fluxd';

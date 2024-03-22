@@ -22,6 +22,11 @@ if dataSet.pShape.flag
     psMagnet = dataSet.pShape.magnet;
     psStator = dataSet.pShape.stator;
     psSlot   = dataSet.pShape.slot;
+    if isfield(dataSet.pShape,'sleeve')
+        psSleeve = dataSet.pShape.sleeve;
+    else
+        psSleeve = polyshape();
+    end
        
 else
     disp(['Importing machine from FEMM...'])
@@ -73,17 +78,20 @@ else
     eleStator   = elements(elements(:,4)==12,:);
     eleSlot     = elements(elements(:,4)==1,:);
     eleMagnet   = elements(elements(:,4)>199,:);
+    eleSleeve   = elements(elements(:,4)==199,:);
     eleStruct   = [eleRotor ; eleMagnet];
     
     vertRotor   = [nodes(eleRotor(:,1),1:2)  nodes(eleRotor(:,2),1:2)  nodes(eleRotor(:,3),1:2)];
     vertStator  = [nodes(eleStator(:,1),1:2)  nodes(eleStator(:,2),1:2)  nodes(eleStator(:,3),1:2)];
     vertSlot    = [nodes(eleSlot(:,1),1:2)  nodes(eleSlot(:,2),1:2)  nodes(eleSlot(:,3),1:2)];
     vertMagnet  = [nodes(eleMagnet(:,1),1:2)  nodes(eleMagnet(:,2),1:2)  nodes(eleMagnet(:,3),1:2)];
+    vertSleeve  = [nodes(eleSleeve(:,1),1:2)  nodes(eleSleeve(:,2),1:2)  nodes(eleSleeve(:,3),1:2)];
         
     psRotor  = polyshape;
     psMagnet = polyshape;
     psStator = polyshape;
     psSlot   = polyshape;
+    psSleeve = polyshape;
   
     for ii=1:length(vertRotor)
         psRotor(ii)     = polyshape([vertRotor(ii,1) vertRotor(ii,3) vertRotor(ii,5)] , [vertRotor(ii,2) vertRotor(ii,4) vertRotor(ii,6)]);
@@ -100,11 +108,16 @@ else
     for ii=1:length(vertMagnet)
         psMagnet(ii)     = polyshape([vertMagnet(ii,1) vertMagnet(ii,3) vertMagnet(ii,5)] , [vertMagnet(ii,2) vertMagnet(ii,4) vertMagnet(ii,6)]);
     end
+
+    for ii=1:length(vertSleeve)
+        psSleeve(ii)     = polyshape([vertSleeve(ii,1) vertSleeve(ii,3) vertSleeve(ii,5)] , [vertSleeve(ii,2) vertSleeve(ii,4) vertSleeve(ii,6)]);
+    end
           
     psRotor     = union(psRotor);
     psStator    = union(psStator);
     psSlot      = union(psSlot);
     psMagnet    = union(psMagnet);
+    psSleeve    = union(psSleeve);
 
     disp(['Custom geometry imported!'])
     
@@ -113,17 +126,20 @@ end
 colors{1} = [0.5 0.5 0.5];
 colors{2} = [1.0 0.5 0.0];
 colors{3} = [0.0 0.0 1.0];
+colors{4} = [0.0 0.8 0.0];
 
 cla(h);
 plot(h,psMagnet,'FaceColor',colors{3},'EdgeColor','none','FaceAlpha',0.8)
 plot(h,psRotor,'FaceColor',colors{1},'EdgeColor','none','FaceAlpha',0.8)
 plot(h,psStator,'FaceColor',colors{1},'EdgeColor','none','FaceAlpha',0.8)
 plot(h,psSlot,'FaceColor',colors{2},'EdgeColor','none','FaceAlpha',0.8)
+plot(h,psSleeve,'FaceColor',colors{4},'EdgeColor','none','FaceAlpha',0.8)
 
 dataSet.pShape.rotor  = psRotor;
 dataSet.pShape.stator = psStator;
 dataSet.pShape.magnet = psMagnet;
 dataSet.pShape.slot   = psSlot;
+dataSet.pShape.sleeve = psSleeve;
 dataSet.pShape.flag   = 1;
 dataSet.custom        = 1;
 

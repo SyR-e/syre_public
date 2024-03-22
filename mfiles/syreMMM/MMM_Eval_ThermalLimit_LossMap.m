@@ -48,7 +48,7 @@ end
 cla(hax)
 set(hax,'XLim',[min(speed) max(speed)]);
 set(hax,'YLim',[0 max(max(TwMap.T))]);
-plot(hax,TwMap.n(1,:),TwMap.T_top_W,'k','LineWidth',1.5);
+plot(hax,TwMap.n(1,:),TwMap.limits.Tmax,'k','LineWidth',1.5);
 drawnow();
 
 xdata = zeros(length(speed),2);
@@ -209,7 +209,7 @@ ylabel('$T$ [Nm]')
 title('Continuos torque')
 axis ([0 speed(end) 0 TwMap.T(end,1)])
 set(hfig(1),'FileName',[resFolder 'TorqueVsSpeed.fig'])
-plot(TwMap.n(1,:),TwMap.T_top_W,'k');
+plot(TwMap.n(1,:),TwMap.limits.Tmax,'k');
 plot(speed,T,'b')
 plot(speed,T,'ro','MarkerSize',4);
 

@@ -48,7 +48,7 @@ simSetup.pathname  = pathname;
 simSetup.evalSpeed = evalSpeed;
 simSetup.meshSize  = 'fine';    % fine or coarse
 simSetup.flagFull  = 0;         % 0-->Qs simulation / 1-->full motor simulation
-simSetup.shaftBC   = 2;         % 1-->locked shaft / 0-->free shaft / 2-->spring ring
+simSetup.shaftBC   = 1;         % 1-->locked shaft / 0-->free shaft / 2-->spring ring
 simSetup.meshShaft = 0;         % 0-->shaft not meshed / 1-->shaft meshed
 % if simSetup.meshShaft
 %     simSetup.shaftBC   = 2;

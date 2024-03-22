@@ -17,6 +17,12 @@ function [out] = calcTnPoint(motorModel,Tref,nref)
 % fdfq   = motorModel.FluxMap_dq;
 % TwData = motorModel.TnSetup;
 
+kActiveSets = 4/4;
+
+% if kActiveSets~=1
+%     warning('Some 3phase sets are turned off!!!')
+% end
+
 Id   = motorModel.FluxMap_dq.Id;
 Iq   = motorModel.FluxMap_dq.Iq;
 Fd   = motorModel.FluxMap_dq.Fd;
@@ -106,7 +112,7 @@ else
 end
 
 % 5) Current component representing Fe and PM loss and total current
-Ife=2/3/n3phase*Pfe./conj(Vind);
+Ife=2/3/(n3phase*kActiveSets)*Pfe./conj(Vind);
 Ife(Pfe==0)=0;
 
 if Tref>=0
@@ -143,7 +149,7 @@ cosfi = cos(angle(Io)-angle(Vof));
 Pmech = polyval(MechLoss,abs(nref));
 
 % 9) Total loss map computation
-Ploss = Pfe+Prot+3/2*Rs*n3phase.*abs(Io).^2+Pmech;
+Ploss = Pfe+Prot+3/2*Rs*n3phase*kActiveSets.*abs(Io).^2+Pmech;
 
 % 10) Voltage and current limits + ASC safe limits (if selected)
 Io_m = abs(Io);
@@ -195,7 +201,7 @@ if abs(Tref)<=max(max(T))
     if strcmp(Control,'Max efficiency')
         PlossIso = interp2(Id,Iq,Ploss,idIso,iqIso);
     elseif strcmp(Control,'MTPA')
-        PlossIso = interp2(Id,Iq,3/2*Rs.*Io_m.^2.*lim,idIso,iqIso);
+        PlossIso = interp2(Id,Iq,3/2*n3phase*kActiveSets*Rs.*Io_m.^2.*lim,idIso,iqIso);
     end
     idIso    = idIso(~isnan(PlossIso));
     iqIso    = iqIso(~isnan(PlossIso));
@@ -290,8 +296,8 @@ elseif ~isnan(limIso)
     out.PF    = interp2(Id,Iq,cosfi,id,iq);
     out.P     = Tref*nref*pi/30;
     out.Ploss = interp2(Id,Iq,Ploss,id,iq);
-    out.Pjs   = interp2(Id,Iq,3/2*Rs*n3phase.*Io_m.^2,id,iq);
-    out.PjDC  = interp2(Id,Iq,3/2*Rs*n3phase.*Io_m.^2./(kAC*l/(lend+l)+lend/(lend+l)),id,iq);
+    out.Pjs   = interp2(Id,Iq,3/2*Rs*n3phase*kActiveSets.*Io_m.^2,id,iq);
+    out.PjDC  = interp2(Id,Iq,3/2*Rs*n3phase*kActiveSets.*Io_m.^2./(kAC*l/(lend+l)+lend/(lend+l)),id,iq);
     out.PjAC  = out.Pjs-out.PjDC;
     out.Pfe   = interp2(Id,Iq,Pfe,id,iq);
     out.Pfes  = interp2(Id,Iq,Pfes,id,iq);

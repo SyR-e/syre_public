@@ -40,6 +40,9 @@ phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %f
 if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
     geo.axisType = 'PM';
     phase1_offset = phase1_offset-90;
+elseif strcmp(geo.RotType,'Spoke-type')
+    geo.axisType = 'PM';
+    phase1_offset = phase1_offset;
 else
     geo.axisType = 'SR';
     phase1_offset = phase1_offset;
@@ -90,6 +93,7 @@ mi_addboundprop('APg3', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
 %mi_addboundprop('APmove', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
 mi_addboundprop('APs1', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
 mi_addboundprop('APs2', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
+mi_addboundprop('APs3', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity);
 mi_addboundprop('AGap', 0, 0, 0, 0, 0, 0, 0, 0, geo.periodicity+2,0,0);
 
 % nodes
@@ -156,10 +160,22 @@ for ii=5:6
 end
 
 % assign boundary conditions to the stator
-for ii=1:size(BLKLABELSstat.boundary,1)
+for ii=1:2
     mi_selectsegment(BLKLABELSstat.boundary(ii,1),BLKLABELSstat.boundary(ii,2));
     if (BLKLABELSstat.boundary(ii,3)==10)
         mi_setsegmentprop('APs1', 0, 1, 0, 1);
+        mi_clearselected;
+    elseif(BLKLABELSstat.boundary(ii,3)==0)
+        mi_selectarcsegment(BLKLABELSstat.boundary(ii,1),BLKLABELSstat.boundary(ii,2));
+        mi_setarcsegmentprop(fem.res, 'A=0', 0, 1);
+        mi_clearselected;
+    end
+end
+
+for ii=3:size(BLKLABELSstat.boundary,1)
+    mi_selectsegment(BLKLABELSstat.boundary(ii,1),BLKLABELSstat.boundary(ii,2));
+    if (BLKLABELSstat.boundary(ii,3)==10)
+        mi_setsegmentprop('APs3', 0, 1, 0, 1);
         mi_clearselected;
     elseif(BLKLABELSstat.boundary(ii,3)==0)
         mi_selectarcsegment(BLKLABELSstat.boundary(ii,1),BLKLABELSstat.boundary(ii,2));

@@ -30,10 +30,16 @@ if ~isempty(figname)
     saveas(hfig,figname)
     print(hfig,[figname(1:end-4) '.png'],'-dpng','-r600')
     if strcmp(format,'pdf')
-        set(hfig,'Renderer','painters');
+        %set(hfig,'Renderer','painters');
         print(hfig,[figname(1:end-4) '.pdf'],'-dpdf')
     elseif strcmp(format,'eps')
         print(hfig,[figname(1:end-4) '.eps'],'-depsc')
+    elseif strcmp(format,'png400')
+        print(hfig,[figname(1:end-4) '.png'],'-dpng','-r400')
+    elseif strcmp(format,'png300')
+        print(hfig,[figname(1:end-4) '.png'],'-dpng','-r300')
+    elseif strcmp(format,'svg')
+        print(hfig,[figname(1:end-4) '.svg'],'-dsvg')
     end
     
     

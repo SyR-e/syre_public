@@ -1069,6 +1069,25 @@ if ~isfield(dataSet.syrmDesignFlag,'therm')
     flag=1;
 end
 
+% sleeve designer (Roberto Acquaviva MSc thesis, 2023)
+if ~isfield(dataSet,'SleeveInterference')
+    dataSet.SleeveInterference     = 0;
+    dataSet.SleeveTemperature      = 20;
+    dataSet.TemperatureRiseAbove20 = 0;
+    if Dflag
+        disp('2024 01 11 - added sleeve designer for wrapped V-type IPMSM')
+    end
+    flag=1;
+end
+
+% added liner thickness (Maurizio Repetto and Luigi Solimene for GalFer Challenge)
+if ~isfield(dataSet,'LinerThickness')
+    dataSet.LinerThickness = 0;
+    if Dflag
+        disp('2024 01 30 - added slot liner')
+    end
+    flag=1;
+end
 
 
 %% remove old fields of dataSet

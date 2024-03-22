@@ -3,7 +3,7 @@
 % Induction Motor]
 %
 
-function [Temp]=temp_est_simpleMod(geo,per,Tframe)
+function [Temp] = temp_est_simpleMod(geo,per,Tframe)
 % Thermal material initialization
 Thermal_param;
 % Data Initialization
@@ -30,6 +30,10 @@ ps=2*pi*x*R/(6*p*q*geo.win.n3phase);
 LambdaFE=Materiali.FerroSta.Rth;
 lamdaEQ=0.3;
 LambdaNomex=0.14;
+
+%% Dati aggiuntivi Tesi L3 Michele Sacchetti
+
+
 %% %%%%%%%%%%%%%%%%%
 %%  End winding Calc
 %% %%%%%%%%%%%%%%%%%

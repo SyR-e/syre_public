@@ -24,6 +24,8 @@ else
         else
             if strcmp(geo.RotType,'SPM')
                 Mass = pi*(geo.r^2-(geo.r-geo.hc_pu*geo.g)^2)*geo.l*(geo.dalpha_pu)/1e9*rhoPM;
+            elseif strcmp(geo.RotType,'Spoke-type')
+                Mass = (2*geo.p)*geo.hc*geo.PMdim(1,1)*geo.l/1e9*rhoPM;
             else
                 Mass = (2*geo.p)*rhoPM*(geo.l/1000)*2*sum([geo.AreaC geo.AreaE])/1e6;
             end
@@ -31,6 +33,8 @@ else
     else
         if strcmp(geo.RotType,'SPM')
             Mass = pi*(geo.r^2-(geo.r-geo.hc_pu*geo.g)^2)*geo.l*(geo.dalpha_pu)/1e9*rhoPM;
+        elseif strcmp(geo.RotType,'Spoke-type')
+            Mass = (2*geo.p)*geo.hc*geo.PMdim(1,1)*geo.l/1e9*rhoPM;
         else
             Mass = (2*geo.p)*rhoPM*(geo.l/1000)*2*sum([geo.AreaC geo.AreaE])/1e6;
         end

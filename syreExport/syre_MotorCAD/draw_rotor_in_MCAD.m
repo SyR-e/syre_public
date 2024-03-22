@@ -189,7 +189,7 @@ switch geo.RotType
         tmp=geo.Ar*2;
         invoke(mcad,'SetVariable','Shaft_Dia',tmp);
 
-        tmp=geo.lm-geo.betaPMshape*geo.lm;   %bombatura magneti
+        tmp=geo.hc-geo.betaPMshape*geo.hc;   %bombatura magneti
         invoke(mcad,'SetVariable','MagnetReduction',tmp);
 
         tmp=geo.p*2;
@@ -197,8 +197,8 @@ switch geo.RotType
 
         invoke(mcad,'SetVariable','Airgap',geo.g);
         invoke(mcad,'SetVariable','Magnet_Thickness',geo.hc_pu);
-        invoke(mcad,'SetVariable','Magnet_Arc_[ED]',geo.phi);
-        invoke(mcad,'SetVariable','Magnet_Thickness',geo.lm);
+        invoke(mcad,'SetVariable','Magnet_Arc_[ED]',geo.dalpha);
+        invoke(mcad,'SetVariable','Magnet_Thickness',geo.hc);
         invoke(mcad,'SetVariable','CircumferentialSegments','2');
 
     case 'Vtype'

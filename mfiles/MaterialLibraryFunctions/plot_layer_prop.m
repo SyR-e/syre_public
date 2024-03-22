@@ -179,7 +179,7 @@ if isfield(mat,'temp')
             'NextPlot','add',...
             'LineWidth',1);
     colors=get(hax,'ColorOrder');
-    colors=[colors;colors;colors];
+    colors=[colors;colors;colors;colors;colors;colors;colors;colors;colors];
     for ii=1:length(mat.temp.temp)
         Br=mat.temp.Br(ii);
         Bd=mat.temp.Bd(ii);

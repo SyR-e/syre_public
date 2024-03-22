@@ -24,6 +24,12 @@ gamma  = motorModel.WaveformSetup.CurrAngle;
 n      = motorModel.WaveformSetup.EvalSpeed;
 nCycle = motorModel.WaveformSetup.nCycle;
 
+if ~isempty(motorModel.DemagnetizationLimit)
+    Idemag = interp1(motorModel.DemagnetizationLimit.tempPM,motorModel.DemagnetizationLimit.Idemag,motorModel.data.tempPM);
+else
+    Idemag = NaN;
+end
+
 nPoints = 1000;
 % flagPlot = 1;
 
@@ -142,7 +148,7 @@ xlim([min(time) max(time)]);
 hax(1) = gca;
 xlabel('$t$ [s]')
 ylabel('[A]')
-hleg(1) = legend(hax(1),'show','Location','southeast');
+hleg(1) = legend(hax(1),'show','Location','southoutside');
 set(gcf,'FileName',[pathname resFolder 'CurrentVStime.fig'])
 plot(hax(1),[time(1) time(end)],idInf*[1 1],'--b','DisplayName','$i_d$ - steady-state')
 plot(hax(1),[time(1) time(end)],iqInf*[1 1],'--r','DisplayName','$i_q$ - steady-state')
@@ -153,6 +159,9 @@ hp1(3) = plot(hax(1),time,abs(idVect+j*iqVect).*intVect,':k','DisplayName','$|i_
 hp1(4) = plot(hax(1),time,idVect,'-b','DisplayName','$i_d$');
 hp1(5) = plot(hax(1),time,iqVect,'-r','DisplayName','$i_q$');
 hp1(6) = plot(hax(1),time,abs(idVect+j*iqVect),'-k','DisplayName','$|i_{dq}|$');
+if ~isnan(Idemag)
+    plot(hax(1),[time(1) time(end)],Idemag*[1 1],'-','Color',[0.5 0 0],'LineWidth',2,'DisplayName','$I_{demag}$');
+end
 
 
 hfig(2) = figure();
@@ -265,7 +274,7 @@ for ii=1:length(hleg)
         case {3,4,5}
             set(hleg(ii),'NumColumns',2,'Location','southoutside');
         case {1,2}
-            set(hleg(ii),'NumColumns',2,'Location','south');
+            set(hleg(ii),'NumColumns',2,'Location','southoutside');
     end
 end
 

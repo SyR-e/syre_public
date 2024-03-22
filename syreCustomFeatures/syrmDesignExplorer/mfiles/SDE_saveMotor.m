@@ -83,6 +83,8 @@ figure();
 figSetting();
 title(['$x=' num2str(map.xSelect,2) '$ / $b=' num2str(map.bSelect,2) '$'])
 
+
+[dataSet,~,~,~] = back_compatibility(dataSet,[],[],0);
 tmp.dataSet = dataSet;
 tmp.AxisGeometry = gca;
 

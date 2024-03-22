@@ -75,12 +75,12 @@ vq = diff([fq(:,end) fq fq(:,1)]')'/dt+w*[fd fd(:,1)];
 
 tmpTime = tmpTime(1:end-1)+dt/2;
 
-va = interp1(tmpTime,va',time)'+Rs*ia';
-vb = interp1(tmpTime,vb',time)'+Rs*ib';
-vc = interp1(tmpTime,vc',time)'+Rs*ic';
+va = interp1(tmpTime,va,time)+Rs*ia;
+vb = interp1(tmpTime,vb,time)+Rs*ib;
+vc = interp1(tmpTime,vc,time)+Rs*ic;
 
-vd = interp1(tmpTime,vd',time)+Rs*id;
-vq = interp1(tmpTime,vq',time)+Rs*iq;
+vd = interp1(tmpTime,vd,time)+Rs*id;
+vq = interp1(tmpTime,vq,time)+Rs*iq;
 
 wf.th_e = th;
 wf.th_m = (th-th(1))/p;

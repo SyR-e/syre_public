@@ -127,6 +127,8 @@ geo.acs = dataIn.StatorSlotOpen; % stator slot opening [p.u.]
 geo.wt  = dataIn.ToothWidth;     % tooth width [mm]
 geo.st  = dataIn.SlotWidth;
 
+geo.statorYokeDivision = 0;     % flag for the stator yoke division (thermal model for GalFer Challenge)
+
 if dataIn.ParallelSlotCheck
     geo.parallel_slot = 1;
 else
@@ -141,7 +143,7 @@ geo.SFR = dataIn.FilletCorner;     % fillet at the back corner of the slot [mm]
 
 
 % rotor
-if strcmp(geo.RotType,'SPM')
+if strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'Spoke-type')
     geo.nlay = 1;
 else
     geo.nlay  = dataIn.NumOfLayers;    % number of layers
@@ -179,6 +181,7 @@ geo.win.pCond      = round(geo.p*geo.q*geo.win.nCond/geo.win.Ns,2);
 geo.win.gapBotCond = dataIn.SlotConductorBottomGap;
 per.slotModelFreq  = dataIn.SlotConductorFrequency;
 per.slotModelTemp  = dataIn.SlotConductorTemperature;
+geo.win.liner      = dataIn.LinerThickness;
 
 geo.Qs         = dataIn.Qs;                     % number of stator slots in the FEMM simulation
 
@@ -217,6 +220,8 @@ phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %f
 
 if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
     phase1_offset = phase1_offset - 90;   % valid for d axis on PM direction
+elseif strcmp(geo.RotType,'Spoke-type')
+    phase1_offset = phase1_offset;        % valid for d axis on PM direction
 else
     phase1_offset = phase1_offset;        % valid for -q axis on PM direction
 end
@@ -246,6 +251,11 @@ geo.x0 = geo.r/cos(pi/2/geo.p);
 geo.dalpha_pu = dataIn.ALPHApu;
 geo.dalpha    = geo.dalpha_pu*(90/geo.p);   % [mec degrees]
 geo.hc_pu     = dataIn.HCpu;
+if strcmp(geo.RotType,'Spoke-type')
+    geo.hc = dataIn.HCmm;
+    geo.hc_pu = 0;
+    geo.dalpha=0;
+end
 geo.dx        = dataIn.DepthOfBarrier;
 geo.dxIB      = dataIn.RadShiftInner;
 geo.kOB       = dataIn.NarrowFactor;

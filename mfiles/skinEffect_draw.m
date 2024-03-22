@@ -193,7 +193,7 @@ end
 % end
 
 if strcmp(condType,'Round')
-    nh = floor(hSlot/(hCond)); % max number of height divisions
+    nh = floor((hSlot-condBottomGap)/(hCond)); % max number of height divisions
 else
     nh = floor(hSlot/(hCond+2*tol)); % max number of height divisions
 end
@@ -209,6 +209,7 @@ indexCond = 1;
 dh = hCond/2;
 dw = wCond/2;
 rc = rCond;
+
 
 for xx=1:1:nh
     if xx==1
@@ -333,7 +334,7 @@ slot.slotMat = slotMat;
 slot.matCond = matCond;
 slot.nCond   = nCond;
 
-save([resFolder filename(1:end-4) '_slotModel.mat'],'dataSet','geo','per','mat','slot');
+save([resFolder 'slotModel.mat'],'dataSet','geo','per','mat','slot');
 
 copyfile([pathname filename(1:end-4) '.mat'],[resFolder filename(1:end-4) '.mat'])
 copyfile([pathname filename(1:end-4) '.fem'],[resFolder filename(1:end-4) '.fem'])
@@ -374,10 +375,10 @@ end
 
 % save model
 
-mi_saveas([resFolder filename(1:end-4) '_slotModel.fem'])
+mi_saveas([resFolder 'slotModel.fem'])
 closefemm();
 disp(['Slot model saved in:'])
-disp([resFolder filename(1:end-4) '_slotModel.fem'])
+disp([resFolder 'slotModel.fem'])
 
 figure()
 figSetting()

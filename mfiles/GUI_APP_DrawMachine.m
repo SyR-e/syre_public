@@ -6,7 +6,7 @@
 %
 %        http://www.apache.org/licenses/LICENSE-2.0
 %
-%    Unless required by wCondlicable law or agreed to in writing, dx
+%    Unless required by applicable law or agreed to in writing, dx
 %    distributed under the License is distributed on an "AS IS" BASIS,
 %    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %    See the License for the specific language governing permissions and
@@ -135,6 +135,8 @@ if (~strcmp(geo.RotType, 'SPM') && ~strcmp(geo.RotType,'IM'))
 elseif strcmp(geo.RotType,'SPM')
     dataSet.ALPHAdeg = round(100*geo.dalpha*2)/100;
     dataSet.HCmm     = round(100*geo.hc)/100;
+elseif strcmp(geo.RotType, 'Spoke-type')
+    dataSet.TanRibEdit = geo.pontT;
 end
 
 dataSet.RadRibEdit = round(geo.pontR*100)/100;

@@ -15,7 +15,7 @@ Rs      = motorModel.data.Rs;
 p       = motorModel.data.p;
 J       = motorModel.data.J;
 Rfe     = 1e5;
-accel   = 5000; % rpm/s
+accel   = 10000; % rpm/s
 Bm      = 0;                     % damping constant (Nm/(rad/sec))
 Tf      = 0;                 % friction loss (Nm)
 Tv      = 0;%P0/(nmax*pi/30)^3;     % ventilation loss coefficient (W/(rad/s)^3 = Nm/(rad/s)^2)
@@ -91,13 +91,23 @@ end
 switch motorModel.SyreDrive.FMapsModel
     case 'dq Model'
         FMapsModel = 1;
-        
-        Fd_v = unique(motorModel.FluxMapInv_dq.Fd);
-        Fq_v = unique(motorModel.FluxMapInv_dq.Fq);
+        fD_pu_norm = motorModel.FluxMapInv_dq.fD_pu_norm;
+        fQ_pu_norm = motorModel.FluxMapInv_dq.fQ_pu_norm;
+        iD_pu_norm = motorModel.FluxMapInv_dq.iD_pu_norm;
+        iQ_pu_norm = motorModel.FluxMapInv_dq.iQ_pu_norm;
+
+        switch(Quad_Maps)
+            case {0,2}
+                fD_vct_ref = motorModel.FluxMapInv_dq.fD_vct_ref;
+                fQ_vct_max = motorModel.FluxMapInv_dq.fQ_vct_max;
+            case 1
+                fQ_vct_ref = motorModel.FluxMapInv_dq.fQ_vct_ref;
+                fD_vct_max = motorModel.FluxMapInv_dq.fD_vct_max;
+        end
         
     case 'dqt Model'
         FMapsModel = -1;
-
+        
         Fd_max = max(motorModel.FluxMapInv_dqt.dataF.Fd,[],'all');
         Fq_max = max(motorModel.FluxMapInv_dqt.dataF.Fq,[],'all');
         Fd_min = min(motorModel.FluxMapInv_dqt.dataF.Fd,[],'all');
@@ -114,16 +124,8 @@ switch motorModel.SyreDrive.FMapsModel
         Id_dqt=interpn(motorModel.FluxMapInv_dqt.dataF.Fd,motorModel.FluxMapInv_dqt.dataF.Fq,motorModel.FluxMapInv_dqt.dataF.th,motorModel.FluxMapInv_dqt.dataF.Id,Fd_dqt,Fq_dqt,th_dqt,'cubic');
         Iq_dqt=interpn(motorModel.FluxMapInv_dqt.dataF.Fd,motorModel.FluxMapInv_dqt.dataF.Fq,motorModel.FluxMapInv_dqt.dataF.th,motorModel.FluxMapInv_dqt.dataF.Iq,Fd_dqt,Fq_dqt,th_dqt,'cubic');
         T_dqt=interpn(motorModel.FluxMapInv_dqt.dataF.Fd,motorModel.FluxMapInv_dqt.dataF.Fq,motorModel.FluxMapInv_dqt.dataF.th,motorModel.FluxMapInv_dqt.dataF.T,Fd_dqt,Fq_dqt,th_dqt,'cubic');
+
 end
-
-
-%------------------dq Inverse Flux Maps------------------------%
-
-Fd     = motorModel.FluxMapInv_dq.Fd;
-Fq     = motorModel.FluxMapInv_dq.Fq;
-Id     = motorModel.FluxMapInv_dq.Id;
-Iq     = motorModel.FluxMapInv_dq.Iq;
-T      = motorModel.FluxMapInv_dq.T;
 
 
 %% -----------------Iron Loss Model-------------------------------%%

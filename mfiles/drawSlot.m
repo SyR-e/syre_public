@@ -14,22 +14,23 @@
 
 function [geo,temp] = drawSlot(geo)
 
-acs  = geo.acs;         % slot opening [pu]
-avv  = geo.win.avv;     % widing matrix
-lt   = geo.lt;          % tooth length [mm]
-wt   = geo.wt;          % tooth width [mm]
-%st   = geo.st;         % slot width [mm]
-p    = geo.p;           % pole pairs number
-q    = geo.q;           % slot per pole per phase
-R    = geo.R;           % stator outer radius [mm]
-r    = geo.r;           % rotor outer radius [mm]
-g    = geo.g;           % airgap length [mm]
-% ns  = geo.ns;         % number of stator slot per pole pair
-ttd  = geo.ttd;         % tooth shoe thickness [mm]
-tta  = geo.tta;         % tooth shoe angle [°]
-SFR  = geo.SFR;         % fillet radius at the slot bottom [mm]
-Qs   = geo.Qs;          % number of simulated stator slots
-n3ph = geo.win.n3phase; % number of 3phase sets
+acs   = geo.acs;                        % slot opening [pu]
+avv   = geo.win.avv;                    % widing matrix
+lt    = geo.lt;                         % tooth length [mm]
+wt    = geo.wt;                         % tooth width [mm]
+p     = geo.p;                          % pole pairs number
+q     = geo.q;                          % slot per pole per phase
+R     = geo.R;                          % stator outer radius [mm]
+r     = geo.r;                          % rotor outer radius [mm]
+g     = geo.g;                          % airgap length [mm]
+ttd   = geo.ttd;                        % tooth shoe thickness [mm]
+tta   = geo.tta;                        % tooth shoe angle [°]
+SFR   = geo.SFR;                        % fillet radius at the slot bottom [mm]
+Qs    = geo.Qs;                         % number of simulated stator slots
+n3ph  = geo.win.n3phase;                % number of 3phase sets
+dis   = geo.win.liner;                  % liner thickness [mm]
+pont0 = geo.pont0;                      % minimum mechanical tolerance [mm]
+flagDivision = geo.statorYokeDivision;  % division line for end-winding extrusion (GalFer Challenge 2024)
 
 
 slot_layer_pos = geo.win.slot_layer_pos;    % side-by-side flag winding
@@ -152,10 +153,66 @@ yE1 = 0;
 
 xE2 = RSE*cos(alpha_slot/2);
 yE2 = RSE*sin(alpha_slot/2);
+
+% liner insertion (GalFer Challenge 2024, Repetto and Solimene)
+x5_c=x5-dis;
+y5_c=y5;
+
+x4_c=x4+dis*sin(0.5*alpha_slot);
+y4_c=y4-dis*cos(0.5*alpha_slot);
+x2_c=x2+dis;
+y2_c=y2;
+
+xA2_c=xA2+dis;
+yA2_c=0;
+
+y6_c=0;
+x6_c=x6-dis;
+
+qtta_c=y2_c-mtta*x2_c;
+m34=tan(alpha_slot/2);
+q4=y4_c-tan(alpha_slot/2)*x4_c;
+[x3_c,y3_c]=intersezione_tra_rette(mtta,-1,qtta_c,m34,-1,q4);
+
+if y3_c<y2_c
+    q4=y4_c-tan(alpha_slot/2)*x4_c;
+    y3_c=tan(alpha_slot/2)*xA2_c+q4;
+    x3_c=xA2_c;
+    x2_c=x3_c;
+    y2_c=y3_c;
+end
+
 %% slot area evaluation
-xArea = [xA2,x2,x3,xLT2,x6,xA2];
-yArea = [yA2,y2,y3,yLT2,y6,yA2];
-Aslot = 2*(polyarea(xArea,yArea)-area_corner);  % NB: the slot area should be computed from the slot matrix and not here...
+if dis==0
+    xTmp1 = x4-xRacSlot;
+    yTmp1 = y4-yRacSlot;
+    xTmp2 = x5-xRacSlot;
+    yTmp2 = y5-yRacSlot;
+    rRacc = abs(xTmp1+j*yTmp1);
+    ang1  = angle(xTmp1+j*yTmp1);
+    ang2  = angle(xTmp2+j*yTmp2);
+    xRacc = xRacSlot+rRacc*cos(linspace(ang1,ang2,101));
+    yRacc = yRacSlot+rRacc*sin(linspace(ang1,ang2,101));
+    xArea = [xA2,x2,x3,xRacc,x6,xA2];
+    yArea = [yA2,y2,y3,yRacc,y6,yA2];
+    
+else
+    xTmp1 = x4_c-xRacSlot;
+    yTmp1 = y4_c-yRacSlot;
+    xTmp2 = x5_c-xRacSlot;
+    yTmp2 = y5_c-yRacSlot;
+    rRacc = abs(xTmp1+j*yTmp1);
+    ang1  = angle(xTmp1+j*yTmp1);
+    ang2  = angle(xTmp2+j*yTmp2);
+    xRacc = xRacSlot+rRacc*cos(linspace(ang1,ang2,101));
+    yRacc = yRacSlot+rRacc*sin(linspace(ang1,ang2,101));
+    xArea = [xA2_c,x2_c,x3_c,xRacc,x6_c];
+    yArea = [yA2_c,y2_c,y3_c,yRacc,y6_c];
+end
+
+%Aslot = 2*(polyarea(xArea,yArea)-area_corner);  % NB: the slot area should be computed from the slot matrix and not here...
+
+Aslot = 2*(polyarea(xArea,yArea));
 
 % Matrix describing lines and arches of half slot
 materialCodes;
@@ -192,6 +249,16 @@ else
         ];
 end
 
+if dis~=0
+    CopperMat = [CopperMat;
+        x2_c     0        x2_c y2_c NaN   NaN    0 codMatCu 2*Qs+1
+        x2_c     y2_c     x3_c y3_c NaN   NaN    0 codMatCu 2*Qs+1
+        x3_c     y3_c     x4_c y4_c NaN   NaN    0 codMatCu 2*Qs+1
+        xRacSlot yRacSlot x4_c y4_c x5_c  y5_c  -1 codMatCu 2*Qs+1
+        x5_c     y5_c     x6_c 0    NaN   NaN    0 codMatCu 2*Qs+1
+        ];
+end
+
 % MIRROR of the half slot (adding the lines in the correct order)
 CopperMatNeg = CopperMat;                           % create the second half slot
 CopperMatNeg(:,[2,4,6]) = -CopperMat(:,[2,4,6]);    % mirror the points
@@ -216,21 +283,35 @@ xCu = zeros(1,size(avv,1));
 yCu = zeros(1,size(avv,1));
 
 if (strcmp(slot_layer_pos,'side_by_side'))
-    xCu(1) = (x2+x6)/2;
-    yCu(1) = y5/2;
-    xCu(2) = (x2+x6)/2;
-    yCu(2) = -y5/2;
+    % if dis==0
+        xCu(1) = (x2+x6)/2;
+        yCu(1) = y5/2;
+        xCu(2) = (x2+x6)/2;
+        yCu(2) = -y5/2;
+    % else
+    %     xCu(1) = (x2_c+x6_c)/2;
+    %     yCu(1) = y5_c/2;
+    %     xCu(2) = (x2_c+x6_c)/2;
+    %     yCu(2) = -y5_c/2;
+    % end
     
     CopperMat = [CopperMat
-        CopperMat(1,1) CopperMat(1,2) x6 y6 NaN NaN 0 codMatCu 0
+        CopperMat(1,1)+dis CopperMat(1,2) x6-dis y6 NaN NaN 0 codMatCu 0
         ];
 else
     % lines dividing the slot copper in 2 or more layers (bundles)
     Num_stat_strati=size(avv,1);
-    xini = CopperMat(1,1);
-    xfin = xLT2;
-    xstr = linspace(xini,xfin,Num_stat_strati+1);
-    ystr = mm2*xstr+qq2;
+    if dis==0
+        xini = CopperMat(1,1);
+        xfin = xLT2;
+        xstr = linspace(xini,xfin,Num_stat_strati+1);
+        ystr = mm2*xstr+qq2;
+    else
+        xini = x2_c;
+        xfin = x6_c;
+        xstr = linspace(xini,xfin,Num_stat_strati+1);
+        ystr = mm2*xstr+q4;
+    end
     
     CopperMat = [CopperMat
         xstr(2:end-1)' ystr(2:end-1)' xstr(2:end-1)' -ystr(2:end-1)' NaN NaN 0 codMatCu 0
@@ -249,9 +330,21 @@ else
     yAir = 0;
 end
 
+if dis~=0
+    xAir = [xAir 0.5*(xA2+xA2_c)];
+    yAir = [yAir 0];
+end
 
-xFe = (RSE+RS5)/2;
-yFe = 0;
+xFe = [(RSE+RS5)/2 RS5+pont0/2];
+yFe = [0 0];
+
+if ~flagDivision
+    xFe = xFe(1);
+    yFe = yFe(1);
+end
+
+% xFe0 = RSE+pont0/2;
+% yFe0 = 0;
 
 slotMat = [CopperMat;AirMat];
 
@@ -260,7 +353,7 @@ slotMat     = rotateMatrix(slotMat,alpha_slot/2);
 [xCu,yCu]   = rot_point(xCu,yCu,alpha_slot/2);
 [xAir,yAir] = rot_point(xAir,yAir,alpha_slot/2);
 [xFe,yFe]   = rot_point(xFe,yFe,alpha_slot/2);
-
+% [xFe0,yFe0] = rot_point(xFe0,yFe0,alpha_slot/2);
 
 %% OUTPUT DATA
 geo.Aslot = Aslot;
@@ -274,6 +367,8 @@ temp.xAir    = xAir;
 temp.yAir    = yAir;
 temp.xFe     = xFe;
 temp.yFe     = yFe;
+% temp.xFe0    = xFe0;
+% temp.yFe0    = yFe0;
 temp.CavaMat = slotMat;
 
 % data for slot leakage computation

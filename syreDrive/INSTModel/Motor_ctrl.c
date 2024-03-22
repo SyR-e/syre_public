@@ -1,5 +1,5 @@
 // // /*----------------------------------------------------------------------*/
-/* File: Syr_ctrl.c                                               	*/
+/* File: Motor_ctrl.c                                               	*/
 /* the parameter CTRL_TYPE decides the type of control		*/
 /*  CTRL_TYPE = 0 - Current control												*/
 /*  CTRL_TYPE = 1 - Flux control											  	*/
@@ -360,9 +360,9 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 					ramp(omega_ref_in, accel * RPM2RAD*Ts, &omega_ref_ramp);
 					sp_var.ref  = omega_ref_ramp;
 					sp_var.fbk  = omega_elt/PP;
-					sp_par.lim  = T_rated;
-					kp_w        = 2*OMEGA_BW*J;
-					ki_w        = pow(OMEGA_BW,2)*J;
+					sp_par.lim  = T_rated*2;
+					kp_w        = OMEGA_BW*J;
+					ki_w        = OMEGA_BW*kp_w*0.1;
 					sp_par.ki   = ki_w*Ts;
 					sp_par.kp   = kp_w;
 					PIReg(&sp_par, &sp_var);
