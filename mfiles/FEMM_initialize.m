@@ -20,14 +20,14 @@ newdocument(0);
 mi_probdef(0,'millimeters','planar',1e-8,geo.l,15);
 
 % add iron in use
-mi_addmaterial(mat.Stator.MatName);
+mi_addmaterial(mat.Stator.MatName,1,1,0,0,0,0,0,geo.stackingFactor,0,0,0,0,0);
 
 for ii=1:length(mat.Stator.BH(:,1))
     mi_addbhpoint(mat.Stator.MatName,mat.Stator.BH(ii,1),mat.Stator.BH(ii,2));
 end
 
 if ~strcmp(mat.Stator.MatName,mat.Rotor.MatName)
-    mi_addmaterial(mat.Rotor.MatName);
+    mi_addmaterial(mat.Rotor.MatName,1,1,0,0,0,0,0,geo.stackingFactor,0,0,0,0,0);
     for ii=1:length(mat.Rotor.BH(:,1))
         mi_addbhpoint(mat.Rotor.MatName,mat.Rotor.BH(ii,1),mat.Rotor.BH(ii,2));
     end

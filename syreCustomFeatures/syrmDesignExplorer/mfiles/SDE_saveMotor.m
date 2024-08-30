@@ -50,7 +50,11 @@ else
     dataSet.ThermalLoadKj   = interp2(map.xx,map.bb,map.kj,x,b);
     dataSet.CurrentDensity  = interp2(map.xx,map.bb,map.J,x,b);
     dataSet.AdmiJouleLosses = dataSet.ThermalLoadKj*(2*pi*dataSet.StatorOuterRadius/1000*dataSet.StackLength/1000);
-    dataSet.TurnsInSeries   = map.geo.win.Ns;
+    if isfield(map,'Ns')
+        dataSet.TurnsInSeries = interp2(map.xx,map.bb,map.Ns,x,b);
+    else
+        dataSet.TurnsInSeries   = map.geo.win.Ns;
+    end
 
     dataSet.PMdim = -dataSet.PMdimPU./dataSet.PMdimPU;
     dataSet.PMdim(isnan(dataSet.PMdim)) = 0;
@@ -91,7 +95,7 @@ tmp.AxisGeometry = gca;
 tmp = GUI_APP_DrawMachine(tmp);
 
 if saveFlag
-    DrawAndSaveMachine(tmp.dataSet);
+    dataSet = DrawAndSaveMachine(tmp.dataSet);
 else
     button = questdlg('Open the motor in the main SyR-e GUI?','Select','Yes','No','Yes');
     if strcmp(button,'Yes')

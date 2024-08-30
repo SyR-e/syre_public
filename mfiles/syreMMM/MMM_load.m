@@ -90,22 +90,22 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
 %     dqtElab.CurrAmpl  = dqtElab.CurrLoad*data.i0;
 %     dqtElab.CurrAngle = 45;
     
-    Tw.nCurrent         = 2;
+    Tw.nCurrent         = 1;
     Tw.nmin             = 0;
     Tw.nmax             = data.nmax;
-    Tw.nstep            = 11;
+    Tw.nstep            = 31;
     Tw.Tmin             = 0;
     Tw.Tmax             = 10;
-    Tw.Tstep            = 11;
+    Tw.Tstep            = 31;
     Tw.temperature      = data.tempCu;
     Tw.MechLoss         = [0];
     Tw.IronLossFlag     = 'No';
-    Tw.IronLossFactor   = 2;
+    Tw.IronLossFactor   = 1;
     Tw.SkinEffectFlag   = 'No';
     Tw.SkinEffectMethod = 'LUT';
     Tw.PMLossFlag       = 'No';
     Tw.PMLossFactor     = 1;
-    Tw.Control          = 'Maximum efficiency';
+    Tw.Control          = 'MTPA';
     
     SyreDrive.Ctrl_type    = 'Torque control';
     SyreDrive.FMapsModel   = 'dq Model';

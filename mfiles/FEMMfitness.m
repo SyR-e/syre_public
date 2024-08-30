@@ -105,6 +105,33 @@ if ~isempty(RQ)
 %             flagSim=0;
 %         end
     end
+
+    if geo.statorYokeDivision
+        % GalFerContest - structural simulation
+        simSetup.evalSpeed = geo.nmax;
+        simSetup.meshSize  = 'FEMM original';
+        simSetup.flagFull  = 0;
+        simSetup.shaftBC   = 1;
+        simSetup.meshShaft = 0;
+        warning('off')
+        simSetup.filename = filename;
+        simSetup.pathname = pathname;
+        warning('on')
+        [structModel] = femm2pde(geo,mat,simSetup);
+        [sVonMises,~,structModel] = calcVonMisesStress(structModel,0);
+        [outStruct] = eval_maxStress(structModel,sVonMises,geo,mat);
+        % GalFerContest - 3D thermal simulation
+        if exist([pathname filename(1:end-4) '.fem'],'file')&&~exist([pathname filename(1:end-4) '.ans'],'file')
+            openfemm(1);
+            opendocument([pathname filename(1:end-4) '.fem']);
+            mi_createmesh;
+            mi_analyze(1);
+            mi_loadsolution;
+            closefemm();
+        end
+        [tempCuAvg,~,tempCuMax] = solve_therm(geo,per,mat,[pathname filename(1:end-4)]);
+    end
+
 end
 
 if (strcmp(eval_type,'idemag')||strcmp(eval_type,'idemagmap')||strcmp(eval_type,'demagArea'))
@@ -113,7 +140,7 @@ if (strcmp(eval_type,'idemag')||strcmp(eval_type,'idemagmap')||strcmp(eval_type,
 else
     flagDemag = 0;
 end
-
+% tic
 if flagSim
     if strcmp(geo.RotType,'IM')
         [SOL] = simulate_FOC_IM(geo,per,mat,eval_type,pathname,filename);
@@ -121,8 +148,8 @@ if flagSim
         [SOL] = simulate_xdeg(geo,per,mat,eval_type,pathname,filename);
     end
     % standard results
-    out.id     = mean(SOL.id);                                      % [A]
-    out.iq     = mean(SOL.iq);                                      % [A]
+    out.id     = mean(SOL.id(:));                                      % [A]
+    out.iq     = mean(SOL.iq(:));                                      % [A]
     out.fd     = mean(SOL.fd);                                      % [Vs]
     out.fq     = mean(SOL.fq);                                      % [Vs]
     out.T      = mean(SOL.T);                                       % [Nm]
@@ -133,6 +160,7 @@ if flagSim
     out.We     = mean(SOL.we);                                      % [J]
     out.Wc     = mean(SOL.wc);                                      % [J]
     out.SOL    = SOL;
+    
 
     % check Torque sign
     if sign(out.T)~=sign(out.fd*out.iq-out.fq*out.id)
@@ -187,6 +215,7 @@ else
     out.dTpp = 10^50;
     out.IPF  = -10^50;
 end
+% toc
 
 if flagDemag
     SOL = simulate_xdeg(geo,per,mat,eval_type,pathname,filename);
@@ -262,21 +291,27 @@ if ~isempty(RQ)     % MODE optimization (RQ geometry)
         temp1=temp1+1;
     end
 
-    % penalize weak solutions
-    for ii = 1:length(cost)
-        if cost(ii)>per.objs(ii,1) && per.objs(ii,3)==0
-            if per.objs(ii,1)>0
-                cost(ii)=cost(ii)*10;  % minimization problem
-            else
-                cost(ii)=cost(ii)*0.1; % maximization problem
+    % Structural GalFerContest
+    if geo.statorYokeDivision
+        cost = [cost outStruct.sigmaTotPrc/1e6 tempCuMax tempCuAvg];
+        % Occho: aggiungere anche termico come ultimo elemento invece di NaN
+    else
+        % penalize weak solutions
+        for ii = 1:length(cost)
+            if cost(ii)>per.objs(ii,1) && per.objs(ii,3)==0
+                if per.objs(ii,1)>0
+                    cost(ii)=cost(ii)*10;  % minimization problem
+                else
+                    cost(ii)=cost(ii)*0.1; % maximization problem
+                end
             end
-        end
-
-        if ((cost(ii)<per.objs(ii,1)-per.objs(ii,3)) || (cost(ii)>per.objs(ii,1)+per.objs(ii,3))) && per.objs(ii,3)
-            if per.objs(ii,1)>0
-                cost(ii)=cost(ii)*10;  % minimization problem
-            else
-                cost(ii)=cost(ii)*0.1; % maximization problem
+    
+            if ((cost(ii)<per.objs(ii,1)-per.objs(ii,3)) || (cost(ii)>per.objs(ii,1)+per.objs(ii,3))) && per.objs(ii,3)
+                if per.objs(ii,1)>0
+                    cost(ii)=cost(ii)*10;  % minimization problem
+                else
+                    cost(ii)=cost(ii)*0.1; % maximization problem
+                end
             end
         end
     end

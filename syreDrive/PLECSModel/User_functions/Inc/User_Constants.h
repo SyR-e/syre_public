@@ -51,7 +51,7 @@
 
 // PI Reg
 #define OMEGA_BW    	TWOPI*1.0f
-#define OMEGA_BI    	TWOPI*500.0f
+#define OMEGA_BI    	TWOPI*700.0f
 #define OMEGA_PLL       TWOPI*25.00f
 #define OMEGA_0_INJ 	TWOPI*50.0f 
 #define OMEGA_DELTA     TWOPI*5.00f

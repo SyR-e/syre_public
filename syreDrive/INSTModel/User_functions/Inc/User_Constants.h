@@ -10,6 +10,7 @@
 #define ONE_HALF   		0.5f
 #define TWO_THIRDS      0.666666666666f
 #define RPM2RAD         0.1046667f	// rpm to mechanical rad/s
+#define RAD2RPM         9.5493f
 
 //States
 #define START      			3

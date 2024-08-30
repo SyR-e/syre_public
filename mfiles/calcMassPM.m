@@ -22,7 +22,7 @@ else
         if geo.pShape.flag
             Mass = (2*geo.p)*rhoPM*(geo.l/1000)*area(geo.pShape.magnet)/1e6;
         else
-            if strcmp(geo.RotType,'SPM')
+            if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'SPM-Halbach')
                 Mass = pi*(geo.r^2-(geo.r-geo.hc_pu*geo.g)^2)*geo.l*(geo.dalpha_pu)/1e9*rhoPM;
             elseif strcmp(geo.RotType,'Spoke-type')
                 Mass = (2*geo.p)*geo.hc*geo.PMdim(1,1)*geo.l/1e9*rhoPM;
@@ -31,7 +31,7 @@ else
             end
         end
     else
-        if strcmp(geo.RotType,'SPM')
+        if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'SPM-Halbach')
             Mass = pi*(geo.r^2-(geo.r-geo.hc_pu*geo.g)^2)*geo.l*(geo.dalpha_pu)/1e9*rhoPM;
         elseif strcmp(geo.RotType,'Spoke-type')
             Mass = (2*geo.p)*geo.hc*geo.PMdim(1,1)*geo.l/1e9*rhoPM;

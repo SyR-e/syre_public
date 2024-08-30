@@ -42,6 +42,8 @@ dataSet.Mesh      = dataSet.Mesh*ScaleFactor;
 % dataSet.Mesh_MOOA = dataSet.Mesh_MOOA*ScaleFactor;
 dataSet.MinMechTol = dataSet.MinMechTol*ScaleFactor ;
 % dataSet.OverSpeed = dataSet.OverSpeed*ScaleFactor;
+% dataSet.RadRibCheck = 1;
+dataSet.OverSpeed = dataSet.OverSpeed/ScaleFactor;
 
 % Materials
 dataSet.PMdim = dataSet.PMdim*ScaleFactor;

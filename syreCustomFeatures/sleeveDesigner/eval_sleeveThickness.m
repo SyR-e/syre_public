@@ -45,6 +45,7 @@ par.E_1    = mat.Sleeve.E*10^9; % in Pa = N/m^2. Sleeve Young's modulus in fiber
 par.nu_1   = 0.28;              % sleeve Poisson number. Typical value from (Zhi, Pingxi, 2019), (Fang, Li, 2019), (Johnson, Hanson, 2021). NOT RELEVANT FOR THE CHOSEN MODELING
 par.a_th1  = 0.4*10^-6;         % in 1/K. Sleeve thermal expansion coefficient in fiber direction.
 par.s_max1 = 1650*10^6;         % in Pa = N/m^2. Max sleeve allowed stress.
+% par.s_max1 = mat.Sleeve.sigma_max*10^6;         % in Pa = N/m^2. Max sleeve allowed stress.
 
 % PMs 
 rho_PM = mat.LayerMag.kgm3; % in kg/m^3. PM density. (From SyR-e and BOMATEC datasheet)

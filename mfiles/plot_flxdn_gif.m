@@ -31,9 +31,9 @@ alpha_th = geo.wt/(geo.r+geo.g)*180/pi;
 alpha_slot = 360/Q;
 Qs = geo.Qs;
 
-names{1} = '$B_{g}$ [$T$]';
-names{2} = '$B_{t}$ [$T$]';
-names{3} = '$B_{y}$ [$T$]';
+names{1} = '$B_{g}$ (T)';
+names{2} = '$B_{t}$ (T)';
+names{3} = '$B_{y}$ (T)';
 
 filenames{1} = [newDir filemot(1:end-4) 'Bgap.gif'];
 filenames{2} = [newDir filemot(1:end-4) 'Btooth.gif'];
@@ -45,7 +45,7 @@ for ii=1:3
     hfig(ii)=figure();
     figSetting()
     hax(ii)=gca;
-    xlabel('$\alpha$ [$^\circ mech$]')
+    xlabel('$\xi$ ($^\circ$ mech)')
     ylabel(names{ii})
     set(hax(ii),'XLim',[min(Bg(:,1)) max(Bg(:,1))]);
     
@@ -89,17 +89,17 @@ for ii=1:length(Bg(1,2:end))
     
     cla(hax(1))
     plot(hax(1),Bg(:,1),Bg(:,ii+1),'-b')
-    title(hax(1),['$\theta=' num2str(out.SOL.th(ii)-geo.th0(1),2) ' ^\circ$'])
+    title(hax(1),['$\theta=' num2str(out.SOL.th(ii)-geo.th0(1)) ' ^\circ$'])
     drawnow
     
     cla(hax(2))
     plot(hax(2),Bt(:,1),Bt(:,ii+1),'-b')
-    title(hax(2),['$\theta=' num2str(out.SOL.th(ii)-geo.th0(1),2) ' ^\circ$'])
+    title(hax(2),['$\theta=' num2str(out.SOL.th(ii)-geo.th0(1)) ' ^\circ$'])
     drawnow
     
     cla(hax(3))
     plot(hax(3),By(:,1),By(:,ii+1),'-b')
-    title(hax(3),['$\theta=' num2str(out.SOL.th(ii)-geo.th0(1),2) ' ^\circ$'])
+    title(hax(3),['$\theta=' num2str(out.SOL.th(ii)-geo.th0(1)) ' ^\circ$'])
     drawnow
     
     for jj=1:3
@@ -108,9 +108,9 @@ for ii=1:length(Bg(1,2:end))
         im=frame2im(frame);
         [imind,cm]=rgb2ind(im,256);
         if ii==1
-            imwrite(imind,cm,filenames{jj},'gif','Loopcount',inf);
+            imwrite(imind,cm,filenames{jj},'gif','Loopcount',inf,'DelayTime',0.01);
         else
-            imwrite(imind,cm,filenames{jj},'gif','WriteMode','append');
+            imwrite(imind,cm,filenames{jj},'gif','WriteMode','append','DelayTime',0.01);
         end
     end
 end

@@ -13,7 +13,7 @@
 %    limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [Plim] = MMM_eval_OpLim(motorModel,saveFlag)
+function [Plim,resPath] = MMM_eval_OpLim(motorModel,saveFlag)
 
 nCurr = motorModel.data.nCurr;
 Imax  = motorModel.data.Imax;

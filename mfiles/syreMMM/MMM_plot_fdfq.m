@@ -98,11 +98,16 @@ for ii=1:length(figNames)
     set(hfig(ii),'Name',figNames{ii})
 end
 
-surf(hax(1),Id,Iq,Fd,'FaceColor','interp','EdgeColor','interp')
-surf(hax(2),Id,Iq,Fq,'FaceColor','interp','EdgeColor','interp')
-surf(hax(3),Id,Iq,T,'FaceColor','interp','EdgeColor','interp')
-surf(hax(4),Id,Iq,dTpp,'FaceColor','interp','EdgeColor','interp')
-surf(hax(5),Id,Iq,dT,'FaceColor','interp','EdgeColor','interp')
+surf(hax(1),Id,Iq,Fd,'FaceColor','interp','EdgeColor','none')
+contour3(hax(1),Id,Iq,Fd,'EdgeColor','k','ShowText','off')
+surf(hax(2),Id,Iq,Fq,'FaceColor','interp','EdgeColor','none')
+contour3(hax(2),Id,Iq,Fq,'EdgeColor','k','ShowText','off')
+surf(hax(3),Id,Iq,T,'FaceColor','interp','EdgeColor','none')
+contour3(hax(3),Id,Iq,T,'EdgeColor','k','ShowText','off')
+surf(hax(4),Id,Iq,dTpp,'FaceColor','interp','EdgeColor','none')
+contour3(hax(4),Id,Iq,dTpp,'EdgeColor','k','ShowText','off')
+surf(hax(5),Id,Iq,dT,'FaceColor','interp','EdgeColor','none')
+contour3(hax(5),Id,Iq,dT,'EdgeColor','k','ShowText','off')
 
 contourf(hax(6),Id,Iq,Fd,'ShowText','on');
 contourf(hax(7),Id,Iq,Fq,'ShowText','on');
@@ -132,7 +137,6 @@ ylabel('$\lambda_{dq}$ (Vs)');
 title('Saturation Curves')
 set(hfig(12),'FileName',[pathname resFolder 'SaturationCurves.fig'])
 set(hfig(12),'Name','SaturationCurves')
-
 
 
 %% Save figures

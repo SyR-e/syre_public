@@ -38,27 +38,30 @@ for ii=1:length(figNames)
         'XLim',[min(min(Fd)) max(max(Fd))],...
         'YLim',[min(min(Fq)) max(max(Fq))],...
         'PlotBoxAspectRatio',[1 1 0.8]);
-    xlabel('$\lambda_d$ [Vs]')
-    ylabel('$\lambda_q$ [Vs]')
+    xlabel('$\lambda_d$ (Vs)')
+    ylabel('$\lambda_q$ (Vs)')
     view(3)
     switch ii
         case 1
-            zlabel('$i_d$ [A]')
+            zlabel('$i_d$ (A)')
             set(gca,'ZLim',[min(min(Id)) max(max(Id))])
         case 2
-            zlabel('$i_q$ [A]')
+            zlabel('$i_q$ (A)')
             set(gca,'ZLim',[min(min(Iq)) max(max(Iq))])
         case 3
-            zlabel('$T$ [Nm]')
+            zlabel('$T$ (Nm)')
             set(gca,'ZLim',[min(min(T)) max(max(T))])
     end
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
     set(hfig(ii),'Name',figNames{ii})
 end
 
-surf(hax(1),Fd,Fq,Id,'FaceColor','interp','EdgeColor','interp')
-surf(hax(2),Fd,Fq,Iq,'FaceColor','interp','EdgeColor','interp')
-surf(hax(3),Fd,Fq,T,'FaceColor','interp','EdgeColor','interp')
+surf(hax(1),Fd,Fq,Id,'FaceColor','interp','EdgeColor','none')
+contour3(hax(1),Fd,Fq,Id,'EdgeColor','k','ShowText','off')
+surf(hax(2),Fd,Fq,Iq,'FaceColor','interp','EdgeColor','none')
+contour3(hax(2),Fd,Fq,Iq,'EdgeColor','k','ShowText','off')
+surf(hax(3),Fd,Fq,T,'FaceColor','interp','EdgeColor','none')
+contour3(hax(3),Fd,Fq,T,'EdgeColor','k','ShowText','off')
 
 %% Save figures
 answer = 'No';

@@ -45,6 +45,7 @@ if expFlag
     nVect = vector.n;
 else
     nVect = linspace(0,nMax,nPoints);
+    nVect = logspace(0,log10(nMax),nPoints);
 end
 
 if strcmp(motorModel.data.axisType,'SR')
@@ -165,7 +166,7 @@ for ii=1:4
     end
 end
 
-plot(hax(1),nVect,Tcc,'-bo');
+plot(hax(1),nVect,Tcc,'-b');
 
 plot(hax(2),nVect,real(Icc),'-b','DisplayName','$i_d$')
 plot(hax(2),nVect,imag(Icc),'-r','DisplayName','$i_q$')

@@ -46,26 +46,26 @@ for ii=1:length(figNames)
         'YLim',[min(fdfq.Iq,[],'all') max(fdfq.Iq,[],'all')],...
         'PlotBoxAspectRatio',[1 1 0.8]);
     view(3)
-    xlabel('$i_d$ [$A$]')
-    ylabel('$i_q$ [$A$]')
+    xlabel('$i_d$ (A)')
+    ylabel('$i_q$ (A)')
     switch ii
         case 1
-            zlabel('$P_{Fe,s,h}$ [$W$]')
+            zlabel('$P_{Fe,s,h}$ (W)')
             title('Stator Hysteresis')
         case 2
-            zlabel('$P_{Fe,s,c}$ [$W$]')
+            zlabel('$P_{Fe,s,c}$ (W)')
             title('Stator Eddy-currents')
         case 3
-            zlabel('$P_{Fe,r,h}$ [$W$]')
+            zlabel('$P_{Fe,r,h}$ (W)')
             title('Rotor Hysteresis')
         case 4
-            zlabel('$P_{Fe,r,c}$ [$W$]')
+            zlabel('$P_{Fe,r,c}$ (W)')
             title('Rotor Eddy-currents')
         case 5
-            zlabel('$P_{PM}$ [$W$]')
+            zlabel('$P_{PM}$ (W)')
             title('Permanent Magnets')
         case 6
-            zlabel('$P_{Fe}$ [$W$]')
+            zlabel('$P_{Fe}$ (W)')
             title('Total Iron Loss')
     end
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
@@ -75,12 +75,12 @@ end
 
 for ii=1:length(nPU)
     [Pfe,Pfesh,Pfesc,Pferh,Pferc,Ppm] = calcIronLoss(ironLoss,fdfq,f0*nPU(ii));
-    surf(hax(1),fdfq.Id,fdfq.Iq,Pfesh,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '\,rpm$'])
-    surf(hax(2),fdfq.Id,fdfq.Iq,Pfesc,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '\,rpm$'])
-    surf(hax(3),fdfq.Id,fdfq.Iq,Pferh,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '\,rpm$'])
-    surf(hax(4),fdfq.Id,fdfq.Iq,Pferc,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '\,rpm$'])
-    surf(hax(5),fdfq.Id,fdfq.Iq,Ppm,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '\,rpm$'])
-    surf(hax(6),fdfq.Id,fdfq.Iq,Pfe,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '\,rpm$'])
+    surf(hax(1),fdfq.Id,fdfq.Iq,Pfesh,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+    surf(hax(2),fdfq.Id,fdfq.Iq,Pfesc,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+    surf(hax(3),fdfq.Id,fdfq.Iq,Pferh,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+    surf(hax(4),fdfq.Id,fdfq.Iq,Pferc,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+    surf(hax(5),fdfq.Id,fdfq.Iq,Ppm,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+    surf(hax(6),fdfq.Id,fdfq.Iq,Pfe,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
 end
 
 for ii=1:length(hax)

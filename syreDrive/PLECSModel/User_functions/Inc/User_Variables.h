@@ -27,6 +27,7 @@ int pwm_stop;
 Xabc vsabc_ref, vsabc_k0, duty_abc, duty_abc_km1;
 Xalphabeta vsab_ref, vsab_k0, vsab_km1;
 Xdq vsdq_ref, vsdq_k0;
+Xdq vffw_dq;
 float v0, flux_nom, volt_nom;
 XPIRegPars  id_par, iq_par, sp_par;
 XPIRegVars  id_var, iq_var, sp_var;
@@ -35,15 +36,22 @@ float kp_w, ki_w, kp_id, ki_id, kp_iq, ki_iq;
 //Mechanical variables
 float omega_ref_in, omega_ref_ramp, accel, theta_ref;
 float omega_elt_meas, theta_elt_meas, theta_elt_meas_enc, omega_mec_meas, theta_mec_meas, omega_elt_meas_f, omega_mec_meas_f, omega_mec_meas_rpm;
-Xsc SinCos_ref, SinCos_elt_meas, SinCos_elt_meas_old, SinCos_elt,SinCos_elt_dTheta;
+Xsc SinCos_ref;
+Xsc SinCos_elt_meas;
+Xsc SinCos_elt_meas_old;
+Xsc SinCos_elt;
+Xsc SinCos_elt_dTheta;
+Xsc SinCos_thetaS_dTheta;
 float omega_elt;
 
 
 //Direct Flux Vector Control
 XPIRegPars lambda_par,iqs_par,delta_par;
 XPIRegVars lambda_var,iqs_var,delta_var;
-Xsc SinCos_delta;
+Xsc SinCos_delta,SinCos_thetaS;
+Xdq vffw_dsqs;
 Xdq vdsqs,idsqs;
+Xdq vdsqs_ref;
 float lambda_MTPA,Flux_Lim,lambda_ref,iqs_ref;
 Xdq isdq_aux,lambda_aux;
 float delta_mtpv,delta_max;

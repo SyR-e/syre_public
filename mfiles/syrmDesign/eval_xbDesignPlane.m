@@ -57,6 +57,14 @@ dataSet.syrmDesignFlag.therm = 0;   %if 1, thermal transient simulations with Mo
 %     otherwise
 %         map = syrmDesign_SyR(dataSet);
 % end
+
+if strcmp(dataSet.TypeOfRotor,'IM')
+    dataSet.TypeOfRotor = 'Seg';
+    flagIM = 1;
+else
+    flagIM = 0;
+end
+
 map = xbPlane_analyticalDesign(dataSet);
 
 % FEAfix
@@ -195,51 +203,59 @@ if ~dataSet.syrmDesignFlag.therm
     map = rmfield(map,'tempCuMaxAct');
 end
 
-% Output figure
-hfig=figure();
-figSetting(15,10)
-contour(map.xx,map.bb,map.T,'Color','r','LineWidth',1,'DisplayName','$T$ [Nm]','ShowText','on');
-if ~strcmp(dataSet.TypeOfRotor,'Vtype')
-    contour(map.xx,map.bb,map.PF,0.4:0.02:0.96,'Color','b','LineWidth',1,'DisplayName','$cos \varphi$','ShowText','on');
+if flagIM
+    dataSet.TypeOfRotor = 'IM';
+    map.dataSet = dataSet;
+    hfig = [];
 else
-    contour(map.xx,map.bb,map.ich./map.i0,[0:0.1:0.9 1 1.2:0.4:2.8],'Color','b','LineWidth',1,'DisplayName','$\frac{i_{ch}}{i_0}$','ShowText','on');
-    contour(map.xx,map.bb,map.ich./map.i0,[1 1],'Color','b','LineWidth',2,'HandleVisibility','off');
-end
-if ~isempty(map.xRaw)
-    plot(map.xRaw,map.bRaw,'Color',[0 0.5 0],'LineStyle','none','Marker','o','MarkerFaceColor',[0 0.5 0],'DisplayName','FEAfix')
-end
-plot(map.xx(isnan(map.T)),map.bb(isnan(map.T)),'rx','DisplayName','unfeasible','MarkerSize',8)
-xlabel('$x$ - rotor / stator split');
-% if strcmp(dataSet.TypeOfRotor,'SPM')
-%     ylabel('$l_m/g$ - p.u. magnet size')
-% elseif strcmp(dataSet.TypeOfRotor,'Vtype')
-%     ylabel('$hc/g$ - p.u. magnet size')
-% else
-    ylabel('$b$ - p.u. magnetic loading');
-% end
-legend('show','Location','NorthEast')
-title('torque and PF tradeoff')
-
-set(hfig,'UserData',map);
-
-if ~debug
-    button = questdlg('Open in (x,b) Design Plane Explorer?','SELECT','Yes','No','Yes');
-    if strcmp(button,'Yes')
-        hApp = findall(0,'Name','SyR-e (x,b) Design Plane Explorer');
-        if isempty(hApp)
-            xbDesignPlaneExplorer(map);
-        else
-            hApp.RunningAppInstance.map = map;
-            hApp.RunningAppInstance.SDE_update;
-            figure(hApp)
-%             hApp.WindowStyle = 'alwaysontop';
-%             hApp.WindowStyle = 'normal';
-            clear hApp;
+    
+    % Output figure
+    hfig=figure();
+    figSetting(15,10)
+    contour(map.xx,map.bb,map.T,'Color','r','LineWidth',1,'DisplayName','$T$ [Nm]','ShowText','on');
+    if ~strcmp(dataSet.TypeOfRotor,'Vtype')
+        contour(map.xx,map.bb,map.PF,0.4:0.02:0.96,'Color','b','LineWidth',1,'DisplayName','$cos \varphi$','ShowText','on');
+    else
+        contour(map.xx,map.bb,map.ich./map.i0,[0:0.1:0.9 1 1.2:0.4:2.8],'Color','b','LineWidth',1,'DisplayName','$\frac{i_{ch}}{i_0}$','ShowText','on');
+        contour(map.xx,map.bb,map.ich./map.i0,[1 1],'Color','b','LineWidth',2,'HandleVisibility','off');
+    end
+    if ~isempty(map.xRaw)
+        plot(map.xRaw,map.bRaw,'Color',[0 0.5 0],'LineStyle','none','Marker','o','MarkerFaceColor',[0 0.5 0],'DisplayName','FEAfix')
+    end
+    plot(map.xx(isnan(map.T)),map.bb(isnan(map.T)),'rx','DisplayName','unfeasible','MarkerSize',8)
+    xlabel('$x$ - rotor / stator split');
+    % if strcmp(dataSet.TypeOfRotor,'SPM')
+    %     ylabel('$l_m/g$ - p.u. magnet size')
+    % elseif strcmp(dataSet.TypeOfRotor,'Vtype')
+    %     ylabel('$hc/g$ - p.u. magnet size')
+    % else
+        ylabel('$b$ - p.u. magnetic loading');
+    % end
+    legend('show','Location','NorthEast')
+    title('torque and PF tradeoff')
+    
+    set(hfig,'UserData',map);
+    
+    if ~debug
+        button = questdlg('Open in (x,b) Design Plane Explorer?','SELECT','Yes','No','Yes');
+        if strcmp(button,'Yes')
+            hApp = findall(0,'Name','SyR-e (x,b) Design Plane Explorer');
+            if isempty(hApp)
+                xbDesignPlaneExplorer(map);
+            else
+                hApp.RunningAppInstance.map = map;
+                hApp.RunningAppInstance.SDE_update;
+                figure(hApp)
+    %             hApp.WindowStyle = 'alwaysontop';
+    %             hApp.WindowStyle = 'normal';
+                clear hApp;
+            end
         end
     end
+    figure(hfig)
 end
 
 
 flagS = 0;
 
-figure(hfig)
+

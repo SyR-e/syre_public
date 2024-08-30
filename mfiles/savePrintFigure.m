@@ -38,6 +38,8 @@ if ~isempty(figname)
         print(hfig,[figname(1:end-4) '.png'],'-dpng','-r400')
     elseif strcmp(format,'png300')
         print(hfig,[figname(1:end-4) '.png'],'-dpng','-r300')
+    elseif strcmp(format,'png900')
+        print(hfig,[figname(1:end-4) '.png'],'-dpng','-r900')
     elseif strcmp(format,'svg')
         print(hfig,[figname(1:end-4) '.svg'],'-dsvg')
     end

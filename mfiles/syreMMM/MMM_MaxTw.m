@@ -26,6 +26,8 @@ motorType = motorModel.data.motorType;
 nVect = linspace(TwData.nmin,TwData.nmax,TwData.nstep);
 TVect = linspace(TwData.Tmin,TwData.Tmax,TwData.Tstep);
 
+kRefineMap = 2;
+
 % Initialize matrix results
 [nmap,Tmap] = meshgrid(nVect,TVect);
 
@@ -89,14 +91,21 @@ end
 hr=plot(hax,0,0,'r.','LineWidth',1.5);
 hg=plot(hax,0,0,'g.','LineWidth',1.5);
 
-
+% flux maps refinement
+if kRefineMap>1
+    nPoints = kRefineMap*size(motorModel.FluxMap_dq.Id,1);
+    motorModelFine = motorModel;
+    motorModelFine.FluxMap_dq = mapsReInterpolation(motorModel.FluxMap_dq,'Id','Iq',nPoints,'linear');
+else
+    motorModelFine = motorModel;
+end
 
 disp('Map evaluation in progress...')
 fprintf(' %06.2f%%',0)
 
 for ii=1:numel(TwMap.n)
     
-    [out] = calcTnPoint(motorModel,Tmap(ii),nmap(ii));
+    [out] = calcTnPoint(motorModelFine,Tmap(ii),nmap(ii));
     
     % update figure and matrices
     if ~isnan(out.T)
@@ -199,6 +208,7 @@ figNames{21} = 'ASC safe';
 figNames{22} = 'UGO safe';
 figNames{23} = 'ASC HWC current';
 figNames{24} = 'No load voltage';
+figNames{25} = 'Turn-off safe state';
 
 flagPlot = 1:1:numel(figNames);
 if strcmp(TwData.IronLossFlag,'No')
@@ -210,7 +220,7 @@ end
 if (TwData.MechLoss==0)
     flagPlot(15) = 0;
 end
-if (strcmp(TwData.IronLossFlag,'No')&&(TwData.MechLoss==0))
+if (strcmp(TwData.IronLossFlag,'No')&&(sum(TwData.MechLoss==0)))
     flagPlot(16) = 0;
 end
 if strcmp(TwData.SkinEffectFlag,'No')
@@ -233,59 +243,59 @@ for ii=1:length(flagPlot)
     hax(ii) = axes(...
         'XLim',[TwData.nmin TwData.nmax],...
         'YLim',[TwData.Tmin TwData.Tmax]);
-    xlabel('$n$ [rpm]')
-    ylabel('$T$ [Nm]')
+    xlabel('$n$ (rpm)')
+    ylabel('$T$ (Nm)')
     switch flagPlot(ii)
         case 1
             title('Torque limits')
             plot(TwMap.limits.n,TwMap.limits.Tmax,'-bx')
             plot(TwMap.limits.n,TwMap.limits.Tmin,'-bx')
         case 2
-            title('Efficiency map [p.u.]')
+            title('Efficiency map (p.u.)')
             contourf(TwMap.n,TwMap.T,TwMap.eff,[64:2:86 87:1:100]/100,'ShowText','on');
             colorbar
         case 3
-            title('Output power [W]')
+            title('Output power (W)')
             contourf(TwMap.n,TwMap.T,TwMap.P,'ShowText','on');
             colorbar
         case 4
-            title('Total loss [W]')
+            title('Total loss (W)')
             contourf(TwMap.n,TwMap.T,TwMap.Ploss,'ShowText','on');
             colorbar
         case 5
-            title('Stator Joule loss [W]')
+            title('Stator Joule loss (W)')
             contourf(TwMap.n,TwMap.T,TwMap.Pjs,'ShowText','on');
             colorbar
         case 6
-            title('Stator Joule DC loss [W]')
+            title('Stator Joule DC loss (W)')
             contourf(TwMap.n,TwMap.T,TwMap.PjDC,'ShowText','on');
             colorbar
         case 7
-            title('Stator Joule AC loss [W]')
+            title('Stator Joule AC loss (W)')
             contourf(TwMap.n,TwMap.T,TwMap.PjAC,'ShowText','on');
             colorbar
         case 8
-            title('Iron loss [W]')
+            title('Iron loss (W)')
             contourf(TwMap.n,TwMap.T,TwMap.Pfe,'ShowText','on');
             colorbar
         case 9
-            title('Stator iron loss [W]')
+            title('Stator iron loss (W)')
             contourf(TwMap.n,TwMap.T,TwMap.Pfes,'ShowText','on');
             colorbar
         case 10
-            title('Rotor iron loss [W]')
+            title('Rotor iron loss (W)')
             contourf(TwMap.n,TwMap.T,TwMap.Pfer,'ShowText','on');
             colorbar
         case 11
-            title('Permanent magnet loss [W]')
+            title('Permanent magnet loss (W)')
             contourf(TwMap.n,TwMap.T,TwMap.Ppm,'ShowText','on');
             colorbar
         case 12
-            title('Phase current map [Apk]')
+            title('Phase current map (Apk)')
             contourf(TwMap.n,TwMap.T,TwMap.Io,'ShowText','on');
             colorbar
         case 13
-            title('Line voltage map [Vpk]')
+            title('Line voltage map (Vpk)')
             contourf(TwMap.n,TwMap.T,TwMap.Vo,'ShowText','on');
             colorbar
         case 14
@@ -293,15 +303,15 @@ for ii=1:length(flagPlot)
             contourf(TwMap.n,TwMap.T,abs(TwMap.PF),[0.4:0.05:1],'ShowText','on');
             colorbar
         case 15
-            title('Mechanical loss map')
+            title('Mechanical loss map (W)')
             contourf(TwMap.n,TwMap.T,TwMap.Pmech,'ShowText','on');
             colorbar
         case 16
-            title('Iron + PM + mechanical loss map')
+            title('Iron + PM + mechanical loss map (W)')
             contourf(TwMap.n,TwMap.T,TwMap.Pmech+TwMap.Pfes+TwMap.Pfer+TwMap.Ppm,'ShowText','on');
             colorbar
         case 17
-            title('Rotor Joule loss map')
+            title('Rotor Joule loss map (W)')
             contourf(TwMap.n,TwMap.T,TwMap.Pjr,'ShowText','on');
             colorbar
         case 18
@@ -309,11 +319,11 @@ for ii=1:length(flagPlot)
             contourf(TwMap.n,TwMap.T,TwMap.slip,[-1:0.1:1],'ShowText','on');
             colorbar
         case 19
-            title('Rotor current map [A]')
+            title('Rotor current map (A)')
             contourf(TwMap.n,TwMap.T,TwMap.Ir,'ShowText','on');
             colorbar
         case 20
-            title('Peak-to-peak torque ripple [Nm]')
+            title('Peak-to-peak torque ripple (Nm)')
             contourf(TwMap.n,TwMap.T,TwMap.dTpp,'ShowText','on');
             colorbar
         case 21
@@ -325,17 +335,24 @@ for ii=1:length(flagPlot)
             plot(TwMap.n(TwMap.UGOsafe==1),TwMap.T(TwMap.UGOsafe==1),'g.')
             plot(TwMap.n(TwMap.UGOsafe==0),TwMap.T(TwMap.UGOsafe==0),'r.')
         case 23
-            title('Active Short Circuit Hyper-Worst-Case current [Apk]')
+            title('Active Short Circuit Hyper-Worst-Case current (Apk)')
             contourf(TwMap.n,TwMap.T,TwMap.IHWC,'ShowText','on');
             colorbar
         case 24
             title('Line no-load voltage in UGO [Vpk]')
             contourf(TwMap.n,TwMap.T,TwMap.VUGO,'ShowText','on');
             colorbar
+        case 25
+            title('Turn-off safe state')
+            plot(TwMap.n(TwMap.UGOsafe==1),TwMap.T(TwMap.UGOsafe==1),'go','DisplayName','UGO safe')
+            plot(TwMap.n(TwMap.UGOsafe==0),TwMap.T(TwMap.UGOsafe==0),'ro','DisplayName','UGO unsafe')
+            plot(TwMap.n(TwMap.ASCsafe==1),TwMap.T(TwMap.ASCsafe==1),'g.','DisplayName','ASC safe')
+            plot(TwMap.n(TwMap.ASCsafe==0),TwMap.T(TwMap.ASCsafe==0),'r.','DisplayName','ASC unsafe')
+            legend('show','Location','northeast');
     end
     if flagPlot(ii)>1
-        plot(TwMap.limits.n,TwMap.limits.Tmax,'-k')
-        plot(TwMap.limits.n,TwMap.limits.Tmin,'-k')
+        plot(TwMap.limits.n,TwMap.limits.Tmax,'-k','HandleVisibility','off')
+        plot(TwMap.limits.n,TwMap.limits.Tmin,'-k','HandleVisibility','off')
     end
 end
 
@@ -349,14 +366,14 @@ hax(ii) = axes(...
     'XLim',[min(Id,[],'all') max(Id,[],'all')],...
     'YLim',[min(Id,[],'all') max(Iq,[],'all')],...
     'PlotBoxAspectRatio',[1 1 1]);
-xlabel('$i_d$ [A]')
-ylabel('$i_q$ [A]')
+xlabel('$i_d$ (A)')
+ylabel('$i_q$ (A)')
 if strcmp(TwData.Control,'Maximum efficiency')
     title('Maximum efficiency locus')
 elseif strcmp(TwData.Control,'MTPA')
     title('Maximum torque per minimum copper loss locus')
 end
-[c,h] = contour(Id,Iq,Tem,'k','DisplayName','$T$ [Nm]');
+[c,h] = contour(Id,Iq,Tem,'k','DisplayName','$T$ (Nm)');
 clabel(c,h)
 plot(TwMap.Id,TwMap.Iq)
 

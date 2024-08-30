@@ -33,7 +33,7 @@ figSetting()
 hax(1) = axes('OuterPosition',[0 0 1 1],...
     'XLim',[0 max(f(:))],...
     'YLim',[1 max(k(:))]);
-xlabel('$f$ [$Hz$]')
+xlabel('$f$ (Hz)')
 ylabel('$k_{AC} = \frac{R_{AC}}{R_{DC}}$')
 set(hfig,'FileName',[pathname resFolder 'skinEffectModel.fig'])
 
@@ -52,8 +52,8 @@ if isfield(skinEffect,'T')
         'YLim',[min(T(:)),max(T(:))],...
         'ZLim',[1 max(k(:))]);
     view(hax(2),3)
-    xlabel('$f$ [Hz]')
-    ylabel('$\Theta_{Cu}$ [$^\circ$C]')
+    xlabel('$f$ (Hz)')
+    ylabel('$\Theta_{Cu}$ ($^\circ$C)')
     zlabel('$k_{AC} = \frac{R_{AC}}{R_{DC}}$')
     set(hfig(2),'FileName',[pathname resFolder 'skinEffectModel2D.fig'])
     
@@ -74,8 +74,8 @@ if isfield(skinEffect,'T')
     set(hfig(3),'Filename',[pathname resFolder 'phaseACresistance.fig'])
     hax(3) = axes('OuterPosition',[0 0 1 1],...
         'XLim',[0 max(f(:))]);
-    xlabel('$f$ [Hz]')
-    ylabel('$R_{AC}$ [$\Omega$]')
+    xlabel('$f$ (Hz)')
+    ylabel('$R_{AC}$ ($\Omega$)')
     Rs0   = motorModel.data.Rs;
     temp0 = motorModel.data.tempCu;
     l     = motorModel.data.l;
@@ -91,8 +91,8 @@ if isfield(skinEffect,'T')
     set(hfig(4),'Filename',[pathname resFolder 'AClossModel_wEndWinding.fig'])
     hax(4) = axes('OuterPosition',[0 0 1 1],...
         'XLim',[0 max(f(:))]);
-    xlabel('$f$ [Hz]')
-    ylabel('$k_{AC}$ [p.u.] - with end winding')
+    xlabel('$f$ (Hz)')
+    ylabel('$k_{AC}$ (p.u.) - with end winding')
     Rs0   = motorModel.data.Rs;
     temp0 = motorModel.data.tempCu;
     l     = motorModel.data.l;

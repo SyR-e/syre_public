@@ -233,7 +233,7 @@ void DTComp(Xabc duty, Xabc duty_km1, Xabc isabc,float vdc,float dt, Xabc *vsabc
 //----------------------------------------------------------------------------------------------------//
 
 //Current control loops
-void Current_loop(float vdc, float Imax, Xdq isdq_ref, Xdq  isdq, XPIRegPars* id_par, XPIRegVars* id_var, XPIRegPars* iq_par, XPIRegVars* iq_var,Xdq* vsdq_ref) {
+void Current_loop(float vdc, float Imax, Xdq isdq_ref, Xdq  isdq, Xdq vffw_dq ,XPIRegPars* id_par, XPIRegVars* id_var, XPIRegPars* iq_par, XPIRegVars* iq_var,Xdq* vsdq_ref) {
 	
     float vs_max;
 		float tmp1;
@@ -242,7 +242,7 @@ void Current_loop(float vdc, float Imax, Xdq isdq_ref, Xdq  isdq, XPIRegPars* id
     vs_max = vdc * SQRT1OVER3;
     
     //d-axis control loop
-    id_par->lim = vs_max;
+    id_par->lim = vs_max-vffw_dq.d;
     id_var->ref = isdq_ref.d;
     id_var->fbk = isdq.d;
     PIReg(id_par, id_var);
@@ -254,7 +254,7 @@ void Current_loop(float vdc, float Imax, Xdq isdq_ref, Xdq  isdq, XPIRegPars* id
     if (isdq_ref.q<-tmp1)	isdq_ref.q =-tmp1;
     
     //q-axis control loop
-    iq_par->lim   =vs_max;
+    iq_par->lim   =sqrtf(vs_max*vs_max-vsdq_ref->d*vsdq_ref->d)-vffw_dq.q;
     iq_var->ref   =isdq_ref.q;
     iq_var->fbk   =isdq.q;
     PIReg(iq_par, iq_var);

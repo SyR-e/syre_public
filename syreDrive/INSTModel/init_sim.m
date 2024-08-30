@@ -4,6 +4,11 @@ InverterModel = 'Switching';
 
 load motorModel;
 
+Slx_name = [motorModel.data.motorName '_ctrl_INST'];
+
+motorModelType = motorModel.SyreDrive.modelSetup.motorModelType;
+inverterModelType = motorModel.SyreDrive.modelSetup.modelType;
+
 % S-fun Parameters
 Tstep = 2e-6;
 Ts    = 1/motorModel.SyreDrive.Converter.fPWM;
@@ -23,15 +28,27 @@ Tv      = 0;%P0/(nmax*pi/30)^3;     % ventilation loss coefficient (W/(rad/s)^3 
 MTPA    = motorModel.controlTrajectories.MTPA;
 i0      = motorModel.data.i0;
 
-id_MTPA = interp1(abs(MTPA.id+1i*MTPA.iq),MTPA.id,i0);
-iq_MTPA = interp1(abs(MTPA.id+1i*MTPA.iq),MTPA.iq,i0);
-Ld_inic = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Ldd,id_MTPA,iq_MTPA);
-Lq_inic = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Lqq,id_MTPA,iq_MTPA);
+switch motorModel.SyreDrive.modelSetup.Ctrl_type
+    case 'Current control'
+        idRef = motorModel.WaveformSetup.CurrAmpl*cosd(motorModel.WaveformSetup.CurrAngle);
+        iqRef = motorModel.WaveformSetup.CurrAmpl*sind(motorModel.WaveformSetup.CurrAngle);
+        nRef  = motorModel.WaveformSetup.EvalSpeed;
+    otherwise
+        idRef = interp1(abs(MTPA.id+1i*MTPA.iq),MTPA.id,i0);
+        iqRef = interp1(abs(MTPA.id+1i*MTPA.iq),MTPA.iq,i0);
+        nRef  = motorModel.data.n0;
+end
+Ld_inic = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Ldd,idRef,iqRef);
+Lq_inic = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Lqq,idRef,iqRef);
 
 T0(~isnan(motorModel.data.T0)) = motorModel.data.T0;
 T0(isempty(T0)) = interp1(abs(MTPA.id+1i*MTPA.iq),MTPA.T,i0);
-n0(~isnan(motorModel.data.n0)) = motorModel.data.n0;
-n0(isempty(n0)) = 1000;
+% n0(~isnan(motorModel.data.n0)) = motorModel.data.n0;
+% n0(isempty(n0)) = 1000;
+if nRef==0
+    nRef = 1000;
+end
+
 clear MTPA
 
 % Converter
@@ -88,7 +105,7 @@ end
 %% ----------------dqt Inverse Flux Maps ------------------------%
 
 % dq or dqt model
-switch motorModel.SyreDrive.FMapsModel
+switch motorModel.SyreDrive.modelSetup.FMapsModel
     case 'dq Model'
         FMapsModel = 1;
         fD_pu_norm = motorModel.FluxMapInv_dq.fD_pu_norm;
@@ -127,10 +144,123 @@ switch motorModel.SyreDrive.FMapsModel
 
 end
 
+%% ----------------SimScape FEM-based PMSM----------------
+
+dqtMap = motorModel.FluxMap_dqt;
+
+fInt.Fd = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th/motorModel.data.p,dqtMap.data.Fd,'spline','none');
+fInt.Fq = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th/motorModel.data.p,dqtMap.data.Fq,'spline','none');
+fInt.T  = griddedInterpolant(dqtMap.data.Id,dqtMap.data.Iq,dqtMap.data.th/motorModel.data.p,dqtMap.data.T,'spline','none');
+
+IdMax = max(dqtMap.data.Id(:));
+IdMin = min(dqtMap.data.Id(:));
+IqMax = max(dqtMap.data.Iq(:));
+IqMin = min(dqtMap.data.Iq(:));
+thMax = max(dqtMap.data.th(:));
+thMin = min(dqtMap.data.th(:));
+IdStp = abs(dqtMap.Id(2)-dqtMap.Id(1));
+IqStp = abs(dqtMap.Iq(2)-dqtMap.Iq(1));
+thStp = 360-thMax;
+
+IdMax = 0.95*max([IdMax -IdMin]);
+IqMax = 0.95*max([IqMax -IqMin]);
+
+
+eMotor.Id = linspace(-IdMax,IdMax,31);
+eMotor.Iq = linspace(-IqMax,IqMax,31);
+eMotor.th = thMin:thStp/motorModel.data.p:(120/motorModel.data.p)-thStp;
+
+[data.Id,data.Iq,data.th] = ndgrid(eMotor.Id,eMotor.Iq,eMotor.th);
+data.Fd = fInt.Fd(data.Id,data.Iq,data.th);
+data.Fq = fInt.Fq(data.Id,data.Iq,data.th);
+data.T  = fInt.T(data.Id,data.Iq,data.th);
+
+if strcmp(motorModel.data.motorType,'SR')
+    % symmetr on both axis
+    data.Fd(data.Id<IdMin) = -fInt.Fd(-data.Id(data.Id<IdMin),+data.Iq(data.Id<IdMin),+data.th(data.Id<IdMin));
+    data.Fq(data.Id<IdMin) = +fInt.Fq(-data.Id(data.Id<IdMin),+data.Iq(data.Id<IdMin),+data.th(data.Id<IdMin));
+    data.T(data.Id<IdMin)  = -fInt.T(-data.Id(data.Id<IdMin),+data.Iq(data.Id<IdMin),+data.th(data.Id<IdMin));
+    data.Fd(data.Iq<IqMin) = +fInt.Fd(+data.Id(data.Iq<IqMin),-data.Iq(data.Id<IqMin),+data.th(data.Iq<IqMin));
+    data.Fq(data.Iq<IqMin) = -fInt.Fq(+data.Id(data.Iq<IqMin),-data.Iq(data.Id<IqMin),+data.th(data.Iq<IqMin));
+    data.T(data.Iq<IqMin)  = -fInt.T(+data.Id(data.Iq<IqMin),-data.Iq(data.Iq<IqMin),+data.th(data.Iq<IqMin));
+else
+    if strcmp(motorModel.data.axisType,'SR')
+        % symmetry just along d axis
+        data.Fd(data.Id<IdMin) = -fInt.Fd(-data.Id(data.Id<IdMin),data.Iq(data.Id<IdMin),data.th(data.Id<IdMin));
+        data.Fq(data.Id<IdMin) = +fInt.Fq(-data.Id(data.Id<IdMin),data.Iq(data.Id<IdMin),data.th(data.Id<IdMin));
+        data.T(data.Id<IdMin)  = -fInt.T(-data.Id(data.Id<IdMin),data.Iq(data.Id<IdMin),data.th(data.Id<IdMin));
+        data.Fd(data.Iq<IdMin) = NaN;
+        data.Fq(data.Iq<IdMin) = NaN;
+        data.T(data.Iq<IdMin)  = NaN;
+    else
+        % symmetry just along q axis
+        data.Fd(data.Id<IdMin) = NaN;
+        data.Fq(data.Id<IdMin) = NaN;
+        data.T(data.Id<IdMin)  = NaN;
+        data.Fd(data.Iq<IqMin) = +fInt.Fd(+data.Id(data.Iq<IqMin),-data.Iq(data.Iq<IqMin),+data.th(data.Iq<IqMin));
+        data.Fq(data.Iq<IqMin) = -fInt.Fq(+data.Id(data.Iq<IqMin),-data.Iq(data.Iq<IqMin),+data.th(data.Iq<IqMin));
+        data.T(data.Iq<IqMin)  = -fInt.T(+data.Id(data.Iq<IqMin),-data.Iq(data.Iq<IqMin),+data.th(data.Iq<IqMin));
+    end
+end
+
+eMotor.Fd = data.Fd;
+eMotor.Fq = data.Fq;
+eMotor.T  = data.T;
+
+eMotor.th(end+1) = 120/motorModel.data.p;
+eMotor.Fd(:,:,end+1) = eMotor.Fd(:,:,1);
+eMotor.Fq(:,:,end+1) = eMotor.Fq(:,:,1);
+eMotor.T(:,:,end+1)  = eMotor.T(:,:,1);
+
+eMotor.p  = motorModel.data.p;
+eMotor.Rs = motorModel.data.Rs;
+eMotor.L0 = 1e-12;
+eMotor.J  = motorModel.data.J;
+
+% Iron loss
+switch motorModel.SyreDrive.modelSetup.IronLoss
+    case 'No'
+        set_param([Slx_name '/Motor model/SimScape FEM-based PMSM/SimScape PMSM'],'loss_param','ee.enum.fem_motor.ironLossesExtended.none')
+    case 'Yes'
+        set_param([Slx_name '/Motor model/SimScape FEM-based PMSM/SimScape PMSM'],'loss_param','ee.enum.fem_motor.ironLossesExtended.tabulated3D')
+        ironLoss.n = linspace(0,motorModel.data.nmax,31);
+        [ironLossData.Id,ironLossData.Iq,ironLossData.n] = ndgrid(eMotor.Id,eMotor.Iq,ironLoss.n);
+        if strcmp(motorModel.data.motorType,'SR')
+            % symmetr on both axis
+            fdfqTmp.Id = abs(ironLossData.Id(:,:,1));
+            fdfqTmp.Iq = abs(ironLossData.Iq(:,:,1));
+        else
+            if strcmp(motorModel.data.axisType,'SR')
+                % symmetry just along d axis
+                fdfqTmp.Id = abs(ironLossData.Id(:,:,1));
+                fdfqTmp.Iq = ironLossData.Iq(:,:,1);
+            else
+                % symmetry just along q axis
+                fdfqTmp.Id = ironLossData.Id(:,:,1);
+                fdfqTmp.Iq = abs(ironLossData.Iq(:,:,1));
+            end
+        end
+        fdfqTmp.Fd = nan(size(fdfqTmp.Id));
+        fdfqTmp.Fq = nan(size(fdfqTmp.Id));
+        ironLossData.Pfes = nan(size(ironLossData.Id));
+        ironLossData.Pfer = nan(size(ironLossData.Id));
+        for ii=1:length(ironLoss.n)
+            f = ironLoss.n(ii)/60*motorModel.data.p;
+            [~,Pfesh,Pfesc,Pferh,Pferc,~] = calcIronLoss(motorModel.IronPMLossMap_dq,fdfqTmp,f);
+            ironLossData.Pfes(:,:,ii) = Pfesh+Pfesc;
+            ironLossData.Pfer(:,:,ii) = Pferh+Pferc;
+        end
+        eMotor.ironLoss.Pfes = ironLossData.Pfes;
+        eMotor.ironLoss.Pfer = ironLossData.Pfer;
+        eMotor.ironLoss.n = ironLoss.n;
+end
+
+
+
 
 %% -----------------Iron Loss Model-------------------------------%%
 
-switch motorModel.SyreDrive.IronLoss
+switch motorModel.SyreDrive.modelSetup.IronLoss
     case 'No'
         IronLoss = 0;
     case 'Yes'
@@ -147,11 +277,27 @@ switch motorModel.SyreDrive.IronLoss
         Iq_fe = motorModel.IronPMLossMap_dq.Iq;
 end  
 
+%% -----------------AC Loss Model-------------------------------%%
+
+switch motorModel.SyreDrive.modelSetup.WindingLossAC
+    case 'No'
+        ACloss.enable = 0;
+        ACloss.n = linspace(-motorModel.data.nmax*1.2,motorModel.data.nmax*1.2,3);
+        ACloss.f = abs(ACloss.n)/60*motorModel.data.p;
+        [ACloss.Rac,ACloss.kAC] = calcRsTempFreq(motorModel.data.Rs,motorModel.data.tempCu,motorModel.data.l,motorModel.data.lend,[],'0',motorModel.data.tempCu,ACloss.f);
+        ACloss.Rac = ACloss.Rac*ones(size(ACloss.f));
+        ACloss.kAC = ones(size(ACloss.f));
+    case 'Yes'
+        ACloss.enable = 1;
+        ACloss.n = linspace(-motorModel.data.nmax*1.2,motorModel.data.nmax*1.2,501);
+        ACloss.f = abs(ACloss.n)/60*motorModel.data.p;
+        [ACloss.Rac,ACloss.kAC] = calcRsTempFreq(motorModel.data.Rs,motorModel.data.tempCu,motorModel.data.l,motorModel.data.lend,motorModel.acLossFactor,'LUT',motorModel.data.tempCu,ACloss.f);
+end
 
 %% --------------------User Settings-------------------------%
 
 % Ctrl settings
-switch motorModel.SyreDrive.Ctrl_type
+switch motorModel.SyreDrive.modelSetup.Ctrl_type
     case 'Current control'
         Ctrl_type = 0;
     case 'Torque control'
@@ -161,7 +307,7 @@ switch motorModel.SyreDrive.Ctrl_type
 end
 
 % Ctrl Strategy 
-switch motorModel.SyreDrive.Ctrl_strategy
+switch motorModel.SyreDrive.modelSetup.Ctrl_strategy
     case 'FOC'
         Ctrl_strategy = 0;
     case 'DFVC'
@@ -209,15 +355,15 @@ Clarke = 2/3*[1 -0.5 -0.5;0 sqrt(3)/2 -sqrt(3)/2];
 Clarke_inv = [1 0;-0.5 sqrt(3)/2;-0.5 -sqrt(3)/2];
 %% Inverter model
 
-Slx_name = [motorModel.data.motorName '_ctrl_INST'];
+
 
 set_param([Slx_name '/Inverter Model/Converter (Three-Phase)'],'diode_Vf','0.8');
 set_param([Slx_name '/Inverter Model/Converter (Three-Phase)'],'diode_Ron','1e-4');
 set_param([Slx_name '/Inverter Model/Converter (Three-Phase)'],'diode_Goff','1e-5');
 
-switch(InverterModel)
+switch(inverterModelType)
     
-    case 'Switching'
+    case 'Istantaneous'
         InvModel = 1;
         set_param([Slx_name '/Inverter Model/Solver Configuration'],'UseLocalSolver','off');
         set_param([Slx_name '/Inverter Model/Converter (Three-Phase)'],'device_type','ee.enum.converters.switchingdevice.ideal');

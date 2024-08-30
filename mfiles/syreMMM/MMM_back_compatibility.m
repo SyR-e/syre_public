@@ -259,7 +259,9 @@ end
 
 % PWM Effy Maps
 if ~isfield(motorModel.SyreDrive.Converter,'fPWM')
-    motorModel.TnSetup.Control = 'Max efficiency';
+    if strcmp(motorModel.TnSetup.Control,'Maximum efficiency')
+       motorModel.TnSetup.Control = 'Max efficiency'; 
+    end
     motorModel.SyreDrive.Converter.fPWM = 10000;
     if Dflag
         disp('- Included PWM Efficiency Maps')
@@ -279,7 +281,7 @@ end
 % Control strategy in syreDrive
 if ~isfield(motorModel.SyreDrive,'Ctrl_strategy')
     motorModel.SyreDrive.Ctrl_strategy = 'FOC';
-     if Dflag
+    if Dflag
         disp('- Included Control strategy in syreDrive')
     end
     flag=1;
@@ -291,6 +293,28 @@ if ~isfield(motorModel.TnSetup,'ASCsafeFlag')
    if Dflag
        disp('- Added the possibility to control with ASC safe state in torque-speed map computation')
    end
+end
+
+if ~isfield(motorModel.SyreDrive,'modelSetup')
+    motorModel.SyreDrive.modelSetup.Ctrl_type      = motorModel.SyreDrive.Ctrl_type;
+    motorModel.SyreDrive.modelSetup.FMapsModel     = motorModel.SyreDrive.FMapsModel;
+    motorModel.SyreDrive.modelSetup.modelType      = motorModel.SyreDrive.modelType;
+    motorModel.SyreDrive.modelSetup.Ctrl_strategy  = motorModel.SyreDrive.Ctrl_strategy;
+    motorModel.SyreDrive.modelSetup.IronLoss       = motorModel.SyreDrive.IronLoss;
+    motorModel.SyreDrive.modelSetup.WindingLossAC  = 'No';
+    motorModel.SyreDrive.modelSetup.motorModelType = 'Controlled Current Generators (CCG)';
+
+    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'Ctrl_type');
+    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'FMapsModel');    
+    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'modelType');   
+    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'Ctrl_strategy');
+    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'IronLoss');
+ 
+    if Dflag
+        disp('- Added SimScape FEM-based motor model in syreDrive')
+        disp('- Added AC winding loss in syreDrive')
+    end
+    flag=1;
 end
 
 

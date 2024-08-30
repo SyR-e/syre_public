@@ -31,9 +31,9 @@ alpha_th = geo.wt/(geo.r+geo.g)*180/pi;
 alpha_slot = 360/Q;
 Qs = geo.Qs;
 
-names{1} = '$B_{g}$ [$T$]';
-names{2} = '$B_{t}$ [$T$]';
-names{3} = '$B_{y}$ [$T$]';
+names{1} = '$B_{g}$ (T)';
+names{2} = '$B_{t}$ (T)';
+names{3} = '$B_{y}$ (T)';
 
 filenames{1} = 'Bgap';
 filenames{2} = 'Btooth';
@@ -45,7 +45,7 @@ for ii=1:3
     hfig(ii)=figure();
     figSetting()
     hax(ii)=gca;
-    xlabel('$\alpha$ [$^\circ mech$]')
+    xlabel('$\xi$ ($^\circ$ mech)')
     ylabel(names{ii})
     
     for jj=1:Qs
@@ -78,7 +78,7 @@ plot(hax(3),By(:,1),By(:,2:end));
 for ii=1:3
     hchild=get(hax(ii),'Children');
     for jj=1:length(hchild)
-        set(hchild(end-jj+1),'DisplayName',['$\theta= ' num2str(out.SOL.th(ii)-geo.th0(1),2) '^\circ$']);
+        set(hchild(end-jj+1),'DisplayName',['$\theta= ' num2str(out.SOL.th(jj)-geo.th0(1)) '^\circ$']);
     end
     legend(hax(ii),'show');
     set(hax(ii),'XLim',[min(Bg(:,1)) max(Bg(:,1))]);

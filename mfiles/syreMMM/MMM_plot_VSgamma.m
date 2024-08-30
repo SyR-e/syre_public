@@ -15,7 +15,7 @@
 
 function MMM_plot_VSgamma(motorModel)
 
-flag4Q = 1;
+flag4Q = 0;
 if flag4Q
     warning('Debug mode active...4Q plots')
 end
@@ -82,7 +82,7 @@ if flag4Q
     numPoints = 500;
     gammaVect = linspace(0,360,numPoints);
 else
-    numPoints = 46;
+    numPoints = 51;
     
     if strcmp(axisType,'SR')
         gammaVect = linspace(0,90,numPoints);

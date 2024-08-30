@@ -196,11 +196,11 @@ else
 end
 
 iAmpCoil = iAmp*Nbob;
-iOffCoil = iOff*Nbob;
+iOffCoil = iOff*Nbob.*ones(1,n3phase);
 
 
-id = iAmpCoil * cos(gamma * pi/180);
-iq = iAmpCoil * sin(gamma * pi/180);
+id = iAmpCoil.*cos(gamma*pi/180).*ones(1,n3phase);
+iq = iAmpCoil.*sin(gamma*pi/180).*ones(1,n3phase);
 
 i_tmp = zeros(3*n3phase,nsim);   %matrix containing all phase current values for the simulated rotor position
 
@@ -276,19 +276,19 @@ for jj = 1:nsim
             i_tmp((3*ik)+2,jj) = Ib_i(ik+1,jj);
             i_tmp((3*ik)+3,jj) = Ic_i(ik+1,jj);
         else
-            i123 = dq2abc(id,iq,(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
-            i_tmp((3*ik)+1,jj) = (i123(1)+iOffCoil)*flag3phSet(ik+1);
-            i_tmp((3*ik)+2,jj) = (i123(2)+iOffCoil)*flag3phSet(ik+1);
-            i_tmp((3*ik)+3,jj) = (i123(3)+iOffCoil)*flag3phSet(ik+1);
+            i123 = dq2abc(id(ik+1),iq(ik+1),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
+            i_tmp((3*ik)+1,jj) = (i123(1)+iOffCoil(ik+1))*flag3phSet(ik+1);
+            i_tmp((3*ik)+2,jj) = (i123(2)+iOffCoil(ik+1))*flag3phSet(ik+1);
+            i_tmp((3*ik)+3,jj) = (i123(3)+iOffCoil(ik+1))*flag3phSet(ik+1);
         end
 
 
-        phase_name{3*ik+1}=strcat('fase',num2str(3*ik+1));
-        phase_name{3*ik+2}=strcat('fase',num2str(3*ik+2));
-        phase_name{3*ik+3}=strcat('fase',num2str(3*ik+3));
-        phase_name_neg{3*ik+1}=strcat('fase',num2str(3*ik+1),'n');
-        phase_name_neg{3*ik+2}=strcat('fase',num2str(3*ik+2),'n');
-        phase_name_neg{3*ik+3}=strcat('fase',num2str(3*ik+3),'n');
+        phase_name{3*ik+1}     = strcat('fase',num2str(3*ik+1));
+        phase_name{3*ik+2}     = strcat('fase',num2str(3*ik+2));
+        phase_name{3*ik+3}     = strcat('fase',num2str(3*ik+3));
+        phase_name_neg{3*ik+1} = strcat('fase',num2str(3*ik+1),'n');
+        phase_name_neg{3*ik+2} = strcat('fase',num2str(3*ik+2),'n');
+        phase_name_neg{3*ik+3} = strcat('fase',num2str(3*ik+3),'n');
 
         % change current value in FEMM
         mi_modifycircprop(phase_name{3*ik+1}, 1,i_tmp((3*ik)+1,jj));
@@ -425,8 +425,8 @@ for jj = 1:nsim
     mo_clearblock();
 
     SOL.th(jj) = thetaPark(jj);
-    SOL.id(jj) = id/Nbob; % Divide by Ns (simulation done with one turn per coil)
-    SOL.iq(jj) = iq/Nbob;
+    SOL.id(jj) = mean(id)/Nbob; % Divide by Ns (simulation done with one turn per coil)
+    SOL.iq(jj) = mean(iq)/Nbob;
     SOL.fd(jj) = fd*Nbob; % Times Ns
     SOL.fq(jj) = fq*Nbob;
     SOL.T(jj)  = T;

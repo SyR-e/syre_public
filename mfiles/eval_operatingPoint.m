@@ -41,6 +41,7 @@ BrPP = dataIn.BrPP;
 NumOfRotPosPP = dataIn.NumOfRotPosPP;
 AngularSpanPP = dataIn.AngularSpanPP;
 per.flag3phaseSet = dataIn.Active3PhaseSets;
+n3ph = dataIn.Num3PhaseCircuit;
 
 
 per.EvalSpeed = dataIn.EvalSpeed;
@@ -48,7 +49,7 @@ per.EvalSpeed = dataIn.EvalSpeed;
 clc;
 
 if ~isfield(geo,'axisType')
-    if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+    if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')||strcmp(geo.RotType,'Spoke-type')
         geo.axisType = 'PM';
     else
         geo.axisType = 'SR';
@@ -131,9 +132,18 @@ end
 %     performance{1}.nsim_singt = performance{1}.nsim_singt+1;
 % end
 
+nSim = length(CurrLoPP);
+if nSim==n3ph
+    nSim = 1;
+    performance{1}          = per;
+    performance{1}.overload = CurrLoPP;
+    performance{1}.gamma    = GammaPP;
+    performance{1}.offset   = zeros(1,n3ph);
+end
+
 geo.RemoveTMPfile = 'OFF';
 
-if (ppState==0 && length(CurrLoPP)>4)
+if (ppState==0 && nSim>4)
     parpool();
     ppState=parallelComputingCheck();
 end
@@ -144,14 +154,14 @@ geo0 = geo;
 mat0 = mat;
 % evaluation
 if ppState<1
-    for ii = 1:length(CurrLoPP)
+    for ii = 1:nSim
         geoTmp = geo0;
         perTmp = performance{ii};
         matTmp = mat0;
         [~,geometry{ii},~,output{ii},tempDirName{ii}] = FEMMfitness([],geoTmp,perTmp,matTmp,eval_type,fileMotWithPath);
     end
 else
-    parfor ii = 1:length(CurrLoPP) %%%
+    parfor ii = 1:nSim %%%
         geoTmp = geo0;
         perTmp = performance{ii};
         matTmp = mat0;
@@ -284,7 +294,7 @@ end
 % end
 
 % save output into individual folders
-for ii = 1:length(SimulatedCurrent)
+for ii = 1:nSim
 
     geo = geometry{ii};
     out = output{ii};
@@ -357,7 +367,8 @@ for ii = 1:length(SimulatedCurrent)
         case'force'
             plot_force_fig(geo,out,newDir,filemot);
             plot_force_gif(geo,out,newDir,filemot);
-            elab_singt_toothForce(geo,per,out,newDir);
+            forceOut = elab_singt_toothForce(geo,per,out,newDir);
+            plot_forceOut_gif(forceOut,newDir)
         case 'singtIron'
             plot_singtIron(geo,out,newDir,filemot);
     end
@@ -367,7 +378,7 @@ end
 senseOut = [];
 
 % extra figs, if input current is array
-if length(CurrLoPP)>1
+if nSim>1
 
     id = zeros(1,length(CurrLoPP));
     iq = zeros(1,length(CurrLoPP));

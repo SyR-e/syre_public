@@ -183,7 +183,7 @@ if y3_c<y2_c
 end
 
 %% slot area evaluation
-if dis==0
+% if dis==0
     xTmp1 = x4-xRacSlot;
     yTmp1 = y4-yRacSlot;
     xTmp2 = x5-xRacSlot;
@@ -195,20 +195,19 @@ if dis==0
     yRacc = yRacSlot+rRacc*sin(linspace(ang1,ang2,101));
     xArea = [xA2,x2,x3,xRacc,x6,xA2];
     yArea = [yA2,y2,y3,yRacc,y6,yA2];
-    
-else
-    xTmp1 = x4_c-xRacSlot;
-    yTmp1 = y4_c-yRacSlot;
-    xTmp2 = x5_c-xRacSlot;
-    yTmp2 = y5_c-yRacSlot;
-    rRacc = abs(xTmp1+j*yTmp1);
-    ang1  = angle(xTmp1+j*yTmp1);
-    ang2  = angle(xTmp2+j*yTmp2);
-    xRacc = xRacSlot+rRacc*cos(linspace(ang1,ang2,101));
-    yRacc = yRacSlot+rRacc*sin(linspace(ang1,ang2,101));
-    xArea = [xA2_c,x2_c,x3_c,xRacc,x6_c];
-    yArea = [yA2_c,y2_c,y3_c,yRacc,y6_c];
-end
+% else
+%     xTmp1 = x4_c-xRacSlot;
+%     yTmp1 = y4_c-yRacSlot;
+%     xTmp2 = x5_c-xRacSlot;
+%     yTmp2 = y5_c-yRacSlot;
+%     rRacc = abs(xTmp1+j*yTmp1);
+%     ang1  = angle(xTmp1+j*yTmp1);
+%     ang2  = angle(xTmp2+j*yTmp2);
+%     xRacc = xRacSlot+rRacc*cos(linspace(ang1,ang2,101));
+%     yRacc = yRacSlot+rRacc*sin(linspace(ang1,ang2,101));
+%     xArea = [xA2_c,x2_c,x3_c,xRacc,x6_c];
+%     yArea = [yA2_c,y2_c,y3_c,yRacc,y6_c];
+% end
 
 %Aslot = 2*(polyarea(xArea,yArea)-area_corner);  % NB: the slot area should be computed from the slot matrix and not here...
 

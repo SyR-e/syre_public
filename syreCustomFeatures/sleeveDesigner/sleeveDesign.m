@@ -32,10 +32,9 @@ ax.XAxis.Exponent = 0;
 ax.YAxis.Exponent = 0;
 xlim([in.h_1_min in.h_1_max]);
 ylim([in.du_12_min in.du_12_max])
-xlabel("Sleeve thickness $h_1$ in $mm$");
-ylabel("Prestress $du_{12}$ in $mm$");
-titletext = sprintf('Operating temperature = %d °C', (in.dT+20));
-title(titletext);
+xlabel('Sleeve thickness $h_1$ (mm)');
+ylabel('Prestress $du_{12}$ (mm)');
+title(['Operating temperature = $' int2str(in.dT+20) '^\circ$C']);
 
 %Plot the max speed
 contour(map.h_1*10^3,map.du_12*10^3,map.n_max_sl','DisplayName','$n_{max}$','ShowText','on','LevelStep',1000);

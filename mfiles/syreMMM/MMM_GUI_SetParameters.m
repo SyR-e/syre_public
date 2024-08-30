@@ -164,7 +164,7 @@ if ~isempty(motorModel.controlTrajectories)
     set(app.PrintMTPAButton,'Enable','on')
     set(app.MTPAmethodDropDown,'Value',motorModel.controlTrajectories.method)
     set(app.OpLimPush,'Enable','on')
-    set(app.RatingsEvalPush,'Enable','on')
+    %set(app.RatingsEvalPush,'Enable','on')
 else
     set(app.AOACheckBox,...
         'Enable','off',...
@@ -174,7 +174,7 @@ else
     set(app.PrintMTPAButton,'Enable','off')
     set(app.MTPAmethodDropDown,'Value','LUT')
     set(app.OpLimPush,'Enable','off')
-    set(app.RatingsEvalPush,'Enable','off')
+    %set(app.RatingsEvalPush,'Enable','off')
 end
 % inductance map
 if ~isempty(motorModel.IncInductanceMap_dq)
@@ -310,7 +310,7 @@ if (~isempty(motorModelUnScale)||~isempty(motorModelUnSkew))
     %set(app.DQTsavePush,'Enable','off')
     %set(app.DQTsingtButton,'Enable','off')
     set(app.OpLimPush,'Enable','off')
-    set(app.RatingsEvalPush,'Enable','off')
+    %set(app.RatingsEvalPush,'Enable','off')
     set(app.MaxTwPush,'Enable','off')
     set(app.MaxTwPWMPush,'Enable','off')
     set(app.PMtemperatureDropDown,'Enable','off')
@@ -351,9 +351,9 @@ if ~isfield(motorModel.SyreDrive,'SIM_path')
 end
 
 % syreDrive
-set(app.ControltypeDropDown,'Value',motorModel.SyreDrive.Ctrl_type);
-set(app.ControlstrategyDropDown,'Value',motorModel.SyreDrive.Ctrl_strategy);
-set(app.FluxmapsmodelDropDown,'Value',motorModel.SyreDrive.FMapsModel);
+set(app.ControltypeDropDown,'Value',motorModel.SyreDrive.modelSetup.Ctrl_type);
+set(app.ControlstrategyDropDown,'Value',motorModel.SyreDrive.modelSetup.Ctrl_strategy);
+set(app.FluxmapsmodelDropDown,'Value',motorModel.SyreDrive.modelSetup.FMapsModel);
 set(app.PWMFrequencyEditField,'Value',num2str(motorModel.SyreDrive.Converter.fPWM));
 set(app.ONthreasholdEditField,'Value',num2str(motorModel.SyreDrive.Converter.V0));
 set(app.InternalresistanceEditField,'Value',num2str(motorModel.SyreDrive.Converter.Rd));
@@ -362,14 +362,22 @@ set(app.SensorlessSwitch,'Value',num2str(motorModel.SyreDrive.SS_on));
 set(app.InjectedsignalDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.inj_waveform));
 set(app.DemodulationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.dem));
 set(app.PositionerrorestimationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.HS_ctrl));
-set(app.ModeltypeDropDown,'Value',motorModel.SyreDrive.modelType);
-set(app.IronLossModelDropDown,'Value',motorModel.SyreDrive.IronLoss);
+set(app.ModeltypeDropDown,'Value',motorModel.SyreDrive.modelSetup.modelType);
+set(app.IronLossModelDropDown,'Value',motorModel.SyreDrive.modelSetup.IronLoss);
+set(app.MotormodelDropDown,'Value',motorModel.SyreDrive.modelSetup.motorModelType);
+set(app.ACLossModelDropDown,'Value',motorModel.SyreDrive.modelSetup.WindingLossAC);
 
 
 if ~isfield(motorModel.SyreDrive,'SIM_path')
     set(app.RUNSimulinkModelButton,'Enable','off')
 else
     set(app.RUNSimulinkModelButton,'Enable','on')
+end
+
+if strcmp(motorModel.SyreDrive.modelSetup.motorModelType,'SimScape FEM-based PMSM')
+    set(app.CreatePLECSModelButton,'Enable','off')
+else
+    set(app.CreatePLECSModelButton,'Enable','on')
 end
 
 

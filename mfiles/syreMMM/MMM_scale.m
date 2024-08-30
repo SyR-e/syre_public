@@ -163,13 +163,16 @@ end
 % 4) update motor data
 motorModel.tmpScale = scaleFactors;
 %
-motorModel.data.Ns = motorModel.data.Ns*kN;
-motorModel.data.l  = motorModel.data.l*kL;
-motorModel.data.R  = motorModel.data.R*kD;
+motorModel.data.Ns   = motorModel.data.Ns*kN;
+motorModel.data.l    = motorModel.data.l*kL;
+motorModel.data.R    = motorModel.data.R*kD;
+motorModel.data.nmax = motorModel.data.nmax/kD;
 
 if isfield(motorModel,'dataSet')
     if ~isempty(motorModel.dataSet)
         [motorModel.dataSet,~,motorModel.per,~] = back_compatibility(motorModel.dataSet,motorModel.geo,motorModel.per,0);
+        
+        motorModel.dataSet.CurrentDensity = motorModel.dataSet.CurrentDensity*motorModel.data.i0/motorModel.dataSet.RatedCurrent;
 
         % Scaling
         motorModel.dataSet.StackLength       = motorModel.data.l;
@@ -193,6 +196,8 @@ if isfield(motorModel,'dataSet')
         motorModel.dataSet.Mesh_MOOA         = motorModel.dataSet.Mesh_MOOA*kD;
         motorModel.dataSet.MinMechTol        = motorModel.dataSet.MinMechTol*kD ;
         motorModel.dataSet.PMdim             = motorModel.dataSet.PMdim*kD;
+        motorModel.dataSet.SleeveThickness   = motorModel.dataSet.SleeveThickness*kD;
+        motorModel.dataSet.OverSpeed         = motorModel.dataSet.OverSpeed/kD;
 
         motorModel.dataSet.ThermalLoadKj     = NaN;
         motorModel.dataSet.AdmiJouleLosses   = NaN;
@@ -277,16 +282,18 @@ if isfield(motorModel,'dataSet')
         % geo.Aslot = geo.Aslot*kD^2;
 
         per = calc_i0(geo,per);
-        motorModel.data.i0 = per.i0;
-        motorModel.data.Rs = per.Rs;
+        motorModel.data.i0                 = per.i0;
+        motorModel.data.Rs                 = per.Rs;
 
-        
-        motorModel.dataSet.RatedCurrent  = per.i0;
-        motorModel.dataSet.Rs            = per.Rs;
+        motorModel.dataSet.ThermalLoadKj   = per.kj;
+        motorModel.dataSet.AdmiJouleLosses = per.Loss;
+        motorModel.dataSet.RatedCurrent    = per.i0;
+        motorModel.dataSet.Rs              = per.Rs;
+
         % motorModel.geo.l                 = motorModel.data.l;
         % motorModel.geo.win.Ns            = motorModel.data.Ns;
-        motorModel.per.Rs                = per.Rs;
-        motorModel.per.i0                = per.i0;
+        motorModel.per.Rs                  = per.Rs;
+        motorModel.per.i0                  = per.i0;
 
 
 

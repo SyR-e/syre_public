@@ -30,6 +30,22 @@ Fq   = motorModel.FluxMap_dq.Fq;
 Tem  = motorModel.FluxMap_dq.T;
 dTpp = motorModel.FluxMap_dq.dTpp;
 
+% IdMin = min(motorModel.FluxMap_dq.Id(:));
+% IdMax = max(motorModel.FluxMap_dq.Id(:));
+% IqMin = min(motorModel.FluxMap_dq.Iq(:));
+% IqMax = max(motorModel.FluxMap_dq.Iq(:));
+% [Id,Iq] = meshgrid(linspace(IdMin,IdMax,501),linspace(IqMin,IqMax,501));
+% Fd = interp2(motorModel.FluxMap_dq.Id,motorModel.FluxMap_dq.Iq,motorModel.FluxMap_dq.Fd,Id,Iq);
+% Fq = interp2(motorModel.FluxMap_dq.Id,motorModel.FluxMap_dq.Iq,motorModel.FluxMap_dq.Fq,Id,Iq);
+% Tem = interp2(motorModel.FluxMap_dq.Id,motorModel.FluxMap_dq.Iq,motorModel.FluxMap_dq.T,Id,Iq);
+% dTpp = interp2(motorModel.FluxMap_dq.Id,motorModel.FluxMap_dq.Iq,motorModel.FluxMap_dq.dTpp,Id,Iq);
+% 
+% motorModel.FluxMap_dq.Id = Id;
+% motorModel.FluxMap_dq.Iq = Iq;
+% motorModel.FluxMap_dq.Fd = Fd;
+% motorModel.FluxMap_dq.Fq = Fq;
+
+
 p         = motorModel.data.p;
 axisType  = motorModel.data.axisType;
 motorType = motorModel.data.motorType;
@@ -359,7 +375,7 @@ end
 switch motorModel.data.axisType
     case 'SR'
         iTmp = unique(Iq);
-        fTmp = interp2(Id,Iq,Fq,zeros(size(iTmp)),iTmp);
+        fTmp = interp2(Id,Iq,Fq,min(abs(Id(:)))*ones(size(iTmp)),iTmp);
     case 'PM'
         iTmp = unique(Id);
         fTmp = -interp2(Id,Iq,Fd,iTmp,zeros(size(iTmp)));

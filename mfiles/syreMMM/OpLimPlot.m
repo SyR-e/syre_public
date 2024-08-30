@@ -41,22 +41,22 @@ for ii=1:6
     figSetting()
     hax(ii) = axes('OuterPosition',[0 0 1 1],...
         'XLim',[0 motorModel.data.nmax]);
-    xlabel('$n$ [rpm]')
+    xlabel('$n$ (rpm)')
     switch ii
         case 1
-            ylabel('$T$ [Nm]')
+            ylabel('$T$ (Nm)')
             title('Torque')
             set(hfig(1),'FileName',[pathname resFolder 'Torque.fig']);
         case 2
-            ylabel('$P$ [W]')
+            ylabel('$P$ (W)')
             title('Power')
             set(hfig(2),'FileName',[pathname resFolder 'Power.fig']);
         case 3
-            ylabel('$V_{l}$ [V]')
+            ylabel('$V_{l}$ (Vpk)')
             title('Peak line voltage')
             set(hfig(3),'FileName',[pathname resFolder ,'Voltage.fig'])
         case 4
-            ylabel('$I_{ph}$ [A]')
+            ylabel('$I_{ph}$ (Apk)')
             title('Peak phase current')
             set(hfig(4),'FileName',[pathname resFolder 'Current.fig'])
         case 5
@@ -64,7 +64,7 @@ for ii=1:6
             title('Power factor')
             set(hfig(5),'FileName',[pathname resFolder 'PowerFactor.fig'])
         case 6
-            ylabel('$\lambda$ [Vs]')
+            ylabel('$\lambda$ (Vs)')
             title('Flux linkage')
             set(hfig(6),'FileName',[pathname resFolder 'FluxLinkage.fig'])
         case 7
@@ -77,8 +77,8 @@ hax(7) = axes('OuterPosition',[0 0 1 1],...
     'DataAspectRatio',[1 1 1],...
     'XLim',[min(Id,[],'all') max(Id,[],'all')],...
     'YLim',[min(Iq,[],'all') max(Iq,[],'all')]);
-xlabel('$i_d$ [A]')
-ylabel('$i_q$ [A]')
+xlabel('$i_d$ (A)')
+ylabel('$i_q$ (A)')
 set(hfig(7),'FileName',[pathname resFolder 'DQplane.fig'])
 [c,h] = contour(Id,Iq,abs(Id+j*Iq),'-k','DisplayName','$I$');
 clabel(c,h)

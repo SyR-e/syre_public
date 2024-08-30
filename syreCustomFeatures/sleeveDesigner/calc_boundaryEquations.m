@@ -53,36 +53,36 @@ p_23 = double(sol_BCs(4));
 
 if p_23 < 0 && flag == 0
 
-% Initialization to zero
-K = zeros(3,3);
-G = zeros(3,1);
+    % Initialization to zero
+    K = zeros(3,3);
+    G = zeros(3,1);
 
-% 1st Equation: K(1,1) * C_21 + p_12 = G(1)
-K(1,1) = 1 / par.r_2o;
-K(1,2) = 1;
-G(1)   = w^2 * (par.rho_2 / 3) * par.r_2o^2;
+    % 1st Equation: K(1,1) * C_21 + p_12 = G(1)
+    K(1,1) = 1 / par.r_2o;
+    K(1,2) = 1;
+    G(1)   = w^2 * (par.rho_2 / 3) * par.r_2o^2;
 
-% 2nd Equation: K(3,1) * C_21 = G(3)
-K(2,1) = 1/par.r_2i;
-G(2)   = w^2 * (par.rho_2 / 3) * par.r_2i^2;
+    % 2nd Equation: K(3,1) * C_21 = G(3)
+    K(2,1) = 1/par.r_2i;
+    G(2)   = w^2 * (par.rho_2 / 3) * par.r_2i^2;
 
-% 3rd Equation: K(3,1) * C_21 + K(3,2) * p_21 + C_22 = G(3)
-K(3,1) = 1/par.E_2 * log(par.r_2o);
-K(3,2) = - par.r_1av_loop^2 / (par.E_1 * par.h_1_loop);
-K(3,3) = 1;
-G(3)   = w^2 * par.rho_1 * (par.r_1av_loop^3 / par.E_1) ....
-       + w^2 * (par.rho_2 / (9 * par.E_2)) * par.r_2o^3 ...
-       + (par.r_1av_loop * par.a_th1 * dT_1) - (par.r_2o * par.a_th2 * dT_2) ...
-       - du_12;
+    % 3rd Equation: K(3,1) * C_21 + K(3,2) * p_21 + C_22 = G(3)
+    K(3,1) = 1/par.E_2 * log(par.r_2o);
+    K(3,2) = - par.r_1av_loop^2 / (par.E_1 * par.h_1_loop);
+    K(3,3) = 1;
+    G(3)   = w^2 * par.rho_1 * (par.r_1av_loop^3 / par.E_1) ....
+        + w^2 * (par.rho_2 / (9 * par.E_2)) * par.r_2o^3 ...
+        + (par.r_1av_loop * par.a_th1 * dT_1) - (par.r_2o * par.a_th2 * dT_2) ...
+        - du_12;
 
-% Solve
-sol_BCs = linsolve(K,G);
+    % Solve
+    sol_BCs = linsolve(K,G);
 
-% assigning values and convert to double
+    % assigning values and convert to double
 
-C_21 = double(sol_BCs(1));
-p_12 = double(sol_BCs(2));
-C_22 = double(sol_BCs(3));
-p_23 = 0;
+    C_21 = double(sol_BCs(1));
+    p_12 = double(sol_BCs(2));
+    C_22 = double(sol_BCs(3));
+    p_23 = 0;
 
 end

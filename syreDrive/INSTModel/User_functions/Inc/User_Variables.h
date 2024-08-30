@@ -32,15 +32,31 @@ float kp_w, ki_w, kp_id, ki_id, kp_iq, ki_iq;
 //Mechanical variables
 float omega_ref_in, omega_ref_ramp, accel, theta_ref, dTheta;
 float omega_elt_meas, theta_elt_meas, theta_elt_meas_enc, omega_mec_meas, theta_mec_meas, omega_elt_meas_f, omega_mec_meas_f, omega_mec_meas_rpm;
-Xsc SinCos_ref, SinCos_elt_meas, SinCos_elt_meas_old, SinCos_elt, SinCos_elt_dTheta;
+
+Xsc SinCos_ref; 
+Xsc SinCos_elt_meas;
+Xsc SinCos_elt_meas_old;
+Xsc SinCos_elt;
+Xsc SinCos_elt_dTheta;
+Xsc SinCos_thetaS_dTheta;
+Xsc SinCos_thetaS;
 float omega_elt;
 
 // Flux observer
-Xdq lambda_dq, lambda_CM_dq; 
-Xalphabeta lambda_CM_ab, lambda_CM_ab_km1, feedback_OBS;
+Xdq lambda_dq;
+Xdq lambda_CM_dq; 
+Xalphabeta lambda_CM_ab;
+Xalphabeta lambda_CM_ab_km1;
+Xalphabeta feedback_OBS;
 Xalphabeta_amp lambda_OBS;
 float delta;
 float lambda_M,th0;
+
+// Feed-forward
+Xdq vffw_dq;
+Xdq vffw_dsqs;
+
+
 
 // Compute inductance
 float Ld, Ld_unfilt, Lq, Lq_unfilt, ld, ld_unfilt, lq, lq_unfilt, ldq, ldq_unfilt, ldq_d, ldq_q, ldm, Ldm;
@@ -59,17 +75,15 @@ float isq_old, lambdaq_old;
 XPIRegPars lambda_par,iqs_par,delta_par;
 XPIRegVars lambda_var,iqs_var,delta_var;
 Xsc SinCos_delta;
-Xdq vdsqs,idsqs;
+Xdq vdsqs_ref;
+Xdq idsqs;
 float lambda_MTPA,Flux_Lim,lambda_ref,iqs_ref;
 Xdq isdq_aux,lambda_aux;
 float delta_mtpv,delta_max;
 float a,b;
 float tmp_1;
 float delta_ref;
-float Tmax_MTPV;
 float iqs_Lim;
-float Tmax_CrtLim;
-float T_Lim;
 float T_ref;
 float i_MTPV;
 

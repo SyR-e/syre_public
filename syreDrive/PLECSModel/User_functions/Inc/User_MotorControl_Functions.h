@@ -14,7 +14,7 @@ void speed_compute_sc(Xsc sincos, Xsc *sincos_old, float* omega);
 void DTComp1(Xabc isabc, float amp_dt, Xabc *duty_abc);
 void DTComp2(Xabc isabc, float amp_dt_V, Xabc *vsabc);
 void DTComp(Xabc duty, Xabc duty_km1, Xabc isabc,float vdc,float dt, Xabc *vsabc);
-void Current_loop(float vdc, float Imax, Xdq isdq_ref, Xdq  isdq, XPIRegPars* id_par, XPIRegVars* id_var, XPIRegPars* iq_par, XPIRegVars* iq_var,Xdq* vsdq_ref);
+void Current_loop(float vdc, float Imax, Xdq isdq_ref, Xdq  isdq,Xdq vffw_dq,XPIRegPars* id_par, XPIRegVars* id_var, XPIRegPars* iq_par, XPIRegVars* iq_var,Xdq* vsdq_ref);
 void Gen_theta_ref(float omega_ref_ramp, float* theta_ref, Xsc* SinCos_ref );
 void CurrentProtection(Xabc isabc, int* State, int* pwm_stop);
 void ramp(float target, float delta, float *output);

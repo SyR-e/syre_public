@@ -1080,11 +1080,44 @@ if ~isfield(dataSet,'SleeveInterference')
     flag=1;
 end
 
-% added liner thickness (Maurizio Repetto and Luigi Solimene for GalFer Challenge)
+% added liner thickness (Maurizio Repetto and Luigi Solimene for GalFer Contest)
 if ~isfield(dataSet,'LinerThickness')
     dataSet.LinerThickness = 0;
     if Dflag
         disp('2024 01 30 - added slot liner')
+    end
+    flag=1;
+end
+
+% added mesh control for structural PDE
+if ~isfield(dataSet,'MeshStructuralPDE')
+    dataSet.MeshStructuralPDE = 'PDE fine';
+    if Dflag
+        disp('2024 04 18 - added mesh control for structural PDE')
+    end
+    flag=1;
+end
+
+% added Surrogate model dataset computation (for GalFer Contest)
+if strcmp(dataSet.optType,'Design')
+    dataSet.optType = 'MODE Design';
+    if Dflag
+        disp('2024 05 08 - added Surrogate model dataset computation')
+    end
+    flag=1;
+elseif strcmp(dataSet.optType,'Refine')
+    dataSet.optType = 'MODE Refine';
+    if Dflag
+        disp('2024 05 08 - added Surrogate model dataset computation')
+    end
+    flag=1;
+end
+
+% added lamination stacking factor
+if ~isfield(dataSet,'LaminationStackingFactor')
+    dataSet.LaminationStackingFactor = 1.00;
+    if Dflag
+        disp('2024 07 30 - added lamination stacking factor')
     end
     flag=1;
 end

@@ -52,23 +52,23 @@ for ii=1:3
     hfig(ii) = figure();
     figSetting()
     hax(ii,1) = axes('OuterPosition',[0 0 1 1]);
-    xlabel('$\Theta_{PM}$ [$^\circ$C]')
+    xlabel('$\Theta_{PM}$ ($^\circ$C)')
     set(hax(ii,1),'XLim',[min(demagLimit.tempPM) max(demagLimit.tempPM)]);
     switch ii
         case 1
-            ylabel('$I_{demag}$ [Apk]')
+            ylabel('$I_{demag}$ (Apk)')
             set(hax(ii,1),'YLim',[0 max(demagLimit.Idemag)]);
             set(hfig(ii),'FileName',[pathname resFolder 'currentVStemperature.fig']);
             set(hfig(ii),'Name','currentVStemperature');
             legend('show','Location','best')
         case 2
-            ylabel('$B_{min}$ [T]')
+            ylabel('$B_{min}$ (T)')
             set(hax(ii,1),'YLim',[min(demagLimit.Bmin) max(demagLimit.Br)]);
             set(hfig(ii),'FileName',[pathname resFolder 'fluxDensityVStemperature.fig']);
             set(hfig(ii),'Name','fluxDensityVStemperature');
             legend('show','Location','best')
         case 3
-            ylabel('Volume of PM demagnetized [\%]')
+            ylabel('Volume of PM demagnetized (\%)')
             set(hax(ii,1),'YLim',[0 5]);
             set(hfig(ii),'FileName',[pathname resFolder 'volumeVStemperature.fig']);
             set(hfig(ii),'Name','volumeVStemperature');
@@ -93,13 +93,13 @@ for ii=1:4
     xlabel('iteration')
     switch ii
         case 1
-            ylabel(hax(4,ii),'$i_{test}$ [Apk]')
+            ylabel(hax(4,ii),'$i_{test}$ (A)')
             set(hax(4,ii),'YLim',[0 max(test.Idemag)])
         case 2
-            ylabel(hax(4,ii),'PM demag [\%]')
+            ylabel(hax(4,ii),'PM demag (\%)')
             set(hax(4,ii),'YLim',[0 100])
         case 3
-            ylabel(hax(4,ii),'$\Theta_{PM}$ [$^\circ$C]')
+            ylabel(hax(4,ii),'$\Theta_{PM}$ ($^\circ$C)')
             tmpLim = [min(test.tempPM) max(test.tempPM)];
             if tmpLim(1)>0
                 tmpLim(1) = 0;
@@ -107,7 +107,7 @@ for ii=1:4
             set(hax(4,ii),'YLim',tmpLim);
             plot(hax(4,ii),[0 length(test.Idemag)+1],[0 0],'-k','LineWidth',1,'HandleVisibility','off')
         case 4
-            ylabel(hax(4,ii),'$B_{min}$ [T]')
+            ylabel(hax(4,ii),'$B_{min}$ (T)')
             tmpLim = [min([test.Bmin test.Br test.Bd]) max([test.Bmin test.Br test.Bd])];
             if tmpLim(1)>0
                 tmpLim(1) = 0;
@@ -123,9 +123,9 @@ end
 hfig(5) = figure();
 figSetting()
 hax(5,1) = axes('OuterPosition',[0 0 1 1]);
-xlabel('$\Theta_{PM}$ [$^\circ$C]')
-ylabel('$I_{demag}$ [Apk]')
-zlabel('PM demag [\%]')
+xlabel('$\Theta_{PM}$ ($^\circ$C)')
+ylabel('$I_{demag}$ (Apk)')
+zlabel('PM demag (\%)')
 % clim([0 100])
 zlim([0 100])
 colormap turbo

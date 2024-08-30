@@ -84,11 +84,15 @@ if not(isempty(geo.RQnames))
     
 end
 
-if sum(geo.dalpha_pu) > (1-0.05) % 0.05 is the angular space guaranteed for the spider
-    if geo.dalpha_pu(1)>(1-0.05*(geo.nlay)) % max geo.dalpha_pu(1)=1-0.05-0.05*(nlay-1)
-        geo.dalpha_pu(1)=1-0.05*(geo.nlay);
+if strcmp(geo.RotType,'SPM-Halbach')        
+    geo.dalpha_pu = 1;              
+else
+    if sum(geo.dalpha_pu) > (1-0.05) % 0.05 is the angular space guaranteed for the spider
+        if geo.dalpha_pu(1)>(1-0.05*(geo.nlay)) % max geo.dalpha_pu(1)=1-0.05-0.05*(nlay-1)
+            geo.dalpha_pu(1)=1-0.05*(geo.nlay);
+        end
+        geo.dalpha_pu(2:end) = geo.dalpha_pu(2:end)/sum(geo.dalpha_pu(2:end))*(1-0.05-geo.dalpha_pu(1));
     end
-    geo.dalpha_pu(2:end) = geo.dalpha_pu(2:end)/sum(geo.dalpha_pu(2:end))*(1-0.05-geo.dalpha_pu(1));
 end
 
 

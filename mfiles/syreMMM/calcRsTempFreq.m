@@ -23,4 +23,5 @@ else
     kAC = calcSkinEffect(acLossFactor,abs(freq),abs(temp),skinEffectMethod);
 end
 
+% Rs  = R20.*(kAC*l/(lend+l)+lend/(lend+l)).*(1+0.004*(temp-20)).*ones(size(freq));
 Rs  = R20.*(kAC*l/(lend+l)+lend/(lend+l)).*(1+0.004*(temp-20));

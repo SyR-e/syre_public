@@ -527,4 +527,7 @@ temp.arcLayer3=arcLayer3;
 temp.LastBarCurvatura=LastBarCurvatura;
 geo.pontR=pont;
 
+temp.mirrorFlag = ones(1,length(xcbar));
+temp.mirrorFlagAir = [];
+
 

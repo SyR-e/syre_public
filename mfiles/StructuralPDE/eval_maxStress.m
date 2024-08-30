@@ -27,6 +27,7 @@ pos_over = find(sVonMises>sigma_max);
 x_over = x(pos_over)*10^3;
 y_over = y(pos_over)*10^3;
 
+prc = 99; % percentile for GalFer Contest structural index
 
 % Search for the stress in each ribs
 sigmaRadMax = zeros(1,geo.nlay);
@@ -35,6 +36,7 @@ sigmaRadAvg = zeros(1,geo.nlay);
 sigmaTanAvg = zeros(1,geo.nlay);
 nPointOverRad = zeros(1,geo.nlay);
 nPointOverTan = zeros(1,geo.nlay);
+sTmpTot = [];
 
 for ii=1:geo.nlay
     if (strcmp(geo.RotType,'Circular')||strcmp(geo.RotType,'Seg'))
@@ -59,6 +61,7 @@ for ii=1:geo.nlay
         sigmaTanMax(ii) = max(sTmp);
         sigmaTanAvg(ii) = mean(sTmp);
         nPointOverTan(ii) = sum(sTmp>sigma_max);
+        sTmpTot = [sTmpTot;sTmp];
 
         % check radial ribs
         if geo.pontR(ii)>0
@@ -79,7 +82,10 @@ for ii=1:geo.nlay
                 sigmaRadAvg(ii) = mean(sTmp);
                 nPointOverRad(ii) = sum(sTmp>sigma_max);
             end
+        else
+            sTmp = [];
         end
+        sTmpTot = [sTmpTot;sTmp];
     end
 end
 
@@ -133,6 +139,7 @@ out.sigmaRadAvg   = sigmaRadAvg;
 out.sigmaTanAvg   = sigmaTanAvg;
 out.nPointOverRad = nPointOverRad;
 out.nPointOverTan = nPointOverTan;
+out.sigmaTotPrc   = prctile(sTmpTot,prc);
 
 % out.stress_T  = stress_T;
 % out.stress_R  = stress_R;

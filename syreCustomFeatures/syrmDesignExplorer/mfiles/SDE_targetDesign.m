@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function SDE_targetDesign(map,setup)
+function [hfig] = SDE_targetDesign(map,setup)
 
 if isfield(map,'xSelect')
     map = rmfield(map,'xSelect');
@@ -31,7 +31,7 @@ if nargin()==1
         Ns = map.dataSet.TurnsInSeries;
     end
 
-    prompt  = {'Peak phase current [Apk]','DC link voltage [V]','Target torque [Nm]','Target power factor','Feasible number of turns','Target power [W]'};
+    prompt  = {'Peak phase current (Apk)','DC link voltage (V)','Target torque (Nm)','Target power factor','Feasible number of turns','Target power (W)'};
     answers = {num2str(map.dataSet.RatedCurrent),int2str(map.Vdc),'100','NaN',mat2str(Ns),'100000'};
     answers = inputdlg(prompt,'Design Targets',1,answers);
 
@@ -98,7 +98,7 @@ xlabel('$x$')
 ylabel('$b$')
 title(['Feasibility area @ $I_{max}=' num2str(setup.Imax) '$ Apk / $V_{DC}=' int2str(setup.Vdc) '$ V'])
 hleg(2) = legend('show','Location','southwest');
-set(hfig(1),'UserData',map);
+set(hfig(2),'UserData',map);
 
 
 contour(map.xx,map.bb,map.T,'-','EdgeColor','k','LineWidth',1,'ShowText','on','DisplayName','$T$ [Nm]');

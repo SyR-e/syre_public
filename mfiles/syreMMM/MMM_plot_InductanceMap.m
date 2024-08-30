@@ -53,23 +53,23 @@ for ii=1:length(figNames)
         'XLim',[min(Id,[],'all') max(Id,[],'all')],...
         'YLim',[min(Iq,[],'all') max(Iq,[],'all')],...
         'PlotBoxAspectRatio',[1 1 0.8]);
-    xlabel('$i_d$ [A]')
-    ylabel('$i_q$ [A]')
+    xlabel('$i_d$ (A)')
+    ylabel('$i_q$ (A)')
     view(3)
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
     set(hfig(ii),'Name',figNames{ii})
     switch ii
         case 1
-            zlabel('$l_{dd}$ [H]')
+            zlabel('$l_{dd}$ (H)')
             set(gca,'ZLim',[min(Ldd,[],'all') max(Ldd,[],'all')]);
         case 2
-            zlabel('$l_{dq}$ [H]')
+            zlabel('$l_{dq}$ (H)')
             set(gca,'ZLim',[min(Ldq,[],'all') max(Ldq,[],'all')]);
         case 3
-            zlabel('$l_{qd}$ [H]')
+            zlabel('$l_{qd}$ (H)')
             set(gca,'ZLim',[min(Lqd,[],'all') max(Lqd,[],'all')]);
         case 4
-            zlabel('$l_{qq}$ [H]')
+            zlabel('$l_{qq}$ (H)')
             set(gca,'ZLim',[min(Lqq,[],'all') max(Lqq,[],'all')]);
         case 5
             zlabel(csiName)
@@ -77,12 +77,16 @@ for ii=1:length(figNames)
     end
 end
 
-surf(hax(1),Id,Iq,Ldd,'FaceColor','interp','EdgeColor','interp')
-surf(hax(2),Id,Iq,Ldq,'FaceColor','interp','EdgeColor','interp')
-surf(hax(3),Id,Iq,Lqd,'FaceColor','interp','EdgeColor','interp')
-surf(hax(4),Id,Iq,Lqq,'FaceColor','interp','EdgeColor','interp')
-surf(hax(5),Id,Iq,csi,'FaceColor','interp','EdgeColor','interp')
-
+surf(hax(1),Id,Iq,Ldd,'FaceColor','interp','EdgeColor','none')
+contour3(hax(1),Id,Iq,Ldd,'EdgeColor','k','ShowText','off')
+surf(hax(2),Id,Iq,Ldq,'FaceColor','interp','EdgeColor','none')
+contour3(hax(2),Id,Iq,Ldq,'EdgeColor','k','ShowText','off')
+surf(hax(3),Id,Iq,Lqd,'FaceColor','interp','EdgeColor','none')
+contour3(hax(3),Id,Iq,Lqd,'EdgeColor','k','ShowText','off')
+surf(hax(4),Id,Iq,Lqq,'FaceColor','interp','EdgeColor','none')
+contour3(hax(4),Id,Iq,Lqq,'EdgeColor','k','ShowText','off')
+surf(hax(5),Id,Iq,csi,'FaceColor','interp','EdgeColor','none')
+contour3(hax(5),Id,Iq,csi,'EdgeColor','k','ShowText','off')
 
 %% Save figures
 answer = 'No';

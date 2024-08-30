@@ -18,17 +18,20 @@ n_set = motorModel.data.n3phase;
 
 %% ------------------------- Compute Motor Maps----------------------------%
 if isempty(motorModel.controlTrajectories)
-    motorModel.controlTrajectories = MMM_eval_AOA(motorModel,'LUT');
+    % motorModel.controlTrajectories = MMM_eval_AOA(motorModel,'LUT');
+    warning('Control trajectories not computed!')
 end
 
 motorModel.FluxMapInv_dq = MMM_eval_inverse_dq_Simulink(motorModel); 
 
 if isempty(motorModel.FluxMapInv_dqt)
-    motorModel.FluxMapInv_dqt = MMM_eval_inverse_dqtMap(motorModel);
+    % motorModel.FluxMapInv_dqt = MMM_eval_inverse_dqtMap(motorModel);
+    warning('dqt inverse maps model not computed!')
 end
 
 if isempty(motorModel.IncInductanceMap_dq)
-    motorModel.IncInductanceMap_dq = MMM_eval_inductanceMap(motorModel);
+    % motorModel.IncInductanceMap_dq = MMM_eval_inductanceMap(motorModel);
+    warning('Incremental inductance maps not computed!')
 end
 
 %% -----------------------------Simulink Generation-----------------------%
@@ -37,11 +40,12 @@ if(n_set>1)
     Generate_MultiThreePhase_Simulink(motorModel,n_set);
 else
 
-    modelType = motorModel.SyreDrive.modelType;
+    modelType = motorModel.SyreDrive.modelSetup.modelType;
     
     switch(modelType)
         case 'Average'
-            ctrlFolder_name = [motorModel.data.motorName '_ctrl_AVG'];
+            % ctrlFolder_name = [motorModel.data.motorName '_ctrl_AVG'];
+            ctrlFolder_name = [motorModel.data.motorName '_ctrl_INST'];
     
         case 'Istantaneous'
             ctrlFolder_name = [motorModel.data.motorName '_ctrl_INST'];
@@ -53,8 +57,10 @@ else
     
     switch(modelType)
         case 'Average'
-            copyfile([syrePath '\syreDrive\AVGModel'], ctrlFolder_path);
-            movefile([ctrlFolder_path '\Motor_ctrl_AVG.slx'],[ctrlFolder_path '\' motorModel.data.motorName '_ctrl_AVG.slx']);
+            % copyfile([syrePath '\syreDrive\AVGModel'], ctrlFolder_path);
+            % movefile([ctrlFolder_path '\Motor_ctrl_AVG.slx'],[ctrlFolder_path '\' motorModel.data.motorName '_ctrl_AVG.slx']);
+            copyfile([syrePath '\syreDrive\INSTModel'], ctrlFolder_path);
+            movefile([ctrlFolder_path '\Motor_ctrl_INST.slx'],[ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx']);
         case 'Istantaneous'
             copyfile([syrePath '\syreDrive\INSTModel'], ctrlFolder_path);
             movefile([ctrlFolder_path '\Motor_ctrl_INST.slx'],[ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx']);
@@ -65,8 +71,8 @@ else
     
     switch(modelType)
         case 'Average'
-            motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_ctrl_AVG.slx'];
-    
+            % motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_ctrl_AVG.slx'];
+            motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx'];
         case 'Istantaneous'
             motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_ctrl_INST.slx'];
     end

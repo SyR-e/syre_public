@@ -23,6 +23,7 @@ filename = dataIn.currentfilename;
 load([pathname filename])
 
 dataSet.EvalSpeed = dataIn.EvalSpeed;
+dataSet.MeshStructuralPDE = dataIn.MeshStructuralPDE;
 
 materialCodes;
 
@@ -46,7 +47,7 @@ mkdir(newDir);
 simSetup.filename  = filename;
 simSetup.pathname  = pathname;
 simSetup.evalSpeed = evalSpeed;
-simSetup.meshSize  = 'fine';    % fine or coarse
+simSetup.meshSize  = dataSet.MeshStructuralPDE;
 simSetup.flagFull  = 0;         % 0-->Qs simulation / 1-->full motor simulation
 simSetup.shaftBC   = 1;         % 1-->locked shaft / 0-->free shaft / 2-->spring ring
 simSetup.meshShaft = 0;         % 0-->shaft not meshed / 1-->shaft meshed
@@ -83,13 +84,14 @@ tic
 
 tEnd = toc();
 warning('on')
-disp(['PDE model created in ' num2str(tEnd) ' s'])
+disp(['PDE model created in ' num2str(tEnd) ' s with ' num2str(length(structModel.Mesh.Nodes)) ' nodes'])
 % save([newDir filename(1:end-4) '_structModel.mat'],'structModel','dataSet','geo','per','mat','data4GeoMat');
 
 hfig = figure();
 figSetting();
 pdeplot(structModel,'Mesh','on');
-saveas(gcf,[newDir 'StructMesh.fig']);
+set(gcf,'FileName',[newDir 'StructMesh.fig'],'Name','StructMesh')
+savePrintFigure(gcf)
 
 warning('off')
 disp('Solving the PDE model...')
@@ -114,7 +116,8 @@ xlabel('[m]')
 ylabel('[m]')
 view(2)
 title('Displacement [m]')
-saveas(gcf,[newDir 'Displacement.fig'])
+set(gcf,'FileName',[newDir 'Displacement.fig'],'Name','Displacement')
+savePrintFigure(gcf)
 
 
 figure();
@@ -130,7 +133,8 @@ view(2)
 title('Von Mises Stress [MPa]')
 %legend ('Location','northwest')
 set(gca,'CLim',[0 max(sVonMises)]/1e6)
-saveas(gcf,[newDir 'VonMisesStress.fig'])
+set(gcf,'FileName',[newDir 'VonMisesStress.fig'],'Name','VonMisesStress')
+savePrintFigure(gcf)
 
 figure();
 figSetting();
@@ -145,7 +149,9 @@ view(2)
 title('Von Mises Stress [MPa] - deformation scale=100')
 %legend ('Location','northwest')
 set(gca,'CLim',[0 max(sVonMises)]/1e6)
-saveas(gcf,[newDir 'VonMisesStressDeformation.fig'])
+set(gcf,'FileName',[newDir 'VonMisesStressDeformation.fig'],'Name','VonMisesStressDeformation')
+savePrintFigure(gcf)
+
 
 if ~isempty(out.x_over)
     figure()
@@ -175,7 +181,8 @@ if ~isempty(out.x_over)
     plot(x_max/1e3,y_max/1e3,'bo','MarkerSize',5.5,'DisplayName', 'Max Stress')
     grid off
     %legend ('Location','northwest')
-    saveas(gcf,[newDir 'VonMisesStressLimit.fig'])
+    set(gcf,'FileName',[newDir 'VonMisesStressLimit.fig'],'Name','VonMisesStressLimit')
+    savePrintFigure(gcf)
 end
 
 

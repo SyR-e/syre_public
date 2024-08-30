@@ -44,47 +44,14 @@ for ii=1:length(DenL)
             IdOpt(ii) = NaN;
             IqOpt(ii) = NaN;
         end
-        
-%         if IdOpt(ii)==max(max(Id(~isnan(Den))))
-%             IdOpt(ii)=NaN;
-%             IqOpt(ii)=NaN;
-%         end
-%         if IqOpt(ii)==max(max(Iq(~isnan(Den))))
-%             IdOpt(ii)=NaN;
-%             IqOpt(ii)=NaN;
-%         end
-%         if IdOpt(ii)==max(max(Id(~isnan(Num))))
-%             IdOpt(ii)=NaN;
-%             IqOpt(ii)=NaN;
-%         end
-%         if IqOpt(ii)==max(max(Iq(~isnan(Num))))
-%             IdOpt(ii)=NaN;
-%             IqOpt(ii)=NaN;
-%         end
-%         if IdOpt(ii)==min(min(Id(~isnan(Den))))
-%             IdOpt(ii)=NaN;
-%             IqOpt(ii)=NaN;
-%         end
-%         if IqOpt(ii)==min(min(Iq(~isnan(Den))))
-%             IdOpt(ii)=NaN;
-%             IqOpt(ii)=NaN;
-%         end
-%         if IdOpt(ii)==min(min(Id(~isnan(Num))))
-%             IdOpt(ii)=NaN;
-%             IqOpt(ii)=NaN;
-%         end
-%         if IqOpt(ii)==min(min(Iq(~isnan(Num))))
-%             IdOpt(ii)=NaN;
-%             IqOpt(ii)=NaN;
-%         end
     end
 end
 
 
 
 
-IdOpt=IdOpt(~isnan(IdOpt));
-IqOpt=IqOpt(~isnan(IqOpt));
+IdOpt = IdOpt(~isnan(IdOpt));
+IqOpt = IqOpt(~isnan(IqOpt));
 
 if nargin==5
     if strcmp(axisType,'SR')

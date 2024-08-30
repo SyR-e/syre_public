@@ -31,13 +31,13 @@ end
 % meshSize = 'coarse';
 
 switch meshSize
-    case 'coarse'
+    case 'PDE coarse'
         Hmax  = geo.pont0/1e3*4;
         Hmin  = geo.pont0/1e3*0.8;
         Hgrad = 2;
         Hedge = Hmin;
         warning('Coarse mesh selected!!!')
-    case 'fine'
+    case 'PDE fine'
         Hmax  = geo.pont0/1e3*2;
         Hmin  = geo.pont0/1e3*0.5;
         Hgrad = 2;
@@ -46,6 +46,10 @@ switch meshSize
         %         Hmin  = geo.pont0/1e3*1;
         %         Hgrad = 1;
         %         Hedge = geo.pont0/1e3*1.5;
+    case 'FEMM original'
+
+    case 'FEMM fine'
+        Hfemm = geo.pont0/1e3*0.5;
     otherwise
         Hmax  = geo.pont0/1e3/2;
         Hmin  = geo.pont0/1e3/5;
@@ -84,44 +88,58 @@ newFile = [tmpath filename];
 openfemm(1);
 opendocument(newFile);
 % reduce mesh size (if not custom)
-xy = geo.BLKLABELS.rotore.xy;
-for ii=1:size(xy,1)
-    if xy(ii,3)==1 % Air
-        if ~geo.custom
-            mi_selectlabel(xy(ii,1),xy(ii,2));
-            mi_setblockprop('Air',0,0,'None',0,2,0);
-            mi_clearselected;
-        end
-    elseif xy(ii,3)==7 % Shaft
-        if simSetup.meshShaft
-            mi_selectlabel(xy(ii,1),xy(ii,2));
-            mi_setblockprop('Air',1,0,'None',0,400,0);
-            mi_clearselected;
-        end
-    elseif xy(ii,3)==6 % PM
-        if ~geo.custom
-            mi_selectlabel(xy(ii,1),xy(ii,2));
-            magdir=atan2(xy(ii,7),xy(ii,6))*180/pi;
-            mi_setblockprop(mat.LayerMag.MatName,1,0,'None',magdir,201,0);
-            mi_clearselected;
-        end
-    elseif xy(ii,3)==5 % rotor iron
-        if ~geo.custom
-            mi_selectlabel(xy(ii,1),xy(ii,2));
-            mi_setblockprop(mat.Rotor.MatName,1,0,'None',0,22,0);
-            mi_clearselected;
-        end
-    elseif xy(ii,3)==8 % rotor bar
-        if ~geo.custom
-            mi_selectlabel(xy(ii,1),xy(ii,2));
-            mi_setblockprop(mat.BarCond.MatName,1,0,'None',0,201,0);
-            mi_clearselected;
-        end
-    elseif xy(ii,3)==9 % sleeve
-        if ~geo.custom
-            mi_selectlabel(xy(ii,1),xy(ii,2));
-            mi_setblockprop(mat.Sleeve.MatName,1,0,'None',0,199,0);
-            mi_clearselected;
+
+if (strcmp(meshSize,'PDE fine')||strcmp(meshSize,'PDE coarse'))
+    FEMMmesh.auto = 1;
+    FEMMmesh.size = 0;
+elseif strcmp(meshSize,'FEMM fine')
+    FEMMmesh.auto = 0;
+    FEMMmesh.size = geo.pont0/2;
+elseif strcmp(meshSize,'FEMM original')
+    FEMMmesh.auto = NaN;
+    FEMMmesh.size = NaN;
+end
+
+if ~isnan(FEMMmesh.size)
+    xy = geo.BLKLABELS.rotore.xy;
+    for ii=1:size(xy,1)
+        if xy(ii,3)==1 % Air
+            if ~geo.custom
+                mi_selectlabel(xy(ii,1),xy(ii,2));
+                mi_setblockprop('Air',1,0,'None',0,2,0);
+                mi_clearselected;
+            end
+        elseif xy(ii,3)==7 % Shaft
+            if simSetup.meshShaft
+                mi_selectlabel(xy(ii,1),xy(ii,2));
+                mi_setblockprop('Air',1,0,'None',0,400,0);
+                mi_clearselected;
+            end
+        elseif xy(ii,3)==6 % PM
+            if ~geo.custom
+                mi_selectlabel(xy(ii,1),xy(ii,2));
+                magdir=atan2(xy(ii,7),xy(ii,6))*180/pi;
+                mi_setblockprop('Air',FEMMmesh.auto,FEMMmesh.size,'None',magdir,201,0);
+                mi_clearselected;
+            end
+        elseif xy(ii,3)==5 % rotor iron
+            if ~geo.custom
+                mi_selectlabel(xy(ii,1),xy(ii,2));
+                mi_setblockprop(mat.Rotor.MatName,FEMMmesh.auto,FEMMmesh.size,'None',0,22,0);
+                mi_clearselected;
+            end
+        elseif xy(ii,3)==8 % rotor bar
+            if ~geo.custom
+                mi_selectlabel(xy(ii,1),xy(ii,2));
+                mi_setblockprop(mat.BarCond.MatName,FEMMmesh.auto,FEMMmesh.size,'None',0,201,0);
+                mi_clearselected;
+            end
+        elseif xy(ii,3)==9 % sleeve
+            if ~geo.custom
+                mi_selectlabel(xy(ii,1),xy(ii,2));
+                mi_setblockprop(mat.Sleeve.MatName,FEMMmesh.auto,FEMMmesh.size,'None',0,199,0);
+                mi_clearselected;
+            end
         end
     end
 end
@@ -249,12 +267,13 @@ elements(:,filt) = [];
 elementID(:,filt) = [];
 
 closefemm
-delete(newFile)
+% delete(newFile)
 
 % geometryFromMesh(structModel,nodes,elements,elementID);
 geometryFromMesh(structModel,nodes,elements);
-generateMesh(structModel,'Hmax',Hmax,'Hmin',Hmin,'Hgrad',Hgrad,'GeometricOrder','quadratic','Hedge',{1:1:structModel.Geometry.NumEdges, Hedge});
-
+if (strcmp(meshSize,'PDE fine')||strcmp(meshSize,'PDE coarse'))
+    generateMesh(structModel,'Hmax',Hmax,'Hmin',Hmin,'Hgrad',Hgrad,'GeometricOrder','quadratic','Hedge',{1:1:structModel.Geometry.NumEdges, Hedge});
+end
 % Boundary condition
 
 hfig = figure();

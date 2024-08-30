@@ -20,9 +20,9 @@ function motorModel = MMM_createPLECSmodel(motorModel)
 if isempty(motorModel.controlTrajectories)
     motorModel.controlTrajectories = MMM_eval_AOA(motorModel);
 end
-if isempty(motorModel.FluxMapInv_dq)
-    motorModel.FluxMapInv_dq = MMM_eval_inverseModel_dq(motorModel);
-end
+
+motorModel.FluxMapInv_dq = MMM_eval_inverse_dq_Simulink(motorModel); 
+
 if isempty(motorModel.FluxMapInv_dqt)
     motorModel.FluxMapInv_dqt = MMM_eval_inverse_dqtMap(motorModel);
 end
@@ -41,7 +41,15 @@ MMM_print_MotorDataH_PLECS(motorModel);
 
 motorModel.SyreDrive.SIM_path = [ctrlFolder_path '\' motorModel.data.motorName '_Model.plecs'];
 
+disp('PLECS model created!')
+disp(['pathname:'])
+disp(['  ' ctrlFolder_path '\'])
+disp(['filename:'])
+disp(['  ' motorModel.data.motorName '_Motor_ctrl.plecs'])
+
 run([ctrlFolder_path '\init_sim_PLECS.m'])
+
+
 
 
 end

@@ -1,7 +1,7 @@
 
 
 function MMM_SIMplot(motorModel)
-    Ctrl_type = motorModel.SyreDrive.Ctrl_type;
+    Ctrl_type = motorModel.SyreDrive.modelSetup.Ctrl_type;
     
     Time                = motorModel.SyreDrive.simOut.Outputs.id.Time;
     Torque_ref          = motorModel.SyreDrive.simOut.Outputs.T_ext.Data;

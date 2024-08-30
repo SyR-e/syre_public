@@ -35,7 +35,7 @@ end
 
 if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom)) 
     if nargin==1
-        [filename,pathname] = uiputfile(['newmachine.fem'],'input machine name and location');
+        [filename,pathname] = uiputfile([dataSet.currentpathname 'newmachine.fem'],'Input machine name and location');
         if ~filename
             error('No file name selected');
         end

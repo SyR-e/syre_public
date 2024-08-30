@@ -37,7 +37,7 @@ fem = dimMesh(geo,eval_type);
 [~,phase1_offset] = calcKwTh0(geo);
 phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %first slot in 360/(6pq)/2 position
 
-if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
+if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype') || strcmp(geo.RotType,'SPM-Halbach')
     geo.axisType = 'PM';
     phase1_offset = phase1_offset-90;
 elseif strcmp(geo.RotType,'Spoke-type')

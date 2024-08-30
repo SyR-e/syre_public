@@ -45,9 +45,12 @@ factors.expH  = ironLoss.expH;
 factors.expPM = ironLoss.expPM;
 factors.f0    = ironLoss.f0;
 
+per.tempPP = motorModel.data.tempPM;
+dataSet.axisType = motorModel.data.axisType;
+
 save([pathname resFolder 'fdfq_idiq_n256_ironLoss.mat'],...
     'Id','Iq','Fd','Fq','T','dT','dTpp',...
-    'Pfes_h','Pfes_c','Pfer_h','Pfer_c','Ppm','Pfe','velDim','factors');
+    'Pfes_h','Pfes_c','Pfer_h','Pfer_c','Ppm','Pfe','velDim','factors','per','dataSet');
 
 
 

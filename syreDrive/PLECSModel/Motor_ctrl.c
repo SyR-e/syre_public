@@ -62,6 +62,9 @@
             SinCos_elt_meas_old.cos  	= 1.0f;
 			SinCos_elt.sin				= 0.0f;
 			SinCos_elt.cos				= 1.0f;
+            SinCos_thetaS.cos           = 1.0f;
+            SinCos_thetaS.sin           = 0.0f;
+            
 
 			Ld 							= Ld_inic;
 			Lq							= Lq_inic;
@@ -82,6 +85,8 @@
             offset_in.ch1				= 0.0f;
             offset_in.ch2				= 0.0f;
             offset_in.ch3				= 0.0f;
+
+            Flux_Lim                    = lambda_MTPA_max;
 			
 			switch (Quad_Maps){
 				case 0:
@@ -219,8 +224,8 @@
                 SinCos_elt.sin = sin(theta_elt_meas);
  				SinCos_elt.cos = cos(theta_elt_meas);
  	            
-                PLL_mec_par.kp   = OMEGA_PLL;
-				PLL_mec_par.ki   = pow(OMEGA_PLL,2)*Ts*10;
+                PLL_mec_par.kp   = 2*OMEGA_PLL;
+				PLL_mec_par.ki   = pow(OMEGA_PLL,2)*Ts;
 				PLL_mec_par.lim  = RPM2RAD*nmax_mot;
 				PLL_mec_var.ref  = SinCos_mec_meas.sin*SinCos_mec_PLL.cos-SinCos_mec_meas.cos*SinCos_mec_PLL.sin;
 				PLL_mec_var.fbk  = 0;
@@ -312,13 +317,8 @@
 			
 			FluxObserver();
 			//Compute_Inductance();
-			SinCos_delta.cos = cos(delta);
-            SinCos_delta.sin = sin(delta);
-			
-            idsqs.d = isdq.d*cos(delta) + isdq.q*sin(delta);
-            idsqs.q = -isdq.d*sin(delta)+isdq.q*cos(delta);
 
-
+            _rot(isab, SinCos_thetaS, idsqs);
 
 			//---------------------------Sensorless Position Estimation--------------------------//
 			
@@ -416,48 +416,63 @@
 
 			 switch(Ctrl_strategy){
                 case FOC:
-			//-----------------------FOC---------------------------------------//
-// 			
-//      		kp_id = OMEGA_BI*ld;
-//      		ki_id = kp_id*OMEGA_BI/10;
-//      		kp_iq = OMEGA_BI*lq;
-//      		ki_iq = kp_iq*OMEGA_BI/10;
+			    //-------------------------------------------------------//
+                //              FIELD ORIENTED CONTROL  
+                //-------------------------------------------------------//
+                    
+                //------------------PI Tuning----------------------------//
+
                 
-	            kp_id = OMEGA_BI*Ld_inic;
-			    ki_id = kp_id*OMEGA_BI/10;
-			    kp_iq = OMEGA_BI*Lq_inic;
-			    ki_iq = kp_iq*OMEGA_BI/10;
-     
-			    id_par.kp   = kp_id;
-			    id_par.ki   = ki_id*Ts;
-			    iq_par.kp   = kp_iq;
-			    iq_par.ki   = ki_iq*Ts;
-    
-			    //Current loop
-			    Current_loop(vdc, Imax_mot, isdq_ref, isdq, &id_par, &id_var, &iq_par, &iq_var, &vsdq_ref);
-			    vsdq_ref.d += RS*isdq.d - omega_elt*lambda_dq.q;
-			    vsdq_ref.q += RS*isdq.q + omega_elt*lambda_dq.d;
+	            id_par.kp   = OMEGA_BI*Ld_inic;
+			    id_par.ki   = id_par.kp*OMEGA_BI*0.1f*Ts;
+			    iq_par.kp   = OMEGA_BI*Lq_inic;
+			    iq_par.ki   = iq_par.kp*OMEGA_BI*0.1f*Ts;
+                
+                //----------------Feed Forward---------------------------//
+			    
+                vffw_dq.d = RS*isdq.d - omega_elt*lambda_dq.q;
+                vffw_dq.q = RS*isdq.q + omega_elt*lambda_dq.d;
+                 
+			    //------------------Current Loops------------------------//
+
+
+			    Current_loop(vdc, Imax_mot, isdq_ref, isdq,vffw_dq,&id_par, &id_var, &iq_par, &iq_var, &vsdq_ref);
+			    
+                vsdq_ref.d +=vffw_dq.d;
+			    vsdq_ref.q +=vffw_dq.q;
+
+                 _invrot(vsdq_ref, SinCos_elt, vsab_ref);
             
                 break;
                 case DFVC:
-                //---------------------Direct Flux Vector Control--------------//
+                
+                //-------------------------------------------------------//
+                //              DIRECT FLUX VECTOR CONTROL  
+                //-------------------------------------------------------//    
+
                 T_ref = T_ext; 
                 lambda_ref = lambda_MTPA;
                 if(lambda_ref<lambda_MTPA_min)
                     lambda_ref=lambda_MTPA_min;
                 if(lambda_ref>lambda_MTPA_max) 
                    lambda_ref=lambda_MTPA_max;
-    
-                Flux_Lim = 0.85f*vdc*SQRT1OVER3/abs(omega_elt+1);
                 
+                //-------------------Flux Limitation----------------------//      
+
+                  
+                if(omega_elt>0.1f){
+                    Flux_Lim = 0.9f*(vdc*SQRT1OVER3-RS*idsqs.q*sgn(omega_elt))/fabs(omega_elt);
+                }
+
                 if(Flux_Lim>lambda_MTPA_max)
                     Flux_Lim=lambda_MTPA_max;
                 if(lambda_ref>Flux_Lim)
                     lambda_ref = Flux_Lim;
                 
+                //-------------------Delta Regulator--------------------//   
              
 				delta_par.kp = OMEGA_DELTA*lambda_ref/iqs_par.kp;
-				delta_par.ki = delta_par.kp*0.1;
+				delta_par.ki = delta_par.kp*OMEGA_DELTA*Ts*0.5f;
                   
 				if(Quad_Maps==0 || Quad_Maps==2){
 				delta_var.ref = delta_MTPV_max;
@@ -479,48 +494,59 @@
                
                     
                 
-                //Current Limitation
+                //-----------------Current Limitation--------------------//
+
                 iqs_ref = T_ref/(1.5*PP*lambda_ref);
                 iqs_Lim = sqrt(pow(Imax_mot,2)-pow(idsqs.d,2))-i_MTPV;            
                 if(fabs(iqs_ref) >iqs_Lim)
                     iqs_ref = iqs_Lim*sgn(T_ref);
                 
-                //Control Loops
-    
-                lambda_par.kp = OMEGA_BI*0.5;
-                lambda_par.ki = lambda_par.kp*OMEGA_BI*0.5/10*Ts;
+
+                //---------------------Feed-Forward-----------------------//
+                
+                vffw_dsqs.d = RS*idsqs.d;
+                vffw_dsqs.q = RS*idsqs.q + omega_elt*lambda_OBS.amp;
+
+
+                //----------------------PI tuning-------------------------// 
+
+
+                lambda_par.kp = OMEGA_BI;
+                lambda_par.ki = lambda_par.kp*OMEGA_BI*0.1f*Ts;
                 iqs_par.kp = OMEGA_BI*Lq_inic;
-                iqs_par.ki = iqs_par.kp*OMEGA_BI/10*Ts;
-                lambda_par.lim = vdc*SQRT1OVER3/3;
-                iqs_par.lim=vdc*SQRT1OVER3;
+                iqs_par.ki = OMEGA_BI*RS*Ts;
+                lambda_par.lim = vdc*SQRT1OVER3/3-vffw_dsqs.d;
+                
+                //------------------Flux Control Loop--------------------//
     
                 lambda_var.ref = lambda_ref;
                 lambda_var.fbk = lambda_OBS.amp;
                 PIReg(&lambda_par,&lambda_var);
-                vdsqs.d = lambda_var.out;
-                //iqs_par.lim = sqrt(pow(vdc*SQRT1OVER3,2)-pow(vdsqs.d,2));
+                vdsqs_ref.d = lambda_var.out;
+                vdsqs_ref.d += vffw_dsqs.d;
                 
-    
+                //-----------------iqs Control Loop----------------------//
+
+                iqs_par.lim = sqrt(pow(vdc*SQRT1OVER3,2)-pow(vdsqs_ref.d,2))-vffw_dsqs.q;
                 iqs_var.ref = iqs_ref;
                 iqs_var.fbk = idsqs.q;
                 PIReg(&iqs_par,&iqs_var);
-                vdsqs.q = iqs_var.out;
-                vdsqs.q+= RS*idsqs.q + omega_elt*lambda_OBS.amp;
-                   
-     
-                vsdq_ref.d = vdsqs.d*cos(delta)-vdsqs.q*sin(delta);
-                vsdq_ref.q  = vdsqs.d*sin(delta)+vdsqs.q*cos(delta);
+                vdsqs_ref.q = iqs_var.out;
+                vdsqs_ref.q+= vffw_dsqs.q;
+
+
+                //------------------Phase Advance------------------------//
                 
+                dTheta = 1.5f*omega_elt*Ts;
+                SinCos_thetaS_dTheta.sin = SinCos_thetaS.sin*cosf(dTheta) +SinCos_thetaS.cos*sinf(dTheta);
+                SinCos_thetaS_dTheta.cos = SinCos_thetaS.cos*cosf(dTheta) -SinCos_thetaS.sin*sinf(dTheta);
+                
+                
+                _invrot(vdsqs_ref, SinCos_thetaS_dTheta, vsab_ref);
+
+                 
                 break;
             }
-
-            //Phase advance
-
-            dTheta = 1.5f*omega_elt*Ts;
-            SinCos_elt_dTheta.sin = SinCos_elt.sin*cosf(dTheta) +SinCos_elt.cos*sinf(dTheta);
-            SinCos_elt_dTheta.cos = SinCos_elt.cos*cosf(dTheta) -SinCos_elt.sin*sinf(dTheta);
-			
-
 			
 			// HF injection
 			if (abs(omega_elt) < KOBS + 1.2*OMEGA_G && SS_on == 1) {
@@ -543,7 +569,10 @@
 				}
 		}	
 			
-		_invrot(vsdq_ref, SinCos_elt, vsab_ref);
+		
+        
+        //---------------------Duty Cycle Generation--------------------//
+
 		_invclarke(vsab_ref, vsabc_ref);
 		PWMduty(vsabc_ref, vdc,&duty_abc);	
 		
@@ -613,3 +642,6 @@
 	OutputSignal(0,37) = lambda_var.fbk;
 	OutputSignal(0,38) = iqs_var.ref;
 	OutputSignal(0,39) = iqs_var.fbk;
+    OutputSignal(0,40) = vdsqs_ref.d;
+    OutputSignal(0,41) = vdsqs_ref.q;
+

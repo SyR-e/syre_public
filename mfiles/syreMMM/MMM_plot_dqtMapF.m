@@ -41,9 +41,9 @@ set(gca,...
     'ZLim',IdLim,...
     'CLim',IdLim,...
     'PlotBoxAspectRatio',[1 1 0.8])
-xlabel('$\lambda_d$ [$Vs$]')
-ylabel('$\lambda_q$ [$Vs$]')
-zlabel('$i_d$ [$A$]')
+xlabel('$\lambda_d$ (Vs)')
+ylabel('$\lambda_q$ (Vs)')
+zlabel('$i_d$ (A)')
 plotData.x  = dqtMapF.dataF.Fd;
 plotData.y  = dqtMapF.dataF.Fq;
 plotData.z  = dqtMapF.dataF.Id;
@@ -60,9 +60,9 @@ set(gca,...
     'ZLim',IqLim,...
     'CLim',IqLim,...
     'PlotBoxAspectRatio',[1 1 0.8])
-xlabel('$\lambda_d$ [$Vs$]')
-ylabel('$\lambda_q$ [$Vs$]')
-zlabel('$i_q$ [$A$]')
+xlabel('$\lambda_d$ (Vs)')
+ylabel('$\lambda_q$ (Vs)')
+zlabel('$i_q$ (A)')
 plotData.x  = dqtMapF.dataF.Fd;
 plotData.y  = dqtMapF.dataF.Fq;
 plotData.z  = dqtMapF.dataF.Iq;
@@ -79,9 +79,9 @@ set(gca,...
     'ZLim',TLim,...
     'CLim',TLim,...
     'PlotBoxAspectRatio',[1 1 0.8])
-xlabel('$\lambda_d$ [$Vs$]')
-ylabel('$\lambda_q$ [$Vs$]')
-zlabel('$T$ [$Nm$]')
+xlabel('$\lambda_d$ (Vs)')
+ylabel('$\lambda_q$ (Vs)')
+zlabel('$T$ (A)')
 plotData.x  = dqtMapF.dataF.Fd;
 plotData.y  = dqtMapF.dataF.Fq;
 plotData.z  = dqtMapF.dataF.T;

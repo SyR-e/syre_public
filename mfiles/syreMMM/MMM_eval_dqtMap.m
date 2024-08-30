@@ -70,7 +70,7 @@ if filename
 
     nRep=(360/xdeg); % number of repetition
 
-    if rem(nRep,2)==0
+    if rem(nRep,1)==0
 
         thVect=[];
 

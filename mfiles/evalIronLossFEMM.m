@@ -45,32 +45,145 @@ function [SOL] = evalIronLossFEMM(geo,per,mat,SOL,method)
 
 % load data from input structures
 p       = geo.p;
+ps      = geo.ps;
+nlay    = geo.nlay;
 if strcmp(geo.RotType,'Seg')
-    PMdim0 = geo.PMdim;
-    PMdim0(1,:) = PMdim0(1,:)*2;
-    PMdim1   = PMdim0(PMdim0>0);
+    PMdim1   = [];
+    PMclear1 = [];
+    hc1      = [];
+    PMNc1    = [];
+    %PMNa1    = [];
     
-    PMNc0      = geo.PMNc;
-    PMNc0(1,:) = PMNc0(1,:)/2;
-    PMNc1      = PMNc0(geo.PMdim>0);
-    PMNc1(PMNc1<1) = 1;
-    PMclear1   = geo.PMclear(geo.PMdim>0);
-    hc1        = [geo.hc(geo.PMdim(1,:)>0)'; geo.hc(geo.PMdim(2,:)>0)'];
+    PMdimC   = geo.PMdim(1,:);
+    PMdimE   = geo.PMdim(2,:);
+    PMclearC = geo.PMclear(1,:);
+    PMclearE = geo.PMclear(2,:);
+    PMNcC    = geo.PMNc(1,:);
+    PMNcE    = geo.PMNc(2,:);
+    hcC      = geo.hc;
+    hcE      = geo.hc;
 
-    PMdim   =[];
-    PMclear =[];
-    hc      =[];
-    PMNc    =[];
-    for ii=1:length(PMNc1)
-        PMdim   = [PMdim; repmat(PMdim1(ii),[PMNc1(ii)*2 1])];
-        PMclear = [PMclear; repmat(PMclear1(ii),[PMNc1(ii)*2 1])];
-        PMNc    = [PMNc; repmat(PMNc1(ii),[PMNc1(ii)*2 1])];
-        hc      = [hc; repmat(hc1(ii),[PMNc1(ii)*2 1])];
+    for ii=1:nlay
+        if rem(PMNcC(ii),2)~=0
+            PMdim1   = [PMdim1; repmat(PMdimC(ii),PMNcC(ii),1)];
+            PMclear1 = [PMclear1; repmat(PMclearC(ii),PMNcC(ii),1)];
+            hc1      = [hc1; repmat(hcC(ii),PMNcC(ii),1)];
+            PMNc1    = [PMNc1; repmat(PMNcC(ii),PMNcC(ii),1)];
+        else
+            PMdim1   = [PMdim1; repmat(PMdimC(ii),PMNcC(ii)/2,1)];
+            PMclear1 = [PMclear1; repmat(PMclearC(ii),PMNcC(ii)/2,1)];
+            hc1      = [hc1; repmat(hcC(ii),PMNcC(ii)/2,1)];
+            PMNc1    = [PMNc1; repmat(PMNcC(ii),PMNcC(ii)/2,1)];
+            % PMdim1   = repmat(PMdim1,2,1);
+            % PMclear1 = repmat(PMclear1,2,1);
+            % hc1      = repmat(hc1,2,1);
+            % PMNc1    = repmat(PMNc1,2,1);
+        end
+        PMdim1   = [PMdim1; repmat(PMdimE(ii),PMNcE(ii),1)];
+        PMclear1 = [PMclear1; repmat(PMclearE(ii),PMNcE(ii),1)];
+        hc1      = [hc1; repmat(hcE(ii),PMNcE(ii),1)];
+        PMNc1    = [PMNc1; repmat(PMNcE(ii),PMNcE(ii),1)];
     end
-%     PMdim   = [PMdim; PMdim];
-%     PMNc    = [PMNc; PMNc];
-%     PMclear = [PMclear; PMclear];
-%     hc      = [hc; hc];
+
+    for ii=1:nlay
+        if rem(PMNcC(ii),2)~=0
+            % PMdim1   = [PMdim1; repmat(PMdimC(ii),PMNcC(ii),1)];
+            % PMclear1 = [PMclear1; repmat(PMclearC(ii),PMNcC(ii),1)];
+            % hc1      = [hc1; repmat(hcC(ii),PMNcC(ii),1)];
+            % PMNc1    = [PMNc1; repmat(PMNcC(ii),PMNcC(ii),1)];
+        else
+            PMdim1   = [PMdim1; repmat(PMdimC(ii),PMNcC(ii)/2,1)];
+            PMclear1 = [PMclear1; repmat(PMclearC(ii),PMNcC(ii)/2,1)];
+            hc1      = [hc1; repmat(hcC(ii),PMNcC(ii)/2,1)];
+            PMNc1    = [PMNc1; repmat(PMNcC(ii),PMNcC(ii)/2,1)];
+        end
+        PMdim1   = [PMdim1; repmat(PMdimE(ii),PMNcE(ii),1)];
+        PMclear1 = [PMclear1; repmat(PMclearE(ii),PMNcE(ii),1)];
+        hc1      = [hc1; repmat(hcE(ii),PMNcE(ii),1)];
+        PMNc1    = [PMNc1; repmat(PMNcE(ii),PMNcE(ii),1)];
+    end
+
+    for ii=1:nlay
+        if rem(PMNcC(ii),2)~=0
+            PMdim1   = [PMdim1; repmat(PMdimC(ii),PMNcC(ii),1)];
+            PMclear1 = [PMclear1; repmat(PMclearC(ii),PMNcC(ii),1)];
+            hc1      = [hc1; repmat(hcC(ii),PMNcC(ii),1)];
+            PMNc1    = [PMNc1; repmat(PMNcC(ii),PMNcC(ii),1)];
+
+            PMdim1   = [PMdim1; repmat(PMdimE(ii),PMNcE(ii),1)];
+            PMclear1 = [PMclear1; repmat(PMclearE(ii),PMNcE(ii),1)];
+            hc1      = [hc1; repmat(hcE(ii),PMNcE(ii),1)];
+            PMNc1    = [PMNc1; repmat(PMNcE(ii),PMNcE(ii),1)];
+        else
+            PMdim1   = [PMdim1; repmat(PMdimC(ii),PMNcC(ii)/2,1)];
+            PMclear1 = [PMclear1; repmat(PMclearC(ii),PMNcC(ii)/2,1)];
+            hc1      = [hc1; repmat(hcC(ii),PMNcC(ii)/2,1)];
+            PMNc1    = [PMNc1; repmat(PMNcC(ii),PMNcC(ii)/2,1)];
+
+            PMdim1   = [PMdim1; repmat(PMdimE(ii),PMNcE(ii),1)];
+            PMclear1 = [PMclear1; repmat(PMclearE(ii),PMNcE(ii),1)];
+            hc1      = [hc1; repmat(hcE(ii),PMNcE(ii),1)];
+            PMNc1    = [PMNc1; repmat(PMNcE(ii),PMNcE(ii),1)];
+
+            % PMdim1   = repmat(PMdim1,2,1);
+            % PMclear1 = repmat(PMclear1,2,1);
+            % hc1      = repmat(hc1,2,1);
+            % PMNc1    = repmat(PMNc1,2,1);
+        end
+    end
+
+
+    PMNc1    = PMNc1(PMdim1>0);
+    PMclear1 = PMclear1(PMdim1>0);
+    hc1      = hc1(PMdim1>0);
+    PMdim1   = PMdim1(PMdim1>0);
+    
+    PMdim   = repmat(PMdim1,ps,1);
+    PMclear = repmat(PMclear1,ps,1);
+    hc      = repmat(hc1,ps,1);
+    PMNc    = repmat(PMNc1,ps,1);
+
+    % PMdim0   = geo.PMdim;
+    % PMNc0    = geo.PMNc;
+    % PMclear0 = geo.PMclear;
+    % hc0      = [geo.hc;geo.hc];
+    % 
+    % PMdim0(1,:) = PMdim0(1,:)*2;
+    % PMNc0(2,:) = PMNc0(2,:);
+    % PMNc0(PMNc0<1) = 1;
+    % %PMdim1   = PMdim0(PMdim0>0);
+    % 
+    % %PMNc0      = geo.PMNc;
+    % PMNc0(1,:) = PMNc0(1,:)/2;
+    % PMNc1      = PMNc0(geo.PMdim>0);
+    % % PMNc1(PMNc1<1) = 1;
+    % PMclear1   = geo.PMclear(geo.PMdim>0);
+    % hc1        = [geo.hc(geo.PMdim(1,:)>0)'; geo.hc(geo.PMdim(2,:)>0)'];
+    % 
+    % PMNc1    = PMNc0(PMdim0>0);
+    % PMclear1 = PMclear0(PMdim0>0);
+    % hc1      = hc0(PMdim0>0);
+%     % PMdim1   = PMdim0(PMdim0>0);
+% 
+%     PMdimTot   = repmat(PMdim1,ps,1);
+%     PMNcTot    = repmat(PMNc1,ps,1);
+%     PMclearTot = repmat(PMclear1,ps,1);
+%     hcTot      = repmat(hc1,ps,1);
+% 
+%     PMdim   =[];
+%     PMclear =[];
+%     hc      =[];
+%     PMNc    =[];
+%     for ii=1:length(PMNc1)
+%         PMdim   = [PMdim; repmat(PMdimTot(ii),[PMNcTot(ii)*2 1])];
+%         PMclear = [PMclear; repmat(PMclearTot(ii),[PMNcTot(ii)*2 1])];
+%         hc      = [hc; repmat(hcTot(ii),[PMNcTot(ii)*2 1])];
+%         PMNc    = [PMNc; repmat(PMNcTot(ii),[PMNcTot(ii)*2 1])];
+%     end
+% %     PMdim   = [PMdim; PMdim];
+% %     PMNc    = [PMNc; PMNc];
+% %     PMclear = [PMclear; PMclear];
+% %     hc      = [hc; hc];
 end
 l       = geo.l/geo.PMNa;
 
@@ -438,7 +551,7 @@ switch method
             tmp = sum(tmp,2);
             Jo(:,index) = repmat(tmp,1,length(index));
             Jm(:,index) = Jm(:,index)-Jo(:,index);
-
+            
             if strcmp(geo.RotType,'Seg')
                 %%%CORRECTION FACTOR - REACTION FIELD  
                 %M. Hullmann and B. Ponick, "General Analytical Description of the Effects of Segmentation on Eddy Current Losses in Rectangular Magnets," 

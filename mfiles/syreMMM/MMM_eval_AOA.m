@@ -19,6 +19,9 @@ function [AOA] = MMM_eval_AOA(motorModel,method)
 fdfq = motorModel.FluxMap_dq;
 axisType = motorModel.data.axisType;
 
+kRefine = 5;
+fdfq = mapsReInterpolation(fdfq,'Id','Iq',kRefine*size(fdfq.Id,1),'linear');
+
 Id   = fdfq.Id;
 Iq   = fdfq.Iq;
 Fd   = fdfq.Fd;
@@ -47,6 +50,10 @@ if strcmp(motorModel.data.axisType,'SR')
     index = find(iq==min(Iq,[],'all'));
     id(index) = NaN;
     iq(index) = NaN;
+    index = find(iq<0);
+    id(index) = NaN;
+    iq(index) = NaN;
+    
 else
     % index = find(id==max(Id,[],'all'));
     % id(index) = NaN;
@@ -58,6 +65,9 @@ else
     id(index) = NaN;
     iq(index) = NaN;
     index = find(iq==min(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(id>0);
     id(index) = NaN;
     iq(index) = NaN;
 end
@@ -100,6 +110,9 @@ if strcmp(motorModel.data.axisType,'SR')
     index = find(iq==min(Iq,[],'all'));
     id(index) = NaN;
     iq(index) = NaN;
+    index = find(iq<0);
+    id(index) = NaN;
+    iq(index) = NaN;
 else
     index = find(id==max(Id,[],'all'));
     id(index) = NaN;
@@ -111,6 +124,9 @@ else
     id(index) = NaN;
     iq(index) = NaN;
     index = find(iq==min(Iq,[],'all'));
+    id(index) = NaN;
+    iq(index) = NaN;
+    index = find(id>0);
     id(index) = NaN;
     iq(index) = NaN;
 end

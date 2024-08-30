@@ -127,7 +127,13 @@ geo.acs = dataIn.StatorSlotOpen; % stator slot opening [p.u.]
 geo.wt  = dataIn.ToothWidth;     % tooth width [mm]
 geo.st  = dataIn.SlotWidth;
 
-geo.statorYokeDivision = 0;     % flag for the stator yoke division (thermal model for GalFer Challenge)
+geo.stackingFactor = dataIn.LaminationStackingFactor;
+
+if (strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
+    geo.statorYokeDivision = 1; % flag for the stator yoke division (thermal model for GalFer Contest)
+else
+    geo.statorYokeDivision = 0; % flag for the stator yoke division (thermal model for GalFer Contest)
+end
 
 if dataIn.ParallelSlotCheck
     geo.parallel_slot = 1;
@@ -303,7 +309,7 @@ geo.slidingGap = dataIn.slidingGap;
 rr = 1;
 for ii=1:geo.nlay
     RQnames{rr} = ['dalpha_pu(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         if ii==1
             bounds(rr,:) = [dataIn.Alpha1Bou dataIn.Dalpha1BouCheck];
         else
@@ -325,7 +331,7 @@ for ii=1:geo.nlay
     if strcmp(geo.RotType,'SPM')
         bounds(rr,:) = [geo.hc_pu*geo.g*dataIn.hcBou dataIn.hcBouCheck];
     else
-        if strcmp(dataIn.optType,'Design')
+        if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
             bounds(rr,:) = [dataIn.hcBou dataIn.hcBouCheck];
         else
             bounds(rr,:) = [dataIn.HCpu(ii)*dataIn.hcBou dataIn.hcBouCheck]; 
@@ -337,7 +343,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['dx(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.DfeBou dataIn.DxBouCheck];
     else
         bounds(rr,:) = [dataIn.DepthOfBarrier(ii)*dataIn.DfeBou dataIn.DxBouCheck];
@@ -351,7 +357,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['Br(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.BrBou dataIn.BrBouCheck];
     else
         bounds(rr,:) = [dataIn.Br*dataIn.BrBou dataIn.BrBouCheck];
@@ -361,7 +367,7 @@ for ii=1:geo.nlay
 end
 
 RQnames{rr} = 'g';          % airgap
-if strcmp(dataIn.optType,'Design')
+if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.GapBou dataIn.GapBouCheck];
 else
     bounds(rr,:) = [dataIn.AirGapThickness*dataIn.GapBou dataIn.GapBouCheck];
@@ -370,7 +376,7 @@ RQ(rr) = geo.g;
 rr = rr+1;
 
 RQnames{rr} = 'r';          % rotor radius
-if strcmp(dataIn.optType,'Design')
+if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.GapRadiusBou dataIn.AirgapRadiusBouCheck];
 else
     bounds(rr,:) = [dataIn.AirGapRadius*dataIn.GapRadiusBou dataIn.AirgapRadiusBouCheck];
@@ -379,7 +385,7 @@ RQ(rr) = geo.r;
 rr = rr+1;
 
 RQnames{rr} = 'wt';         % tooth width
-if strcmp(dataIn.optType,'Design')
+if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.ToothWiBou dataIn.ToothWidthBouCheck];
 else
     bounds(rr,:) = [dataIn.ToothWidth*dataIn.ToothWiBou dataIn.ToothWidthBouCheck];
@@ -388,7 +394,7 @@ RQ(rr) = geo.wt;
 rr = rr+1;
 
 RQnames{rr} = 'lt';         % tooth length
-if strcmp(dataIn.optType,'Design')
+if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.ToothLeBou dataIn.ToothLengthBouCheck];
 else
     bounds(rr,:) = [dataIn.ToothLength*dataIn.ToothLeBou dataIn.ToothLengthBouCheck];
@@ -397,7 +403,7 @@ RQ(rr) = geo.lt;
 rr = rr+1;
 
 RQnames{rr} = 'acs';        % stator slot opening [p.u.]
-if strcmp(dataIn.optType,'Design')
+if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.StatorSlotOpenBou dataIn.StatorSlotOpenBouCheck];
 else
     bounds(rr,:) = [dataIn.StatorSlotOpen*dataIn.StatorSlotOpenBou dataIn.StatorSlotOpenBouCheck];
@@ -406,7 +412,7 @@ RQ(rr) = geo.acs;
 rr = rr+1;
 
 RQnames{rr} = 'ttd';        % tooth tang depth [mm]
-if strcmp(dataIn.optType,'Design')
+if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.ToothTangDepthBou dataIn.ToothTangDepthBouCheck];
 else
     bounds(rr,:) = [dataIn.ToothTangDepth*dataIn.ToothTangDepthBou dataIn.ToothTangDepthBouCheck];
@@ -415,7 +421,7 @@ RQ(rr) = geo.ttd;
 rr = rr+1;
 
 RQnames{rr} = 'th_FBS';     % flux barrier shift [mech deg]
-if strcmp(dataIn.optType,'Design')
+if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.ThetaFBSBou dataIn.ThetaFBSBouCheck];
 else
     bounds(rr,:) = [dataIn.thetaFBS*dataIn.ThetaFBSBou dataIn.ThetaFBSBouCheck];
@@ -425,7 +431,7 @@ rr = rr+1;
 
 for ii=1:geo.nlay
     RQnames{rr} = ['betaPMshape(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.BetaPMshapeBou dataIn.BetaPMshapeBouCheck];
     else
         bounds(rr,:) = [dataIn.betaPMshape(ii)*dataIn.BetaPMshapeBou dataIn.BetaPMshapeBouCheck];
@@ -436,7 +442,7 @@ end
 
 for ii=1:length(geo.PMdim(:))
     RQnames{rr} = ['PMdim(' int2str((ii)) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.PMdimBou dataIn.PMdimBouCheck];
     else
         bounds(rr,:) = [dataIn.PMdim(ii)*dataIn.PMdimBou dataIn.PMdimBouCheck];
@@ -452,7 +458,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['pontR(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.RadRibBou dataIn.RadRibBouCheck];
     else
         bounds(rr,:) = [dataIn.RadRibEdit(ii)*dataIn.RadRibBou dataIn.RadRibBouCheck];
@@ -463,7 +469,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['pontT(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.TanRibBou dataIn.TanRibBouCheck];
     else
         bounds(rr,:) = [dataIn.TanRibEdit(ii)*dataIn.TanRibBou dataIn.TanRibBouCheck];
@@ -474,7 +480,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['hcShrink(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.CentralShrinkBou dataIn.CentralShrinkBouCheck];
     else
         bounds(rr,:) = [dataIn.CentralShrink(ii)*dataIn.CentralShrinkBou dataIn.CentralShrinkBouCheck];
@@ -485,7 +491,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['dxIB(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.RadShiftInnerBou dataIn.RadShiftInnerBouCheck];
     else
         bounds(rr,:) = [dataIn.RadShiftInner(ii)*dataIn.RadShiftInnerBou dataIn.RadShiftInnerBouCheck];
@@ -496,7 +502,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['RotorFilletTan1(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.FilletTan1Bou dataIn.FilletTan1BouCheck];
     else
         bounds(rr,:) = [dataIn.RotorFilletTan1(ii)*dataIn.FilletTan1Bou dataIn.FilletTan1BouCheck];
@@ -507,7 +513,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['RotorFilletTan2(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.FilletTan2Bou dataIn.FilletTan2BouCheck];
     else
         bounds(rr,:) = [dataIn.RotorFilletTan2(ii)*dataIn.FilletTan2Bou dataIn.FilletTan2BouCheck];
@@ -518,7 +524,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['RotorFillet1(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+   if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.FilletRad1Bou dataIn.FilletRad1BouCheck];
     else
         bounds(rr,:) = [dataIn.RotorFilletIn(ii)*dataIn.FilletRad1Bou dataIn.FilletRad1BouCheck];
@@ -529,7 +535,7 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['RotorFillet2(' int2str(ii) ')'];
-    if strcmp(dataIn.optType,'Design')
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.FilletRad2Bou dataIn.FilletRad2BouCheck];
     else
         bounds(rr,:) = [dataIn.RotorFilletOut(ii)*dataIn.FilletRad2Bou dataIn.FilletRad2BouCheck];
@@ -539,7 +545,7 @@ for ii=1:geo.nlay
 end
 
 RQnames{rr} = 'gamma';
-if strcmp(dataIn.optType,'Design')
+if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.PhaseAngleCurrBou dataIn.GammaBouCheck];
 else
     bounds(rr,:) = [dataIn.GammaPP*dataIn.PhaseAngleCurrBou dataIn.GammaBouCheck];

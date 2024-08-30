@@ -20,7 +20,7 @@ function [geo,temp,mat] = drawPole(geo,mat,fem)
 
 geo.delta_FBS=0; % no pole deformation
 flagVtype = 1; % if 0, use Marco Gallo Vtype version, else use Simone Ferrari version (ready for syrmDesign)
-if ~strcmp(geo.RotType,'SPM') || ~strcmp(geo.RotType,'Spoke-type')
+if ~strcmp(geo.RotType,'SPM') || ~strcmp(geo.RotType,'Spoke-type') || strcmp(geo.RotType,'SPM-Halbach')
     mat.LayerMag.Br = mat.LayerMag.Br.*ones(1,geo.nlay);   % replicate Br in case it is scalar
 end
 
@@ -46,6 +46,10 @@ switch geo.RotType
         % build nodes, lines and arcs for half a pole
         [geo,mat,temp] = nodes_rotor_SPM(geo,mat);
         rotor=build_matrix_SPM(temp,geo);
+    case 'SPM-Halbach'
+        % build nodes, lines and arcs for half a pole
+        [geo,mat,temp] = nodes_rotor_SPM_Halbach(geo,mat);
+        rotor=build_matrix_SPM_Halbach(temp,geo);
     case 'Vtype'
         % build nodes, lines and arcs for half a pole
         if flagVtype

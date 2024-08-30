@@ -45,7 +45,7 @@ for kk=1:length(BLKLABELSstat.xy(:,1))
     if BLKLABELSstat.xy(kk,3)==2 %Air
         mi_addblocklabel(BLKLABELSstat.xy(kk,1),BLKLABELSstat.xy(kk,2));
         mi_selectlabel(BLKLABELSstat.xy(kk,1),BLKLABELSstat.xy(kk,2));
-        mi_setblockprop(BLKLABELS.materials{BLKLABELSstat.xy(kk,3)}, 0, fem.res,'None', 0, group, 0);
+        mi_setblockprop(BLKLABELS.materials{BLKLABELSstat.xy(kk,3)}, 0, fem.res,'None', 0, 10, 0);
         %mi_setblockprop('Air', 0, fem.res,'None', 0, group, 0);
         mi_clearselected;
     elseif BLKLABELSstat.xy(kk,3)==3 %Copper

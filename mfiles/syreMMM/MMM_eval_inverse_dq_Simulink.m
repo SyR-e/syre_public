@@ -40,10 +40,25 @@ function [idiq] = MMM_eval_inverse_dq_Simulink(motorModel)
 
     %Compute the grid limits in the flux domain
 
-    FdMin = min(Fd,[],'all');
-    FdMax = max(Fd,[],'all');
-    FqMin = min(Fq,[],'all');
-    FqMax = max(Fq,[],'all');
+    switch(Quad_Maps)
+        case 0 % SyR
+            FdMin = 0;
+            FdMax = max(Fd,[],'all');
+            FqMin = 0;
+            FqMax = max(Fq,[],'all');
+
+        case 1 %PM_SyR
+            FdMin = 0;
+            FdMax = max(Fd,[],'all');
+            FqMin = min(Fq,[],'all');
+            FqMax = max(Fq,[],'all');
+        case 2 % IPM
+            FdMin = min(Fd,[],'all');
+            FdMax = max(Fd,[],'all');
+            FqMin = 0;
+            FqMax = max(Fq,[],'all');
+    end
+
 
     % Compute the regular flux domain 
     fD_vect = linspace(FdMin,FdMax,Np_ref+1);

@@ -30,7 +30,7 @@ RotType = geo.RotType;
 matFBS  = mat;
 hs      = geo.hs;
 
-if ~strcmp(geo.RotType,'SPM') || ~strcmp(geo.RotType,'Spoke-type')
+if ~strcmp(geo.RotType,'SPM') || ~strcmp(geo.RotType,'Spoke-type') || ~strcmp(geo.RotType,'SPM-Halbach')
     mat.LayerMag.Br = mat.LayerMag.Br.*ones(1,geo.nlay);   % replicate Br in case it is scalar
 end
 
@@ -114,7 +114,7 @@ end
 [rotor] = checkPlotMatrix(rotor,1e-9);
 
 % complete the matrix geometry (outer rotor, shaft and pole sides if needed)
-if strcmp(RotType,'SPM')
+if strcmp(RotType,'SPM') || strcmp(geo.RotType,'SPM-Halbach')
     re = r-lm-hs;
 else
     re = r-hs;
@@ -199,7 +199,7 @@ end
 
 % add label for rotor iron
 
-if strcmp(RotType,'SPM')
+if strcmp(RotType,'SPM') || strcmp(geo.RotType,'SPM-Halbach')
     [xtemp,ytemp] = rot_point(mean([re Ar]),0,pi/2/p);
     BarCenter = [BarCenter; xtemp ytemp codMatFeRot,fem.res,1,NaN,NaN,NaN];
 elseif strcmp(RotType,'IM')
@@ -255,7 +255,7 @@ end
 [xShaftBound1,yShaftBound1] = rot_point(mean([0,Ar]),0,-90/p*pi/180);
 [xShaftBound2,yShaftBound2] = rot_point(mean([0,Ar]),0,(ps-1/2)*180/p*pi/180);
 % rotor and sleeve boundary
-if strcmp(geo.RotType,'SPM')
+if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'SPM-Halbach')
     [xRotBound1,yRotBound1] = rot_point(mean([Ar,r-hs]),0,-90/p*pi/180);
     [xRotBound2,yRotBound2] = rot_point(mean([Ar,r-hs]),0,(ps-1/2)*180/p*pi/180);
     [xSleeveBound1,ySleeveBound1] = rot_point(mean([r-hs,r]),0,-90/p*pi/180);

@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [pkSCout] = eval_peakShortCircuitCurrent(dataIn)
+function [pkSCout,resFolder] = eval_peakShortCircuitCurrent(dataIn)
 
 if isfield(dataIn,'flagSave')
     flagSave = dataIn.flagSave;

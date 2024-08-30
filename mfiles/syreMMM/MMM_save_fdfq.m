@@ -31,6 +31,11 @@ T    = motorModel.FluxMap_dq.T;
 dT   = motorModel.FluxMap_dq.dT;
 dTpp = motorModel.FluxMap_dq.dTpp;
 
-save([pathname resFolder 'fdfq_idiq_n256.mat'],'Id','Iq','Fd','Fq','T','dT','dTpp')
+per.tempPP = motorModel.data.tempPM;
+
+dataSet.axisType      = motorModel.data.axisType;
+dataSet.NumOfRotPosPP = 0;
+
+save([pathname resFolder 'fdfq_idiq_n256.mat'],'Id','Iq','Fd','Fq','T','dT','dTpp','per','dataSet')
 
 

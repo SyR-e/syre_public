@@ -107,12 +107,12 @@ Tw.Tstep            = 11;
 Tw.temperature      = data.tempCu;
 Tw.MechLoss         = [0];
 Tw.IronLossFlag     = 'No';
-Tw.IronLossFactor   = 1.5;
+Tw.IronLossFactor   = 1;
 Tw.SkinEffectFlag   = 'No';
 Tw.SkinEffectMethod = 'LUT';
 Tw.PMLossFlag       = 'No';
 Tw.PMLossFactor     = 1;
-Tw.Control          = 'Maximum efficiency';
+Tw.Control          = 'MTPA';
 
 SyreDrive.Ctrl_type    = 'Torque control';
 SyreDrive.FMapsModel   = 'dq Model';

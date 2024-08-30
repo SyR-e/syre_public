@@ -32,6 +32,9 @@ dT     = motorModel.FluxMap_dq.dT;
 dTpp   = motorModel.FluxMap_dq.dTpp;
 dqtMap = motorModel.FluxMap_dqt;
 
+per.tempPP = motorModel.data.tempPM;
+dataSet.axisType = motorModel.data.axisType;
+
 
 %save([pathname resFolder 'dqtMap.mat'],'dqtMap')
-save([pathname resFolder 'fdfq_idiq_n256_dqt.mat'],'Id','Iq','Fd','Fq','T','dT','dTpp','dqtMap')
+save([pathname resFolder 'fdfq_idiq_n256_dqt.mat'],'Id','Iq','Fd','Fq','T','dT','dTpp','dqtMap','per','dataSet')

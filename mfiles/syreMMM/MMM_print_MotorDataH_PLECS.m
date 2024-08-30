@@ -106,8 +106,14 @@ StampaVarg(fid,f_set,m,n+1,'F_REF','//MTPA - flux amplitude','%6.3f')
 fprintf(fid,' \n');
 
 lambda_amp_MTPA = abs(MTPA.fd+1j*MTPA.fq);
-fprintf(fid,'float lambda_MTPA_max = %4.3f;\n',max(lambda_amp_MTPA));
-fprintf(fid,'float lambda_MTPA_min = %4.3f;\n',min(lambda_amp_MTPA));
+lambda_amp_MTPA_max = max(lambda_amp_MTPA);
+lambda_amp_MTPA_min = min(lambda_amp_MTPA);
+if(lambda_amp_MTPA_min<0.001)
+   lambda_amp_MTPA_min =lambda_amp_MTPA_max/5;
+end   
+
+fprintf(fid,'float lambda_MTPA_max = %4.3f;\n',lambda_amp_MTPA_max);
+fprintf(fid,'float lambda_MTPA_min = %4.3f;\n',lambda_amp_MTPA_min);
 
 if not(isempty(MTPV.iq))
     lambda_amp_MTPV = abs(MTPV.fd+1j*MTPV.fq);

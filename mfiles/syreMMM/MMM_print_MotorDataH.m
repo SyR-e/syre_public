@@ -14,11 +14,11 @@
 
 function MMM_print_MotorDataH(motorModel)
 
-modelType = motorModel.SyreDrive.modelType;
+modelType = motorModel.SyreDrive.modelSetup.modelType;
 
 switch(modelType)
     case 'Average'
-        MotorDataH_path = [motorModel.data.pathname motorModel.data.motorName '_ctrl_AVG\User_functions\Inc\MotorData.h'];
+        MotorDataH_path = [motorModel.data.pathname motorModel.data.motorName '_ctrl_INST\User_functions\Inc\MotorData.h'];
     case 'Istantaneous'
         MotorDataH_path = [motorModel.data.pathname motorModel.data.motorName '_ctrl_INST\User_functions\Inc\MotorData.h'];
 end

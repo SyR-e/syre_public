@@ -51,7 +51,7 @@ skewData.nSlice  = 1;
 skewData.nPoints = 51;
 % data.skew = skewData;
 
-Tw.nCurrent         = 2;
+Tw.nCurrent         = 1;
 Tw.nmin             = 0;
 Tw.nmax             = data.nmax;
 Tw.nstep            = 11;
@@ -61,12 +61,12 @@ Tw.Tstep            = 11;
 Tw.temperature      = 20;
 Tw.MechLoss         = [0];
 Tw.IronLossFlag     = 'No';
-Tw.IronLossFactor   = 2;
+Tw.IronLossFactor   = 1;
 Tw.SkinEffectFlag   = 'No';
 Tw.SkinEffectMethod = 'LUT';
 Tw.PMLossFlag       = 'No';
 Tw.PMLossFactor     = 1;
-Tw.Control          = 'Maximum efficiency';
+Tw.Control          = 'MTPA';
 
 SyreDrive.Ctrl_type    = 'Torque control';
 SyreDrive.FMapsModel   = 'dq Model';
