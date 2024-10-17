@@ -443,6 +443,7 @@ end
 if strcmp(geo.RotType,'SPM')
     kqRaw = fqFEA./fqMod;
     kdRaw = (fdFEA)./(fdMod);
+    % kdRaw = (fdFEA-fMFEA)./(fdMod-fMMod);
     kmRaw = fMFEA./fMMod;
     k0Raw = zeros(size(fdFEA));
 elseif strcmp(geo.RotType,'Vtype')

@@ -185,7 +185,11 @@ if strcmp(geo.RotType,'Seg')
 % %     PMclear = [PMclear; PMclear];
 % %     hc      = [hc; hc];
 end
-l       = geo.l/geo.PMNa;
+if isfield(geo,'PMNa')
+    l       = geo.l/geo.PMNa;
+else
+    l = geo.l;
+end
 
 
 speed   = per.EvalSpeed;

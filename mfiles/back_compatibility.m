@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [dataSet,geo,per,mat] = back_compatibility(dataSet,geo,per,Dflag)
+function [dataSet,geo,per,mat,flag] = back_compatibility(dataSet,geo,per,Dflag)
 % 
 % [dataSet,geo,per,mat] = back_compatibility(dataSet,geo,per,Dflag)
 % 
@@ -501,10 +501,15 @@ if ~isfield(dataSet,'betaPMshape')
     if isfield(dataSet,'Barfillfac')
         dataSet=rmfield(dataSet,'Barfillfac');
     end
-    dataSet.BetaPMshapeBouCheck = dataSet.SlopeBarrBouCheck;
-    dataSet.BetaPMshapeBou      = dataSet.SlopeBarrBou;
-    dataSet = rmfield(dataSet,'SlopeBarrBou');
-    dataSet = rmfield(dataSet,'SlopeBarrBouCheck');
+    if isfield(dataSet,'SlopeBarrBou')
+        dataSet.BetaPMshapeBouCheck = dataSet.SlopeBarrBouCheck;
+        dataSet.BetaPMshapeBou      = dataSet.SlopeBarrBou;
+        dataSet = rmfield(dataSet,'SlopeBarrBou');
+        dataSet = rmfield(dataSet,'SlopeBarrBouCheck');
+    else
+        dataSet.BetaPMshapeBouCheck = 0;
+        dataSet.BetaPMshapeBou      = [10 89];
+    end
     
     
     if Dflag

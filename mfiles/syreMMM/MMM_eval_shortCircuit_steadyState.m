@@ -52,10 +52,10 @@ end
 nVect = logspace(0,log10(nMax),nPoints);
 % nVect = linspace(0,nMax,nPoints);
 
-if strcmp(motorModel.TnSetup.IronLossFlag,'Yes')
-    ironLossFactor = motorModel.TnSetup.IronLossFactor;
-    if strcmp(motorModel.TnSetup.PMLossFlag,'Yes')
-        PMLossFactor = motorModel.TnSetup.PMLossFactor;
+if strcmp(motorModel.WaveformSetup.IronLossFlag,'Yes')
+    ironLossFactor = motorModel.WaveformSetup.IronLossFactor;
+    if strcmp(motorModel.WaveformSetup.PMLossFlag,'Yes')
+        PMLossFactor = motorModel.WaveformSetup.PMLossFactor;
     else
         PMLossFactor = 0;
     end
@@ -64,7 +64,7 @@ else
     PMLossFactor = 0;
 end
 
-if strcmp(motorModel.TnSetup.SkinEffectFlag,'Yes')
+if strcmp(motorModel.WaveformSetup.ACLossFlag,'Yes')
     AClossFlag = 1;
 else
     AClossFlag = 0;
@@ -158,19 +158,31 @@ for ii=1:length(nVect)
     Idq = IdqM+IdqFe;
     Vdq = n3phase*Rs*Idq+j*w(ii)*Fdq;
     c = contourc(idVect,iqVect,real(Vdq),[0 0]);
+    if c(2,1)==size(c,2)-1
+        idTmp = c(1,2:end);
+        iqTmp = c(2,2:end);
+        iiTmp = 1:1:numel(idTmp);
+        vqTmp = interp2(real(IdqM),imag(IdqM),imag(Vdq),idTmp,iqTmp);
+        index = interp1(vqTmp,iiTmp,0);
+        idOK  = interp1(iiTmp,idTmp,index);
+        iqOK  = interp1(iiTmp,iqTmp,index);
+    else
+        idOK = NaN;
+        iqOK = NaN;
+    end
     % if isempty(c)
     %     c = contourc(idVect,iqVect,real(Vdq),min(abs(real(Vdq)))*[1 1]);
     % end
-    idTmp = c(1,2:end);
-    iqTmp = c(2,2:end);
-    iiTmp = 1:1:numel(idTmp);
-    vqTmp = interp2(real(IdqM),imag(IdqM),imag(Vdq),idTmp,iqTmp);
-    index = interp1(vqTmp,iiTmp,0);
+    % idTmp = c(1,2:end);
+    % iqTmp = c(2,2:end);
+    % iiTmp = 1:1:numel(idTmp);
+    % vqTmp = interp2(real(IdqM),imag(IdqM),imag(Vdq),idTmp,iqTmp);
+    % index = interp1(vqTmp,iiTmp,0);
     % if isempty(index)
     %     index = interp1(vqTmp,iiTmp,min(abs(imag(Vdq))));
     % end
-    idOK  = interp1(iiTmp,idTmp,index);
-    iqOK  = interp1(iiTmp,iqTmp,index);
+    % idOK  = interp1(iiTmp,idTmp,index);
+    % iqOK  = interp1(iiTmp,iqTmp,index);
 
     % save point
     Im_SC(ii)  = idOK+j*iqOK;
@@ -184,6 +196,7 @@ for ii=1:length(nVect)
 
     fprintf('\b\b\b\b\b\b\b\b')
     fprintf(' %06.2f%%',ii/length(nVect)*100)
+    % disp([int2str((ii))])
 end
 
 disp(' ')

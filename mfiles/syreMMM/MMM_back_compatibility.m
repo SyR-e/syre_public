@@ -317,6 +317,18 @@ if ~isfield(motorModel.SyreDrive,'modelSetup')
     flag=1;
 end
 
+if ~isfield(motorModel.WaveformSetup,'IronLossFlag')
+    motorModel.WaveformSetup.IronLossFlag   = 'No';
+    motorModel.WaveformSetup.PMLossFlag     = 'No';
+    motorModel.WaveformSetup.ACLossFlag     = 'No';
+    motorModel.WaveformSetup.IronLossFactor = 1;
+    motorModel.WaveformSetup.PMLossFactor   = 1;
+    if Dflag
+        disp('- Added iron, PM and AC loss for SC evaluation')
+    end
+    flag=1;
+end
+
 
 % message in command window if some data are added
 if flag && Dflag

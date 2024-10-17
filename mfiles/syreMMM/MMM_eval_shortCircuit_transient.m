@@ -37,10 +37,10 @@ nCycle = motorModel.WaveformSetup.nCycle;
 
 nPoints = 1000;
 
-if strcmp(motorModel.TnSetup.IronLossFlag,'Yes')
-    ironLossFactor = motorModel.TnSetup.IronLossFactor;
-    if strcmp(motorModel.TnSetup.PMLossFlag,'Yes')
-        PMLossFactor = motorModel.TnSetup.PMLossFactor;
+if strcmp(motorModel.WaveformSetup.IronLossFlag,'Yes')
+    ironLossFactor = motorModel.WaveformSetup.IronLossFactor;
+    if strcmp(motorModel.WaveformSetup.PMLossFlag,'Yes')
+        PMLossFactor = motorModel.WaveformSetup.PMLossFactor;
     else
         PMLossFactor = 0;
     end
@@ -52,7 +52,7 @@ else
     Pfe = zeros(size(fdfq.Id));
 end
 
-if strcmp(motorModel.TnSetup.SkinEffectFlag,'Yes')
+if strcmp(motorModel.WaveformSetup.ACLossFlag,'Yes')
     Rs0    = motorModel.data.Rs;
     tempCu = motorModel.data.tempCu;
     l      = motorModel.data.l;

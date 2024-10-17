@@ -31,11 +31,8 @@ Q    = 6*n3ph*p*q;
 Q1   = 6*p*q;
 
 % Call Koil_syre for the baseline 3phase winding
-path = pwd;
-cd(fullfile(path,'koil'));
-system(['koil_syre.exe',' ',num2str(Q1),' ',num2str(p),' ',num2str(3*q)]);
-cd(path);
-win1 = MatrixWin();
+
+win1 = MatrixWin(Q1,p,q);
 
 % align the win matrix with the phase 1 all at the beginning
 if rem(q,2)==0

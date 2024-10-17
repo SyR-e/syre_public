@@ -12,7 +12,7 @@ p   = geo.p;  % Number of pole pairs.
 
 %sleeve
 par.h_1   = dataSet.SleeveThickness*10^-3; % in m. sleeve thickness
-par.r_1i  = geo.r*10^-3;                   % in m. sleeve inner radius
+par.r_1i  = geo.r*10^-3-par.h_1;           % in m. sleeve inner radius
 par.r_1o  = par.r_1i + par.h_1;            % in m. Outer sleeve radius.
 par.r_1av = (par.r_1i + par.r_1o)/2;       % in m. Average sleeve radius.
 

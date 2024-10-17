@@ -390,6 +390,11 @@ set(app.WaveformCurrentEditField,...
     'Value',mat2str(motorModel.WaveformSetup.CurrAmpl))
 set(app.WaveformSpeedEditField,'Value',mat2str(motorModel.WaveformSetup.EvalSpeed))
 set(app.WaveformPeriodsEditField,'Value',mat2str(motorModel.WaveformSetup.nCycle))
+set(app.WaveformironlossDropDown,'Value',motorModel.WaveformSetup.IronLossFlag)
+set(app.WaveformPMlossDropDown,'Value',motorModel.WaveformSetup.PMLossFlag)
+set(app.WaveformAClossDropDown,'Value',motorModel.WaveformSetup.ACLossFlag)
+set(app.WaveformironlossfactorEditField,'Value',num2str(motorModel.WaveformSetup.IronLossFactor))
+set(app.WaveformPMlossfactorEditField,'Value',num2str(motorModel.WaveformSetup.PMLossFactor))
 
 % Thermal
 set(app.CopperTempLimitEditField,'Value',mat2str(motorModel.Thermal.TempCuLimit))

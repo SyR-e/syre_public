@@ -17,7 +17,13 @@ function [hfig] = SDE_targetDesign(map,setup)
 if isfield(map,'xSelect')
     map = rmfield(map,'xSelect');
     map = rmfield(map,'bSelect');
+end
+
+if isfield(map,'dataAvailable')
     map = rmfield(map,'dataAvailable');
+end
+
+if isfield(map,'dataSelect')
     map = rmfield(map,'dataSelect');
 end
 
@@ -116,6 +122,9 @@ feasible(PF<setup.PF)=NaN;
 surf(xx,bb,feasible,'EdgeColor','none','FaceColor','k','FaceAlpha',0.5,'DisplayName','$(T,cos\varphi)$ feasible designs');
 plot(map.xRaw,map.bRaw,'o','Color',[0 0.5 0],'MarkerFaceColor',[0 0.5 0],'DisplayName','FEAfix');
 
+map.NsFeasibleMin = nan(size(map.xx));
+map.NsFeasibleMax = nan(size(map.xx));
+
 for ii=1:length(setup.Ns)
     feasible = zeros(size(xx));
     tmp = interp2(map.xx,map.bb,map.NsI0,xx,bb);
@@ -126,9 +135,21 @@ for ii=1:length(setup.Ns)
         plotName = ['$N_s=' int2str(setup.Ns(ii)) '$ - unfeasible'];
     else
         plotName = ['$N_s=' int2str(setup.Ns(ii)) '$ - feasible'];
+        tmp = feasible+setup.Ns(ii);
+        %tmp(isnan(tmp)) = 0;
+        tmp2 = interp2(xx,bb,tmp,map.xx,map.bb);
+        % [n1,n2,n3] = size(map.xx);
+        % tmp3D = nan(n1,n2,2);
+        % tmp3D(:,:,1) = map.NsFeasibleMax;
+        % tmp3D(:,:,2) = tmp;
+        map.NsFeasibleMax = max(map.NsFeasibleMax,tmp2);
+        map.NsFeasibleMin = min(map.NsFeasibleMin,tmp2);
     end
     surf(xx,bb,feasible,'EdgeColor','none','FaceColor',colors(ii,:),'FaceAlpha',0.5,'DisplayName',plotName)
 end
+
+set(hfig(1),'UserData',map);
+set(hfig(2),'UserData',map);
 
 
 

@@ -17,7 +17,13 @@ function [hfig] = SDE_targetDesign_noCurrent(map,setup)
 if isfield(map,'xSelect')
     map = rmfield(map,'xSelect');
     map = rmfield(map,'bSelect');
+end
+
+if isfield(map,'dataAvailable')
     map = rmfield(map,'dataAvailable');
+end
+
+if isfield(map,'dataSelect')
     map = rmfield(map,'dataSelect');
 end
 
@@ -62,6 +68,9 @@ map.i0       = map.NsI0./map.Ns;
 map.ich      = map.NsIch./map.Ns;
 map.iHWC     = map.NsIHWC./map.Ns;
 map.PFtarget = setup.P./(sqrt(3)/2*setup.Vdc*map.i0*map.dataSet.Num3PhaseCircuit);
+
+map.NsFeasibleMin = map.Ns;
+map.NsFeasibleMax = map.Ns;
 
 
 xx = linspace(min(map.xx(:)),max(map.xx(:)),nPoints);

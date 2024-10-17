@@ -318,6 +318,10 @@ for ii = 1:nSim
         FILENAME = [FILENAME '_' mat2str(per.flag3phaseSet)];
     end
 
+    if length(SimulatedCurrent)==geo.win.n3phase
+        FILENAME = [FILENAME '_n3ph_' char(datetime('now','Format','uuuuMMdd''T''HHmmss'))];
+    end
+
     switch eval_type
         case 'flxdn'
             FILENAME = [FILENAME '_flxdn'];

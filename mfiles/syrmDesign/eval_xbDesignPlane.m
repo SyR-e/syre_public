@@ -117,6 +117,7 @@ end
 
 if strcmp(dataSet.TypeOfRotor,'SPM')
     map.fd      = map.fd.*map.kd;
+    % map.fd  = map.fM.*map.km+(map.fd-map.fM).*map.kd;
     map.fq      = map.fq.*map.kq;
     map.fM      = map.fM.*map.km;
     map.gamma   = map.gamma+map.dg;
@@ -257,5 +258,3 @@ end
 
 
 flagS = 0;
-
-
