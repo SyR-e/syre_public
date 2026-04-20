@@ -86,7 +86,7 @@ if (nargin==1)||isempty(hax)
     hax = axes('OuterPosition',[0 0 1 1]);
 end
 
-if ~isnan(hax)
+if isnumeric(hax)&&~isnan(hax)
     cla(hax)
 
     if min(nVect)~=max(nVect)
