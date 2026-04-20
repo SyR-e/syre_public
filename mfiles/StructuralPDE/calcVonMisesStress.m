@@ -20,19 +20,20 @@ function [sVonMises,R,structModel] = calcVonMisesStress(structModel,flagPlot)
 if nargin==1
     flagPlot=0;
 end
-tic 
+%tic 
 R = solvepde(structModel);
-time_feaInt=toc;
+%time_feaInt=toc;
 
 [cgradx,cgrady,~] = evaluateCGradient(R);
 sxx = cgradx(:,1);
 sxy = cgradx(:,2);
-syx = cgrady(:,1);
+syx = cgrady(:,1); %#ok<NASGU>
 syy = cgrady(:,2);
-sxz = 0;
+% Plane stress 
+sxz = 0; %#ok<NASGU>
 syz = 0;
 szx = 0;
-szy = 0;
+szy = 0; %#ok<NASGU>
 szz = 0;
 
 sVonMises = sqrt( 0.5*( (sxx-syy).^2 + (syy -szz).^2 +(szz-sxx).^2) + 3*(sxy.^2 + syz.^2 + szx.^2));
@@ -43,7 +44,7 @@ if flagPlot
     figure();
     figSetting();
     set(gca,'DataAspectRatio',[1 1 1]);
-    pdeplot(structModel,'XYData',abs(R.NodalSolution(:,1)+j*R.NodalSolution(:,2)),'ZData',abs(R.NodalSolution(:,1)+j*R.NodalSolution(:,2)))
+    pdeplot(structModel,'XYData',abs(R.NodalSolution(:,1)+j*R.NodalSolution(:,2)),'ZData',abs(R.NodalSolution(:,1)+j*R.NodalSolution(:,2))) %#ok<IJCL>
     colormap turbo
     view(2)
     title('Displacement [m]')

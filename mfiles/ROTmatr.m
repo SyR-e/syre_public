@@ -316,6 +316,7 @@ else
     pointVect = pointVect(1:2:2*geo.nlay+1);
     pontFilt  = [0 fliplr(geo.pontR+geo.pontT)];
     pontFilt  = pontFilt./pontFilt;
+    pointVect(1) = geo.Ar+geo.pont0/2;
     pointVect = pointVect(isnan(pontFilt));
 
     [xtemp,ytemp] = rot_point(pointVect',zeros(size(pointVect))',pi/2/p);

@@ -20,6 +20,10 @@ Imax  = motorModel.data.Imax;
 i0    = motorModel.data.i0;
 Vdc   = motorModel.data.Vdc;
 
+if nargin()==1
+    saveFlag=1;
+end
+
 % if length(nCurr)==1
 %     if nCurr==1
 %         Ivect = i0;
@@ -38,7 +42,9 @@ for ii=1:length(Plim)
     Plim{ii} = OpLimEval(motorModel,Ivect(ii),Vdc);
 end
 
-[hfig,resPath] = OpLimPlot(Plim,Ivect,motorModel);
+if saveFlag
+    [hfig,resPath] = OpLimPlot(Plim,Ivect,motorModel);
+end
 
 %% Save figures
 if nargin()==1

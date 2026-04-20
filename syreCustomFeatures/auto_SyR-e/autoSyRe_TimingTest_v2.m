@@ -105,6 +105,7 @@ for ii=1:length(nVector)
     dataSet.syrmDesignFlag.scf      = 0;
     dataSet.syrmDesignFlag.demag0   = 0;
     dataSet.syrmDesignFlag.demagHWC = 0;
+    dataSet.syrmDesignFlag.demagUGO = 0;
     dataSet.syrmDesignFlag.mech     = 0;
     dataSet.syrmDesignFlag.therm    = 0;
 

@@ -140,15 +140,15 @@ hax(1) = axes('OuterPosition',[0,2/3,1,1/3]);
 hax(2) = axes('OuterPosition',[0 1/3 1 1/3]);
 hax(3) = axes('OuterPosition',[0 0/3 1 1/3]);
 for ii=1:3
-    xlabel(hax(ii),'$t$ [s]');
+    xlabel(hax(ii),'$t$ (s)');
     set(hax(ii),'XLim',[0 time(end)+dt]);
     plot(hax(ii),[0 time(end)+dt],[0 0],'-k','lineWidth',1,'HandleVisibility','off');
     legend(hax(ii),'show','Location','best');
     set(hax(ii),'ColorOrderIndex',1)
 end
-ylabel(hax(1),'$i_{dq}$ [A]')
-ylabel(hax(2),'$\lambda_{dq}$ [Vs]')
-ylabel(hax(3),'$v_{dq}$ [V]')
+ylabel(hax(1),'$i_{dq}$ (A)')
+ylabel(hax(2),'$\lambda_{dq}$ (Vs)')
+ylabel(hax(3),'$v_{dq}$ (V)')
 
 plot(hax(1),time,id,'DisplayName','$i_d$');
 plot(hax(1),time,iq,'DisplayName','$i_q$');
@@ -165,13 +165,13 @@ set(hfig(3),'FileName',[pathname 'timeWaveform_mech.fig']);
 hax(1) = axes('OuterPosition',[0 1/2 1 1/2]);
 hax(2) = axes('OuterPosition',[0 0/2 1 1/2]);
 for ii=1:2
-    xlabel(hax(ii),'$t$ [s]');
+    xlabel(hax(ii),'$t$ (s)');
     set(hax(ii),'XLim',[0 time(end)+dt]);
     plot(hax(ii),[0 time(end)+dt],[0 0],'-k','lineWidth',1,'HandleVisibility','off');
     set(hax(ii),'ColorOrderIndex',1)
 end
-ylabel(hax(1),'$T$ [Nm]')
-ylabel(hax(2),'$\theta_m$ [$^\circ$]')
+ylabel(hax(1),'$T$ (Nm)')
+ylabel(hax(2),'$\theta_r$ ($^\circ$)')
 
 plot(hax(1),time,T);
 

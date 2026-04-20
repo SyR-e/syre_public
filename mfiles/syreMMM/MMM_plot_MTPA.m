@@ -18,6 +18,7 @@ function MMM_plot_MTPA(motorModel,saveFlag)
 MTPA = motorModel.controlTrajectories.MTPA;
 MTPV = motorModel.controlTrajectories.MTPV;
 fdfq = motorModel.FluxMap_dq;
+% fdfq_inv = motorModel.FluxMapInv_dq;
 pathname = motorModel.data.pathname;
 motName  = motorModel.data.motorName;
 resFolder = checkPathSyntax([motName '_results\MMM results\' 'AOA - ' int2str(motorModel.data.tempPM) 'deg\']);
@@ -141,6 +142,7 @@ if ~strcmp(motorModel.data.motorType,'EE')
     else
         contourf(fdfq.Id,fdfq.Iq,zeros(size(fdfq.dTpp)),'LineWidth',1,'DisplayName','$\Delta T_{pp}$ (Nm)','ShowText','on');
     end
+    % set(gca,'CLimMode','manual');
     
     contour(fdfq.Id,fdfq.Iq,fdfq.T,'-','LineColor',[0.0 0.0 0.0],'LineWidth',1,'DisplayName','$T$ (Nm)','showText','on');
     contour(fdfq.Id,fdfq.Iq,abs(fdfq.Id+j*fdfq.Iq),abs(unique(iLevels)),'-','LineColor',[1.0 0.0 0.0],'LineWidth',0.5,'DisplayName','$I$ (A)','ShowText','on');
@@ -168,8 +170,8 @@ else
     % [~,Ir_plot_index_MTPvalues] = ismember(Ir_plot_values,MTPA.ir_layers);
     % Ir_plot_index_MTPvalues = Ir_plot_index_MTPvalues(Ir_plot_index_MTPvalues~=0);
     % Ir_plot_index_MTPvalues = Ir_plot_index_MTPvalues(:);
-
-    hfig(1) = MTPX_slider(fdfq.Id(:,:,1),fdfq.Iq(:,:,1),fdfq.T(:,:,Ir_plot_index),fdfq.dTpp(:,:,Ir_plot_index),Ir_plot_values,MTPA,MTPV,[pathname resFolder 'MTPX_Ir.fig']);   
+    hfig(1) = MTPX_slider(fdfq.Id(:,:,Ir_plot_index),fdfq.Iq(:,:,Ir_plot_index),fdfq.T(:,:,Ir_plot_index),fdfq.dTpp(:,:,Ir_plot_index),Ir_plot_values,MTPA,MTPV,[pathname resFolder 'MTPX_Ir.fig'],0);   
+    hfig(2) = MTPX_slider(fdfq.Fd(:,:,Ir_plot_index),fdfq.Fq(:,:,Ir_plot_index),fdfq.T(:,:,Ir_plot_index),fdfq.dTpp(:,:,Ir_plot_index),Ir_plot_values,MTPA,MTPV,[pathname resFolder 'MTPX_Fr.fig'],1);   
 
 end
 

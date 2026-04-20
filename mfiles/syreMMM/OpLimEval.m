@@ -169,26 +169,38 @@ fi = linspace(gamma_A,gamma_B,201);
 id_AB = Imax*cos(fi);
 iq_AB = Imax*sin(fi);
 
-if strcmp(axisType,'SR')
-    % B --> C
-    if (ich<=Imax)
-        id_BC = linspace(id_B,id_C,101);
-        iq_BC = interp1(MTPV.id,MTPV.iq,id_BC,'linear','extrap');
-    else
-        id_BC = [id_B id_B];
-        iq_BC = [iq_B iq_B];
-    end
+% B --> C
+if (ich<=Imax)
+    i_BC = linspace(abs(id_B+j*iq_B),abs(id_C+j*iq_C),101);
+    gamma_BC = interp1(abs(MTPV.id+j*MTPV.iq),angle(MTPV.id+j*MTPV.iq),i_BC,'linear','extrap');
+    id_BC = i_BC.*cos(gamma_BC);
+    iq_BC = i_BC.*sin(gamma_BC);
 else
-    % SPM style axes
-    % B --> C
-    if (ich<=Imax)
-        iq_BC = linspace(iq_B,iq_C,101);
-        id_BC = interp1(MTPV.iq,MTPV.id,iq_BC,'linear','extrap');
-    else
-        id_BC = [id_B id_B];
-        iq_BC = [iq_B iq_B];
-    end
+    id_BC = [id_B id_B];
+    iq_BC = [iq_B iq_B];
 end
+
+
+% if strcmp(axisType,'SR')
+%     % B --> C
+%     if (ich<=Imax)
+%         id_BC = linspace(id_B,id_C,101);
+%         iq_BC = interp1(MTPV.id,MTPV.iq,id_BC,'linear','extrap');
+%     else
+%         id_BC = [id_B id_B];
+%         iq_BC = [iq_B iq_B];
+%     end
+% else
+%     % SPM style axes
+%     % B --> C
+%     if (ich<=Imax)
+%         iq_BC = linspace(iq_B,iq_C,101);
+%         id_BC = interp1(MTPV.iq,MTPV.id,iq_BC,'linear','extrap');
+%     else
+%         id_BC = [id_B id_B];
+%         iq_BC = [iq_B iq_B];
+%     end
+% end
 
 % Profiles
 fd_AB = interp2(Id,Iq,Fd,id_AB,iq_AB);

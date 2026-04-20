@@ -12,44 +12,54 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [newDir] = eval_vonMisesStress(dataIn)
+function [out,newDir] = eval_vonMisesStress(dataIn,flagSave)
+tic;
+
+if nargin()==1
+    flagSave=2;
+end
 
 % Run Structural Simulation in Matlab, at the considered rotor speed.
 % profile on
-custom = dataIn.custom;
+% custom = dataIn.custom;
 
 pathname = dataIn.currentpathname;
 filename = dataIn.currentfilename;
-load([pathname filename]);
+load([pathname filename]); %#ok<LOAD>
 
 dataSet.EvalSpeed = dataIn.EvalSpeed;
 dataSet.MeshStructuralPDE = dataIn.MeshStructuralPDE;
+dataSet.XFEMMsimulation = dataIn.XFEMMsimulation;
 
 materialCodes;
 
 evalSpeed = dataIn.EvalSpeed;
+
 if evalSpeed==0
     error('Please set a speed higher than zero!!!')
 end
 
 clc
 
-resFolder = checkPathSyntax([filename(1:end-4) '_results\FEA results\']);
-if ~exist([pathname resFolder],'dir')
-    mkdir([pathname resFolder]);
+if flagSave>0
+    resFolder = checkPathSyntax([filename(1:end-4) '_results\FEA results\']);
+    if ~exist([pathname resFolder],'dir')
+        mkdir([pathname resFolder]);
+    end
+
+    newDir = checkPathSyntax(['structural_' int2str(evalSpeed) 'rpm\']);
+
+    newDir = [pathname resFolder newDir];
+    mkdir(newDir);
+
 end
-
-newDir = checkPathSyntax(['structural_' int2str(evalSpeed) 'rpm\']);
-
-newDir = [pathname resFolder newDir];
-mkdir(newDir);
 
 simSetup.filename  = filename;
 simSetup.pathname  = pathname;
 simSetup.evalSpeed = evalSpeed;
 simSetup.meshSize  = dataSet.MeshStructuralPDE;
 simSetup.flagFull  = 0;         % 0-->Qs simulation / 1-->full motor simulation
-simSetup.shaftBC   = 1;         % 1-->locked shaft / 0-->free shaft / 2-->spring ring
+simSetup.shaftBC   = 0;         % 1-->locked shaft / 0-->free shaft / 2-->spring ring
 simSetup.meshShaft = 0;         % 0-->shaft not meshed / 1-->shaft meshed
 % if simSetup.meshShaft
 %     simSetup.shaftBC   = 2;
@@ -61,6 +71,7 @@ else
     simSetup.meshShaft = 0;
 end
 
+geo.XFEMMsimulation = dataSet.XFEMMsimulation;
 
 % if ~custom
 %     if dataIn.Qs == 6*dataIn.NumOfSlots*dataIn.NumOfPolePairs*dataSet.Num3PhaseCircuit
@@ -76,9 +87,9 @@ tic
 
 % if (custom)
 %     [structModel,data4GeoMat] = femm2pde(geo,mat,simSetup);
-    [structModel] = femm2pde(geo,mat,simSetup);
+[structModel] = femm2pde(geo,mat,simSetup); %#ok
 
-    % else
+% else
 %     [structModel] = syre2pde(geo,mat,simSetup);
 % end
 
@@ -87,109 +98,121 @@ warning('on')
 disp(['PDE model created in ' num2str(tEnd) ' s with ' num2str(length(structModel.Mesh.Nodes)) ' nodes'])
 % save([newDir filename(1:end-4) '_structModel.mat'],'structModel','dataSet','geo','per','mat','data4GeoMat');
 
-hfig = figure();
-figSetting();
-pdeplot(structModel,'Mesh','on');
-set(gcf,'FileName',[newDir 'StructMesh.fig'],'Name','StructMesh')
-savePrintFigure(gcf)
+timeCreation = tEnd;
+
+if flagSave==2
+    figure();
+    figSetting();
+    pdeplot(structModel,'Mesh','on');
+    set(gcf,'FileName',[newDir 'StructMesh.fig'],'Name','StructMesh')
+    savePrintFigure(gcf)
+end
 
 warning('off')
 disp('Solving the PDE model...')
 tic
 [sVonMises,R,structModel] = calcVonMisesStress(structModel);
+[out] = eval_maxStress(structModel,sVonMises,R,geo,mat);
 tEnd = toc();
 warning('on')
 disp(['PDE model solved in ' num2str(tEnd) ' s'])
-save([newDir filename(1:end-4) '_structModel.mat'],'structModel','sVonMises','R','dataSet','geo','per','mat');
+timeCalc = tEnd;
 
-[out] = eval_maxStress(structModel,sVonMises,geo,mat);
+out.timeCreation = timeCreation;
+out.timeCalc     = timeCalc;
 
-
-save([newDir filename(1:end-4) '_structModel.mat'],'out','-append');
-
-figure();
-figSetting();
-set(gca,'DataAspectRatio',[1 1 1]);
-pdeplot(structModel,'XYData',abs(R.NodalSolution(:,1)+j*R.NodalSolution(:,2)),'ZData',abs(R.NodalSolution(:,1)+j*R.NodalSolution(:,2)))
-colormap jet
-xlabel('[m]')
-ylabel('[m]')
-view(2)
-title('Displacement [m]')
-set(gcf,'FileName',[newDir 'Displacement.fig'],'Name','Displacement')
-savePrintFigure(gcf)
-
-
-figure();
-figSetting();
-set(gca,'DataAspectRatio',[1 1 1]);
-tmp.ux = R.NodalSolution(:,1);
-tmp.uy = R.NodalSolution(:,2);
-pdeplot(structModel,'XYData',sVonMises/1e6,'ZData',sVonMises/1e6);
-colormap jet
-xlabel('[m]')
-ylabel('[m]')
-view(2)
-title('Von Mises Stress [MPa]')
-%legend ('Location','northwest')
-set(gca,'CLim',[0 max(sVonMises)]/1e6)
-set(gcf,'FileName',[newDir 'VonMisesStress.fig'],'Name','VonMisesStress')
-savePrintFigure(gcf)
-
-figure();
-figSetting();
-set(gca,'DataAspectRatio',[1 1 1]);
-tmp.ux = R.NodalSolution(:,1);
-tmp.uy = R.NodalSolution(:,2);
-pdeplot(structModel,'XYData',sVonMises/1e6,'ZData',sVonMises/1e6,'Deformation',tmp,'DeformationScaleFactor',100);
-colormap jet
-xlabel('[m]')
-ylabel('[m]')
-view(2)
-title('Von Mises Stress [MPa] - deformation scale=100')
-%legend ('Location','northwest')
-set(gca,'CLim',[0 max(sVonMises)]/1e6)
-set(gcf,'FileName',[newDir 'VonMisesStressDeformation.fig'],'Name','VonMisesStressDeformation')
-savePrintFigure(gcf)
-
-
-if ~isempty(out.x_over)
-    figure()
-    figSetting()
-    hax=axes('OuterPosition',[0 0 1 1]);
-    set(gca,'DataAspectRatio',[1 1 1]);
-    set(gca,'XLim',[geo.r-geo.r*sin(pi/geo.p)-1 geo.r+1]/1e3,'YLim',[-1 geo.r*sin(pi/geo.p)+1]/1e3);
-    xlabel('[m]')
-    ylabel('[m]')
-    %set(gca,'XTick',[],'YTick',[]);
-    title(['Von Mises Stress Limit Exceeded'])
-    
-    x_over = out.x_over;
-    y_over = out.y_over;
-    x_max = out.x_max;
-    y_max = out.y_max;
-    
-    rotorplot = geo.rotor;
-    rotorplot(:,1:6) = rotorplot(:,1:6)/1e3;
-    tmp = rotorplot(:,8);
-    index = 1:1:numel(tmp);
-    index = index(tmp~=codMatShaft);
-    rotorplot = rotorplot(index,:);
-    GUI_Plot_Machine(hax,rotorplot);
-    
-    plot(x_over/1e3,y_over/1e3,'r.','MarkerSize',5,'DisplayName', 'Stress Exceeded');
-    plot(x_max/1e3,y_max/1e3,'bo','MarkerSize',5.5,'DisplayName', 'Max Stress')
-    grid off
-    %legend ('Location','northwest')
-    set(gcf,'FileName',[newDir 'VonMisesStressLimit.fig'],'Name','VonMisesStressLimit')
-    savePrintFigure(gcf)
+if flagSave>0
+    save([newDir filename(1:end-4) '_structModel.mat'],'structModel','sVonMises','R','dataSet','geo','per','mat'); %#ok<USENS>
+    save([newDir filename(1:end-4) '_structModel.mat'],'out','-append');
 end
 
+
+if flagSave==2
+    figure();
+    figSetting();
+    set(gca,'DataAspectRatio',[1 1 1]);
+    pdeplot(structModel,'XYData',abs(R.NodalSolution(:,1)+j*R.NodalSolution(:,2)),'ZData',abs(R.NodalSolution(:,1)+j*R.NodalSolution(:,2))) %#ok<IJCL>
+    colormap jet
+    xlabel('[m]')
+    ylabel('[m]')
+    view(2)
+    title('Displacement [m]')
+    set(gcf,'FileName',[newDir 'Displacement.fig'],'Name','Displacement')
+    savePrintFigure(gcf)
+
+
+    figure();
+    figSetting();
+    set(gca,'DataAspectRatio',[1 1 1]);
+    tmp.ux = R.NodalSolution(:,1);
+    tmp.uy = R.NodalSolution(:,2);
+    pdeplot(structModel,'XYData',sVonMises/1e6,'ZData',sVonMises/1e6);
+    colormap jet
+    xlabel('[m]')
+    ylabel('[m]')
+    view(2)
+    title('Von Mises Stress [MPa]')
+    %legend ('Location','northwest')
+    set(gca,'CLim',[0 max(sVonMises)]/1e6)
+    set(gcf,'FileName',[newDir 'VonMisesStress.fig'],'Name','VonMisesStress')
+    savePrintFigure(gcf)
+
+    figure();
+    figSetting();
+    set(gca,'DataAspectRatio',[1 1 1]);
+    tmp.ux = R.NodalSolution(:,1);
+    tmp.uy = R.NodalSolution(:,2);
+    pdeplot(structModel,'XYData',sVonMises/1e6,'ZData',sVonMises/1e6,'Deformation',tmp,'DeformationScaleFactor',100);
+    colormap jet
+    xlabel('[m]')
+    ylabel('[m]')
+    view(2)
+    title('Von Mises Stress [MPa] - deformation scale=100')
+    %legend ('Location','northwest')
+    set(gca,'CLim',[0 max(sVonMises)]/1e6)
+    set(gcf,'FileName',[newDir 'VonMisesStressDeformation.fig'],'Name','VonMisesStressDeformation')
+    savePrintFigure(gcf)
+
+
+    if ~isempty(out.x_over)
+        figure()
+        figSetting()
+        hax=axes('OuterPosition',[0 0 1 1]);
+        set(gca,'DataAspectRatio',[1 1 1]);
+        set(gca,'XLim',[geo.r-geo.r*sin(pi/geo.p)-1 geo.r+1]/1e3,'YLim',[-1 geo.r*sin(pi/geo.p)+1]/1e3);
+        xlabel('[m]')
+        ylabel('[m]')
+        %set(gca,'XTick',[],'YTick',[]);
+        title('Von Mises Stress Limit Exceeded')
+
+        x_over = out.x_over;
+        y_over = out.y_over;
+        x_max = out.x_max;
+        y_max = out.y_max;
+
+        rotorplot = geo.rotor;
+        rotorplot(:,1:6) = rotorplot(:,1:6)/1e3;
+        tmp = rotorplot(:,8);
+        index = 1:1:numel(tmp);
+        index = index(tmp~=codMatShaft);
+        rotorplot = rotorplot(index,:);
+        GUI_Plot_Machine(hax,rotorplot);
+
+        plot(x_over/1e3,y_over/1e3,'r.','MarkerSize',5,'DisplayName', 'Stress Exceeded');
+        plot(x_max/1e3,y_max/1e3,'bo','MarkerSize',5.5,'DisplayName', 'Max Stress')
+        grid off
+        %legend ('Location','northwest')
+        set(gcf,'FileName',[newDir 'VonMisesStressLimit.fig'],'Name','VonMisesStressLimit')
+        savePrintFigure(gcf)
+    end
+
+end
 
 disp([num2str(out.nodesOver),' nodes out of ',num2str(length(structModel.Mesh.Nodes)), ' exceed the maximum material stress.'])
 
 
-
+elapsedTime = toc;  % Get elapsed time
+fprintf('Execution time: %.4f seconds\n', elapsedTime);
 
 
 

@@ -27,7 +27,12 @@ avv=geo.win.avv;
 
 if geo.q<1
     %concentrated winding
-    lend=0.5.*(wt+pi*(r+g+lt/2).*sin(pi./(6*p.*q.*n3phase)))/1e3;    % [m] from Gamba - A new PMASRM with nonconventional FS pole combination
+    if(isnan(n3phase))
+        nphases = 5;
+        lend=0.5.*(wt+pi*(r+g+lt/2).*sin(pi./(2*p.*q.*nphases)))/1e3;    % [m] from Gamba - A new PMASRM with nonconventional FS pole combination
+    else
+        lend=0.5.*(wt+pi*(r+g+lt/2).*sin(pi./(6*p.*q.*n3phase)))/1e3;    % [m] from Gamba - A new PMASRM with nonconventional FS pole combination
+    end
 else
     % distributed winding
     [~,c]=size(avv);
@@ -48,8 +53,13 @@ else
         fin=c+1;
     end
     yq=fin-ini;
-    alpha=2*pi*yq./(6.*p.*q.*n3phase);  % coil pitch (rad)
 
+    if(isnan(n3phase))
+        nphases = 5;
+        alpha=2*pi*yq./(2.*p.*q.*nphases);  % coil pitch (rad)
+    else
+        alpha=2*pi*yq./(6.*p.*q.*n3phase);  % coil pitch (rad)
+    end
 
     lend=(2*lt+(r+g+lt/2).*alpha)/1e3; %[m]
 end

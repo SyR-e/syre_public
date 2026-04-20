@@ -155,7 +155,7 @@ if length(overload_temp)>1
     figure(11), subplot(2,1,1)
     plot(x,fd,'-x',x,fq,'-x'), grid on, ylabel('[Vs]'), legend('\lambda_d','\lambda_q'),
     subplot(2,1,2)
-    plot(x,sin(atan(iq./id)-atan(fq./fd)),'-x'), grid on, ylabel('IPF')
+    plot(x,sin(atan2(iq,id)-atan2(fq,fd)),'-x'), grid on, ylabel('IPF')
     xlabel('simulation #'),
     h=gcf();
     if isoctave() %OCT
@@ -166,6 +166,6 @@ if length(overload_temp)>1
     end
 end
 
-
+disp('MagNet Simulation DONE!!')
 
 

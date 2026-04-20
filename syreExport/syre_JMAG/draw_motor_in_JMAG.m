@@ -15,6 +15,8 @@
 
 function draw_motor_in_JMAG(geo,mat,model_name,JDesigner)
 
+n3ph = geo.win.n3phase;
+
 % '######################## Draw  CAD Geometry ############################
 % AreaCodes %load the area codes for stator geometry creation
 indCoilHalf  = 0;
@@ -617,15 +619,39 @@ end
 model.GetGroupList().CreateGroup(strcat('Coil', '_U'));
 model.GetGroupList().CreateGroup(strcat('Coil', '_W'));
 model.GetGroupList().CreateGroup(strcat('Coil', '_V'));
-% '#"Coil U" groups
-createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Up', +1, 'green');
-createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Un', -1, 'green');
-% '#"Coil W" groups
-createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Wp', +3, 'maroon');
-createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Wn', -3, 'maroon');
-% '#"Coil V" groups
-createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Vp', +2, 'yellow');
-createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Vn', -2, 'yellow');
+
+if(isnan(n3ph))
+    model.GetGroupList().CreateGroup(strcat('Coil', '_X'));
+    model.GetGroupList().CreateGroup(strcat('Coil', '_Y'));
+end
+
+if(isnan(n3ph))
+    % '#"Coil U" groups
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Up', +1, 'green');
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Un', -1, 'green');
+    % '#"Coil W" groups
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Wp', +3, 'maroon');
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Wn', -3, 'maroon');
+    % '#"Coil V" groups
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Vp', +2, 'yellow');
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Vn', -2, 'yellow');
+    % '#"Coil X" groups
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Xp', +4, 'blue');
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Xn', -4, 'blue');
+    % '#"Coil Y" groups
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Yp', +5, 'red');
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Yn', -5, 'red');
+else
+    % '#"Coil U" groups
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Up', +1, 'green');
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Un', -1, 'green');
+    % '#"Coil W" groups
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Wp', +3, 'maroon');
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Wn', -3, 'maroon');
+    % '#"Coil V" groups
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Vp', +2, 'yellow');
+    createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshape, geo, 'Coil','Vn', -2, 'yellow');
+end
 
 % '###########################SET for Rotor core
 createSet_JMAG(model, 'Rotor Core', 'Rotor',MagnetCG);
@@ -838,7 +864,10 @@ end
 SetCoilMaterial_JMAG(study,coil_mat,eddycurrent_c,'_U')
 SetCoilMaterial_JMAG(study,coil_mat,eddycurrent_c,'_V')
 SetCoilMaterial_JMAG(study,coil_mat,eddycurrent_c,'_W')
-
+if(isnan(n3ph))
+    SetCoilMaterial_JMAG(study,coil_mat,eddycurrent_c,'_X')
+    SetCoilMaterial_JMAG(study,coil_mat,eddycurrent_c,'_Y')
+end
 % '#'_______________________________________________________________
 % '#'Set up Stator core material
 SetCoreMaterial_JMAG(study,'Stator Core',stator_mat,1,stator_lamfactor,hysteresisloop_s,eddycurrent_s)

@@ -43,8 +43,8 @@ if ~isempty(figname)
     elseif strcmp(format,'svg')
         print(hfig,[figname(1:end-4) '.svg'],'-dsvg')
     end
-    
-    
+
+
     disp(['Figure saved in: ' figname])
 
     if flagClose==1

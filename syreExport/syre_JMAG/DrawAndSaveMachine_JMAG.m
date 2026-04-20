@@ -25,7 +25,7 @@ load([pathname filename]);
 model_name= strrep(dataSet.currentfilename,'.mat','.jmag');
 
 %% % ########################Open JMAG Designer############################
- JMAGversion='222'; 
+ JMAGversion='250'; 
 % '# Create an "app" application object to launch JMAG-Designer
 JDesigner = actxserver(strcat('designer.Application.',JMAGversion));
 JDesigner.Show(); % Show the JMAG interface

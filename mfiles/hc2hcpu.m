@@ -14,15 +14,24 @@
 
 function [hc_pu,dataSet] = hc2hcpu(dataSet)
 
+if isfield(dataSet,'TypeOfRotor')
+    flagDataSet = 1;
+    [~,~,geo,~,~] = data0(dataSet);
+    hc_mm = dataSet.HCmm;
+    RotType = dataSet.TypeOfRotor;
+else
+    flagDataSet = 0;
+    geo = dataSet;
+    RotType = geo.RotType;
+    hc_mm = geo.hc;
+end
 
-[~,~,geo,~,~] = data0(dataSet);
 
-if strcmp(dataSet.TypeOfRotor,'SPM')
-    geo.hc = dataSet.HCmm;
+
+if strcmp(RotType,'SPM')
+    geo.hc = hc_mm;
     hc_pu = geo.hc/geo.g;
 else
-
-    hc_mm   = dataSet.HCmm;
     r       = geo.r;
     R       = geo.R;
     p       = geo.p;
@@ -60,7 +69,11 @@ else
     end
 end
 
-dataSet.HCpu = hc_pu;
+if flagDataSet
+    dataSet.HCpu = hc_pu;
+else
+    geo.hc_pu = hc_pu;
+end
 
 
 

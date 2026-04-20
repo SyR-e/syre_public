@@ -37,7 +37,7 @@ out.T= abs(mean(SOL.T));
 out.dT = std(SOL.T);
 out.dTpu = std(SOL.T)/out.T;
 out.dTpp = max(SOL.T)-min(SOL.T);
-out.IPF = sin(atan(out.iq./out.id)-atan(out.fq./out.fd));
+out.IPF = sin(atan2(out.iq,out.id)-atan2(out.fq,out.fd));
 % out.Ppm = mean(sum(SOL.pm_loss));
 out.SOL = SOL;
 if (per.delta_sim_singt == 360)

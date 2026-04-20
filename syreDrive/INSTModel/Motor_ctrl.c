@@ -21,15 +21,15 @@
 #define SIM
 
 #include "math.h"
-#include "User_functions\Inc\User_data_types.h"
-#include "User_functions\Inc\User_Variables.h"
-#include "User_functions\Inc\User_Constants.h"
-#include "User_functions\Inc\User_Macros.h"
-#include "User_functions\Inc\User_MotorControl_Functions.h"
-#include "User_functions\Inc\MotorData.h"
+#include "User_functions/Inc/User_data_types.h"
+#include "User_functions/Inc/User_Variables.h"
+#include "User_functions/Inc/User_Constants.h"
+#include "User_functions/Inc/User_Macros.h"
+#include "User_functions/Inc/User_MotorControl_Functions.h"
+#include "User_functions/Inc/MotorData.h"
 
-//#include "User_functions\Inc\VS_SimpleP36.h"
-//#include "User_functions\Inc\stm32f303xe.h"	// valid for F303 MCU
+//#include "User_functions/Inc/VS_SimpleP36.h"
+//#include "User_functions/Inc/stm32f303xe.h"	// valid for F303 MCU
 
 // USER CODE ENDS HERE
 

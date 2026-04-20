@@ -82,13 +82,13 @@ dataSet.EndWindingsLength = geo.lend;
 dataSet.Lend = per.Lend;
 
 [~,geo] = calc_endTurnFieldLength(geo);
+dataSet.RotorEndWindingsLength = geo.lendf;
 per = calc_if(geo,per,mat);
 dataSet.RotorCurrentDensity = per.Jf;
 dataSet.RatedFieldCurrent = per.if0;
 dataSet.Rf = per.Rf;
 dataSet.RotorCurrentDensity = per.Jf;
-
-
+per.if = per.if0;
 
 % Mass and Inertia computation
 geo.pShape = dataSet.pShape;
@@ -96,12 +96,8 @@ geo.mCu = calcMassCu(geo,mat);
 geo.mPM = calcMassPM(geo,mat);
 geo.mAl = calcMassAl(geo,mat);
 [geo.mFeS,geo.mFeR] = calcMassFe(geo,mat);
-if strcmp(geo.RotType,'EESM')
-    geo.J = NaN;
-    warning('Rotor inertia not yet computed')
-else
-    geo.J = calcRotorInertia(geo,mat);
-end
+geo.J = calcRotorInertia(geo,mat);
+
 
 dataSet.MassWinding = geo.mCu;
 dataSet.MassMagnet = geo.mPM;
@@ -160,7 +156,7 @@ elseif(strcmp(geo.RotType, 'EESM'))
     dataSet.CoilWidth         = geo.wb;
     dataSet.CoilHeight        = geo.hb;
     dataSet.PoleRotHeadAngle  = geo.thHead_deg;
-    dataSet.PoleRotHeadFillet = geo.r_fillet; 
+    dataSet.PoleRotHeadFillet = geo.r_fillet;
 end
 
 dataSet.RadRibEdit = round(geo.pontR*100)/100;

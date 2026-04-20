@@ -12,15 +12,12 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [out,dirName] = skinEffect_point(tRef,fRef,per,mat,filename)
+function [out,dirName] = skinEffect_point(tRef,fRef,geo,per,mat,filename)
 
 
 [thisfilepath,dirName]=createTempDir();
 
 copyfile(filename,[dirName 'slot_0.fem'])
-
-openfemm(1)
-opendocument([dirName 'slot_0.fem']);
 
 load([filename(1:end-4) '.mat'],'slot');
 
@@ -28,8 +25,21 @@ nCond = slot.nCond;
 
 iRef = per.i0;
 
+if ~geo.XFEMMsimulation
+    openfemm(1)
+    opendocument([dirName 'slot_0.fem']);
+else
+    FemmProblem = loadfemmfile(checkPathSyntax([dirName 'slot_0.fem']));
+    femmFileName = [dirName 'slot_0.fem'];
+    FemmProblem.ProbInfo.SmartMesh = 0;
+end
+
 for ii=1:nCond
-    mi_modifycircprop(['conductor_' int2str(ii)],1,iRef/nCond);
+    if ~geo.XFEMMsimulation
+        mi_modifycircprop(['conductor_' int2str(ii)],1,iRef/nCond);
+    else
+        FemmProblem = setcircuitcurrent(FemmProblem,['conductor_' int2str(ii)],iRef/nCond);
+    end
 end
 
 if ~isfield(mat.SlotCond,'alpha')
@@ -40,15 +50,28 @@ end
 rho20 = 1/mat.SlotCond.sigma;
 rho = rho20*(1+mat.SlotCond.alpha*(tRef-20));
 
-mi_modifymaterial(mat.SlotCond.MatName,5,1/rho/1e6);
+if ~geo.XFEMMsimulation
+    mi_modifymaterial(mat.SlotCond.MatName,5,1/rho/1e6);
+    mi_probdef(fRef);
+else
+    FemmProblem = modifymaterial_mfemm(FemmProblem,mat.SlotCond.MatName,'Sigma',1/rho/1e6);
+    FemmProblem.ProbInfo.Frequency = fRef;
+end
 
-mi_probdef(fRef);
-
-mi_analyze(1);
+if ~geo.XFEMMsimulation
+    mi_analyze(1);
+    mi_loadsolution();
+else
+    writefemmfile(checkPathSyntax(femmFileName), FemmProblem);
+        femmFileName = fmesher(checkPathSyntax(femmFileName));
+        ansFile = fsolver(femmFileName,0,1);
+        myfpproc = fpproc();
+        myfpproc.opendocument(ansFile);
+end
 
 % post processing
 
-mi_loadsolution();
+
 out.T = tRef;
 out.f = fRef;
 out.I = iRef;
@@ -57,7 +80,11 @@ Ptmp = 0;
 Qtmp = 0;
 
 for ii=1:nCond
-    tmp = mo_getcircuitproperties(['conductor_' int2str(ii)]);
+    if ~geo.XFEMMsimulation
+        tmp = mo_getcircuitproperties(['conductor_' int2str(ii)]);
+    else
+        tmp = myfpproc.getcircuitprops(['conductor_' int2str(ii)]);
+    end
     Ptmp = Ptmp+real(tmp(1)*tmp(2));
     Qtmp = Qtmp+imag(tmp(1)*tmp(2));
 end
@@ -65,9 +92,11 @@ end
 out.P = Ptmp;
 out.Q = Qtmp;
 
-mo_close;
-mi_close;
-closefemm;
+if ~geo.XFEMMsimulation
+    mo_close;
+    mi_close;
+    closefemm;
+end
 
 
 

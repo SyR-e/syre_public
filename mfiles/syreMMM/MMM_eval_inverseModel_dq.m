@@ -33,6 +33,15 @@ Iq = motorModel.FluxMap_dq.Iq;
 Fd = motorModel.FluxMap_dq.Fd;
 Fq = motorModel.FluxMap_dq.Fq;
 T  = motorModel.FluxMap_dq.T;
+if strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+    Ir = motorModel.FluxMap_dq.Ir;
+    Fr = motorModel.FluxMap_dq.Fr;
+    Ir_length = length(Ir(1,1,:));
+    intDIM=41;
+else
+    Ir_length = 1;
+    intDIM=256;
+end
 
 % flagE = 0; % Extrapolation flag. If 1, the flux linkage limits are not restricted
 
@@ -64,7 +73,9 @@ else
 
     tmp   = min(Fq,[],1,'omitnan');     % min on q-axis
     FqMin = max(tmp,[],2,'omitnan');    % max on d-axis
-
+if strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+    warning('Fr not included yet')
+end
 %     FdMax = max(Fd(:),[],'omitnan');
 %     FdMin = min(Fd(:),[],'omitnan');
 %     FqMax = max(Fq(:),[],'omitnan');
@@ -73,35 +84,57 @@ else
 %     extrapolationMethod = 'none';
 end
 
-fD = linspace(FdMin,FdMax,256);
-fQ = linspace(FqMin,FqMax,256);
-[fD,fQ]=meshgrid(fD,fQ);
+fD = zeros([intDIM intDIM Ir_length]);
+fQ = zeros([intDIM intDIM Ir_length]);
+iD = zeros([intDIM intDIM Ir_length]);
+iQ = zeros([intDIM intDIM Ir_length]);
+Tf = zeros([intDIM intDIM Ir_length]);
+% if strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+    for ii = 1:Ir_length
+        tmpD = linspace(FdMin(ii),FdMax(ii),intDIM);
+        tmpQ = linspace(FqMin(ii),FqMax(ii),intDIM);
+        [fD(:,:,ii),fQ(:,:,ii)]=meshgrid(tmpD,tmpQ);
+    end
+% else
+%     fD = linspace(FdMin,FdMax,intDIM);
+%     fQ = linspace(FqMin,FqMax,intDIM);
+%     [fD,fQ]=meshgrid(fD,fQ);
+% end
 
-% matrix-->vector for scatteredInterpolant
-index=1:1:numel(Id);
 
-IdVect = Id(index)';
-IqVect = Iq(index)';
-FdVect = Fd(index)';
-FqVect = Fq(index)';
-TVect  = T(index)';
+for ii = 1:Ir_length
+    % matrix-->vector for scatteredInterpolant
+    index=1:1:numel(Id(:,:,ii));
+
+    IdVect = reshape(Id(:,:,ii),1,[]);
+    IqVect = reshape(Iq(:,:,ii),1,[]);
+    FdVect = reshape(Fd(:,:,ii),1,[]);
+    FqVect = reshape(Fq(:,:,ii),1,[]);
+    TVect  = reshape(T(:,:,ii),1,[]);
+
+    IdVect = IdVect';
+    IqVect = IqVect';
+    FdVect = FdVect';
+    FqVect = FqVect';
+    TVect  = TVect';
 
 
-% filt NaN
-IdVect = IdVect(~isnan(FdVect));
-IqVect = IqVect(~isnan(FdVect));
-FqVect = FqVect(~isnan(FdVect));
-FdVect = FdVect(~isnan(FdVect));
-TVect  = TVect(~isnan(FdVect));
+    % filt NaN
+    IdVect = IdVect(~isnan(FdVect(:)));
+    IqVect = IqVect(~isnan(FdVect));
+    FqVect = FqVect(~isnan(FdVect));
+    FdVect = FdVect(~isnan(FdVect));
+    TVect  = TVect(~isnan(FdVect));
 
-% interpolant functions
-intD = scatteredInterpolant(FdVect,FqVect,IdVect,'linear',extrapolationMethod);
-intQ = scatteredInterpolant(FdVect,FqVect,IqVect,'linear',extrapolationMethod);
-intT = scatteredInterpolant(FdVect,FqVect,TVect,'linear',extrapolationMethod);
+    % interpolant functions
+    intD = scatteredInterpolant(FdVect,FqVect,IdVect,'linear',extrapolationMethod);
+    intQ = scatteredInterpolant(FdVect,FqVect,IqVect,'linear',extrapolationMethod);
+    intT = scatteredInterpolant(FdVect,FqVect,TVect,'linear',extrapolationMethod);
 
-iD = intD(fD,fQ);
-iQ = intQ(fD,fQ);
-Tf = intT(fD,fQ);
+    iD(:,:,ii) = intD(fD(:,:,ii),fQ(:,:,ii));
+    iQ(:,:,ii) = intQ(fD(:,:,ii),fQ(:,:,ii));
+    Tf(:,:,ii) = intT(fD(:,:,ii),fQ(:,:,ii));
+end
 
 % output data
 idiq.Fd = fD;

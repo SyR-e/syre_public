@@ -21,25 +21,23 @@ model = mphopen([pathname filename(1:end-4) '.mph']);
 
 load(fullfile(pathnameIn, [filename(1:end-4), '.mat']));
 
-% Output directory definition for CSV files
-csv_dir = fullfile (pathnameIn, [filename(1:end-4) '_Comsol\']);
-if ~exist(csv_dir, 'dir')
-    mkdir(csv_dir);
-end
-
-% Creazione dei percorsi completi per i file CSV
-torque_csv = fullfile(csv_dir, [filename(1:end-4), '_Torque.csv']);
-flux_csv = fullfile(csv_dir, [filename(1:end-4), '_Flux.csv']);
-current_csv = fullfile(csv_dir, [filename(1:end-4), '_Current.csv']);
-Pfe_r_csv = fullfile(csv_dir, [filename(1:end-4), '_Pfe_r.csv']);
-Pfe_s_csv = fullfile(csv_dir, [filename(1:end-4), '_Pfe_s.csv']);
-PM_losses_csv = fullfile(csv_dir, [filename(1:end-4), '_PM_losses.csv']);
-PjrBar_csv = fullfile(csv_dir, [filename(1:end-4), '_PjrBar.csv']);
+% % Output directory definition for CSV files
+% csv_dir = fullfile (pathnameIn, [filename(1:end-4) '_Comsol\']);
+% if ~exist(csv_dir, 'dir')
+%     mkdir(csv_dir);
+% end
+% % Creazione dei percorsi completi per i file CSV
+% torque_csv = fullfile(csv_dir, [filename(1:end-4), '_Torque.csv']);
+% flux_csv = fullfile(csv_dir, [filename(1:end-4), '_Flux.csv']);
+% current_csv = fullfile(csv_dir, [filename(1:end-4), '_Current.csv']);
+% Pfe_r_csv = fullfile(csv_dir, [filename(1:end-4), '_Pfe_r.csv']);
+% Pfe_s_csv = fullfile(csv_dir, [filename(1:end-4), '_Pfe_s.csv']);
+% PM_losses_csv = fullfile(csv_dir, [filename(1:end-4), '_PM_losses.csv']);
+% PjrBar_csv = fullfile(csv_dir, [filename(1:end-4), '_PjrBar.csv']);
 
 eval_type = 'singt';
 
 % ============== Verifica geometria del rotore ============== %
-
     % if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
     %     geo.axisType = 'PM';
     %     geo.th0 = geo.th0 - 90;
@@ -58,12 +56,12 @@ model.component('comp1').physics('rmm').prop('ShapeProperty').set('order_magneti
 % t = ts*(per.nsim_singt-1);                                         % time step [s]
 p = geo.p;                                                           % paia poli macchina
 w = per.EvalSpeed*pi/30;                                             % velocità di rotazione [rad/s]
-t = (per.delta_sim_singt/(p*w))*pi/180;                                  % time x simulation                 *(per.nsim_singt-1)/per.nsim_singt; 
+sim_t = (per.delta_sim_singt/(p*w))*pi/180;                                  % time x simulation                 *(per.nsim_singt-1)/per.nsim_singt; 
 %ts = t/(per.nsim_singt-1);                                               % number x function RANGE
-range = linspace(0,t,per.nsim_singt);
+range = linspace(0,sim_t,per.nsim_singt);
 freq = w*p/2/pi;                                                     % frequenza di alimentazione [Hz]
-theta_m_tot = w*t*180/pi;                                            % angolo meccanico di simulazione [deg]
-theta_e_tot = 2*pi*freq*t*180/pi;                                    % angolo elettrico di simulazione [deg]
+theta_m_tot = w*sim_t*180/pi;                                            % angolo meccanico di simulazione [deg]
+theta_e_tot = 2*pi*freq*sim_t*180/pi;                                    % angolo elettrico di simulazione [deg]
 
 % nsim = per.nsim_singt;                                             % numero di posizioni di rotore simulate 
 % xdeg = per.delta_sim_singt;                                        % angolo elettrico di simulazione [deg]
@@ -78,8 +76,7 @@ end
 
 % ============== Definizione studio ============== %
 
-
-model.param().set('t', '0 [s]');                                          % impostazione tempo 0 s per la simulazione 
+model.param().set('start_t', '0 [s]');                                      % impostazione tempo 0 s per la simulazione 
 model.param().set('l', [num2str(geo.l) ' [mm]']);                         % impostazione lunghezza assiale l 
 model.study('std1').setGenIntermediatePlots(true);
 % Time dependent
@@ -91,13 +88,13 @@ model.study('std1').create('emloss', 'TimeToFrequencyLosses');
 model.study('std1').feature('emloss').set('endtmethod', 'userdef');
 % w_loss = 3*(w/2/pi);
 model.study('std1').feature('emloss').set('lossstarttime', '0');
-model.study('std1').feature('emloss').set('lossendtime', num2str(t));
+model.study('std1').feature('emloss').set('lossendtime', num2str(sim_t));
 % % Studio Circuito                                     %if "CIR" is activated again, the following row have to be restored  
 % model.study('std1').feature('stat').setSolveFor('/physics/cir', true);
 % model.study('std1').feature('time').setSolveFor('/physics/cir', true);
 % model.study('std1').feature('emloss').setSolveFor('/physics/cir', true);
 model.study('std1').feature('emloss').setSolveFor('/physics/rmm', true);
-model.study('std1').feature('emloss').set('fftendtime', num2str(t));      %è ridondante, non so dove va (per ora)
+model.study('std1').feature('emloss').set('fftendtime', num2str(sim_t));      %è ridondante, non so dove va (per ora)
 
 % ============== Solver Settings ============== %
 
@@ -170,8 +167,8 @@ model.sol('sol1').feature('v3').set('control', 'emloss');
 model.sol('sol1').create('fft1', 'FFT');
 model.sol('sol1').feature('fft1').set('control', 'emloss');
 model.study('std1').feature('emloss').set('fftstarttime', '0');
-model.study('std1').feature('emloss').set('fftendtime', num2str(t));           %%%%%%%%%%%%%%%%%
-model.study('std1').feature('emloss').set('fftmaxfreq', ['6/(' num2str(t) '-0)']);
+model.study('std1').feature('emloss').set('fftendtime', num2str(sim_t));           %%%%%%%%%%%%%%%%%
+model.study('std1').feature('emloss').set('fftmaxfreq', ['6/(' num2str(sim_t) '-0)']);
 model.sol('sol1').create('su3', 'StoreSolution');
 model.sol('sol1').create('cms1', 'CombineSolution');
 model.sol('sol1').feature('cms1').set('soloper', 'gensum');
@@ -194,6 +191,40 @@ model.sol('sol1').feature('t1').feature('fc1').set('rstep', 4);
 mphrun(model);                  % run intero modello (con barra di progresso)
 
 % model.study('std1').run();      % run singolo studio (senza barra di progresso)
+
+% Directory formatting
+RatedCurrent = dataSet.RatedCurrent;
+CurrLoPP = dataSet.CurrLoPP;
+SimulatedCurrent = RatedCurrent*CurrLoPP;
+GammaPP  = dataSet.GammaPP;
+tempPP = dataSet.tempPP;
+
+% Format current
+iStr = num2str(SimulatedCurrent, 3);  % 3 significant digits
+iStr = strrep(iStr, '.', 'A');        % Replace dot with 'A'
+% Format gamma
+gammaStr = num2str(GammaPP, 4);       % 4 significant digits
+gammaStr = strrep(gammaStr, '.', 'd'); % Replace dot with 'd'
+if ~contains(gammaStr, 'd')
+    gammaStr = [gammaStr 'd'];
+end
+
+% Final folder name
+folder_name = ['T_eval_' iStr '_' gammaStr '_' int2str(tempPP) 'deg'];
+pathname_solved = fullfile(pathnameIn, [filename(1:end-4) '_results'], 'COMSOL', folder_name);
+% Create COMSOL folder if it doesn't exist
+if ~exist(pathname_solved, 'dir')
+    mkdir(pathname_solved);
+end
+
+% Creazione dei percorsi completi per i file CSV
+torque_csv = fullfile(pathname_solved, [filename(1:end-4), '_Torque.csv']);
+flux_csv = fullfile(pathname_solved, [filename(1:end-4), '_Flux.csv']);
+current_csv = fullfile(pathname_solved, [filename(1:end-4), '_Current.csv']);
+Pfe_r_csv = fullfile(pathname_solved, [filename(1:end-4), '_Pfe_r.csv']);
+Pfe_s_csv = fullfile(pathname_solved, [filename(1:end-4), '_Pfe_s.csv']);
+PM_losses_csv = fullfile(pathname_solved, [filename(1:end-4), '_PM_losses.csv']);
+PjrBar_csv = fullfile(pathname_solved, [filename(1:end-4), '_PjrBar.csv']);
 
 pause(0.1);
 
@@ -326,32 +357,6 @@ model.result().export('tbl7').run();
 pause(0.1);
 
 % Saving Solved Model
-RatedCurrent = dataSet.RatedCurrent;
-CurrLoPP = dataSet.CurrLoPP;
-SimulatedCurrent = RatedCurrent*CurrLoPP;
-GammaPP  = dataSet.GammaPP;
-tempPP = dataSet.tempPP;
-
-% Format current
-iStr = num2str(SimulatedCurrent, 3);  % 3 significant digits
-iStr = strrep(iStr, '.', 'A');        % Replace dot with 'A'
-
-% Format gamma
-gammaStr = num2str(GammaPP, 4);       % 4 significant digits
-gammaStr = strrep(gammaStr, '.', 'd'); % Replace dot with 'd'
-if ~contains(gammaStr, 'd')
-    gammaStr = [gammaStr 'd'];
-end
-
-% Final folder name
-folder_name = ['T_eval_' iStr '_' gammaStr '_' int2str(tempPP) 'deg'];
-
-pathname_solved = fullfile(pathnameIn, [filename(1:end-4) '_results'], 'COMSOL', folder_name);
-% Create COMSOL folder if it doesn’t exist
-if ~exist(pathname_solved, 'dir')
-    mkdir(pathname_solved);
-end
-
 mphsave(model, fullfile(pathname_solved, [filename(1:end-4) '_solved.mph']));
 
 %% Post-processing (Impostazione struttura SOL)

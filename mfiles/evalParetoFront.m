@@ -76,34 +76,6 @@ x = PSet;
 
 % RQ variables, set of optimization inputs
 
-% for j = 1:length(geo0.RQnames)
-%     nameTemp{j} = upper(eval(['geo0.RQnames{j}']));
-%     %     if strcmp(nameTemp{j},'DALPHA')
-%     %         k = k +1;
-%     %         nameTemp{j} = [nameTemp{j} num2str(k)];
-%     %     end
-%     %     if strcmp(nameTemp{j},'HC')
-%     %         y = y +1;
-%     %         nameTemp{j} = [nameTemp{j} num2str(y)];
-%     %     end
-%     %     if strcmp(nameTemp{j},'DX')
-%     %         t = t +1;
-%     %         nameTemp{j} = [nameTemp{j} num2str(t)];
-%     %     end
-%     %     if strcmp(nameTemp{j},'BR')
-%     %         u = u +1;
-%     %         nameTemp{j} = [nameTemp{j} num2str(u)];
-%     %     end
-%     %     if strfind(nameTemp{j},'PMDIM')
-%     %         u = u +1;
-%     %         nameTemp{j} = [nameTemp{j}(1:5) int2str(u)];
-%     %     end
-%     %     if strcmp(nameTemp{j},'BETAPMSHAPE')
-%     %         u = u +1;
-%     %         nameTemp{j} = [nameTemp{j} num2str(u)];
-%     %     end
-%     %  eval([nameTemp{j} ' = zeros(size(x,1),1)']);
-% end
 
 % goals
 T   = zeros(size(x,1),1);
@@ -318,6 +290,8 @@ n_mot = size(COST,1);
 [~,I] = sort(COST(:,pivot_cost));
 name_case = strrep(filename,'.mat','');
 
+geo0.OBJnames = geo0.OBJnames(per.objs_check == 1);
+
 % Pareto front
 if OUT.Param.NOBJ==1
     figSetting
@@ -335,6 +309,7 @@ elseif OUT.Param.NOBJ==2
     close
     figure(1), clf
     figSetting
+   
     for ii=1:n_mot
         plot(COST(ii,1),COST(ii,2),'x'),
         text(COST(ii,1)+0.1,COST(ii,2)+0.1,num2str(ii));

@@ -13,9 +13,9 @@
 %    limitations under the License.
 
 function [FEAfixOut] = FEAfix(dataSet,geo,map,debug)
-% 
+%
 % [kd,kq] = FEAfix(dataSet,geo,map,setup)
-% 
+%
 
 if nargin()==4
     eval_type = debug.eval_type;
@@ -32,13 +32,14 @@ else
 end
 
 
-gammaFix     = dataSet.syrmDesignFlag.gf;
-flagIch      = dataSet.syrmDesignFlag.ichf;
-flagSC       = dataSet.syrmDesignFlag.scf;
-flagDemag0   = dataSet.syrmDesignFlag.demag0;
-flagDemagHWC = dataSet.syrmDesignFlag.demagHWC;
-flagMech     = dataSet.syrmDesignFlag.mech;
-flagTherm    = dataSet.syrmDesignFlag.therm;
+gammaFix        = dataSet.syrmDesignFlag.gf;
+flagIch         = dataSet.syrmDesignFlag.ichf;
+flagSC          = dataSet.syrmDesignFlag.scf;
+flagDemag0      = dataSet.syrmDesignFlag.demag0;
+flagDemagHWC    = dataSet.syrmDesignFlag.demagHWC;
+flagDemagUGO    = dataSet.syrmDesignFlag.demagUGO;
+flagMech        = dataSet.syrmDesignFlag.Mech;
+flagTherm       = dataSet.syrmDesignFlag.therm;
 
 FEAfixN = dataSet.FEAfixN;
 
@@ -102,17 +103,17 @@ switch FEAfixN
     case 1000
         xRaw=reshape(xx,1,numel(xx));
         bRaw=reshape(bb,1,numel(bb));
-%         % FEAfix13
-%         xRaw=[xMin xMin xMax xMax xMin+(xMea-xMin)/2 xMea xMea+(xMea-xMin)/2 xMin+(xMea-xMin)/2 xMea xMea+(xMea-xMin)/2 xMin+(xMea-xMin)/2 xMea xMea+(xMea-xMin)/2];
-%         bRaw=[bMin bMax bMax bMin bMea+(bMea-bMin)/2 bMea+(bMea-bMin)/2 bMea+(bMea-bMin)/2 bMea bMea bMea bMin+(bMea-bMin)/2 bMin+(bMea-bMin)/2 bMin+(bMea-bMin)/2];
-%         % FEAfix9
-%         xTmp = linspace(xMin,xMax,5);
-%         bTmp = linspace(bMin,bMax,5);
-%         xTmp = xTmp(2:4);
-%         bTmp = bTmp(2:4);
-%         [xRaw,bRaw] = meshgrid(xTmp,bTmp);
-%         xRaw = xRaw(:)';
-%         bRaw = bRaw(:)';
+        %         % FEAfix13
+        %         xRaw=[xMin xMin xMax xMax xMin+(xMea-xMin)/2 xMea xMea+(xMea-xMin)/2 xMin+(xMea-xMin)/2 xMea xMea+(xMea-xMin)/2 xMin+(xMea-xMin)/2 xMea xMea+(xMea-xMin)/2];
+        %         bRaw=[bMin bMax bMax bMin bMea+(bMea-bMin)/2 bMea+(bMea-bMin)/2 bMea+(bMea-bMin)/2 bMea bMea bMea bMin+(bMea-bMin)/2 bMin+(bMea-bMin)/2 bMin+(bMea-bMin)/2];
+        %         % FEAfix9
+        %         xTmp = linspace(xMin,xMax,5);
+        %         bTmp = linspace(bMin,bMax,5);
+        %         xTmp = xTmp(2:4);
+        %         bTmp = bTmp(2:4);
+        %         [xRaw,bRaw] = meshgrid(xTmp,bTmp);
+        %         xRaw = xRaw(:)';
+        %         bRaw = bRaw(:)';
     otherwise
         error('Put a correct number!!!')
 end
@@ -134,6 +135,17 @@ elseif strcmp(geo.RotType,'Vtype')
     RQnames{6}='betaPMshape';
     RQnames{7}='gamma';
     geo.PMdim = -1;
+elseif strcmp(geo.RotType,'EESM')
+    RQnames{1}  = 'r';
+    RQnames{2}  = 'wt';
+    RQnames{3}  = 'lt';
+    RQnames{4}  = 'lyr';
+    RQnames{5}  = 'hpb';
+    RQnames{6}  = 'wp';
+    RQnames{7}  = 'hb';
+    RQnames{8}  = 'wb';
+    RQnames{9} = 'gamma';
+
 else
     index=0;
     for ii=1:geo.nlay
@@ -157,23 +169,33 @@ end
 
 geo.RQnames=RQnames;
 
-RQ      = zeros(length(RQnames),length(xRaw));
+RQ            = zeros(length(RQnames),length(xRaw));
 
-fdFEA      = zeros(1,length(xRaw));
-fqFEA      = zeros(1,length(xRaw));
-fMFEA      = zeros(1,length(xRaw));
-f0FEA      = zeros(1,length(xRaw));
-gFEA       = zeros(1,length(xRaw));
-mPMFEA     = zeros(1,length(xRaw));
-ichFEA     = zeros(1,length(xRaw));
-iHWCFEA    = zeros(1,length(xRaw));
-Bmin0FEA   = zeros(1,length(xRaw));
-dPM0FEA    = zeros(1,length(xRaw));
-BminHWCFEA = zeros(1,length(xRaw));
-dPMHWCFEA  = zeros(1,length(xRaw));
+fdFEA         = zeros(1,length(xRaw));
+fqFEA         = zeros(1,length(xRaw));
+fMFEA         = zeros(1,length(xRaw));
+f0FEA         = zeros(1,length(xRaw));
+gFEA          = zeros(1,length(xRaw));
+mPMFEA        = zeros(1,length(xRaw));
+ichFEA        = zeros(1,length(xRaw));
+iHWCFEA       = zeros(1,length(xRaw));
+Bmin0FEA      = zeros(1,length(xRaw));
+dPM0FEA       = zeros(1,length(xRaw));
+BminHWCFEA    = zeros(1,length(xRaw));
+dPMHWCFEA     = zeros(1,length(xRaw));
+iUGOFEA       = zeros(1,length(xRaw));
+BminUGOFEA    = zeros(1,length(xRaw));
+dPMUGOFEA     = zeros(1,length(xRaw));
+% EESM Aggiungo Acoilf??
+MaxDefFEA       = zeros(1,length(xRaw));
+agclearFEA      = zeros(1,length(xRaw));
+MaxStressFEA    = zeros(1,length(xRaw));
+TanRibStressFEA = zeros(1,length(xRaw));
+RadRibStressFEA = zeros(1,length(xRaw));
+% MaxStress_prcFEA      = zeros(1,length(xRaw));
+PrcTanStressFEA = zeros(1,length(xRaw));
+PrcRadStressFEA = zeros(1,length(xRaw));
 
-mechStress_radFEA = cell(1,length(xRaw));
-mechStress_tanFEA = cell(1,length(xRaw));
 thetaCuActFEA = ones(1,length(xRaw));
 thetaCuFEA    = ones(1,length(xRaw));
 
@@ -189,9 +211,19 @@ Bmin0Mod   = ones(1,length(xRaw));
 dPM0Mod    = ones(1,length(xRaw));
 BminHWCMod = ones(1,length(xRaw));
 dPMHWCMod  = ones(1,length(xRaw));
+iUGOMod    = zeros(1,length(xRaw));
+BminUGOMod = ones(1,length(xRaw));
+dPMUGOMod  = ones(1,length(xRaw));
 
-mechStressRad = cell(1,length(xRaw));
-mechStressTan = cell(1,length(xRaw));
+MaxDefMod       = ones(1,length(xRaw));
+agclearMod      = ones(1,length(xRaw));
+MaxStressMod    = ones(1,length(xRaw));
+TanRibStressMod = ones(1,length(xRaw));
+RadRibStressMod = ones(1,length(xRaw));
+% MaxStress_prcMod     = ones(1,length(xRaw));
+PrcTanStressMod = ones(1,length(xRaw));
+PrcRadStressMod = ones(1,length(xRaw));
+
 thetaCuAct = ones(1,length(xRaw));
 thetaCu    = ones(1,length(xRaw));
 
@@ -214,6 +246,8 @@ geo.mesh_K          = ceil(geo.R/80*geo.p);
 geo.mesh_K_MOOA     = 10;
 per.BrPP            = dataSet.Br;
 per.tempPP          = dataSet.PMtemp;
+per.Jf              = dataSet.RotorCurrentDensity;
+per.JfPU            = dataSet.RotorCurrentDensity/dataSet.CurrentDensity;
 per.flag3phaseSet   = ones(1,geo.win.n3phase);
 
 if dataSet.syrmDesignFlag.i0==0
@@ -227,7 +261,7 @@ elseif dataSet.syrmDesignFlag.i0==1
     per.Loss = NaN;
     per.flag_OptCurrConst = 1;
 end
-
+%EESM Aggungo Jr?
 
 for mot=1:length(xRaw)
     %disp([' - Machine design ' int2str(mot) ' of ' int2str(length(xRaw))])
@@ -243,13 +277,13 @@ for mot=1:length(xRaw)
     Ar(mot)=interp2(xx,bb,map.Ar,geo.x,geo.b);                          % shaft radius [mm]
     Ar(mot)=round(Ar(mot)*100)/100;
     %geo.la=interp2(xx,bb,map.la,geo.x,geo.b);                         % total insulation
-    
+
     % current phase angle
     temp_id = interp2(xx,bb,map.id,geo.x,geo.b);         % id [A]
     temp_iq = interp2(xx,bb,map.iq,geo.x,geo.b);         % iq [A]
     %gamma   = round(atan2(temp_iq,temp_id)*180/pi*100)/100;
     gamma = atan2(temp_iq,temp_id)*180/pi;
-    
+
     if ~isnan(gammaDebug)
         switch gammaDebug
             case 0 % no-load
@@ -263,7 +297,7 @@ for mot=1:length(xRaw)
                 gamma = 90;
         end
     end
-    
+
     if (isnan(lt))
         errorFlag(mot)=1;
     else
@@ -279,7 +313,7 @@ for mot=1:length(xRaw)
                     geo.hc_pu(ii)=interp2(xx,bb,hcTmp,geo.x,geo.b);
                     geo.dx(ii)=interp2(xx,bb,dxTmp,geo.x,geo.b);
                 end
-%                 geo.hc_pu=interp2(xx,bb,map.hc_pu,geo.x,geo.b);
+                %                 geo.hc_pu=interp2(xx,bb,map.hc_pu,geo.x,geo.b);
                 per.i0 = interp2(map.xx,map.bb,map.i0,geo.x,geo.b);
                 % fill RQ
                 RQ(:,mot)=[geo.hc_pu r wt lt gamma]';
@@ -292,6 +326,13 @@ for mot=1:length(xRaw)
                 per.i0 = interp2(map.xx,map.bb,map.i0,geo.x,geo.b);
                 % fill RQ
                 RQ(:,mot)=[geo.dalpha_pu geo.hc_pu r wt lt geo.betaPMshape gamma]';
+            case 'EESM'
+                geo.lyr = interp2(xx,bb,map.lyr,geo.x,geo.b);
+                geo.hpb = interp2(xx,bb,map.hpb,geo.x,geo.b);
+                geo.wp  = interp2(xx,bb,map.wp ,geo.x,geo.b);
+                geo.hb  = interp2(xx,bb,map.hb ,geo.x,geo.b);
+                geo.wb  = interp2(xx,bb,map.wb ,geo.x,geo.b);
+                RQ(:,mot)=[r wt lt geo.lyr geo.hpb geo.wp geo.hb geo.wb gamma]';
             otherwise
                 geo.x0=geo.R * geo.x /cos(pi/2/geo.p);
                 geo.la=interp2(xx,bb,map.la,geo.x,geo.b);                         % total insulation
@@ -313,9 +354,9 @@ for mot=1:length(xRaw)
                 PMdimPU(isnan(PMdimPU)) = 0;
                 PMdimPU = dataSet.kPM*PMdimPU;
                 PMdim = PMdimPU;
-                
+
                 RQ(:,mot)=[geo.hc_pu geo.dx r wt lt PMdim(:)' gamma]';
-                
+
         end
         % model flux linkages
         fdMod(mot) = interp2(xx,bb,map.fd,geo.x,geo.b); % fd [Vs]
@@ -323,6 +364,8 @@ for mot=1:length(xRaw)
         gMod(mot)  = gamma; % gamma [degrees]
         if strcmp(geo.RotType,'Vtype')
             f0Mod(mot) = interp2(xx,bb,map.fM-map.Lbase.*(map.Ldpu+map.Lspu).*map.iAmp,geo.x,geo.b);
+        elseif strcmp(geo.RotType,'EESM')
+            f0Mod(mot) = 0;
         else
             f0Mod(mot) = 0;
         end
@@ -354,11 +397,32 @@ for mot=1:length(xRaw)
         else
             Bmin0Mod(mot) = 1;
         end
+        if isfield(map,'iUGO')
+            iUGOMod(mot) = interp2(map.xx,map.bb,map.iUGO,geo.x,geo.b);
+        else
+            iUGOMod(mot) = 1;
+        end
+        if isfield(map,'BminUGO')
+            BminUGOMod(mot) = interp2(map.xx,map.bb,map.BminUGO,geo.x,geo.b);
+        else
+            Bmin0Mod(mot) = 1;
+        end
+
         dPM0Mod(mot)   = 1;
         dPMHWCMod(mot) = 1;
+        dPMUGOMod(mot) = 1;
 
-        mechStressRad{mot} = map.mechStressRad{1,1};
-        mechStressTan{mot} = map.mechStressTan{1,1};
+        MaxDefMod(mot)       = 1;
+        agclearMod(mot)      = 1;
+        MaxStressMod(mot)    = 1;
+        TanRibStressMod(mot) = 1;
+        RadRibStressMod(mot) = 1;
+        % MaxStress_prcMod(mot)     = 1;
+        PrcTanStressMod(mot) = 1;
+        PrcRadStressMod(mot) = 1;
+        % mechStressRad{mot} = map.mechStressRad{1,1};
+        % mechStressTan{mot} = map.mechStressTan{1,1};
+
         thetaCuAct(mot) = interp2(map.xx,map.bb,map.dTempCu+per.temphous,geo.x,geo.b);
         thetaCu(mot)    = interp2(map.xx,map.bb,map.dTempCu+per.temphous,geo.x,geo.b);
     end
@@ -385,7 +449,7 @@ if ~isempty(RQ)
     end
     if ppState<1
         for mot=1:length(xRaw)
-            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC,flagMech,flagTherm);
+            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC,flagDemagUGO,flagMech,flagTherm);
             fdFEA(mot)      = FEA.fd;
             fqFEA(mot)      = FEA.fq;
             fMFEA(mot)      = FEA.fM;
@@ -401,17 +465,34 @@ if ~isempty(RQ)
             dPM0FEA(mot)    = FEA.dPM0;
             BminHWCFEA(mot) = FEA.BminHWC;
             dPMHWCFEA(mot)  = FEA.dPMHWC;
+            iUGOFEA(mot)    = FEA.iUGO;
+            BminUGOFEA(mot) = FEA.BminUGO;
+            dPMUGOFEA(mot)  = FEA.dPMUGO;
 
-            mechStress_radFEA{mot} = FEA.outMech.sigmaRadAvg;
-            mechStress_tanFEA{mot} = FEA.outMech.sigmaTanAvg;
-            thetaCuActFEA(mot)     = FEA.outTherm.maxTcu;
-            thetaCuFEA(mot)        = FEA.outTherm.maxTcuAct;
+            if (strcmp(geo.RotType,'Circular') || strcmp(geo.RotType,'Seg'))
+                MaxDefFEA(mot)       = FEA.MaxDef;
+                agclearFEA(mot)      = FEA.agclear;
+                MaxStressFEA(mot)    = FEA.MaxStress;
+                TanRibStressFEA(mot) = FEA.TanRibStress;
+                RadRibStressFEA(mot) = FEA.RadRibStress;
+                % MaxStress_prcFEA(mot)     = FEA.MaxStress_prc;
+                PrcTanStressFEA(mot) = FEA.PrcTanStress;
+                PrcRadStressFEA(mot) = FEA.PrcRadStress;
+            else
+                MaxDefFEA(mot)       = FEA.MaxDef;
+                agclearFEA(mot)      = FEA.agclear;
+                MaxStressFEA(mot)    = FEA.MaxStress;
+                % MaxStress_prcFEA(mot)     = FEA.MaxStress_prc;
+            end
+
+            thetaCuActFEA(mot)       = FEA.outTherm.maxTcu;
+            thetaCuFEA(mot)          = FEA.outTherm.maxTcuAct;
 
             disp([' - motor ' int2str(mot) ' of ' int2str(length(xRaw)) ' evaluated with ' int2str(FEA.nFEA) ' FEA'])
         end
     else
         parfor mot=1:length(xRaw)
-            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC,flagMech,flagTherm);
+            FEA=FEAfixSimulation(RQ(:,mot),geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC,flagDemagUGO,flagMech,flagTherm);
             fdFEA(mot)      = FEA.fd;
             fqFEA(mot)      = FEA.fq;
             fMFEA(mot)      = FEA.fM;
@@ -427,11 +508,28 @@ if ~isempty(RQ)
             dPM0FEA(mot)    = FEA.dPM0;
             BminHWCFEA(mot) = FEA.BminHWC;
             dPMHWCFEA(mot)  = FEA.dPMHWC;
+            iUGOFEA(mot)    = FEA.iUGO;
+            BminUGOFEA(mot) = FEA.BminUGO;
+            dPMUGOFEA(mot)  = FEA.dPMUGO;
 
-            mechStress_radFEA{mot} = FEA.outMech.sigmaRadAvg;
-            mechStress_tanFEA{mot} = FEA.outMech.sigmaTanAvg;
-            thetaCuActFEA(mot)     = FEA.outTherm.maxTcuAct;
-            thetaCuFEA(mot)        = FEA.outTherm.maxTcu;
+            if (strcmp(geo.RotType,'Circular') || strcmp(geo.RotType,'Seg'))
+                MaxDefFEA(mot)       = FEA.MaxDef;
+                agclearFEA(mot)      = FEA.agclear;
+                MaxStressFEA(mot)    = FEA.MaxStress;
+                TanRibStressFEA(mot) = FEA.TanRibStress;
+                RadRibStressFEA(mot) = FEA.RadRibStress;
+                % MaxStress_prcFEA(mot)     = FEA.MaxStress_prc;
+                PrcTanStressFEA(mot) = FEA.PrcTanStress;
+                PrcRadStressFEA(mot) = FEA.PrcRadStress;
+            else
+                MaxDefFEA(mot)    = FEA.MaxDef;
+                agclearFEA(mot)   = FEA.agclear;
+                MaxStressFEA(mot) = FEA.MaxStress;
+                % MaxStress_prcFEA(mot)     = FEA.MaxStress_prc;
+            end
+
+            thetaCuActFEA(mot)    = FEA.outTherm.maxTcuAct;
+            thetaCuFEA(mot)       = FEA.outTherm.maxTcu;
 
             disp([' - motor ' int2str(mot) ' of ' int2str(length(xRaw)) ' evaluated with ' int2str(FEA.nFEA) ' FEA'])
         end
@@ -453,6 +551,19 @@ elseif strcmp(geo.RotType,'Vtype')
     k0Raw = (f0FEA-fMFEA)./(f0Mod-fMMod);
     kdRaw = (fdFEA-fMFEA)./(fdMod-fMMod);
     kqRaw = fqFEA./fqMod;
+elseif strcmp(geo.RotType,'EESM')
+    % if fdMod == fMMod
+    %     kdRaw = ones(size(fdFEA));
+    % else
+    %     kdRaw = (fdFEA-fMFEA)./(fdMod-fMMod);
+    % end
+    % kqRaw = fqFEA./fqMod;
+    % kmRaw = fMFEA./fMMod;
+    % k0Raw = zeros(size(fdFEA));
+    kqRaw = fqFEA./fqMod;
+    kdRaw = fdFEA./fdMod;
+    kmRaw = fMFEA./fMMod;
+    k0Raw = zeros(size(fdFEA));
 else
     kdRaw = fdFEA./fdMod;
     kqRaw = (fqFEA+fMFEA)./(fqMod+fMMod);
@@ -467,14 +578,18 @@ kBmin0Raw   = Bmin0FEA./Bmin0Mod;
 kdPM0Raw    = dPM0FEA./dPM0Mod;
 kBminHWCRaw = BminHWCFEA./BminHWCMod;
 kdPMHWCRaw  = dPMHWCFEA./dPMHWCMod;
+kiUGORaw    = iUGOFEA./iUGOMod;
+kBminUGORaw = BminUGOFEA./BminUGOMod;
+kdPMUGORaw  = dPMUGOFEA./dPMUGOMod;
 
-[Mraw,Mcol] = size(mechStress_radFEA);
-for ii=1:Mraw
-    for jj=1:Mcol
-        kmechradRaw{ii,jj}    = mechStress_radFEA{ii,jj}./mechStressRad{ii,jj} ;
-        kmechtanRaw{ii,jj}    = mechStress_tanFEA{ii,jj}./mechStressTan{ii,jj} ;
-    end
-end
+kMaxDefRaw       = MaxDefFEA./MaxDefMod;
+kagclearRaw      = agclearFEA./agclearMod;
+kMaxStressRaw    = MaxStressFEA./MaxStressMod;
+kTanRibStressRaw = TanRibStressFEA./TanRibStressMod;
+kRadRibStressRaw = RadRibStressFEA./RadRibStressMod;
+% kMaxStress_prcRaw      = MaxStress_prcFEA./MaxStress_prcMod;
+kPrcTanStressRaw = PrcTanStressFEA./PrcTanStressMod;
+kPrcRadStressRaw = PrcRadStressFEA./PrcRadStressMod;
 
 kthetaCuActRaw = thetaCuActFEA./thetaCuAct;
 kthetaCuRaw    = thetaCuFEA./thetaCu;
@@ -500,9 +615,19 @@ kBmin0Raw   = kBmin0Raw(~errorFlag);
 kdPM0Raw    = kdPM0Raw(~errorFlag);
 kBminHWCRaw = kBminHWCRaw(~errorFlag);
 kdPMHWCRaw  = kdPMHWCRaw(~errorFlag);
+kiUGORaw    = kiUGORaw(~errorFlag);
+kBminUGORaw = kBminUGORaw(~errorFlag);
+kdPMUGORaw  = kdPMUGORaw(~errorFlag);
 
-kmechradRaw    = kmechradRaw(~errorFlag);
-kmechtanRaw    = kmechtanRaw(~errorFlag);
+kMaxDefRaw       = kMaxDefRaw(~errorFlag);
+kagclearRaw      = kagclearRaw(~errorFlag);
+kMaxStressRaw    = kMaxStressRaw(~errorFlag);
+kTanRibStressRaw = kTanRibStressRaw(~errorFlag);
+kRadRibStressRaw = kRadRibStressRaw(~errorFlag);
+% kMaxStress_prcRaw      = kMaxStress_prcRaw(~errorFlag);
+kPrcTanStressRaw = kPrcTanStressRaw(~errorFlag);
+kPrcRadStressRaw = kPrcRadStressRaw(~errorFlag);
+
 kthetaCuActRaw = kthetaCuActRaw(~errorFlag);
 kthetaCuRaw    = kthetaCuRaw(~errorFlag);
 
@@ -520,9 +645,19 @@ if FEAfixN==1
     kdPM0    = kdPM0Raw*ones(size(xx));
     kBminHWC = kBminHWCRaw*ones(size(xx));
     kdPMHWC  = kdPMHWCRaw*ones(size(xx));
+    kiUGO    = kiUGORaw*ones(size(xx));
+    kBminUGO = kBminUGORaw*ones(size(xx));
+    kdPMUGO  = kdPMUGORaw*ones(size(xx));
 
-    kmechrad    = repmat(kmechradRaw,length(xx(:,1)),length(xx(1,:)));
-    kmechtan    = repmat(kmechtanRaw,length(xx(:,1)),length(xx(1,:)));
+    kMaxDef       = kMaxDefRaw*ones(size(xx));
+    kagclear      = kagclearRaw*ones(size(xx));
+    kMaxStress    = kMaxStressRaw*ones(size(xx));
+    kTanRibStress = kTanRibStressRaw*ones(size(xx));
+    kRadRibStress = kRadRibStressRaw*ones(size(xx));
+    % kMaxStress_prc      = kMaxStress_prcRaw*ones(size(xx));
+    kPrcTanStress = kPrcTanStressRaw*ones(size(xx));
+    kPrcRadStress = kPrcRadStressRaw*ones(size(xx));
+
     kthetaCuAct = kthetaCuActRaw*ones(size(xx));
     kthetaCu    = kthetaCuRaw*ones(size(xx));
 else
@@ -539,27 +674,19 @@ else
     kdPM0    = scatteredInterpolant(xRaw',bRaw',kdPM0Raw','linear');
     kBminHWC = scatteredInterpolant(xRaw',bRaw',kBminHWCRaw','linear');
     kdPMHWC  = scatteredInterpolant(xRaw',bRaw',kdPMHWCRaw','linear');
+    kiUGO    = scatteredInterpolant(xRaw',bRaw',kiUGORaw','linear');
+    kBminUGO = scatteredInterpolant(xRaw',bRaw',kBminUGORaw','linear');
+    kdPMUGO  = scatteredInterpolant(xRaw',bRaw',kdPMUGORaw','linear');
 
-    kmechrad = cell(size(xx));
-    kmechtan = cell(size(xx));
-    for ii=1:length(kmechradRaw{1,1})
-        fun = @(kmechradRaw) kmechradRaw(ii);
-        kmechradRawTmp = cellfun(fun,kmechradRaw);
-        kmechtanRawTmp = cellfun(fun,kmechtanRaw);
+    kMaxDef       = scatteredInterpolant(xRaw',bRaw',kMaxDefRaw','linear');
+    kagclear      = scatteredInterpolant(xRaw',bRaw',kagclearRaw','linear');
+    kMaxStress    = scatteredInterpolant(xRaw',bRaw',kMaxStressRaw','linear');
+    kTanRibStress = scatteredInterpolant(xRaw',bRaw',kTanRibStressRaw','linear');
+    kRadRibStress = scatteredInterpolant(xRaw',bRaw',kRadRibStressRaw','linear');
+    % kMaxStress_prc      = scatteredInterpolant(xRaw',bRaw',kMaxStress_prcRaw','linear');
+    kPrcTanStress = scatteredInterpolant(xRaw',bRaw',kPrcTanStressRaw','linear');
+    kPrcRadStress = scatteredInterpolant(xRaw',bRaw',kPrcRadStressRaw','linear');
 
-        kmechradTmp  = scatteredInterpolant(xRaw',bRaw',kmechradRawTmp','linear');
-        kmechtanTmp  = scatteredInterpolant(xRaw',bRaw',kmechtanRawTmp','linear');
-        kmechradTmp  = kmechradTmp(xx,bb);
-        kmechtanTmp  = kmechtanTmp(xx,bb);
-
-        [Mraw1,Mcol1] = size(kmechradTmp);
-        for jj=1:Mraw1
-            for kk=1:Mcol1
-                kmechrad{jj,kk} = [kmechrad{jj,kk} kmechradTmp(jj,kk)];
-                kmechtan{jj,kk} = [kmechtan{jj,kk} kmechtanTmp(jj,kk)];
-            end
-        end
-    end
     kthetaCuAct = scatteredInterpolant(xRaw',bRaw',kthetaCuActRaw','linear');
     kthetaCu    = scatteredInterpolant(xRaw',bRaw',kthetaCuRaw','linear');
 
@@ -576,7 +703,19 @@ else
     kdPM0    = kdPM0(xx,bb);
     kBminHWC = kBminHWC(xx,bb);
     kdPMHWC  = kdPMHWC(xx,bb);
-  
+    kiUGO    = kiUGO(xx,bb);
+    kBminUGO = kBminUGO(xx,bb);
+    kdPMUGO  = kdPMUGO(xx,bb);
+
+    kMaxDef       = kMaxDef(xx,bb);
+    kagclear      = kagclear(xx,bb);
+    kMaxStress    = kMaxStress(xx,bb);
+    kTanRibStress = kTanRibStress(xx,bb);
+    kRadRibStress = kRadRibStress(xx,bb);
+    % kMaxStress_prc      = kMaxStress_prc(xx,bb);
+    kPrcTanStress = kPrcTanStress(xx,bb);
+    kPrcRadStress = kPrcRadStress(xx,bb);
+
     kthetaCuAct = kthetaCuAct(xx,bb);
     kthetaCu    = kthetaCu(xx,bb);
 
@@ -599,9 +738,19 @@ FEAfixOut.kBmin0   = kBmin0;
 FEAfixOut.kdPM0    = kdPM0;
 FEAfixOut.kBminHWC = kBminHWC;
 FEAfixOut.kdPMHWC  = kdPMHWC;
+FEAfixOut.kiUGO    = kiUGO;
+FEAfixOut.kBminUGO = kBminUGO;
+FEAfixOut.kdPMUGO  = kdPMUGO;
 
-FEAfixOut.kmechrad    = kmechrad;
-FEAfixOut.kmechtan    = kmechtan;
+FEAfixOut.kMaxDef       = kMaxDef;
+FEAfixOut.kagclear      = kagclear;
+FEAfixOut.kMaxStress    = kMaxStress;
+FEAfixOut.kTanRibStress = kTanRibStress;
+FEAfixOut.kRadRibStress = kRadRibStress;
+% FEAfixOut.kMaxStress_prc      = kMaxStress_prc;
+FEAfixOut.kPrcTanStress = kPrcTanStress;
+FEAfixOut.kPrcRadStress = kPrcRadStress;
+
 FEAfixOut.kthetaCuAct = kthetaCuAct;
 FEAfixOut.kthetaCu    = kthetaCu;
 
@@ -624,4 +773,3 @@ disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp(' ')
 
 %keyboard
-

@@ -23,9 +23,21 @@ function [kw, th0] = calcKwTh0(geo)
 % refers to phase 1 also for multi-three-phase
 
 WinTable = geo.win.avv;
-Q = 6*geo.q*geo.p*geo.win.n3phase; 
+
+if(isnan(geo.win.n3phase))
+    nphases = 5;
+    Q = 2*geo.q*geo.p*nphases;
+else
+    Q = 6*geo.q*geo.p*geo.win.n3phase;
+end
+
 p = geo.p;
-n3ph = geo.win.n3phase;
+
+if(isnan(geo.win.n3phase))
+    n3ph = 1;
+else
+    n3ph = geo.win.n3phase;
+end
 
 % Star of slots
 [nLayers,nSlots] = size(WinTable);

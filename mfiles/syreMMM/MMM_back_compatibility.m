@@ -329,6 +329,17 @@ if ~isfield(motorModel.WaveformSetup,'IronLossFlag')
     flag=1;
 end
 
+if ~isfield(motorModel,'VFMdata')
+    motorModel.VFMdata.Control    = [];
+    motorModel.VFMdata.data.Demag = [];
+    motorModel.VFMdata.data.Remag = [];
+    
+    if Dflag
+        disp('- Added iron, PM and AC loss for SC evaluation')
+    end
+    flag=1;
+end
+
 
 % message in command window if some data are added
 if flag && Dflag
@@ -336,4 +347,35 @@ if flag && Dflag
     %     title = 'WARNING';
     %     f = warndlg(msg,title,'modal');
     warning(msg);
+end
+
+% GUI updated for EESM Efficiency Map
+if ~isfield(motorModel.data,'if0')
+    if isfield(motorModel.dataSet,'TypeOfRotor')
+        if strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+            motorModel.data.if0      = motorModel.per.if0;
+            motorModel.data.Vr       = motorModel.data.Vdc;
+            motorModel.data.Nr       = motorModel.geo.win.Nf;
+            if ~isfield(motorModel.dataSet,'RotorEndWindingsLength')
+                motorModel.dataSet.RotorEndWindingsLength = NaN;
+            end
+            motorModel.data.lendf = motorModel.dataSet.RotorEndWindingsLength;
+            motorModel.data.tempCoRo = motorModel.data.tempCu;
+            motorModel.data.Rf       = motorModel.per.Rf;
+        else
+            motorModel.data.if0      = NaN;
+            motorModel.data.Vr       = NaN;
+            motorModel.data.Nr       = NaN;
+            motorModel.data.lendf    =  NaN;
+            motorModel.data.tempCoRo = NaN;
+            motorModel.data.Rf       = NaN;
+        end
+    else
+        motorModel.data.if0      = NaN;
+        motorModel.data.Vr       = NaN;
+        motorModel.data.Nr       = NaN;
+        motorModel.data.lendf    =  NaN;
+        motorModel.data.tempCoRo = NaN;
+        motorModel.data.Rf       = NaN;
+    end
 end

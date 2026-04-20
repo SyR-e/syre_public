@@ -39,6 +39,7 @@ addpath(genpath(fullfile(syreDirectory,'mfiles','MaterialLibraryFunctions')));
 addpath(genpath(fullfile(syreDirectory,'mfiles','StructuralPDE')));
 addpath(genpath(fullfile(syreDirectory,'mfiles','syreMMM')));
 addpath(genpath(fullfile(syreDirectory,'mfiles','OctaveFunctions')));
+addpath(genpath(fullfile(syreDirectory,'mfiles','ZenodoDatabaseFunctions')));
 
 addpath(fullfile(syreDirectory,'materialLibrary'));
 addpath(fullfile(syreDirectory,'motorExamples'));

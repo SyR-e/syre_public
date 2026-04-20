@@ -54,7 +54,7 @@ else
     tRef     = dataSet.SlotConductorTemperature;
 end
 
-[~,~,~,per,mat] = data0(dataSet);
+[~,~,geo,per,mat] = data0(dataSet);
 
 
 % resFolder
@@ -82,45 +82,45 @@ disp('Slot model evaluation...')
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
 % DC simulation
-disp('DC FEMM simulation...')
+disp('DC simulation...')
 tic
-outDC = skinEffect_point(20,0,per,mat,[pathname filename]);
-time = toc;
+outDC = skinEffect_point(20,0,geo,per,mat,[pathname filename]);
+timeDC = toc;
 outDC.R = outDC.P/outDC.I^2;
-disp(['DC FEMM simulations done in ' num2str(time) ' s'])
+disp(['DC simulations done in ' num2str(timeDC) ' s'])
 
 % AC simulations
 ppState = parallelComputingCheck(1);
 
-disp('AC FEMM simulations...')
+disp('AC simulations...')
 if ppState==0
-    estTime = time*length(fRef);
+    estTime = timeDC*length(fRef);
 else
-    estTime = time*length(fRef)/ppState;
+    estTime = timeDC*length(fRef)/ppState;
 end
 disp(['Estimated simulation time: ' num2str(estTime) ' s']);
 tic
 if ppState==0
     for ii=1:length(fRef)
-        [OUT{ii}]=skinEffect_point(tRef(ii),fRef(ii),per,mat,[pathname filename]);
+        [OUT{ii}]=skinEffect_point(tRef(ii),fRef(ii),geo,per,mat,[pathname filename]);
     end
 else
     parfor ii=1:length(fRef)
-        [OUT{ii}]=skinEffect_point(tRef(ii),fRef(ii),per,mat,[pathname filename]);
+        [OUT{ii}]=skinEffect_point(tRef(ii),fRef(ii),geo,per,mat,[pathname filename]);
     end
 end
-time=toc;
-disp(['AC FEMM simulations done in ' num2str(time) ' s'])
+timeAC=toc;
+disp(['AC simulations done in ' num2str(timeAC) ' s'])
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 disp('Slot model evaluated!')
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
-[~,dirName] = skinEffect_point(max(tRef),0,per,mat,[pathname filename]);
+[~,dirName] = skinEffect_point(max(tRef),0,geo,per,mat,[pathname filename]);
 copyfile([dirName 'slot_0.fem'],[resFolder filename(1:end-4) '_0Hz.fem'])
 copyfile([dirName 'slot_0.ans'],[resFolder filename(1:end-4) '_0Hz.ans'])
 
-[~,dirName] = skinEffect_point(max(tRef),max(fRef),per,mat,[pathname filename]);
+[~,dirName] = skinEffect_point(max(tRef),max(fRef),geo,per,mat,[pathname filename]);
 copyfile([dirName 'slot_0.fem'],[resFolder filename(1:end-4) '_' int2str(max(fRef)) 'Hz.fem'])
 copyfile([dirName 'slot_0.ans'],[resFolder filename(1:end-4) '_' int2str(max(fRef)) 'Hz.ans'])
 
@@ -145,14 +145,16 @@ results.R = results.P./results.I.^2;
 results.L = results.Q./results.I.^2./(2*pi*results.f);
 results.k = results.R./(outDC.R.*(1+mat.SlotCond.alpha.*(results.T-results.T0)));
 
-results.I = reshape(results.I,[nR,nC]);
-results.f = reshape(results.f,[nR,nC]);
-results.P = reshape(results.P,[nR,nC]);
-results.Q = reshape(results.Q,[nR,nC]);
-results.R = reshape(results.R,[nR,nC]);
-results.L = reshape(results.L,[nR,nC]);
-results.k = reshape(results.k,[nR,nC]);
-results.T = reshape(results.T,[nR,nC]);
+results.I      = reshape(results.I,[nR,nC]);
+results.f      = reshape(results.f,[nR,nC]);
+results.P      = reshape(results.P,[nR,nC]);
+results.Q      = reshape(results.Q,[nR,nC]);
+results.R      = reshape(results.R,[nR,nC]);
+results.L      = reshape(results.L,[nR,nC]);
+results.k      = reshape(results.k,[nR,nC]);
+results.T      = reshape(results.T,[nR,nC]);
+results.timeDC = timeDC;
+results.timeAC = timeAC;
 
 save([resFolder 'skinEffectResults.mat'],'results','OUT','outDC','dataSet');
 

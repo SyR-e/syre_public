@@ -23,7 +23,7 @@ Fq   = motorModel.FluxMap_dq.Fq;
 T    = motorModel.FluxMap_dq.T;
 dT   = motorModel.FluxMap_dq.dT;
 dTpp = motorModel.FluxMap_dq.dTpp;
-if strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+if strcmp(motorModel.data.motorType,'EE')
     Ir = motorModel.FluxMap_dq.Ir;
     Fr = motorModel.FluxMap_dq.Fr;
 end
@@ -102,7 +102,7 @@ for ii=1:length(figNames)
     set(hfig(ii),'Name',figNames{ii})
 end
 
-if ~strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+if ~strcmp(motorModel.data.motorType,'EE')
     surf(hax(1),Id,Iq,Fd,'FaceColor','interp','EdgeColor','none')
     contour3(hax(1),Id,Iq,Fd,'EdgeColor','k','ShowText','off')
     surf(hax(2),Id,Iq,Fq,'FaceColor','interp','EdgeColor','none')
@@ -156,7 +156,7 @@ for ii=6:11
 end
 
 %% Curves
-if ~strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+if ~strcmp(motorModel.data.motorType,'EE')
     hfig(h_count+1) = figure();
     figSetting()
     [~, index] = min(abs(Iq(:,1)));

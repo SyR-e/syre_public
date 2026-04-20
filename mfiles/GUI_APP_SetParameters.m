@@ -83,6 +83,12 @@ set(app.CharcurrentButton,'Enable','on','Value',f.ichf);
 set(app.HWCSCcurrentButton,'Enable','on','Value',f.scf);
 set(app.DemagratedButton,'Enable','on','Value',f.demag0);
 set(app.DemagHWCButton,'Enable','on','Value',f.demagHWC);
+if ~isfield(f, 'demagUGO')
+    f.demagUGO = 0;
+end
+set(app.DemagUGOButton,'Enable','on','Value',f.demagUGO);
+
+set(app.MechstressButton,'Enable','on','Value',f.Mech);
 
 %% Stator panel
 set(app.ToothLengEdit,'Enable','on','Value',num2str(dataSet.ToothLength));
@@ -399,7 +405,7 @@ set(app.MassWindingEditField,'Enable','on','Editable','off','Value',num2str(data
 set(app.MassStatorIronEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassStatorIron));
 set(app.MassRotorIronEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassRotorIron));
 set(app.MassFluxBarrierEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassMagnet));
-set(app.MassTotalEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassWinding+dataSet.MassStatorIron+dataSet.MassRotorIron+dataSet.MassMagnet));
+set(app.MassTotalEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassWinding+dataSet.MassStatorIron+dataSet.MassRotorIron+dataSet.MassMagnet+dataSet.MassRotorBar));
 set(app.RotorInertiaEditField,'Enable','on','Editable','off','Value',num2str(dataSet.RotorInertia));
 set(app.MassBarEditField,'Enable','on','Editable','off','Value',num2str(dataSet.MassRotorBar));
 
@@ -495,8 +501,12 @@ set(app.OptimizationtypeDropDown,'Enable','on','Value',dataSet.optType);
 set(app.FieldbystatorcurrentdensityEditField,'Enable','on','Value',num2str(dataSet.FieldStatorCurrentDensityRatio))
 % opt variables and bounds
 if strcmp(dataSet.TypeOfRotor,'SPM')
-    set(app.Dalpha1BouCheck,'Enable','off','Value',0);
-    set(app.Alpha1BouEdit,'Enable','off');
+    set(app.Dalpha1BouCheck,'Enable','on','Value',dataSet.Dalpha1BouCheck);
+    if dataSet.Dalpha1BouCheck
+        set(app.Alpha1BouEdit,'Enable','on');
+    else
+        set(app.Alpha1BouEdit,'Enable','off');
+    end
     set(app.DalphaBouCheck,'Enable','off','Value',0);
     set(app.DeltaAlphaBouEdit,'Enable','off','Value',mat2str(dataSet.DeltaAlphaBou));
 else
@@ -764,6 +774,7 @@ if strcmp(dataSet.TypeOfRotor,'EESM')
     else
         set(app.PoleRotHeadAngleBou,'Enable','off');
     end
+    set(app.FieldbystatorcurrentdensityEditField,'Enable','on')
 else
     set(app.YokeWidthBouCheck,'Enable','off','Value',0);
     set(app.PoleBodyHeightBouCheck,'Enable','off','Value',0);
@@ -782,6 +793,8 @@ else
     set(app.CoilHeightBou,'Enable','off');
     set(app.PoleRotHeadFilletBou,'Enable','off');
     set(app.PoleRotHeadAngleBou,'Enable','off');
+
+    set(app.FieldbystatorcurrentdensityEditField,'Enable','off')
 end
 
 
@@ -858,6 +871,13 @@ else
     set(app.MaxExpNoLoadFluxEdit,'Enable','off');
 end
 
+set(app.TorqueOptCheck,'Value',dataSet.TorqueOptCheck);
+if dataSet.TorqueOptCheck
+    set(app.MinExpTorEdit,'Enable','on');
+else
+    set(app.MinExpTorEdit,'Enable','off');
+end
+
 set(app.StatorJoulelossWButton,'Value',dataSet.StatorJouleLossOptCheck);
 if dataSet.StatorJouleLossOptCheck
     set(app.MaxExpPjs,'Enable','on');
@@ -872,8 +892,16 @@ else
     set(app.MaxExpPjf,'Enable','off');
 end
 
-set(app.MechStressOptCheck,'Value',dataSet.MechStressOptCheck);
+set(app.VonMisesstressMPaButton,'Value',dataSet.VonMisesstressOptCheck); %cambio MechStressOptCheck con VonMisesstress
+if dataSet.VonMisesstressOptCheck
+    set(app.MaxExpMechStress,'Enable','on');
+else
+    set(app.MaxExpMechStress,'Enable','off');
+end
+
+% set(app.MechStressOptCheck,'Value',0,'Enable','off');
 % set(app.flag_OptCurrConst,'Value',dataSet.flag_OptCurrConst);
+
 switch dataSet.flag_OptCurrConst
     case 0
         set(app.flag_OptCurrConst,'Value','Constant kj');
@@ -889,6 +917,7 @@ end
 % end
 
 
+
 app.MinExpTorEdit.Value          = num2str(dataSet.MinExpTorque);
 app.MaxExpeRippleTorEdit.Value   = num2str(dataSet.MaxRippleTorque);
 app.MassCuEdit.Value             = num2str(dataSet.MaxCuMass);
@@ -898,7 +927,7 @@ app.MinExpPowerFactorEdit.Value  = num2str(dataSet.MinExpPowerFactor);
 app.MaxExpNoLoadFluxEdit.Value   = num2str(dataSet.MaxExpNoLoadFlux);
 app.MaxExpPjs.Value              = num2str(dataSet.MaxExpPjs);
 app.MaxExpPjf.Value              = num2str(dataSet.MaxExpPjf);
-%app.MaxExpMechStressEdit.Value   = num2str(dataSet.MaxExpMechStress);
+app.MaxExpMechStress.Value   = num2str(dataSet.MaxExpMechStress);
 
 set(app.CurrentOverLoadEdit,'Value',num2str(dataSet.CurrOverLoad));
 
@@ -911,7 +940,7 @@ end
 %% Simulation panel
 set(app.SpanEltPPEdit,'Value',num2str(dataSet.AngularSpanPP));
 set(app.GammaPPEdit,'Value',mat2str(dataSet.GammaPP));
-set(app.CurrLoPPEdit,'Value',mat2str(dataSet.CurrLoPP));
+set(app.CurrLoPPEdit,'Value',mat2str(round(dataSet.CurrLoPP,5,'significant')));
 set(app.CurrentPP,'Value',mat2str(round(dataSet.CurrLoPP*dataSet.RatedCurrent,1)));
 set(app.NumOfRotorPosiPPEdit,'Value',num2str(dataSet.NumOfRotPosPP));
 set(app.BrPPEdit,'Value',mat2str(round(dataSet.BrPP,3)));
@@ -930,7 +959,10 @@ set(app.Active3phasesetsEditField,'Value',mat2str(dataSet.Active3PhaseSets));
 %Custom Current
 set(app.CustomCurrentFile,'Value',dataSet.CustomCurrentFilename);
 set(app.AxistypeDropDown,'Value',dataSet.axisType);
-set(app.FieldcurrentAEditField,'Enable','on','Value',mat2str(dataSet.FieldCurrent)); % EESM
+set(app.FieldcurrentloadpuEditField,'Enable','on','Value',mat2str(dataSet.FieldCurrLoPP)); % EESM
+set(app.FieldcurrentAEditField,'Enable','on','Value',mat2str(round(dataSet.FieldCurrLoPP*dataSet.RatedFieldCurrent,4,'significant'))); % EESM
+% set(app.FieldcurrentAEditField,'Enable','on','Value',mat2str(round(dataSet.FieldCurrent,4,'significant'))); % EESM
+set(app.OffsetcurrentAEditField,'Enable','on','Value',mat2str(dataSet.SimulatedCurrentOffset));
 
 switch dataSet.EvalType
     case 'singt'
@@ -951,6 +983,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','on')
         set(app.COMSOLButton_2,'Enable','on')
+        set(app.OffsetcurrentAEditField,'Enable','on');
     case 'singm'
         set(app.EvalTypePopUp,'Enable','on','Value','Flux Map');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -970,6 +1003,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','on')
         set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','off');
     case 'demagArea'
         set(app.EvalTypePopUp,'Enable','on','Value','Demagnetization Analysis');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -989,6 +1023,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','off');
     case 'idemag'
         set(app.EvalTypePopUp,'Enable','on','Value','Demagnetization Curve');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -1008,6 +1043,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','off');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','off');
     case 'idemagDQ'
         set(app.EvalTypePopUp,'Enable','on','Value','Demagnetization Curve DQ');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -1027,6 +1063,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','off');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','off');
     case 'ichval'
         set(app.EvalTypePopUp,'Enable','on','Value','Characteristic Current');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -1046,6 +1083,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','off');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','off');
     case 'flxdn'
         set(app.EvalTypePopUp,'Enable','on','Value','Flux Density Analysis');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -1065,25 +1103,27 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','off')
-    case 'izero'
-        set(app.EvalTypePopUp,'Enable','on','Value','Current Offset');
-        set(app.SpanEltPPEdit,'Enable','on');
-        set(app.GammaPPEdit,'Enable','on');
-        set(app.CurrLoPPEdit,'Enable','on');
-        set(app.CurrentPP,'Enable','on');
-        set(app.NumOfRotorPosiPPEdit,'Enable','on');
-        set(app.BrPPEdit,'Enable','on');
-        set(app.TempPPEdit,'Enable','on');
-        set(app.NGridPPEdit,'Enable','off');
-        set(app.EvaluatedSpeedEdit,'Enable','off');
-        set(app.StartPProMagnetPush,'Enable','off');
-        set(app.StartPProAnsysPush,'Enable','off');
-        set(app.MapQuadrantsPopUp,'Enable','off');
-        set(app.Active3phasesetsEditField,'Enable','on');
-        set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
-        set(app.AxistypeDropDown,'Enable','on');
-        set(app.JMAGButton,'Enable','off')
-        set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','on');
+    % case 'izero'
+    %     set(app.EvalTypePopUp,'Enable','on','Value','Current Offset');
+    %     set(app.SpanEltPPEdit,'Enable','on');
+    %     set(app.GammaPPEdit,'Enable','on');
+    %     set(app.CurrLoPPEdit,'Enable','on');
+    %     set(app.CurrentPP,'Enable','on');
+    %     set(app.NumOfRotorPosiPPEdit,'Enable','on');
+    %     set(app.BrPPEdit,'Enable','on');
+    %     set(app.TempPPEdit,'Enable','on');
+    %     set(app.NGridPPEdit,'Enable','off');
+    %     set(app.EvaluatedSpeedEdit,'Enable','off');
+    %     set(app.StartPProMagnetPush,'Enable','off');
+    %     set(app.StartPProAnsysPush,'Enable','off');
+    %     set(app.MapQuadrantsPopUp,'Enable','off');
+    %     set(app.Active3phasesetsEditField,'Enable','on');
+    %     set(app.CustomCurrentSwitch,'Value','Off');     % no custom current
+    %     set(app.AxistypeDropDown,'Enable','on');
+    %     set(app.JMAGButton,'Enable','off')
+    %     set(app.COMSOLButton_2,'Enable','off')
+    %     set(app.OffsetcurrentAEditField,'Enable','on');
     case 'force'
         set(app.EvalTypePopUp,'Enable','on','Value','Airgap Force');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -1103,6 +1143,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','on');
     case 'singtIron'
         set(app.EvalTypePopUp,'Enable','on','Value','Iron Loss - Single Point');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -1121,6 +1162,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','on')
         set(app.COMSOLButton_2,'Enable','on')
+        set(app.OffsetcurrentAEditField,'Enable','on');
     case 'singmIron'
         set(app.EvalTypePopUp,'Enable','on','Value','Iron Loss - Flux Map');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -1140,6 +1182,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','on')
         set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','off');
     case 'structural'
         set(app.EvalTypePopUp,'Enable','on','Value','Structural Analysis');
         set(app.SpanEltPPEdit,'Enable','off');
@@ -1158,6 +1201,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','off');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','on')
+        set(app.OffsetcurrentAEditField,'Enable','off');
     case 'shortCircuit'
         set(app.EvalTypePopUp,'Enable','on','Value','HWC Short-Circuit Current');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -1177,6 +1221,7 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','off');
     case 'steadyStateShortCircuit'
         set(app.EvalTypePopUp,'Enable','on','Value','Steady-State Short Circuit');
         set(app.SpanEltPPEdit,'Enable','on');
@@ -1196,10 +1241,14 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','off')
+        set(app.OffsetcurrentAEditField,'Enable','off');
 end
 
 if strcmp(dataSet.TypeOfRotor,'EESM')
     set(app.AxistypeDropDown,'Enable','off');
+else
+    set(app.FieldcurrentloadpuEditField,'Enable','off');
+    set(app.FieldcurrentAEditField,'Enable','off');
 end
 
 set(app.MeshEdit,'Enable','on','Value',num2str(dataSet.Mesh));
@@ -1233,6 +1282,20 @@ set(app.TempCuLimitEdit,'Enable','on','Value',num2str(dataSet.TempCuLimit));
 set(app.TransientTimeEditField,'Enable','on','Value',num2str(dataSet.TransTime));
 set(app.SimulatedRatedCurrent,'Enable','on','Enable','on','Value',num2str(dataSet.SimIth0),'Editable','off');
 set(app.SimulatedTransientCurrent,'Enable','on','Enable','on','Value',num2str(dataSet.SimIthpk),'Editable','off');
+
+%% Utilities
+if dataSet.XFEMMcreation
+    set(app.XFEMMcreationButton,'Value',true,'Text','XFEMM')
+else
+    set(app.XFEMMcreationButton,'Value',false,'Text','FEMM')
+end
+
+if dataSet.XFEMMsimulation
+    set(app.XFEMMsimulationButton,'Value',true,'Text','XFEMM')
+else
+    set(app.XFEMMsimulationButton,'Value',false,'Text','FEMM')
+end
+
 
 %% Scaling
 set(app.ScaleCheck,'Value',dataSet.ScaleCheck);

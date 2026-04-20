@@ -34,15 +34,16 @@ if nargin()==1
 end
 
 clc,
-[~, ~, geo, per, mat] = data0(dataSet);
+[~, ~, geo, per, mat] = data0(dataSet); %#ok<ASGLU>
 
 % Default syrmDesign flag
 dataSet.syrmDesignFlag.ks = 1;  % always account for saturation factor
 if strcmp(dataSet.FluxBarrierMaterial,'Air')
-    dataSet.syrmDesignFlag.ichf     = 0;  % do not compute ich if SyRM
-    dataSet.syrmDesignFlag.scf      = 0;  % do not compute iHWC if SyRM
-    dataSet.syrmDesignFlag.demag0   = 0;  % do not compute demagnetization if SyRM
-    dataSet.syrmDesignFlag.demagHWC = 0;  % do not compute demagnetization if SyRM
+    dataSet.syrmDesignFlag.ichf        = 0;  % do not compute ich if SyRM
+    dataSet.syrmDesignFlag.scf         = 0;  % do not compute iHWC if SyRM
+    dataSet.syrmDesignFlag.demag0      = 0;  % do not compute demagnetization if SyRM
+    dataSet.syrmDesignFlag.demagHWC    = 0;  % do not compute demagnetization if SyRM
+    dataSet.syrmDesignFlag.demagUGO    = 0;  % do not compute demagnetization if SyRM
 end
 
 dataSet.syrmDesignFlag.mech  = 0;   %if 1, structural FEA are run in the FEAfix points and the avg stress in the ribs is retrieved
@@ -66,26 +67,47 @@ else
     flagIM = 0;
 end
 
+if (dataSet.FEAfixN==8 || dataSet.FEAfixN==16) && strcmp(dataSet.TypeOfRotor,'EESM') && isempty(gcp('nocreate'))
+    parpool(8)
+end
+
 map = xbPlane_analyticalDesign(dataSet);
 
 % FEAfix
 if dataSet.FEAfixN==0
-    map.kd        = ones(size(map.xx));
-    map.kq        = ones(size(map.xx));
-    map.km        = ones(size(map.xx));
-    map.k0        = ones(size(map.xx));
-    map.kg        = ones(size(map.xx));
-    map.dg        = zeros(size(map.xx));
-    map.kmPM      = zeros(size(map.xx));
-    map.kich      = zeros(size(map.xx));
-    map.kiHWC     = zeros(size(map.xx));
-    map.kBmin0    = zeros(size(map.xx));
-    map.kdPM0     = zeros(size(map.xx));
-    map.kBminHWC  = zeros(size(map.xx));
-    map.kdPMHWC   = zeros(size(map.xx));
+    map.kd       = ones(size(map.xx));
+    map.kq       = ones(size(map.xx));
+    map.km       = ones(size(map.xx));
+    map.k0       = ones(size(map.xx));
+    map.kg       = ones(size(map.xx));
+    map.dg       = zeros(size(map.xx));
+    map.kmPM     = zeros(size(map.xx));
+    map.kich     = zeros(size(map.xx));
+    map.kiHWC    = zeros(size(map.xx));
+    map.kBmin0   = zeros(size(map.xx));
+    map.kdPM0    = zeros(size(map.xx));
+    map.kBminHWC = zeros(size(map.xx));
+    map.kdPMHWC  = zeros(size(map.xx));
+    map.kiUGO    = zeros(size(map.xx));
+    map.kBminUGO = zeros(size(map.xx));
+    map.kdPMUGO  = zeros(size(map.xx));
 
-%     map.kmechrad      = cell(size(map.xx));
-%     map.kmechtan      = cell(size(map.xx));
+    if (strcmp(dataSet.TypeOfRotor,'Circular')||strcmp(dataSet.TypeOfRotor,'Seg'))
+        map.kMaxDef       = zeros(size(map.xx));
+        map.kagclear      = zeros(size(map.xx));
+        map.kMaxStress    = zeros(size(map.xx));
+        map.kTanRibStress = zeros(size(map.xx));
+        map.kRadRibStress = zeros(size(map.xx));
+        % map.kMaxStress_prc       = zeros(size(map.xx));
+        map.kPrcTanStress = zeros(size(map.xx));
+        map.kPrcRadStress = zeros(size(map.xx));
+    else
+        map.kMaxDef    = zeros(size(map.xx));
+        map.kagclear   = zeros(size(map.xx));
+        map.kMaxStress = zeros(size(map.xx));
+        % map.kMaxStress_prc       = zeros(size(map.xx));
+    end
+
     map.ktempCuMax    = zeros(size(map.xx));
     map.ktempCuMaxAct = zeros(size(map.xx));
 
@@ -106,9 +128,26 @@ else
     map.kdPM0    = FEAfixOut.kdPM0;
     map.kBminHWC = FEAfixOut.kBminHWC;
     map.kdPMHWC  = FEAfixOut.kdPMHWC;
+    map.kiUGO    = FEAfixOut.kiUGO;
+    map.kBminUGO = FEAfixOut.kBminUGO;
+    map.kdPMUGO  = FEAfixOut.kdPMUGO;
 
-    map.kmechrad      = FEAfixOut.kmechrad;
-    map.kmechtan      = FEAfixOut.kmechtan;
+    if (strcmp(dataSet.TypeOfRotor,'Circular')||strcmp(dataSet.TypeOfRotor,'Seg'))
+        map.kMaxDef       = FEAfixOut.kMaxDef;
+        map.kagclear      = FEAfixOut.kagclear;
+        map.kMaxStress    = FEAfixOut.kMaxStress;
+        map.kTanRibStress = FEAfixOut.kTanRibStress;
+        map.kRadRibStress = FEAfixOut.kRadRibStress;
+        % map.kMaxStress_prc       = FEAfixOut.kMaxStress_prc;
+        map.kPrcTanStress = FEAfixOut.kPrcTanStress;
+        map.kPrcRadStress = FEAfixOut.kPrcRadStress;
+    else
+        map.kMaxDef    = FEAfixOut.kMaxDef;
+        map.kagclear   = FEAfixOut.kagclear;
+        map.kMaxStress = FEAfixOut.kMaxStress;
+        % map.kMaxStress_prc       = FEAfixOut.kMaxStress_prc;
+    end
+
     map.ktempCuMax    = FEAfixOut.kthetaCu;
     map.ktempCuMaxAct = FEAfixOut.kthetaCuAct;
 
@@ -117,7 +156,7 @@ else
 end
 
 if strcmp(dataSet.TypeOfRotor,'SPM')
-    map.fd      = map.fd.*map.kd;
+    map.fd         = map.fd.*map.kd;
     % map.fd  = map.fM.*map.km+(map.fd-map.fM).*map.kd;
     map.fq      = map.fq.*map.kq;
     map.fM      = map.fM.*map.km;
@@ -133,6 +172,14 @@ if strcmp(dataSet.TypeOfRotor,'SPM')
     map.dPM0    = map.dPM0.*map.kdPM0;
     map.BminHWC = map.BminHWC.*map.kBminHWC;
     map.dPMHWC  = map.dPMHWC.*map.kdPMHWC;
+    map.iUGO    = map.iUGO.*map.kiUGO;
+    map.BminUGO = map.BminUGO.*map.kBminUGO;
+    map.dPMUGO  = map.dPMUGO.*map.kdPMUGO;
+
+    map.MaxDef    = map.MaxDef.*map.kMaxDef;
+    map.agclear   = map.agclear.*map.kagclear;
+    map.MaxStress = map.MaxStress.*map.kMaxStress;
+    % map.MaxStress_prc      = map.MaxStress_prc.*map.kMaxStress_prc;
 elseif strcmp(dataSet.TypeOfRotor,'Vtype')
     map.fd  = map.fM.*map.km+(map.fd-map.fM).*map.kd;
     map.fq  = map.fq.*map.kq;
@@ -142,6 +189,34 @@ elseif strcmp(dataSet.TypeOfRotor,'Vtype')
     map.iq = map.iAmp.*sin(map.gamma*pi/180);
     map.T   = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id)*geo.win.n3phase;
     map.ich = map.ich.*map.km./map.k0;
+elseif strcmp(dataSet.TypeOfRotor,'EESM')
+    map.fd      = map.fd.*map.kd;
+    % map.fq       = (map.fq+map.fM).*map.kq - map.fM.*map.km;
+    % map.fd         = (map.fd-map.fM).*map.kd + map.fM.*map.km;
+    map.fq      = map.fq.*map.kq;
+    map.gamma   = map.gamma+map.dg;
+    map.id      = map.iAmp.*cos(map.gamma*pi/180);
+    map.iq      = map.iAmp.*sin(map.gamma*pi/180);
+    map.T       = 3/2*geo.p*(map.fd.*map.iq-map.fq.*map.id)*geo.win.n3phase;
+    map.PF      = abs(sin(atan(map.iq./map.id)-atan(map.fq./map.fd)));
+    map.fM      = map.fM.*map.km;
+    map.mPM     = map.mPM.*map.kmPM;
+    map.ich     = map.ich.*map.kich;
+    map.iHWC    = map.iHWC.*map.kiHWC;
+    map.Bmin0   = map.Bmin0.*map.kBmin0;
+    map.dPM0    = map.dPM0.*map.kdPM0;
+    map.BminHWC = map.BminHWC.*map.kBminHWC;
+    map.dPMHWC  = map.dPMHWC.*map.kdPMHWC;
+    map.iUGO    = map.iUGO.*map.kiUGO;
+    map.BminUGO = map.BminUGO.*map.kBminUGO;
+    map.dPMUGO  = map.dPMUGO.*map.kdPMUGO;
+
+    map.MaxDef    = map.MaxDef.*map.kMaxDef;
+    map.agclear   = map.agclear.*map.kagclear;
+    map.MaxStress = map.MaxStress.*map.kMaxStress;
+
+    map.tempCuMax     = (map.dTempCu+per.temphous).*map.ktempCuMax;
+    map.tempCuMaxAct  = (map.dTempCu+per.temphous).*map.ktempCuMaxAct;
 else
     map.fd      = map.fd.*map.kd;
     map.fq      = (map.fq+map.fM).*map.kq-map.fM.*map.km;
@@ -158,16 +233,19 @@ else
     map.dPM0    = map.dPM0.*map.kdPM0;
     map.BminHWC = map.BminHWC.*map.kBminHWC;
     map.dPMHWC  = map.dPMHWC.*map.kdPMHWC;
+    map.iUGO    = map.iUGO.*map.kiUGO;
+    map.BminUGO = map.BminUGO.*map.kBminUGO;
+    map.dPMUGO  = map.dPMUGO.*map.kdPMUGO;
 
-    %     map.mechStressRad = map.mechStressRad.*map.kmechrad;
-    %     map.mechStressTan = map.mechStressTan.*map.kmechtan;
-    [Mraw,Mcol] = size(map.mechStressRad);
-    for ii=1:Mraw
-        for jj=1:Mcol
-            map.mechStressRad{ii,jj}    = map.mechStressRad{ii,jj}.*map.kmechrad{ii,jj};
-            map.mechStressTan{ii,jj}    = map.mechStressTan{ii,jj}.*map.kmechtan{ii,jj};
-        end
-    end
+    map.MaxDef       = map.MaxDef.*map.kMaxDef;
+    map.agclear      = map.agclear.*map.kagclear;
+    map.MaxStress    = map.MaxStress.*map.kMaxStress;
+    map.TanRibStress = map.TanRibStress.*map.kTanRibStress;
+    map.RadRibStress = map.RadRibStress.*map.kRadRibStress;
+    % map.MaxStress_prc      = map.MaxStress_prc.*map.kMaxStress_prc;
+    map.PrcTanStress = map.PrcTanStress.*map.kPrcTanStress;
+    map.PrcRadStress = map.PrcRadStress.*map.kPrcRadStress;
+
     map.tempCuMax     = (map.dTempCu+per.temphous).*map.ktempCuMax;
     map.tempCuMaxAct  = (map.dTempCu+per.temphous).*map.ktempCuMaxAct;
 end
@@ -180,6 +258,8 @@ map.NsIHWC  = map.iHWC*dataSet.TurnsInSeries;
 map.Ach     = (6*dataSet.TurnsInSeries*map.ich)./(2*pi*dataSet.StatorOuterRadius.*map.xx);
 map.AHWC    = (6*dataSet.TurnsInSeries*map.iHWC)./(2*pi*dataSet.StatorOuterRadius.*map.xx);
 map.fUGOpu  = abs(map.fd+j*map.fq)./map.fM;
+map.NsIUGO  = map.iUGO*dataSet.TurnsInSeries;
+map.AHWC    = (6*dataSet.TurnsInSeries*map.iUGO)./(2*pi*dataSet.StatorOuterRadius.*map.xx);
 
 if ~dataSet.syrmDesignFlag.demag0
     map = rmfield(map,'Bmin0');
@@ -191,11 +271,27 @@ if ~dataSet.syrmDesignFlag.demagHWC
     map = rmfield(map,'dPMHWC');
 end
 
-if ~dataSet.syrmDesignFlag.mech
-    map = rmfield(map,'kmechrad');
-    map = rmfield(map,'kmechtan');
-    map = rmfield(map,'mechStressRad');
-    map = rmfield(map,'mechStressTan');
+if ~dataSet.syrmDesignFlag.demagUGO
+    map = rmfield(map,'BminUGO');
+    map = rmfield(map,'dPMUGO');
+end
+
+if ~dataSet.syrmDesignFlag.Mech
+    if strcmp(dataSet.TypeOfRotor,'SPM') || strcmp(dataSet.TypeOfRotor,'EESM')
+        map = rmfield(map,'MaxDef');
+        map = rmfield(map,'agclear');
+        map = rmfield(map,'MaxStress');
+        % map = rmfield(map,'MaxStress_prc');
+    else
+        map = rmfield(map,'MaxDef');
+        map = rmfield(map,'agclear');
+        map = rmfield(map,'MaxStress');
+        map = rmfield(map,'TanRibStress');
+        map = rmfield(map,'RadRibStress');
+        % map = rmfield(map,'MaxStress_prc');
+        map = rmfield(map,'PrcTanStress');
+        map = rmfield(map,'PrcRadStress');
+    end
 end
 
 if ~dataSet.syrmDesignFlag.therm
@@ -210,7 +306,7 @@ if flagIM
     map.dataSet = dataSet;
     hfig = [];
 else
-    
+
     % Output figure
     hfig=figure();
     figSetting(15,10)
@@ -231,13 +327,13 @@ else
     % elseif strcmp(dataSet.TypeOfRotor,'Vtype')
     %     ylabel('$hc/g$ - p.u. magnet size')
     % else
-        ylabel('$b$ - p.u. magnetic loading');
+    ylabel('$b$ - p.u. magnetic loading');
     % end
     legend('show','Location','NorthEast')
     title('torque and PF tradeoff')
-    
+
     set(hfig,'UserData',map);
-    
+
     if ~debug
         button = questdlg('Open in (x,b) Design Plane Explorer?','SELECT','Yes','No','Yes');
         if strcmp(button,'Yes')
@@ -248,8 +344,8 @@ else
                 hApp.RunningAppInstance.map = map;
                 hApp.RunningAppInstance.SDE_update;
                 figure(hApp)
-    %             hApp.WindowStyle = 'alwaysontop';
-    %             hApp.WindowStyle = 'normal';
+                %             hApp.WindowStyle = 'alwaysontop';
+                %             hApp.WindowStyle = 'normal';
                 clear hApp;
             end
         end

@@ -12,29 +12,119 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [out]=eval_maxStress_COMSOL(Stress,mat)
+function [out]=eval_maxStress_COMSOL(Stress,geo,mat)
 
-stress_rot =[];
+x = Stress(:,1);
+y = Stress(:,2);
+sVonMises = Stress(:,3);
+sigma_max = mat.Rotor.sigma_max;
+pos_max = find(sVonMises==max(sVonMises));
 
-for kk = 1:size(Stress, 1)
-    if Stress(kk, 3) > mat.Rotor.sigma_max
-        stress_rot = [stress_rot; Stress(kk,1), Stress(kk,2)];
+x_max = x(pos_max);
+y_max = y(pos_max);
+
+nodesOver = sum (sVonMises>sigma_max);
+pos_over = find(sVonMises>sigma_max);
+x_over = x(pos_over);
+y_over = y(pos_over);
+
+prc = 99; % percentile for GalFer Contest structural index
+
+% Search for the stress in each ribs
+sigmaRadMax = zeros(1,geo.nlay);
+sigmaTanMax = zeros(1,geo.nlay);
+nPointOverRad = zeros(1,geo.nlay);
+nPointOverTan = zeros(1,geo.nlay);
+sTmpTot = [];
+sTmpTan = [];
+sTmpRad = [];
+
+for ii=1:geo.nlay
+    if (strcmp(geo.RotType,'Circular')||strcmp(geo.RotType,'Seg'))
+        % chech tangential ribs
+        x1 = geo.xxD1k(ii);        y1 = geo.yyD1k(ii); % First edge of the rib
+        x2 = geo.xxD2k(ii);        y2 = geo.yyD2k(ii); % Second edge of the rib
+        x0 = geo.xpont(ii);        y0 = geo.ypont(ii); % Rib center
+        r1 = ((x0-x1)^2+(y0-y1)^2)^0.5; % Distance center-first edge
+        r2 = ((x0-x2)^2+(y0-y2)^2)^0.5; % Distance center-second edge
+        r = max([r1,r2,geo.pontT(ii)])+geo.pont0;
+        fi = linspace(0,2*pi,51);
+        X = x0+r*cos(fi);        Y = y0+r*sin(fi); % Circle based on ribs size
+        [X,Y] = rot_point(X,Y,90/geo.p*pi/180);
+        index_T = inpolygon(x,y,X,Y); % Points inside circle
+        %xTmp = x(index)/1000;
+        %yTmp = y(index)/1000;
+        sTmp_T = sVonMises(index_T); % Nodes inside circle
+        sigmaTanMax(ii) = max(sTmp_T);
+        % sigmaTanAvg(ii) = mean(sTmp);
+        nPointOverTan(ii) = sum(sTmp_T>sigma_max);
+        sTmpTot = [sTmpTot;sTmp_T]; %#ok<AGROW>
+        sTmpTan = [sTmpTan;sTmp_T]; %#ok<AGROW>
+
+        % check radial ribs
+        if geo.pontR(ii)>0
+            if geo.radial_ribs_split(ii) % Quadrilateral
+                X = [geo.XpontSplitBarSx(1,ii) geo.XpontSplitBarDx(1,ii) geo.XpontSplitBarDx(2,ii) geo.XpontSplitBarSx(2,ii)];
+                Y = [geo.YpontSplitBarSx(1,ii) geo.YpontSplitBarDx(1,ii) geo.YpontSplitBarDx(2,ii) geo.YpontSplitBarSx(2,ii)];
+            else % Trapezoidal
+                X = [geo.XpontRadBarSx(ii) geo.XpontRadBarDx(ii) geo.XpontRadBarDx(ii) geo.XpontRadBarSx(ii)];
+                Y = [geo.YpontRadBarSx(ii) geo.YpontRadBarDx(ii) 0 0];
+            end
+            [X,Y] = rot_point(X,Y,90/geo.p*pi/180);
+            index_R = inpolygon(x,y,X,Y); % Points inside circle
+            %xTmp = x(index)/1000;
+            %yTmp = y(index)/1000;
+            sTmp_R = sVonMises(index_R); % Nodes inside circle
+            if ~isempty(sTmp_R)
+                sigmaRadMax(ii) = max(sTmp_R);
+                % sigmaRadAvg(ii) = mean(sTmp);
+                nPointOverRad(ii) = sum(sTmp_R>sigma_max);
+            end
+        else
+            sTmp = [];
+            sTmp_R = [];
+        end
+        sTmpTot = [sTmpTot;sTmp_R];
+        sTmpRad = [sTmpRad;sTmp_R];
     end
 end
 
-[~, idx] = max(Stress(:, 3));
+out.MaxStress       = max(sVonMises);
+out.x_max           = x_max;
+out.y_max           = y_max;
+out.nodesOver       = nodesOver;
+out.x_over          = x_over;
+out.y_over          = y_over;
+out.sigmaRadMax     = sigmaRadMax;
+out.sigmaTanMax     = sigmaTanMax;
+out.nPointOverRad   = nPointOverRad;
+out.nPointOverTan   = nPointOverTan;
+out.sigmaTotPrc     = prctile(sTmpTot,prc);
+out.Tan_sigmaTotPrc = prctile(sTmpTan,prc);
+out.Rad_sigmaTotPrc = prctile(sTmpRad,prc);
 
-out.stressrot = stress_rot;
-
-%out.x_over    = stress_rot(:,1);
-%out.y_over    = stress_rot(:,2);
-if ~isempty(stress_rot)
-    out.x_over = stress_rot(:, 1);
-    out.y_over = stress_rot(:, 2);
-else
-    out.x_over = [];
-    out.y_over = [];
-end
-
-out.x_max     = Stress(idx, 1);
-out.y_max     = Stress(idx, 2);
+%% old function
+% stress_rot =[];
+% 
+% for kk = 1:size(Stress, 1)
+%     if Stress(kk, 3) > mat.Rotor.sigma_max
+%         stress_rot = [stress_rot; Stress(kk,1), Stress(kk,2)];
+%     end
+% end
+% 
+% [~, idx] = max(Stress(:, 3));
+% 
+% out.stressrot = stress_rot;
+% 
+% %out.x_over    = stress_rot(:,1);
+% %out.y_over    = stress_rot(:,2);
+% if ~isempty(stress_rot)
+%     out.x_over = stress_rot(:, 1);
+%     out.y_over = stress_rot(:, 2);
+% else
+%     out.x_over = [];
+%     out.y_over = [];
+% end
+% 
+% out.x_max     = Stress(idx, 1);
+% out.y_max     = Stress(idx, 2);

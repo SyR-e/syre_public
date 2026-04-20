@@ -39,7 +39,7 @@ xx = linspace(min(xx0(:)),max(xx0(:)),nPoints);
 yy = linspace(min(yy0(:)),max(yy0(:)),nPoints);
 zz = linspace(min(zz0(:)),max(zz0(:)),nPoints);
 
-[xx_nd,yy_nd,zz_nd] = ndgrid(xx,yy,zz);
+[yy_nd,xx_nd,zz_nd] = ndgrid(yy,xx,zz);
 map.(xName) = xx_nd;
 map.(yName) = yy_nd;
 map.(zName) = zz_nd;

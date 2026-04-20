@@ -54,7 +54,7 @@ else
 end
 
 
-Rf = rocu*(l+lendf)/(Acoilf*kcuf)*Nf^2*(2*p);
+Rf = rocu*2*(l+lendf)/(Acoilf*kcuf)*Nf^2*(2*p);
 
 per.Rf = Rf;
 per.if0 = if0;

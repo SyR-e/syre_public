@@ -137,13 +137,13 @@ for ii=1:length(id)
     plot(SOL.th,SOL.T)
     title(['$T=' num2str(out.T) '\,Nm$']);
     set(gca,'XLim',[0 360],'XTick',0:60:360)
-    xlabel('$\theta_{elt}$ [$^\circ$]')
-    ylabel('Nm')
+    xlabel('$\theta$ ($^\circ$)')
+    ylabel('(Nm)')
     subplot(2,1,2)
     plot(SOL.th,abs(sin(atan2(SOL.iq,SOL.id)-atan2(SOL.fq,SOL.fd))))
     title(['$IPF=' num2str(out.IPF) '$']);
     set(gca,'XLim',[0 360],'XTick',0:60:360)
-    xlabel('$\theta_{elt}$ [$^\circ$]')
+    xlabel('$\theta$ ($^\circ$)')
     ylabel('IPF')
     
     saveas(gcf,[pathname resFolder 'singt_' iStr '_' gammaStr 'plot_Torque.fig']);
@@ -154,14 +154,14 @@ for ii=1:length(id)
     plot(SOL.th,SOL.fd)
     title(['$\lambda_d=' num2str(out.fd) 'Vs$'])
     set(gca,'XLim',[0 360],'XTick',0:60:360)
-    xlabel('$\theta_{elt}$ [$^\circ$]')
-    ylabel('Vs')
+    xlabel('$\theta$ ($^\circ$)')
+    ylabel('(Vs)')
     subplot(2,1,2)
     plot(SOL.th,SOL.fq)
     title(['$\lambda_q=' num2str(out.fq) 'Vs$'])
     set(gca,'XLim',[0 360],'XTick',0:60:360)
-    xlabel('$\theta_{elt}$ [$^\circ$]')
-    ylabel('Vs')
+    xlabel('$\theta$ ($^\circ$)')
+    ylabel('(Vs)')
     
     saveas(gcf,[pathname resFolder 'singt_' iStr '_' gammaStr '_plot_Flux.fig'])
     
@@ -169,16 +169,16 @@ for ii=1:length(id)
     figSetting()
     subplot(2,1,1)
     set(gca,'XLim',[0 360],'XTick',0:60:360);
-    xlabel('$\theta$ [elt deg]')
-    ylabel('$\lambda_{abc}$ [Vs]')
+    xlabel('$\theta$ ($^\circ$)')
+    ylabel('$\lambda_{abc}$ (Vs)')
     title(['Phase flux linkages'])
     plot(SOL.th,SOL.fa);
     plot(SOL.th,SOL.fb);
     plot(SOL.th,SOL.fc);
     subplot(2,1,2)
     set(gca,'XLim',[0 360],'XTick',0:60:360);
-    xlabel('$\theta$ [elt deg]')
-    ylabel('$i_{abc}$ [A]')
+    xlabel('$\theta$ ($^\circ$)')
+    ylabel('$i_{abc}$ (A)')
     title(['Phase currents'])
     plot(SOL.th,SOL.ia);
     plot(SOL.th,SOL.ib);
@@ -217,7 +217,7 @@ if length(id)>1
     subplot(2,1,1)
     set(gca,'Xlim',[1 ii],'XTick',1:1:ii);
     xlabel('Simulation \#')
-    ylabel('$i_{dq}$ [A]')
+    ylabel('$i_{dq}$ (A)')
     plot(idPlot,'DisplayName','$i_d$')
     plot(iqPlot,'DisplayName','$i_q$')
     plot(abs(idPlot+j*iqPlot),'DisplayName','$|i|$')
@@ -225,7 +225,7 @@ if length(id)>1
     subplot(2,1,2)
     set(gca,'Xlim',[1 ii],'XTick',1:1:ii);
     xlabel('Simulation \#')
-    ylabel('$\gamma$ [$^\circ$]')
+    ylabel('$\gamma$ ($^\circ$)')
     plot(angle(idPlot+j*iqPlot)*180/pi,'DisplayName','$\gamma$')
     legend('show')
     saveas(gcf,[pathname resFolder 'currentSense.fig'])
@@ -235,7 +235,7 @@ if length(id)>1
     subplot(2,1,1)
     set(gca,'Xlim',[1 ii],'XTick',1:1:ii);
     xlabel('Simulation \#')
-    ylabel('$\lambda_{dq}$ [Vs]')
+    ylabel('$\lambda_{dq}$ (Vs)')
     plot(fdPlot,'DisplayName','$\lambda_d$')
     plot(fqPlot,'DisplayName','$\lambda_q$')
     plot(abs(fdPlot+j*fqPlot),'DisplayName','$|\lambda|$')
@@ -243,7 +243,7 @@ if length(id)>1
     subplot(2,1,2)
     set(gca,'Xlim',[1 ii],'XTick',1:1:ii);
     xlabel('Simulation \#')
-    ylabel('$\delta$ [$^\circ$]')
+    ylabel('$\delta$ ($^\circ$)')
     plot(angle(fdPlot+j*fqPlot)*180/pi,'DisplayName','$\delta$')
     legend('show')
     saveas(gcf,[pathname resFolder 'fluxSense.fig'])
@@ -253,14 +253,14 @@ if length(id)>1
     subplot(2,1,1)
     set(gca,'Xlim',[1 ii],'XTick',1:1:ii);
     xlabel('Simulation \#')
-    ylabel('$T$ [Nm]')
+    ylabel('$T$ (Nm)')
     plot(TPlot,'-')
     plot(TPlot+dTPlot/2,'-r')
     plot(TPlot-dTPlot/2,'-r')
     subplot(2,1,2)
     set(gca,'Xlim',[1 ii],'XTick',1:1:ii);
     xlabel('Simulation \#')
-    ylabel('$\Delta T_{pp}$ [Nm]')
+    ylabel('$\Delta T_{pp}$ (Nm)')
     plot(dTPlot)
     saveas(gcf,[pathname resFolder 'torqueSense.fig'])
     
@@ -270,7 +270,7 @@ if length(id)>1
     subplot(2,1,1)
     set(gca,'Xlim',[1 ii],'XTick',1:1:ii);
     xlabel('Simulation \#')
-    ylabel('$T$ [Nm]')
+    ylabel('$T$ (Nm)')
     plot(TPlot,'-')
     subplot(2,1,2)
     set(gca,'Xlim',[1 ii],'XTick',1:1:ii);

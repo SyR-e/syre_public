@@ -13,9 +13,13 @@
 %    limitations under the License.
 
 
-function [Pfe,Pfes_h,Pfes_c,Pfer_h,Pfer_c,Ppm]=calcIronLoss(IronLossModel,fdfq,FreqElet)
+function [Pfe,Pfes_h,Pfes_c,Pfer_h,Pfer_c,Ppm]=calcIronLoss(IronLossModel,fdfq,FreqElet,machineType)
 
-Id=fdfq.Id;
+if nargin() == 3
+    machineType = '';
+end
+
+Id=fdfq.Id; % Note that fdfq come from flux maps to and interp2 is to have the same domain
 Iq=fdfq.Iq;
 Fd=fdfq.Fd;
 Fq=fdfq.Fq;
@@ -35,19 +39,37 @@ elseif strcmp(IronLossModel.type,'map')
         Pfec = Pfec*(FreqElet./IronLossModel.f0).^IronLossModel.expC;
         Ppm  = IronLossModel.segPM*Ppm*(FreqElet./IronLossModel.f0).^IronLossModel.expPM;
     else
-        Pfes_h = interp2(IdMap,IqMap,IronLossModel.Pfes_h,Id,Iq,'cubic',NaN);
-        Pfes_c = interp2(IdMap,IqMap,IronLossModel.Pfes_c,Id,Iq,'cubic',NaN);
-        Pfer_h = interp2(IdMap,IqMap,IronLossModel.Pfer_h,Id,Iq,'cubic',NaN);
-        Pfer_c = interp2(IdMap,IqMap,IronLossModel.Pfer_c,Id,Iq,'cubic',NaN);
-        Ppm    = interp2(IdMap,IqMap,IronLossModel.Ppm,Id,Iq,'cubic',NaN);
-        
-        Pfes_h = Pfes_h*(FreqElet./IronLossModel.f0).^IronLossModel.expH;
-        Pfes_c = Pfes_c*(FreqElet./IronLossModel.f0).^IronLossModel.expC;
-        Pfer_h = Pfer_h*(FreqElet./IronLossModel.f0).^IronLossModel.expH;
-        Pfer_c = Pfer_c*(FreqElet./IronLossModel.f0).^IronLossModel.expC;
-        Ppm  = IronLossModel.segPM*Ppm*(FreqElet./IronLossModel.f0).^IronLossModel.expPM;
-        Pfeh = Pfes_h+Pfer_h;
-        Pfec = Pfes_c+Pfer_c;
+        if strcmp(machineType,'EE')
+            IrMap = IronLossModel.Ir;
+            Ir    = fdfq.Ir;
+            Pfes_h = interp3(IdMap,IqMap,IrMap,IronLossModel.Pfes_h,Id,Iq,Ir,'cubic',NaN);
+            Pfes_c = interp3(IdMap,IqMap,IrMap,IronLossModel.Pfes_c,Id,Iq,Ir,'cubic',NaN);
+            Pfer_h = interp3(IdMap,IqMap,IrMap,IronLossModel.Pfer_h,Id,Iq,Ir,'cubic',NaN);
+            Pfer_c = interp3(IdMap,IqMap,IrMap,IronLossModel.Pfer_c,Id,Iq,Ir,'cubic',NaN);
+            
+            Pfes_h = Pfes_h*(FreqElet./IronLossModel.f0).^IronLossModel.expH;
+            Pfes_c = Pfes_c*(FreqElet./IronLossModel.f0).^IronLossModel.expC;
+            Pfer_h = Pfer_h*(FreqElet./IronLossModel.f0).^IronLossModel.expH;
+            Pfer_c = Pfer_c*(FreqElet./IronLossModel.f0).^IronLossModel.expC;
+
+            Pfeh = Pfes_h+Pfer_h;
+            Pfec = Pfes_c+Pfer_c;
+            Ppm = 0;
+        else
+            Pfes_h = interp2(IdMap,IqMap,IronLossModel.Pfes_h,Id,Iq,'cubic',NaN);
+            Pfes_c = interp2(IdMap,IqMap,IronLossModel.Pfes_c,Id,Iq,'cubic',NaN);
+            Pfer_h = interp2(IdMap,IqMap,IronLossModel.Pfer_h,Id,Iq,'cubic',NaN);
+            Pfer_c = interp2(IdMap,IqMap,IronLossModel.Pfer_c,Id,Iq,'cubic',NaN);
+            Ppm    = interp2(IdMap,IqMap,IronLossModel.Ppm,Id,Iq,'cubic',NaN);
+            
+            Pfes_h = Pfes_h*(FreqElet./IronLossModel.f0).^IronLossModel.expH;
+            Pfes_c = Pfes_c*(FreqElet./IronLossModel.f0).^IronLossModel.expC;
+            Pfer_h = Pfer_h*(FreqElet./IronLossModel.f0).^IronLossModel.expH;
+            Pfer_c = Pfer_c*(FreqElet./IronLossModel.f0).^IronLossModel.expC;
+            Ppm  = IronLossModel.segPM*Ppm*(FreqElet./IronLossModel.f0).^IronLossModel.expPM;
+            Pfeh = Pfes_h+Pfer_h;
+            Pfec = Pfes_c+Pfer_c;
+        end
     end
     
     

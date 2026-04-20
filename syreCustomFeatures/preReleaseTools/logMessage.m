@@ -12,9 +12,16 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function logMessage(logfile,message)
+function logMessage(logfile,message,flagOpen)
+
+if nargin()==2
+    flagOpen = 1;
+end
 
 fid = fopen(logfile,'a');
 fprintf(fid,[char(datetime('now')) ' --> ' message '\r\n']);
 fclose(fid);
-edit(logfile);
+
+if flagOpen
+    edit(logfile);
+end

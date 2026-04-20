@@ -29,7 +29,7 @@ set(app.Numberof3phasesetsEditField,...
     'Editable','off');
 set(app.MotortypeEditField,'Value',data.motorType);
 set(app.AxistypeDropDown,'Value',data.axisType);
-if ~strcmp(motorModel.data.motorName,'No motor selected') && strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+if ~strcmp(motorModel.data.motorName,'No motor selected') && strcmp(motorModel.data.motorType,'EE')
     set(app.MotortypeEditField,'Value',data.motorType,'Enable','on','Editable','off');
     set(app.AxistypeDropDown,'Value',data.axisType,'Enable','off','Editable','off');
 else
@@ -44,8 +44,23 @@ set(app.DClinkvoltageEditField,'Value',num2str(data.Vdc));
 set(app.RatedspeedEditField,'Value',num2str(data.n0));
 set(app.MaximumspeedEditField,'Value',num2str(data.nmax));
 set(app.PhaseresistanceEditField,'Value',num2str(data.Rs));
-set(app.WindingtemperatureEditField,'Value',num2str(data.tempCu));
-set(app.EndwindinglengthEditField,'Value',num2str(data.lend));
+set(app.StatorwindingtempCEditField,'Value',num2str(data.tempCu));
+set(app.EndwindinglengthEditField,'Value',num2str(round(data.lend,4,'significant')));
+if strcmp(motorModel.data.motorType,'EE')
+    set(app.MaxrotorcurrentAEditField,  'Enable','on','Editable','on','Value',mat2str(data.if0));
+    set(app.RotormaxvoltageVEditField,  'Enable','on','Editable','on','Value',mat2str(data.Vr));
+    set(app.RotorturnsperpoleEditField, 'Enable','on','Editable','on','Value',mat2str(data.Nr));
+    set(app.RotorendwindingmmEditField, 'Enable','on','Editable','on','Value',mat2str(round(data.lendf,4,'significant')));
+    set(app.RotorwindingtempCEditField, 'Enable','on','Editable','on','Value',mat2str(data.tempCoRo));
+    set(app.RotorresistanceOhmEditField,'Enable','on','Editable','on','Value',mat2str(data.Rf));
+else
+    set(app.MaxrotorcurrentAEditField,  'Enable','off','Editable','off','Value',mat2str(data.if0));
+    set(app.RotormaxvoltageVEditField,  'Enable','off','Editable','off','Value',mat2str(data.Vr));
+    set(app.RotorturnsperpoleEditField, 'Enable','off','Editable','off','Value',mat2str(data.Nr));
+    set(app.RotorendwindingmmEditField, 'Enable','off','Editable','off','Value',mat2str(round(data.lendf,4,'significant')));
+    set(app.RotorwindingtempCEditField, 'Enable','off','Editable','off','Value',mat2str(data.tempCoRo));
+    set(app.RotorresistanceOhmEditField,'Enable','off','Editable','off','Value',mat2str(data.Rf));   
+end
 
 tmpCell = cell(length(data.tempVectPM)+1,1);
 for ii=1:length(data.tempVectPM)
@@ -161,7 +176,7 @@ else
         'Value',0);
     set(app.PlotDemagnetizationButton,'Enable','off')
     set(app.SaveDemagnetizationButton,'Enable','off')
-    if ~strcmp(motorModel.data.motorName,'No motor selected') && strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+    if ~strcmp(motorModel.data.motorName,'No motor selected') && strcmp(motorModel.data.motorType,'EE')
         set(app.LoadDemagnetizationButton,'Enable','off')
     else
         set(app.LoadDemagnetizationButton,'Enable','on')
@@ -417,8 +432,87 @@ set(app.ThTwMaxSpeedEditField,'Value',mat2str(motorModel.Thermal.nmax))
 set(app.ThTwNumSpeedEditField,'Value',mat2str(motorModel.Thermal.NumSpeed))
 set(app.AdjustFluxMapPMtemperatureCheckBox,'Value',motorModel.Thermal.interpTempPM);
 
+% VFM Control
+if ~isempty(motorModel.VFMdata.Control)
+    set(app.CtrlDeReMagCheckBox,...
+        'Enable','on',...
+        'Value',1);
+    set(app.CtrlPlotDeReMagButton,'Enable','on')
+    set(app.CtrlSaveDeReMagButton,'Enable','on')
+else
+    set(app.CtrlDeReMagCheckBox,...
+        'Enable','off',...
+        'Value',0);
+    set(app.CtrlPlotDeReMagButton,'Enable','off')
+    set(app.CtrlSaveDeReMagButton,'Enable','off')
+end
 
+%VFM Demag Map
+if ~isempty(motorModel.VFMdata.data.Demag)
+    set(app.CheckBoxDemagMap,...
+        'Enable','on',...
+        'Value',1);
+    set(app.PlotButtonDemagMap,'Enable','on')
+    set(app.SaveButtonDemagMap,'Enable','on')
+else
+    set(app.CtrlDeReMagCheckBox,...
+        'Enable','off',...
+        'Value',0);
+    set(app.PlotButtonDemagMap,'Enable','off')
+    set(app.SaveButtonDemagMap,'Enable','off')
+end
 
+%VFM Remag Map
+if ~isempty(motorModel.VFMdata.data.Remag)
+    set(app.CheckBoxRemagMap,...
+        'Enable','on',...
+        'Value',1);
+    set(app.PlotButtonRemagMap,'Enable','on')
+    set(app.SaveButtonRemagMap,'Enable','on')
+else
+    set(app.CtrlDeReMagCheckBox,...
+        'Enable','off',...
+        'Value',0);
+    set(app.PlotButtonRemagMap,'Enable','off')
+    set(app.SaveButtonRemagMap,'Enable','off')
+end
+
+if (isempty(motorModel.VFMdata.data.Remag) || isempty(motorModel.VFMdata.data.Demag))
+    set(app.CtrlDeReMagCheckBox,...
+        'Enable','off',...
+        'Value',0);
+    set(app.CtrlPlotDeReMagButton,'Enable','off')
+    set(app.CtrlSaveDeReMagButton,'Enable','off')
+end
+
+% VFM general
+if strcmp(motorModel.data.motorType, 'VFM')
+    set(app.InversedqCheckBox,...
+        'Enable','off',...
+        'Value',0);
+    set(app.EvalInverseDQButton,'Enable','off')
+    set(app.PlotInverseDQButton,'Enable','off')
+    set(app.SaveInverseDQButton,'Enable','off')
+else
+    set(app.CheckBoxRemagMap,...
+        'Enable','off',...
+        'Value',0);
+    set(app.LoadButtonRemagMap,'Enable','off')
+    set(app.PlotButtonRemagMap,'Enable','off')
+    set(app.SaveButtonRemagMap,'Enable','off')
+    set(app.CheckBoxDemagMap,...
+        'Enable','off',...
+        'Value',0);
+    set(app.LoadButtonDemagMap,'Enable','off')
+    set(app.PlotButtonDemagMap,'Enable','off')
+    set(app.SaveButtonDemagMap,'Enable','off')
+    set(app.CtrlDeReMagCheckBox,...
+        'Enable','off',...
+        'Value',0);
+    set(app.CtrlEvalDeReMagButton,'Enable','off')
+    set(app.CtrlPlotDeReMagButton,'Enable','off')
+    set(app.CtrlSaveDeReMagButton,'Enable','off')
+end
 
 
 

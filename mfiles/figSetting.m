@@ -100,15 +100,31 @@ figPos(2)=screenPos(4)/2-height/2;
 figPos(3)=width;
 figPos(4)=height;
 
-colors{1} = [0.0 0.0 1.0];
-colors{2} = [1.0 0.0 0.0];
-colors{3} = [0.0 0.8 0.0];
-colors{4} = [1.0 0.5 0.0];
-colors{5} = [0.0 0.8 0.8];
-colors{6} = [0.8 0.0 0.8];
-colors{7} = [1.0 0.8 0.0];
+% colors{1}  = [0.0 0.0 1.0];
+% colors{2}  = [1.0 0.0 0.0];
+% colors{3}  = [0.0 0.8 0.0];
+% colors{4}  = [1.0 0.5 0.0];
+% colors{5}  = [0.0 0.8 0.8];
+% colors{6}  = [0.8 0.0 0.8];
+% colors{7}  = [1.0 0.8 0.0];
+% colors{8}  = [0.0 0.5 0.5];
+% colors{9}  = [1.0 0.5 0.5];
+% colors{10} = [0.5 0.5 1.0];
 
-set(gcf,'defaultAxesColorOrder',[colors{1};colors{2};colors{3};colors{4};colors{5};colors{6};colors{7}]);
+colors = [...
+    0.0 0.0 1.0
+    1.0 0.0 0.0
+    0.0 0.8 0.0
+    1.0 0.5 0.0
+    0.0 0.8 0.8
+    0.8 0.0 0.8
+    1.0 0.8 0.0
+    0.0 0.5 0.5
+    1.0 0.5 0.5
+    0.5 0.5 1.0
+    ];
+
+set(gcf,'defaultAxesColorOrder',colors);
 
 % set(gcf,'Renderer','painters');
 set(gcf,'Units','centimeters');

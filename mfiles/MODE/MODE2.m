@@ -216,6 +216,7 @@ else
         M2=[M2;OUT.MatrixPFront{ii}]; %#ok<AGROW>
     end
 end
+
 if isoctave() %OCT
     I=paretoset(M2);
 else
@@ -285,6 +286,7 @@ disp('PostProcessing of current optimization result...');
 % if strcmp(func2str(options.CostProblem),
 % '@(x)FEMMfitness(x,geo,per,mat,eval_type)')
 evalParetoFront(ff,dataSet);
+
 % else
 %     evalParetoFrontX(ff,dataSet);
 % end

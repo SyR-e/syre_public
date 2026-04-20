@@ -44,9 +44,9 @@ xRibs   = (pontT+pontR/2)./sk;
 % xAir    = (Tfillet+Rfillet)./sk; 
 xAir    = 1-xPM; 
 
-filt = (xAir < (Tfillet+Rfillet)./sk);
-xAir(filt)    = (Tfillet(filt)+Rfillet(filt))./sk(filt);
-xPM(filt) = xPM(filt) - xAir(filt);
+% filt = (xAir < (Tfillet+Rfillet)./sk);
+% xAir(filt)    = (Tfillet(filt)+Rfillet(filt))./sk(filt);
+% xPM(filt) = xPM(filt) - xAir(filt);
 
 % Magnet
 % Rm      = hc./(mu0*mum*sk.*(xPM-xRibs-xAir)*l);

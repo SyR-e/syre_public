@@ -25,6 +25,10 @@ Iq = motorModel.FluxMapInv_dq.Iq;
 Fd = motorModel.FluxMapInv_dq.Fd;
 Fq = motorModel.FluxMapInv_dq.Fq;
 T  = motorModel.FluxMapInv_dq.T;
+if strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+    Ir = motorModel.FluxMap_dq.Ir;
+    Fr = motorModel.FluxMap_dq.Fr;
+end
 
 %% Surfaces
 figNames{1} = 'CurrentD';
@@ -35,8 +39,8 @@ for ii=1:length(figNames)
     hfig(ii) = figure();
     figSetting();
     hax(ii) = axes('OuterPosition',[0 0 1 1],...
-        'XLim',[min(min(Fd)) max(max(Fd))],...
-        'YLim',[min(min(Fq)) max(max(Fq))],...
+        'XLim',[min(Fd(:)) max(Fd(:))],...
+        'YLim',[min(Fq(:)) max(Fq(:))],...
         'PlotBoxAspectRatio',[1 1 0.8]);
     xlabel('$\lambda_d$ (Vs)')
     ylabel('$\lambda_q$ (Vs)')
@@ -44,24 +48,42 @@ for ii=1:length(figNames)
     switch ii
         case 1
             zlabel('$i_d$ (A)')
-            set(gca,'ZLim',[min(min(Id)) max(max(Id))])
+            set(gca,'ZLim',[min(Id(:)) max(Id(:))])
         case 2
             zlabel('$i_q$ (A)')
-            set(gca,'ZLim',[min(min(Iq)) max(max(Iq))])
+            set(gca,'ZLim',[min(Iq(:)) max(Iq(:))])
         case 3
             zlabel('$T$ (Nm)')
-            set(gca,'ZLim',[min(min(T)) max(max(T))])
+            set(gca,'ZLim',[min(T(:)) max(T(:))])
     end
     set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
     set(hfig(ii),'Name',figNames{ii})
 end
 
-surf(hax(1),Fd,Fq,Id,'FaceColor','interp','EdgeColor','none')
-contour3(hax(1),Fd,Fq,Id,'EdgeColor','k','ShowText','off')
-surf(hax(2),Fd,Fq,Iq,'FaceColor','interp','EdgeColor','none')
-contour3(hax(2),Fd,Fq,Iq,'EdgeColor','k','ShowText','off')
-surf(hax(3),Fd,Fq,T,'FaceColor','interp','EdgeColor','none')
-contour3(hax(3),Fd,Fq,T,'EdgeColor','k','ShowText','off')
+if ~strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+    surf(hax(1),Fd,Fq,Id,'FaceColor','interp','EdgeColor','none')
+    contour3(hax(1),Fd,Fq,Id,'EdgeColor','k','ShowText','off')
+    surf(hax(2),Fd,Fq,Iq,'FaceColor','interp','EdgeColor','none')
+    contour3(hax(2),Fd,Fq,Iq,'EdgeColor','k','ShowText','off')
+    surf(hax(3),Fd,Fq,T,'FaceColor','interp','EdgeColor','none')
+    contour3(hax(3),Fd,Fq,T,'EdgeColor','k','ShowText','off')
+else
+    surf(hax(1),Fd(:,:,end),Fq(:,:,end),Id(:,:,end),'FaceColor','interp','EdgeColor','none')
+    contour3(hax(1),Fd(:,:,end),Fq(:,:,end),Id(:,:,end),'EdgeColor','k','ShowText','off')
+    surf(hax(2),Fd(:,:,end),Fq(:,:,end),Iq(:,:,end),'FaceColor','interp','EdgeColor','none')
+    contour3(hax(2),Fd(:,:,end),Fq(:,:,end),Iq(:,:,end),'EdgeColor','k','ShowText','off')
+    surf(hax(3),Fd(:,:,end),Fq(:,:,end),T(:,:,end),'FaceColor','interp','EdgeColor','none')
+    contour3(hax(3),Fd(:,:,end),Fq(:,:,end),T(:,:,end),'EdgeColor','k','ShowText','off')
+    % Multi Ir plot
+    size_Ir = size(Ir(1,1,:));
+    Ir_plot_index = round(linspace(1, size_Ir(end), 10)); % 10 è il # di plot tra da vedere
+    Ir_plot_index(1) = 1;
+    Ir_plot_index(end) = max(size_Ir);
+    Ir_plot_index = unique(Ir_plot_index); %Eventuali indici ripetuti vengono rimossi
+    Ir_values = Ir(1,1,:);
+    Ir_plot_values = Ir_values(Ir_plot_index);
+    hfig(4) = surfplot_slider(Fd(:,:,end),Fq(:,:,end),T,Ir_plot_values,[pathname resFolder 'Torque_Ir.fig'],[{'$\lambda_d$ (Vs)'}, {'$\lambda_q$ (Vs)'}, {'T (Nm)'}]);
+end
 
 %% Save figures
 answer = 'No';

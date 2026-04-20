@@ -14,9 +14,21 @@
 % '------------------------------------------------------------------------
 function [SOL] = simulate_xdeg_JMAG(geo,per,pathname,filename)
 
+n3ph = geo.win.n3phase;
 
+flagCharger = false;
+
+if per.custom_act
+    if(isnan(n3ph))
+        flagCharger = true;
+        custom_Amp = per.custom_Amp;
+        custom_Ph = per.custom_Ph;
+        custom_act = per.custom_act;
+        rotorPos = per.custom_rotorPos;
+    end
+end
 %'----------------------------Open JMAG Designer---------------------------
- JMAGversion='222'; 
+ JMAGversion='250'; 
 % '# Create an "app" application object to launch JMAG-Designer
 JDesigner = actxserver(strcat('designer.Application.',JMAGversion));
 JDesigner.Show(); % Show the JMAG interface
@@ -51,20 +63,51 @@ Design_parameters = study.GetDesignTable();
 
 % 'initial position(motion) of the rotor in degree
 createDesignParameters_JMAG(Design_parameters,'InitPosition',0,th0,'Initial position(motion) of the rotor (degrees)')
-% 'rotation speed in rpm
-createDesignParameters_JMAG(Design_parameters,'rspeed',0,per.EvalSpeed,'rotation speed (rpm)')
+if(flagCharger)
+    % 'rotation speed in rpm
+    createDesignParameters_JMAG(Design_parameters,'rspeed',0,0,'rotation speed (rpm)')
+else
+    % 'rotation speed in rpm
+    createDesignParameters_JMAG(Design_parameters,'rspeed',0,per.EvalSpeed,'rotation speed (rpm)')
+end
 % 'Stator coil turn number
 createDesignParameters_JMAG(Design_parameters,'coilTurn',0,coilTurn,'Coil turn number')
 % 'Stator coil resistance in ohms
 createDesignParameters_JMAG(Design_parameters,'coilRes',0,coilRes,'Coil resistance (ohms)')
 % 'Stator coil LeakageInductance in Henry
 createDesignParameters_JMAG(Design_parameters,'coilLind',0,coilLind,'coil LeakageInductance (Henry)')
-% % 'Aumont of drive in volt for voltage type and in ampere for current type for the stator coils
-createDesignParameters_JMAG(Design_parameters,'Aumont_Source',0,per.i0*per.overload,'Amplitude of motor drive (A or V)')
-% 'Phase angle of drive for voltage type or current type for the stator coils
-createDesignParameters_JMAG(Design_parameters,'Phase_Source',0,per.gamma+90,'Phase angle of motor drive (degrees)')
-% 'Frequency of drive for voltage type or current type for the stator coils
-createDesignParameters_JMAG(Design_parameters,'Freq_Source',0,per.EvalSpeed*geo.p/60,'Frequncy of motor drive (Hz)')
+
+if(flagCharger)
+    for i=1:5
+        % % 'Aumont of drive in volt for voltage type and in ampere for current type for the stator coils
+        createDesignParameters_JMAG(Design_parameters,strcat('Aumont_Source','_',num2str(i)),0,custom_Amp(i),'Amplitude of motor drive (A or V)')
+        % 'Phase angle of drive for voltage type or current type for the stator coils
+        createDesignParameters_JMAG(Design_parameters,strcat('Phase_Source','_',num2str(i)),0,custom_Ph(i)*180/pi,'Phase angle of motor drive (degrees)')
+    end
+else
+    if(isnan(n3ph))
+        for i=1:5
+            % % 'Aumont of drive in volt for voltage type and in ampere for current type for the stator coils
+            createDesignParameters_JMAG(Design_parameters,strcat('Aumont_Source','_',num2str(i)),0,per.i0*per.overload,'Amplitude of motor drive (A or V)')
+            % 'Phase angle of drive for voltage type or current type for the stator coils
+            createDesignParameters_JMAG(Design_parameters,strcat('Phase_Source','_',num2str(i)),0,per.gamma+90-72*(i-1),'Phase angle of motor drive (degrees)')
+        end
+    else
+        % % 'Aumont of drive in volt for voltage type and in ampere for current type for the stator coils
+        createDesignParameters_JMAG(Design_parameters,'Aumont_Source',0,per.i0*per.overload,'Amplitude of motor drive (A or V)')
+        % 'Phase angle of drive for voltage type or current type for the stator coils
+        createDesignParameters_JMAG(Design_parameters,'Phase_Source',0,per.gamma+90,'Phase angle of motor drive (degrees)')
+    end
+end
+
+if(flagCharger)
+    % 'Frequency of drive for voltage type or current type for the stator coils
+    createDesignParameters_JMAG(Design_parameters,'Freq_Source',0,50,'Frequncy of motor drive (Hz)')
+else    
+    % 'Frequency of drive for voltage type or current type for the stator coils
+    createDesignParameters_JMAG(Design_parameters,'Freq_Source',0,per.EvalSpeed*geo.p/60,'Frequncy of motor drive (Hz)')
+end
+
 % 'Resolution or number of Step division per cycle of calculations
 createDesignParameters_JMAG(Design_parameters,'CalcDivision',0,CalcDivision,'Resolution or Step division per cycle of calculations')
 %'#Number of electric periods to be calculed
@@ -72,8 +115,13 @@ createDesignParameters_JMAG(Design_parameters,'ncylce',0,ncylce,'Number of elect
 
 %% 'Study property settings
 % '------------------------------------------------------------------------
-%'Calculation time for one electric period / poles:
-CalcTime='ncylce/(rspeed*PolePair/60)';   % in second
+if(flagCharger)
+    %'Calculation time for one electric period / poles:
+    CalcTime='ncylce/50';   % in second
+else
+    %'Calculation time for one electric period / poles:
+    CalcTime='ncylce/(rspeed*PolePair/60)';   % in second
+end
 % ''#Number of calculation steps for Step Control
 CalcStep='CalcDivision+1';% in order to have ncycle of electric period
 
@@ -100,28 +148,75 @@ duvw=dy;
 X0=0; Y0=0;
 %#create the FEM Coil components
 %#FEM Coils U, V, W
-Gu(1,1)=X0; Gu(1,2)=Y0;
-Gv(1,1)=X0; Gv(1,2)=Y0-duvw;
-Gw(1,1)=X0; Gw(1,2)=Y0-2*duvw;
-phaseLabel = {'U', 'V', 'W'}; % or any other label
+
+if(isnan(n3ph))
+    Gu(1,1)=X0; Gu(1,2)=Y0;
+    Gv(1,1)=X0; Gv(1,2)=Y0-duvw;
+    Gw(1,1)=X0; Gw(1,2)=Y0-2*duvw;
+    Gx(1,1)=X0; Gx(1,2)=Y0-3*duvw;
+    Gy(1,1)=X0; Gy(1,2)=Y0-4*duvw;
+    phaseLabel = {'U', 'V', 'W', 'X', 'Y'}; % or any other label
+else
+    Gu(1,1)=X0; Gu(1,2)=Y0;
+    Gv(1,1)=X0; Gv(1,2)=Y0-duvw;
+    Gw(1,1)=X0; Gw(1,2)=Y0-2*duvw;
+    phaseLabel = {'U', 'V', 'W'}; % or any other label
+end
+
 positionU = [Gu(1,1), Gu(1,2)];
 positionV = [Gv(1,1), Gv(1,2)];
 positionW = [Gw(1,1), Gw(1,2)];
+if(isnan(n3ph))
+    positionX = [Gx(1,1), Gx(1,2)];
+    positionY = [Gy(1,1), Gy(1,2)];
+end
 FEMCoil_Creation_JMAG(circuit, phaseLabel{1}, positionU);
 FEMCoil_Creation_JMAG(circuit, phaseLabel{2}, positionV);
 FEMCoil_Creation_JMAG(circuit, phaseLabel{3}, positionW);
+if(isnan(n3ph))
+    FEMCoil_Creation_JMAG(circuit, phaseLabel{4}, positionX);
+    FEMCoil_Creation_JMAG(circuit, phaseLabel{5}, positionY);
+end
 
-
-%# Add Electric source components into the circuit
-dx2=Gv(1,1)-4*dx; dy2=Gv(1,2);
-circuit.CreateComponent('3PhaseCurrentSource', 'CS1');
-circuit.CreateInstance('CS1', dx2, dy2);
-circuit.GetComponent('CS1').SetName(strcat('3Phase-','Current'));
-circuit.GetComponent(strcat('3Phase-','Current')).SetValue('XType ', 'Time');
-circuit.GetComponent(strcat('3Phase-','Current')).SetValue('CommutatingSequence', phase_order);
-circuit.GetComponent(strcat('3Phase-','Current')).SetValue('Amplitude', 'Aumont_Source');
-circuit.GetComponent(strcat('3Phase-','Current')).SetValue('Frequency', 'Freq_Source');
-circuit.GetComponent(strcat('3Phase-','Current')).SetValue('PhaseU', 'Phase_Source');
+if(isnan(n3ph))
+    if(custom_act)
+        for i=1:5
+            dx1=Gw(1,1)-4*dx; dy1=Gw(1,1);
+            dx2=Gv(1,1)-4*dx; dy2=Gv(1,2);
+            circuit.CreateComponent('CurrentSource', strcat('CS',num2str(i)));
+            circuit.CreateInstance(strcat('CS',num2str(i)), dx1, dy1-(i-1)*3);
+            circuit.GetComponent(strcat('CS',num2str(i))).SetName(strcat('5Phase-','Current','_',num2str(i)));
+            circuit.GetComponent(strcat('5Phase-','Current','_',num2str(i))).SetValue("FunctionType", 1);
+            func = JDesigner.FunctionFactory().Sin(strcat('Aumont_Source','_',num2str(i)), 'Freq_Source', strcat('Phase_Source','_',num2str(i)), false);
+            circuit.GetComponent(strcat('5Phase-','Current','_',num2str(i))).SetFunction(func);
+        end
+    else
+        %# Add Electric source components into the circuit
+        dx2=Gw(1,1)-4*dx; dy2=Gw(1,2);
+        circuit.CreateComponent('MultiPhaseCurrentSource', 'CS1');
+        circuit.CreateInstance('CS1', dx2, dy2-1);
+        circuit.GetComponent('CS1').SetName(strcat('5Phase-','Current'));
+        circuit.GetComponent(strcat('5Phase-','Current')).SetValue('Num Phases ', 5);
+        circuit.GetComponent(strcat('5Phase-','Current')).SetValue('PhaseWindingType ', 0);
+        %circuit.GetComponent(strcat('5Phase-','Current')).SetValue('Num Phases ', 5);
+        circuit.GetComponent(strcat('5Phase-','Current')).SetValue('XType ', 'Time');
+        % circuit.GetComponent(strcat('5Phase-','Current')).SetValue('CommutatingSequence', phase_order);
+        circuit.GetComponent(strcat('5Phase-','Current')).SetValue('Amplitude', 'Aumont_Source');
+        circuit.GetComponent(strcat('5Phase-','Current')).SetValue('Frequency', 'Freq_Source');
+        circuit.GetComponent(strcat('5Phase-','Current')).SetValue('PhaseU', 'Phase_Source');
+    end
+else
+    %# Add Electric source components into the circuit
+    dx2=Gv(1,1)-4*dx; dy2=Gv(1,2);
+    circuit.CreateComponent('3PhaseCurrentSource', 'CS1');
+    circuit.CreateInstance('CS1', dx2, dy2);
+    circuit.GetComponent('CS1').SetName(strcat('3Phase-','Current'));
+    circuit.GetComponent(strcat('3Phase-','Current')).SetValue('XType ', 'Time');
+    circuit.GetComponent(strcat('3Phase-','Current')).SetValue('CommutatingSequence', phase_order);
+    circuit.GetComponent(strcat('3Phase-','Current')).SetValue('Amplitude', 'Aumont_Source');
+    circuit.GetComponent(strcat('3Phase-','Current')).SetValue('Frequency', 'Freq_Source');
+    circuit.GetComponent(strcat('3Phase-','Current')).SetValue('PhaseU', 'Phase_Source');
+end
 
 %Add Voltage probe for U-Phase
 AddVoltageProbe_JMAG (circuit, 1, positionU+[-dx, 2], phaseLabel{1})
@@ -129,22 +224,58 @@ AddVoltageProbe_JMAG (circuit, 1, positionU+[-dx, 2], phaseLabel{1})
 AddVoltageProbe_JMAG (circuit, 2, positionV+[-dx, 2], phaseLabel{2})
 %Add Voltage probe for W-Phase
 AddVoltageProbe_JMAG (circuit, 3, positionW+[-dx, 2], phaseLabel{3})
+if(isnan(n3ph))
+    %Add Voltage probe for X-Phase
+    AddVoltageProbe_JMAG (circuit, 4, positionX+[-dx, 2], phaseLabel{4})
+    %Add Voltage probe for Y-Phase
+    AddVoltageProbe_JMAG (circuit, 5, positionY+[-dx, 2], phaseLabel{5})
+end
 %Add a Ground component
 circuit.CreateComponent('Ground', 'Ground');
-circuit.CreateInstance('Ground', Gv(1,1)+3*dx, Gv(1,2)-dy);
+if(isnan(n3ph))
+    circuit.CreateInstance('Ground', Gw(1,1)+3*dx, Gw(1,2)-dy);
+else
+    circuit.CreateInstance('Ground', Gv(1,1)+3*dx, Gv(1,2)-dy);
+end
 
 %#create star connection of FEM Coils
 circuit.CreateWire(Gu(1,1)+2, Gu(1,2), Gv(1,1)+2, Gv(1,2));
 circuit.CreateWire(Gv(1,1)+2, Gv(1,2), Gw(1,1)+2, Gw(1,2));
+if(isnan(n3ph))
+    %#create star connection of FEM Coils
+    circuit.CreateWire(Gw(1,1)+2, Gw(1,2), Gx(1,1)+2, Gx(1,2));
+    circuit.CreateWire(Gx(1,1)+2, Gx(1,2), Gy(1,1)+2, Gy(1,2));
+end
 
-%Connect Electric source to the Coils.
-circuit.CreateWire(dx2+2, dy2+2, Gu(1,1)-2, Gu(1,2));
-circuit.CreateWire(dx2+2, dy2, Gv(1,1)-2, Gv(1,2));
-circuit.CreateWire(dx2+2, dy2-2, Gw(1,1)-2, Gw(1,2));
+if(isnan(n3ph))
+    %Connect Electric source to the Coils.
+    if(custom_act)
+        circuit.CreateWire(dx2+2, Gu(1,2), Gu(1,1)-2, Gu(1,2));
+        circuit.CreateWire(dx2+2, Gv(1,2), Gv(1,1)-2, Gv(1,2));
+        circuit.CreateWire(dx2+2, Gw(1,2), Gw(1,1)-2, Gw(1,2));
+        circuit.CreateWire(dx2+2, Gx(1,2), Gx(1,1)-2, Gx(1,2));
+        circuit.CreateWire(dx2+2, Gy(1,2), Gy(1,1)-2, Gy(1,2));
+    else
+        circuit.CreateWire(dx2+2, dy2+4, Gu(1,1)-2, Gu(1,2));
+        circuit.CreateWire(dx2+2, dy2+2, Gv(1,1)-2, Gv(1,2));
+        circuit.CreateWire(dx2+2, dy2, Gw(1,1)-2, Gw(1,2));
+        circuit.CreateWire(dx2+2, dy2-2, Gx(1,1)-2, Gx(1,2));
+        circuit.CreateWire(dx2+2, dy2-4, Gy(1,1)-2, Gy(1,2));
+    end
+else
+    %Connect Electric source to the Coils.
+    circuit.CreateWire(dx2+2, dy2+2, Gu(1,1)-2, Gu(1,2));
+    circuit.CreateWire(dx2+2, dy2, Gv(1,1)-2, Gv(1,2));
+    circuit.CreateWire(dx2+2, dy2-2, Gw(1,1)-2, Gw(1,2));
+end
 
-%Connect Ground
-circuit.CreateWire(Gv(1,1)+2, Gv(1,2), Gv(1,1)+3*dx, Gv(1,2)-dy+2);
-
+if(isnan(n3ph))
+    %Connect Ground
+    circuit.CreateWire(Gw(1,1)+2, Gw(1,2), Gw(1,1)+3*dx, Gw(1,2)-dy+2);
+else
+    %Connect Ground
+    circuit.CreateWire(Gv(1,1)+2, Gv(1,2), Gv(1,1)+3*dx, Gv(1,2)-dy+2);
+end
 
 
 
@@ -179,25 +310,41 @@ Torque_Condition.SetLinkWithType('LinkedMotion', 'Speed');
 JDesigner.SetCurrentStudy('Load');
 % '#'_______________________________________________________________
 % '# Apply Iron loss condition on Stator Core
-Iron_losscondition_JMAG (study,'Stator Core','Stator_Core_Loss',1,2,1)
+Iron_losscondition_JMAG (study,'Stator Core','Stator_Core_Loss',1,2,1, flagCharger)
 % '#'_______________________________________________________________
 % '# Apply Iron loss condition on Rotor Core
-Iron_losscondition_JMAG (study,'Rotor Core','Rotor_Core_Loss',1,2,1)
+Iron_losscondition_JMAG (study,'Rotor Core','Rotor_Core_Loss',1,2,1, flagCharger)
 % '#'_______________________________________________________________
 % '##FEM Coil conditions for Winding Connections
 % '_______________________________________________________________
 % coil direction Definition: Upward or Downward
 % coildirectionp = 0; % upward coil direction, coildirectionn = 1; % downward coil direction
 
-% 'Create FEM Coil conditions for U-phase
-Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{1},+1,-1)
-% '_______________________________________________________________
-% 'Create FEM Coil conditions for W-phase
-Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{3},+3,-3)
-% '_______________________________________________________________
-% 'Create FEM Coil conditions for V-phase
-Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{2},+2,-2)
-
+if(isnan(n3ph))
+    % 'Create FEM Coil conditions for U-phase
+    Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{1},+1,-1)
+    % '_______________________________________________________________
+    % 'Create FEM Coil conditions for W-phase
+    Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{4},+4,-4)
+    % '_______________________________________________________________
+    % 'Create FEM Coil conditions for V-phase
+    Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{2},+2,-2)
+    % '_______________________________________________________________
+    % 'Create FEM Coil conditions for -phase
+    Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{5},+5,-5)
+    % '_______________________________________________________________
+    % 'Create FEM Coil conditions for V-phase
+    Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{3},+3,-3)
+else
+    % 'Create FEM Coil conditions for U-phase
+    Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{1},+1,-1)
+    % '_______________________________________________________________
+    % 'Create FEM Coil conditions for W-phase
+    Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{3},+3,-3)
+    % '_______________________________________________________________
+    % 'Create FEM Coil conditions for V-phase
+    Coil_DirectionDefinition_JMAG (geo,study,phaseLabel{2},+2,-2)
+end
 
 JDesigner.SetCurrentStudy('Load');
 
@@ -247,6 +394,10 @@ sel = Coil_mesh.GetSelection();
 sel.SelectPart(strcat('Coil','_U'));
 sel.SelectPart(strcat('Coil','_V'));
 sel.SelectPart(strcat('Coil','_W'));
+if(isnan(n3ph))
+    sel.SelectPart(strcat('Coil','_X'));
+    sel.SelectPart(strcat('Coil','_Y'));
+end
 Coil_mesh.AddSelected(sel);
 
 JDesigner.SetCurrentStudy('load');
@@ -266,6 +417,9 @@ JDesigner.Save();
 % Results Graphs Data
 Data_Manager = JDesigner.GetDataManager();
 Uphase_name = 'U-Phase Coil';Vphase_name = 'V-Phase Coil';Wphase_name = 'W-Phase Coil';
+if(isnan(n3ph))
+    Xphase_name = 'X-Phase Coil'; Yphase_name = 'Y-Phase Coil';
+end
 % Results Graphs of Coil Flux-Linkage
 CoilFluxLinkage_result = Data_Manager.GetDataSet('Coil Flux-Linkage');
 Data_Manager.CreateAllCasesGraphModel(CoilFluxLinkage_result,'Coil Flux-Linkage');
@@ -276,6 +430,10 @@ NTL = CoilFluxLinkage_result.GetRows();
 Fluxa = zeros(NTL,1);
 Fluxb = zeros(NTL,1);
 Fluxc = zeros(NTL,1);
+if(isnan(n3ph))
+    Fluxd = zeros(NTL,1);
+    Fluxe = zeros(NTL,1);
+end
 
 for row =1:1:NTL
     if strcmp(CoilFluxLinkage_result.GetColumnName(1), Uphase_name) == 1
@@ -287,24 +445,55 @@ for row =1:1:NTL
     if strcmp(CoilFluxLinkage_result.GetColumnName(3), Wphase_name) == 1
         Fluxc(row,1) = CoilFluxLinkage_result.GetValue(row-1, 3);
     end
+
+    if(isnan(n3ph))
+        if strcmp(CoilFluxLinkage_result.GetColumnName(4), Xphase_name) == 1
+            Fluxd(row,1) = CoilFluxLinkage_result.GetValue(row-1, 4);
+        end
+        if strcmp(CoilFluxLinkage_result.GetColumnName(5), Yphase_name) == 1
+            Fluxe(row,1) = CoilFluxLinkage_result.GetValue(row-1, 5);
+        end
+    end
 end
 % '------------------------------------------------------------------------
 %% Results Graphs of Circuit Current
 ia = zeros(NTL,1);
 ib = zeros(NTL,1);
 ic = zeros(NTL,1);
+if(isnan(n3ph))
+    id = zeros(NTL,1);
+    ie = zeros(NTL,1);
+end
 
 CircuitCurrent_result = Data_Manager.GetDataSet('Circuit Current');
 Data_Manager.CreateAllCasesGraphModel(CircuitCurrent_result,'Circuit Current Graph');
 for row =1:1:NTL
-    if strcmp(CircuitCurrent_result.GetColumnName(2), Uphase_name) == 1
-        ia(row,1) = CircuitCurrent_result.GetValue(row-1, 2);
-    end
-    if strcmp(CircuitCurrent_result.GetColumnName(3), Vphase_name) == 1
-        ib(row,1) = CircuitCurrent_result.GetValue(row-1, 3);
-    end
-    if strcmp(CircuitCurrent_result.GetColumnName(4), Wphase_name) == 1
-        ic(row,1) = CircuitCurrent_result.GetValue(row-1, 4);
+    if(isnan(n3ph))
+        if strcmp(CircuitCurrent_result.GetColumnName(1), Uphase_name) == 1
+            ia(row,1) = CircuitCurrent_result.GetValue(row-1, 1);
+        end
+        if strcmp(CircuitCurrent_result.GetColumnName(2), Vphase_name) == 1
+            ib(row,1) = CircuitCurrent_result.GetValue(row-1, 2);
+        end
+        if strcmp(CircuitCurrent_result.GetColumnName(3), Wphase_name) == 1
+            ic(row,1) = CircuitCurrent_result.GetValue(row-1, 3);
+        end
+        if strcmp(CircuitCurrent_result.GetColumnName(4), Xphase_name) == 1
+            id(row,1) = CircuitCurrent_result.GetValue(row-1, 4);
+        end
+        if strcmp(CircuitCurrent_result.GetColumnName(5), Yphase_name) == 1
+            ie(row,1) = CircuitCurrent_result.GetValue(row-1, 5);
+        end
+    else
+        if strcmp(CircuitCurrent_result.GetColumnName(2), Uphase_name) == 1
+            ia(row,1) = CircuitCurrent_result.GetValue(row-1, 2);
+        end
+        if strcmp(CircuitCurrent_result.GetColumnName(3), Vphase_name) == 1
+            ib(row,1) = CircuitCurrent_result.GetValue(row-1, 3);
+        end
+        if strcmp(CircuitCurrent_result.GetColumnName(4), Wphase_name) == 1
+            ic(row,1) = CircuitCurrent_result.GetValue(row-1, 4);
+        end
     end
 end
 % '------------------------------------------------------------------------
@@ -359,52 +548,105 @@ Loss_PM = zeros(NTL,length(MagnetCG));
 PMLoss_result = Data_Manager.GetDataSet('Joule Loss');
 Data_Manager.CreateGraphModel(PMLoss_result, 'PM Losses (W)');
 if any(unique(Magnetxy(:,9)) ~= 0)
-for ID = 1:1:length(MagnetCG)
-    for row = 1:NTL
-        if strcmp(PMLoss_result.GetColumnName(ID), strcat('Magnet',num2str(ID))) == 1
-            Loss_PM(row,ID) = PMLoss_result.GetValue(row-1, ID);
+    for ID = 1:1:length(MagnetCG)
+        for row = 1:NTL
+            if strcmp(PMLoss_result.GetColumnName(ID), strcat('Magnet',num2str(ID))) == 1
+                Loss_PM(row,ID) = PMLoss_result.GetValue(row-1, ID);
+            end
         end
     end
 end
+
+if(flagCharger)
+    theta = rotorPos;
+else
+    % '------------------------------------------------------------------------
+    %% Results Graphs of rotor electrical position in deg
+    pos_Mov = tempo.*per.EvalSpeed*2*pi/60; % rotor position (rad mec)
+    theta = ( pos_Mov) .* geo.p; 
 end
-% '------------------------------------------------------------------------
-%% Results Graphs of rotor electrical position in deg
-pos_Mov = tempo.*per.EvalSpeed*2*pi/60; % rotor position (rad mec)
-theta = ( pos_Mov) .* geo.p; 
 
 %% Results Graphs of d-q Flux Linkages
 % Fluxq = 2/3*(+(Fluxa-0.5*Fluxb-0.5*Fluxc).*sin(theta)-sqrt(3)/2*(Fluxb-Fluxc).*cos(theta));
 % Fluxd = -2/3*((Fluxa-0.5*Fluxb-0.5*Fluxc).*cos(theta)+sqrt(3)/2*(Fluxb-Fluxc).*sin(theta));
 
-[Fluxdq] = abc2dq(Fluxa',Fluxb',Fluxc',theta');
-Fluxd = Fluxdq(1,:);
-Fluxq = Fluxdq(2,:);
+if(isnan(n3ph))
+    for i=1:NTL
+        Fluxdq(:,i) = abcde2dqd3q30([Fluxa(i);Fluxb(i);Fluxc(i);Fluxd(i);Fluxe(i)],theta);
+    end
+    Fluxd1 = Fluxdq(1,:);
+    Fluxq1 = Fluxdq(2,:);
+    Fluxd3 = Fluxdq(3,:);
+    Fluxq3 = Fluxdq(4,:);
+else    
+    [Fluxdq] = abc2dq(Fluxa',Fluxb',Fluxc',theta');
+    Fluxd = Fluxdq(1,:);
+    Fluxq = Fluxdq(2,:);
+end
 % '------------------------------------------------------------------------
 %% Results Graphs of d-q Circuit Currents
 % iq = 2/3*(+(ia-0.5*ib-0.5*ic).*sin(theta)-sqrt(3)/2*(ib-ic).*cos(theta));
 % id = -2/3*((ia-0.5*ib-0.5*ic).*cos(theta)+sqrt(3)/2*(ib-ic).*sin(theta));
 
-[idq] = abc2dq(ia',ib',ic',theta');
-id = idq(1,:);
-iq = idq(2,:);
+if(isnan(n3ph))
+    for i=1:NTL
+        idq(:,i) = abcde2dqd3q30([ia(i);ib(i);ic(i);id(i);ie(i)],theta);
+    end
+    id1 = idq(1,:);
+    iq1 = idq(2,:);
+    id3 = idq(3,:);
+    iq3 = idq(4,:);
+else
+    [idq] = abc2dq(ia',ib',ic',theta');
+    id = idq(1,:);
+    iq = idq(2,:);
+end
 
-
-%% output
-% '------------------------------------------------------------------------
-%electrical angle in deg
-th = tempo.*per.EvalSpeed*(180/pi)*geo.p*2*pi/60; 
+if(flagCharger)
+    %% output
+    % '------------------------------------------------------------------------
+    %electrical angle in deg
+    th = tempo*2*pi*50*(180/pi); 
+else
+    %% output
+    % '------------------------------------------------------------------------
+    %electrical angle in deg
+    th = tempo.*per.EvalSpeed*(180/pi)*geo.p*2*pi/60; 
+end
 % flux, currents, resitance
 SOL.th = th';
-SOL.fa = Fluxa';
-SOL.fb = Fluxb';
-SOL.fc = Fluxc';   
-SOL.ia = ia';
-SOL.ib = ib';
-SOL.ic = ic';
-SOL.id = id;
-SOL.iq = iq;
-SOL.fd = Fluxd;
-SOL.fq = Fluxq;
+
+if(isnan(n3ph))
+    SOL.fa = Fluxa';
+    SOL.fb = Fluxb';
+    SOL.fc = Fluxc';
+    SOL.fd = Fluxd';
+    SOL.fe = Fluxe';
+    SOL.ia = ia';
+    SOL.ib = ib';
+    SOL.ic = ic';
+    SOL.id = id';
+    SOL.ie = ie';
+    SOL.id1 = id1;
+    SOL.iq1 = iq1;
+    SOL.id3 = id3;
+    SOL.iq3 = iq3;
+    SOL.fd1 = Fluxd1;
+    SOL.fq1 = Fluxq1;
+    SOL.fd3 = Fluxd3;
+    SOL.fq3 = Fluxq3;
+else
+    SOL.fa = Fluxa';
+    SOL.fb = Fluxb';
+    SOL.fc = Fluxc';   
+    SOL.ia = ia';
+    SOL.ib = ib';
+    SOL.ic = ic';
+    SOL.id = id;
+    SOL.iq = iq;
+    SOL.fd = Fluxd;
+    SOL.fq = Fluxq;
+end
 
 % torque
 SOL.T = electromagnetic_torque';

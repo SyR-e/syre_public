@@ -12,7 +12,11 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function plot_singm3D(F_map,resFolder)
+function plot_singm3D(F_map,resFolder,flagPlot)
+
+if nargin()==2
+    flagPlot=1;
+end
 
 % Interp the flux linkage maps over a very dense grid (41 x 41)
 
@@ -117,107 +121,109 @@ else
 end
 
 %% Figures
-FigDir = [resFolder,'fig - flux maps'];
-mkdir(FigDir);
-FigDir = checkPathSyntax([FigDir '\']);
-
-% flux maps
-figure
-plot(Id(1,:,end),Fd([1 end],:,end),F_map.Id(1,:,end),F_map.Fd([1 end],:,end),'kx'), grid on, hold on
-plot(Iq(:,1,end),Fq(:,[1 end],end),F_map.Iq(:,1,end),F_map.Fq(:,[1 end],end),'kx'),
-xlabel('id,iq [A]'), ylabel('\lambda_d, \lambda_q [Vs]'), title('Curves at Ir_{max}')%zlabel('\lambda_d')
-h=gcf(); %OCT
-if isoctave()
-    fig_name=strcat(FigDir, 'Curves.fig');
-    hgsave(h,[fig_name]);
-    clear fig_name
-else
-    saveas(gcf,[FigDir 'Curves.fig'])
-end
-
-figure
-surfc(Id(:,:,end),Iq(:,:,end),Fd(:,:,end)), grid on, xlabel('id'), ylabel('iq'), zlabel('\lambda_d (Ir_{max})')
-h=gcf(); %OCT
-if isoctave()
-    fig_name = checkPathSyntax(strcat(FigDir, '\Fdsurf.fig'));
-    hgsave(h,[fig_name]);
-    clear fig_name
-else
-    saveas(gcf,[FigDir 'Fdsurf.fig'])
-end
-
-figure
-surfc(Id(:,:,end),Iq(:,:,end),Fq(:,:,end)), grid on, xlabel('id'), ylabel('iq'), zlabel('\lambda_q (Ir_{max})')
-h=gcf(); %OCT
-if isoctave()
-    fig_name=strcat(FigDir, 'Fqsurf.fig');
-    hgsave(h,[fig_name]);
-    clear fig_name
-else
-    saveas(gcf,[FigDir 'Fqsurf.fig'])
-end
-
-
-% TORQUE MAP
-figure
-surf(Id(:,:,end),Iq(:,:,end),abs(T(:,:,end))), grid on, xlabel('id [A]'), ylabel('iq [A]'), zlabel('Torque [Nm]')
-h=gcf(); %OCT
-if isoctave()
-    fig_name=strcat(FigDir, 'Tsurf.fig');
-    hgsave(h,[fig_name]);
-    clear fig_name
-else
-    saveas(gcf,[FigDir 'Tsurf.fig'])
-end
-
-if isfield(F_map,'dT')
+if flagPlot
+    FigDir = [resFolder,'fig - flux maps'];
+    mkdir(FigDir);
+    FigDir = checkPathSyntax([FigDir '\']);
+    
+    % flux maps
     figure
-    surf(Id(:,:,end),Iq(:,:,end),dT(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Torque ripple (std) [Nm]')
+    plot(Id(1,:,end),Fd([1 end],:,end),F_map.Id(1,:,end),F_map.Fd([1 end],:,end),'kx'), grid on, hold on
+    plot(Iq(:,1,end),Fq(:,[1 end],end),F_map.Iq(:,1,end),F_map.Fq(:,[1 end],end),'kx'),
+    xlabel('id,iq [A]'), ylabel('\lambda_d, \lambda_q [Vs]'), title('Curves at Ir_{max}')%zlabel('\lambda_d')
     h=gcf(); %OCT
     if isoctave()
-        fig_name=strcat(FigDir, 'dTsurf.fig');
+        fig_name=strcat(FigDir, 'Curves.fig');
         hgsave(h,[fig_name]);
         clear fig_name
     else
-        saveas(gcf,[FigDir 'dTsurf.fig'])
-    end
-end
-if isfield(F_map,'dTpp')
-    figure
-    surf(Id(:,:,end),Iq(:,:,end),dTpp(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Torque ripple (pk-pk) [Nm]')
-    h=gcf(); %OCT
-    if isoctave()
-        fig_name=strcat(FigDir, 'dTppsurf.fig');
-        hgsave(h,[fig_name]);
-        clear fig_name
-    else
-        saveas(gcf,[FigDir 'dTppsurf.fig'])
+        saveas(gcf,[FigDir 'Curves.fig'])
     end
     
-end
-
-if isfield(F_map,'Pfe')
     figure
-    surf(Id(:,:,end),Iq(:,:,end),Pfe(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Iron Loss [W]')
+    surfc(Id(:,:,end),Iq(:,:,end),Fd(:,:,end)), grid on, xlabel('id'), ylabel('iq'), zlabel('\lambda_d (Ir_{max})')
     h=gcf(); %OCT
     if isoctave()
-        fig_name=strcat(FigDir, 'Pfesurf.fig');
+        fig_name = checkPathSyntax(strcat(FigDir, '\Fdsurf.fig'));
         hgsave(h,[fig_name]);
         clear fig_name
     else
-        saveas(gcf,[FigDir 'Pfesurf.fig'])
+        saveas(gcf,[FigDir 'Fdsurf.fig'])
     end
-end
-
-
-figure
-surf(Id(:,:,end),Iq(:,:,end),Ir(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Ir [A]')
-h=gcf(); %OCT
-if isoctave()
-    fig_name=strcat(FigDir, 'Irsurf.fig');
-    hgsave(h,[fig_name]);
-    clear fig_name
-else
-    saveas(gcf,[FigDir 'Irsurf.fig'])
+    
+    figure
+    surfc(Id(:,:,end),Iq(:,:,end),Fq(:,:,end)), grid on, xlabel('id'), ylabel('iq'), zlabel('\lambda_q (Ir_{max})')
+    h=gcf(); %OCT
+    if isoctave()
+        fig_name=strcat(FigDir, 'Fqsurf.fig');
+        hgsave(h,[fig_name]);
+        clear fig_name
+    else
+        saveas(gcf,[FigDir 'Fqsurf.fig'])
+    end
+    
+    
+    % TORQUE MAP
+    figure
+    surf(Id(:,:,end),Iq(:,:,end),abs(T(:,:,end))), grid on, xlabel('id [A]'), ylabel('iq [A]'), zlabel('Torque [Nm]')
+    h=gcf(); %OCT
+    if isoctave()
+        fig_name=strcat(FigDir, 'Tsurf.fig');
+        hgsave(h,[fig_name]);
+        clear fig_name
+    else
+        saveas(gcf,[FigDir 'Tsurf.fig'])
+    end
+    
+    if isfield(F_map,'dT')
+        figure
+        surf(Id(:,:,end),Iq(:,:,end),dT(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Torque ripple (std) [Nm]')
+        h=gcf(); %OCT
+        if isoctave()
+            fig_name=strcat(FigDir, 'dTsurf.fig');
+            hgsave(h,[fig_name]);
+            clear fig_name
+        else
+            saveas(gcf,[FigDir 'dTsurf.fig'])
+        end
+    end
+    if isfield(F_map,'dTpp')
+        figure
+        surf(Id(:,:,end),Iq(:,:,end),dTpp(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Torque ripple (pk-pk) [Nm]')
+        h=gcf(); %OCT
+        if isoctave()
+            fig_name=strcat(FigDir, 'dTppsurf.fig');
+            hgsave(h,[fig_name]);
+            clear fig_name
+        else
+            saveas(gcf,[FigDir 'dTppsurf.fig'])
+        end
+        
+    end
+    
+    if isfield(F_map,'Pfe')
+        figure
+        surf(Id(:,:,end),Iq(:,:,end),Pfe(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Iron Loss [W]')
+        h=gcf(); %OCT
+        if isoctave()
+            fig_name=strcat(FigDir, 'Pfesurf.fig');
+            hgsave(h,[fig_name]);
+            clear fig_name
+        else
+            saveas(gcf,[FigDir 'Pfesurf.fig'])
+        end
+    end
+    
+    
+    figure
+    surf(Id(:,:,end),Iq(:,:,end),Ir(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Ir [A]')
+    h=gcf(); %OCT
+    if isoctave()
+        fig_name=strcat(FigDir, 'Irsurf.fig');
+        hgsave(h,[fig_name]);
+        clear fig_name
+    else
+        saveas(gcf,[FigDir 'Irsurf.fig'])
+    end
 end
 

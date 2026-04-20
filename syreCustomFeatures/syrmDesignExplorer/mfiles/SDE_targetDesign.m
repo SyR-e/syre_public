@@ -36,10 +36,18 @@ if nargin()==1
     else
         Ns = map.dataSet.TurnsInSeries;
     end
-
-    prompt  = {'Peak phase current (Apk)','DC link voltage (V)','Target torque (Nm)','Target power factor','Feasible number of turns','Target power (W)'};
-    answers = {num2str(map.dataSet.RatedCurrent),int2str(map.Vdc),'100','NaN',mat2str(Ns),'100000'};
-    answers = inputdlg(prompt,'Design Targets',1,answers);
+    
+    if ~strcmp(map.dataSet.TypeOfRotor,'EESM')
+        prompt  = {'Peak phase current (Apk)','DC link voltage (V)','Target torque (Nm)','Target power factor','Feasible number of turns','Target power (W)'};
+        answers = {num2str(map.dataSet.RatedCurrent),int2str(map.Vdc),'100','NaN',mat2str(Ns),'100000'};
+        answers = inputdlg(prompt,'Design Targets',1,answers);
+    else
+        % prompt  = {'Peak phase current (Apk)','DC link voltage (V)','Target torque (Nm)','Target power factor','Stator number of turns','Target power (W)','Rotor Current (A)', 'Rotor Voltage (V)', 'Rotor number of turns'};
+        % answers = {num2str(map.dataSet.RatedCurrent),int2str(map.Vdc),'100','NaN',mat2str(Ns),'100000','10','400','[1 10 100]'};
+        prompt  = {'Peak phase current (Apk)','DC link voltage (V)','Target torque (Nm)','Target power factor','Stator number of turns','Target power (W)','Rotor Current (A)', 'Rotor number of turns'};
+        answers = {num2str(map.dataSet.RatedCurrent),int2str(map.Vdc),'100','NaN',mat2str(Ns),'100000','10','[1 10 100]'};
+        answers = inputdlg(prompt,'Design Targets',1,answers);
+    end
 
     setup.Imax = eval(answers{1});
     setup.Vdc  = eval(answers{2});
@@ -47,15 +55,22 @@ if nargin()==1
     setup.PF   = eval(answers{4});
     setup.Ns   = eval(answers{5});
     setup.P    = eval(answers{6});
+    if strcmp(map.dataSet.TypeOfRotor,'EESM')   
+        setup.Irmax = eval(answers{7});
+        % setup.Vrmax = eval(answers{8});
+        % setup.Nr = eval(answers{9});
+        setup.Nr = eval(answers{8});
+    end
 end
 
+setup.Vrmax= setup.Vdc; 
 setup.w    = setup.P/setup.T;
 setup.n    = setup.w*30/pi;
 setup.Fmax = setup.Vdc/(sqrt(3)*map.dataSet.NumOfPolePairs*setup.w);
 if isnan(setup.PF)
     setup.PF   = setup.P/(sqrt(3)/2*setup.Vdc*setup.Imax*map.dataSet.Num3PhaseCircuit);
 end
-nPoints = 1001;
+nPoints = 201;
 
 xx = linspace(min(map.xx(:)),max(map.xx(:)),nPoints);
 bb = linspace(min(map.bb(:)),max(map.bb(:)),nPoints);
@@ -102,7 +117,11 @@ hax(2) = axes(...
     'YLim',[min(bb(:)) max(bb(:))]);
 xlabel('$x$')
 ylabel('$b$')
-title(['Feasibility area @ $I_{max}=' num2str(setup.Imax) '$ Apk / $V_{DC}=' int2str(setup.Vdc) '$ V'])
+if ~strcmp(map.dataSet.TypeOfRotor,'EESM')
+    title(['Feasibility area @ $I_{max}=' num2str(setup.Imax) '$ Apk / $V_{DC}=' int2str(setup.Vdc) '$ V'])
+else
+    title(['Feasibility area @ $I_{Smax}=' num2str(setup.Imax) '$ Apk / $V_{DC}=' int2str(setup.Vdc) '$ V / $I_{Rmax}=' num2str(setup.Irmax) '$ A'])
+end
 hleg(2) = legend('show','Location','southwest');
 set(hfig(2),'UserData',map);
 
@@ -148,13 +167,35 @@ for ii=1:length(setup.Ns)
     surf(xx,bb,feasible,'EdgeColor','none','FaceColor',colors(ii,:),'FaceAlpha',0.5,'DisplayName',plotName)
 end
 
+if strcmp(map.dataSet.TypeOfRotor,'EESM')
+    map.NrFeasibleMin = nan(size(map.xx));
+    map.NrFeasibleMax = nan(size(map.xx));
+
+    for jj=1:length(setup.Nr)
+        feasible = zeros(size(xx));
+        tmp = interp2(map.xx,map.bb,map.NrIr,xx,bb);
+        feasible(tmp>=setup.Nr(jj)*setup.Irmax) = NaN;
+        %map.Rr = map.Rr_Nr2*setup.Nr(jj); %Non ha senso fisico - resistenza di una spira che passa per tutti i poli ma solo una volta (già moltiplicata per 2p)
+        Vr_eval = map.Rr_Nr2*setup.Nr(jj).*map.NrIr; %Solo a 20°C!!
+        tmp = interp2(map.xx,map.bb,Vr_eval,xx,bb);
+        feasible(tmp>=setup.Vrmax) = NaN;
+        if sum(~isnan(feasible(:)))==0
+            plotName = ['$N_r=' int2str(setup.Nr(jj)) '$ - unfeasible'];
+        else
+            plotName = ['$N_r=' int2str(setup.Nr(jj)) '$ - feasible'];
+            tmp = feasible+setup.Nr(jj);
+            %tmp(isnan(tmp)) = 0;
+            tmp2 = interp2(xx,bb,tmp,map.xx,map.bb);
+            % [n1,n2,n3] = size(map.xx);
+            % tmp3D = nan(n1,n2,2);
+            % tmp3D(:,:,1) = map.NsFeasibleMax;
+            % tmp3D(:,:,2) = tmp;
+            map.NrFeasibleMax = max(map.NrFeasibleMax,tmp2);
+            map.NrFeasibleMin = min(map.NrFeasibleMin,tmp2);
+        end
+        surf(xx,bb,feasible,'EdgeColor','none','FaceColor',colors(jj+ii,:),'FaceAlpha',0.5,'DisplayName',plotName)
+    end
+end
+
 set(hfig(1),'UserData',map);
 set(hfig(2),'UserData',map);
-
-
-
-
-
-
-
-

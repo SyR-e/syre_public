@@ -21,6 +21,111 @@ else
     nRep = 1;
 end
 
+T  = repmat(out.SOL.T,1,nRep);    % last point added for plot
+fd = repmat(out.SOL.fd,1,nRep) ;  % last point added for plot
+fq = repmat(out.SOL.fq,1,nRep) ;  % last point added for plot
+   
+for ii = 1:height(out.SOL.fa)
+
+    id = repmat(out.SOL.id,1,nRep) ;  % last point added for plot
+    iq = repmat(out.SOL.iq,1,nRep) ;  % last point added for plot
+
+    if isfield(out.SOL,'ia')
+        if nRep==1
+            ia(ii,:) = out.SOL.ia(ii,:);
+            ib(ii,:) = out.SOL.ib(ii,:) ;
+            ic(ii,:) = out.SOL.ic(ii,:);
+    
+            fa(ii,:) = out.SOL.fa(ii,:);
+            fb(ii,:) = out.SOL.fb(ii,:);
+            fc(ii,:) = out.SOL.fc(ii,:);
+        else
+            iph = phaseQuantityDecoding(out.SOL.ia(ii,:),out.SOL.ib(ii,:),out.SOL.ic(ii,:),delta_sim_singt);
+            ia(ii,:) = iph.a;
+            ib(ii,:) = iph.b ;
+            ic(ii,:) = iph.c ;
+    
+            fph = phaseQuantityDecoding(out.SOL.fa(ii,:),out.SOL.fb(ii,:),out.SOL.fc(ii,:),delta_sim_singt);
+            fa(ii,:) = fph.a ;
+            fb(ii,:) = fph.b ;
+            fc(ii,:) = fph.c ;
+        end
+    else
+        ia = NaN;
+        ib = NaN;
+        ic = NaN;
+        fa = NaN;
+        fb = NaN;
+        fc = NaN;         
+               
+    end
+
+
+end
+
+
+
+
+
+
+
+
+
+% T  = [repmat(out.SOL.T,1,nRep) out.SOL.T(1)];    % last point added for plot
+% fd = [repmat(out.SOL.fd,1,nRep) out.SOL.fd(1)];  % last point added for plot
+% fq = [repmat(out.SOL.fq,1,nRep) out.SOL.fq(1)];  % last point added for plot
+% id = [repmat(out.SOL.id,1,nRep) out.SOL.id(1)];  % last point added for plot
+% iq = [repmat(out.SOL.iq,1,nRep) out.SOL.iq(1)];  % last point added for plot
+
+% T  = repmat(out.SOL.T,1,nRep);    % last point added for plot
+% fd = repmat(out.SOL.fd,1,nRep) ;  % last point added for plot
+% fq = repmat(out.SOL.fq,1,nRep) ;  % last point added for plot
+% for ii = 1:height(out.SOL.fa)
+% 
+%     id = repmat(out.SOL.id,1,nRep) ;  % last point added for plot
+%     iq = repmat(out.SOL.iq,1,nRep) ;  % last point added for plot
+% 
+%     if isfield(out.SOL,'ia')
+%         if nRep==1
+%             ia(ii,:) = out.SOL.ia(ii,:);
+%             ib(ii,:) = out.SOL.ib(ii,:) ;
+%             ic(ii,:) = out.SOL.ic(ii,:);
+% 
+%             fa(ii,:) = out.SOL.fa(ii,:);
+%             fb(ii,:) = out.SOL.fb(ii,:);
+%             fc(ii,:) = out.SOL.fc(ii,:);
+%         else
+%             iph = phaseQuantityDecoding(out.SOL.ia(ii,:),out.SOL.ib(ii,:),out.SOL.ic(ii,:),delta_sim_singt);
+%             ia(ii,:) = iph.a;
+%             ib(ii,:) = iph.b ;
+%             ic(ii,:) = iph.c ;
+% 
+%             fph = phaseQuantityDecoding(out.SOL.fa(ii,:),out.SOL.fb(ii,:),out.SOL.fc(ii,:),delta_sim_singt);
+%             fa(ii,:) = fph.a ;
+%             fb(ii,:) = fph.b ;
+%             fc(ii,:) = fph.c ;
+%         end
+%     else
+%         ia = NaN;
+%         ib = NaN;
+%         ic = NaN;
+%         fa = NaN;
+%         fb = NaN;
+%         fc = NaN;         
+% 
+%         end
+% 
+% 
+% end
+
+
+
+
+
+
+
+
+
 T  = [repmat(out.SOL.T,1,nRep) out.SOL.T(1)];    % last point added for plot
 fd = [repmat(out.SOL.fd,1,nRep) out.SOL.fd(1)];  % last point added for plot
 fq = [repmat(out.SOL.fq,1,nRep) out.SOL.fq(1)];  % last point added for plot
@@ -34,7 +139,7 @@ if isfield(out.SOL,'ia')
         ic = [out.SOL.ic out.SOL.ic(:,1)];
 
         fa = [out.SOL.fa out.SOL.fa(:,1)];
-        fb = [out.SOL.fb out.SOL.fb(:,1)];
+        fb = [out.SOL.fb out.SOL.fb(:,1)];       rimosso da simodelsa
         fc = [out.SOL.fc out.SOL.fc(:,1)];
     else
         iph = phaseQuantityDecoding(out.SOL.ia,out.SOL.ib,out.SOL.ic,delta_sim_singt);
@@ -66,7 +171,7 @@ else
 end
 
 gamma = atan2(iq,id);
-delta = atan2(fq,fd);
+delta = atan2(fq(1,:),fd(1,:));
 IPF = sin(gamma-delta);
 
 hfig(1) = figure();
@@ -81,7 +186,8 @@ subplot(2,1,2)
 set(gca,'XLim',[0 360],'XTick',0:60:360);
 xlabel('$\theta$ (elt deg)')
 ylabel('IPF')
-title(['Mean IPF = ' num2str(out.IPF)])
+% title(['Mean IPF = ' num2str(out.IPF)])
+title(['Mean IPF = ' num2str(mean(IPF))])
 plot(th,IPF);
 if isoctave()
     fig_name=strcat(newDir, filemot(1:end-4), '_T_gamma');
@@ -96,20 +202,35 @@ subplot(2,1,1)
 set(gca,'XLim',[0 360],'XTick',0:60:360);
 xlabel('$\theta$ (elt deg)')
 ylabel('$\lambda_d$ (Vs)')
-title(['Mean $\lambda_d$ = ' num2str(out.fd) ' Vs'])
-plot(th,fd);
+title(['Mean $\lambda_d$ = ' num2str(mean(fd(1,:))) ' Vs'])
+plot(th,fd(1,:));
 subplot(2,1,2)
 set(gca,'XLim',[0 360],'XTick',0:60:360);
 xlabel('$\theta$ (elt deg)')
 ylabel('$\lambda_q$ (Vs)')
-title(['Mean $\lambda_q$ = ' num2str(out.fq) ' Vs'])
-plot(th,fq);
+title(['Mean $\lambda_q$ = ' num2str(mean(fq(1,:))) ' Vs'])
+plot(th,fq(1,:));
 if isoctave()
     fig_name=strcat(newDir, filemot(1:end-4), '_plot_flux');
     hgsave(hfig(2),[fig_name]);
 else
     saveas(hfig(2),[newDir filemot(1:end-4) '_plot_flux']);
 end
+
+% hfig(4) = figure();
+% figSetting()
+% subplot(2,1,1)
+% set(gca,'XLim',[0 360],'XTick',0:60:360);
+% xlabel('$\theta$ (elt deg)')
+% ylabel('$i_d$ (A)')
+% title(['Mean $i_d$ = ' num2str(mean(id(1,:))) ' A'])
+% plot(th,id(1,:));
+% subplot(2,1,2)
+% set(gca,'XLim',[0 360],'XTick',0:60:360);
+% xlabel('$\theta$ (elt deg)')
+% ylabel('$i_q$ (A)')
+% title(['Mean $i_q$ = ' num2str(mean(iq(1,:))) ' A'])
+% plot(th,iq(1,:));
 
 if ~sum(isnan(fa))
     hfig(3) = figure();

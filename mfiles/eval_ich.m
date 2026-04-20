@@ -93,6 +93,7 @@ else
         dataSet.AngularSpanPP   = setup.AngularSpanPP;
         dataSet.currentfilename = setup.currentfilename;
         dataSet.currentpathname = setup.currentpathname;
+        dataSet.XFEMMsimulation = setup.XFEMMsimulation;
         
         if ~isfield(geo,'axisType')
             if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
@@ -123,6 +124,7 @@ per.nsim_singt      = dataSet.NumOfRotPosPP;
 per.delta_sim_singt = dataSet.AngularSpanPP;
 per.tempPP          = dataSet.tempPP;
 per.BrPP            = dataSet.BrPP;
+geo.XFEMMsimulation = dataSet.XFEMMsimulation;
 
 dataSet.currentfilename = filename;
 dataSet.currentpathname = pathname;

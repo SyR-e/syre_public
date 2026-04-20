@@ -49,6 +49,7 @@ else
     setup.filename = temp.currentfilename;
     setup.pathname = temp.currentpathname;
     setup.tempVect = temp.tempPP;
+    setup.XFEMMsimulation = temp.XFEMMsimulation;
     setup.figFlag  = 1;
     
     
@@ -56,6 +57,7 @@ else
 
     dataSet.axisType = temp.axisType;
     dataSet.tempPP   = setup.tempVect;
+    dataSet.XFEMMsimulation = setup.XFEMMsimulation;
     clear temp
 
     if ~isfield(dataSet,'axisType')
@@ -89,6 +91,7 @@ figFlag  = setup.figFlag;
 per.nsim_singt      = dataSet.NumOfRotPosPP;
 per.delta_sim_singt = dataSet.AngularSpanPP;
 per.tempPP          = tempVect;
+geo.XFEMMsimulation = dataSet.XFEMMsimulation;
 
 outFolder = [filename(1:end-4) '_results\FEA results\'];
 outFolder = checkPathSyntax(outFolder);
@@ -108,19 +111,21 @@ dPMdemagVect = zeros(size(tempVect));
 BminVect     = zeros(size(tempVect));
 
 disp('Starting FEMM simulations...')
-openfemm(1)
-opendocument([pathname filename(1:end-4) '.fem'])
-
-mi_saveas([resFolder filename(1:end-4) '.fem']);
-mi_close;
+if ~geo.XFEMMsimulation
+    openfemm(1)
+    opendocument([pathname filename(1:end-4) '.fem'])
+    
+    mi_saveas([resFolder filename(1:end-4) '.fem']);
+    mi_close;
+end
 
 i0 = per.i0;
 
-maxIter = 500;
+maxIter = 50;
 dPMtarget = 0.01;
 tolPU = 0.5;
 tolPU = 0.25;
-IstepLim = i0/100;
+IstepLim = i0/1000;
 
 if strcmp(dataSet.axisType,'PM')
     per.gamma = 180;
@@ -216,7 +221,7 @@ for tt=1:length(tempVect)
         
         disp([' Iteration ' int2str(ii) ' --> ' int2str(dPMiter(ii)*100) '% @ ' int2str(Iiter(ii)) ' A'])
         
-        if (dPMiter(ii)<dPMtarget && dPMiter(ii)>(dPMtarget*(1-tolPU))) % PMs demagnetized below the tolerance
+        if (dPMiter(ii)<=dPMtarget && dPMiter(ii)>(dPMtarget*(1-tolPU))) % PMs demagnetized below the tolerance
             done=1;
         elseif ((Iiter(ii)==0) && dPMiter(ii)>(dPMtarget*(1-tolPU))) % PMs demagnetized at zero current
             done = 1;

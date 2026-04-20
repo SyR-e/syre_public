@@ -1,4 +1,4 @@
-% Copyright 2020
+% Copyright 2025
 %
 %    Licensed under the Apache License, Version 2.0 (the "License");
 %    you may not use this file except in compliance with the License.
@@ -46,47 +46,85 @@ switch axisType
 end
 
 
-for ii=1:length(figNames)
-    hfig(ii) = figure();
-    figSetting();
-    hax(ii) = axes('OuterPosition',[0 0 1 1],...
-        'XLim',[min(Id,[],'all') max(Id,[],'all')],...
-        'YLim',[min(Iq,[],'all') max(Iq,[],'all')],...
-        'PlotBoxAspectRatio',[1 1 0.8]);
-    xlabel('$i_d$ (A)')
-    ylabel('$i_q$ (A)')
-    view(3)
-    set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
-    set(hfig(ii),'Name',figNames{ii})
-    switch ii
-        case 1
-            zlabel('$l_{dd}$ (H)')
-            set(gca,'ZLim',[min(Ldd,[],'all') max(Ldd,[],'all')]);
-        case 2
-            zlabel('$l_{dq}$ (H)')
-            set(gca,'ZLim',[min(Ldq,[],'all') max(Ldq,[],'all')]);
-        case 3
-            zlabel('$l_{qd}$ (H)')
-            set(gca,'ZLim',[min(Lqd,[],'all') max(Lqd,[],'all')]);
-        case 4
-            zlabel('$l_{qq}$ (H)')
-            set(gca,'ZLim',[min(Lqq,[],'all') max(Lqq,[],'all')]);
-        case 5
-            zlabel(csiName)
-            set(gca,'ZLim',[min(csi,[],'all') max(csi,[],'all')]);
-    end
-end
+if strcmp(motorModel.data.motorType, 'VFM')
+      
+    MS_values = motorModel.FluxMap_dq.MS;
+    % Figures with MS slider for VFM
+    figNames{1} = 'InducDD';
+    figNames{2} = 'InducDQ';
+    figNames{3} = 'InducQD';
+    figNames{4} = 'InducQQ';
+    figNames{5} = 'Anisotropy';
 
-surf(hax(1),Id,Iq,Ldd,'FaceColor','interp','EdgeColor','none')
-contour3(hax(1),Id,Iq,Ldd,'EdgeColor','k','ShowText','off')
-surf(hax(2),Id,Iq,Ldq,'FaceColor','interp','EdgeColor','none')
-contour3(hax(2),Id,Iq,Ldq,'EdgeColor','k','ShowText','off')
-surf(hax(3),Id,Iq,Lqd,'FaceColor','interp','EdgeColor','none')
-contour3(hax(3),Id,Iq,Lqd,'EdgeColor','k','ShowText','off')
-surf(hax(4),Id,Iq,Lqq,'FaceColor','interp','EdgeColor','none')
-contour3(hax(4),Id,Iq,Lqq,'EdgeColor','k','ShowText','off')
-surf(hax(5),Id,Iq,csi,'FaceColor','interp','EdgeColor','none')
-contour3(hax(5),Id,Iq,csi,'EdgeColor','k','ShowText','off')
+    % Create all figures with sliders
+    for ii = 1:length(figNames)
+        switch ii
+            case 1
+                Z_data = Ldd;
+                zlabel_str = '$l_{dd}$ (H)';
+            case 2
+                Z_data = Ldq;
+                zlabel_str = '$l_{dq}$ (H)';
+            case 3
+                Z_data = Lqd;
+                zlabel_str = '$l_{qd}$ (H)';
+            case 4
+                Z_data = Lqq;
+                zlabel_str = '$l_{qq}$ (H)';
+            case 5
+                Z_data = csi;
+                zlabel_str = csiName;
+        end        
+
+        figureFullName = [pathname resFolder figNames{ii} '.fig'];           % Create figure full name for savin      
+        labels = {'$i_d$ (A)', '$i_q$ (A)', zlabel_str};                     % Create labels
+       
+        hfig(ii) = slider_inductance(Id, Iq, Z_data, reshape(MS_values(1,1,:),[],1), figureFullName, labels, 'inductance');
+    end
+
+else    
+    for ii=1:length(figNames)
+        hfig(ii) = figure();
+        figSetting();
+        hax(ii) = axes('OuterPosition',[0 0 1 1],...
+            'XLim',[min(Id,[],'all') max(Id,[],'all')],...
+            'YLim',[min(Iq,[],'all') max(Iq,[],'all')],...
+            'PlotBoxAspectRatio',[1 1 0.8]);
+        xlabel('$i_d$ (A)')
+        ylabel('$i_q$ (A)')
+        view(3)
+        set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
+        set(hfig(ii),'Name',figNames{ii})
+        switch ii
+            case 1
+                zlabel('$l_{dd}$ (H)')
+                set(gca,'ZLim',[min(Ldd,[],'all') max(Ldd,[],'all')]);
+            case 2
+                zlabel('$l_{dq}$ (H)')
+                set(gca,'ZLim',[min(Ldq,[],'all') max(Ldq,[],'all')]);
+            case 3
+                zlabel('$l_{qd}$ (H)')
+                set(gca,'ZLim',[min(Lqd,[],'all') max(Lqd,[],'all')]);
+            case 4
+                zlabel('$l_{qq}$ (H)')
+                set(gca,'ZLim',[min(Lqq,[],'all') max(Lqq,[],'all')]);
+            case 5
+                zlabel(csiName)
+                set(gca,'ZLim',[min(csi,[],'all') max(csi,[],'all')]);
+        end
+    end
+    
+    surf(hax(1),Id,Iq,Ldd,'FaceColor','interp','EdgeColor','none')
+    contour3(hax(1),Id,Iq,Ldd,'EdgeColor','k','ShowText','off')
+    surf(hax(2),Id,Iq,Ldq,'FaceColor','interp','EdgeColor','none')
+    contour3(hax(2),Id,Iq,Ldq,'EdgeColor','k','ShowText','off')
+    surf(hax(3),Id,Iq,Lqd,'FaceColor','interp','EdgeColor','none')
+    contour3(hax(3),Id,Iq,Lqd,'EdgeColor','k','ShowText','off')
+    surf(hax(4),Id,Iq,Lqq,'FaceColor','interp','EdgeColor','none')
+    contour3(hax(4),Id,Iq,Lqq,'EdgeColor','k','ShowText','off')
+    surf(hax(5),Id,Iq,csi,'FaceColor','interp','EdgeColor','none')
+    contour3(hax(5),Id,Iq,csi,'EdgeColor','k','ShowText','off')
+end
 
 %% Save figures
 answer = 'No';

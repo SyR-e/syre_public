@@ -14,7 +14,7 @@
 
 function rotore = build_matrix_EESM(temp,geo)
 %%
-for ii = 2:1:7
+for ii = 1:1:7
     x_var = sprintf('xp%d',ii);
     y_var = sprintf('yp%d',ii);
     eval(sprintf('%s = temp.(x_var);', x_var));
@@ -48,7 +48,7 @@ indexEle = 1;
 %         ];
 % end
 rotore = [rotore
-    %0    0    xp1     yp1    xp2  yp2   1 codMatFeRot indexEle
+    0    0    xp1     yp1    xp2  yp2   1 codMatFeRot indexEle
     %xp2  yp2  xp3     yp3    NaN  NaN   0 codMatFeRot indexEle
     0    0    xp3     yp3     xp4  yp4  -1 codMatFeRot indexEle
     xp4  yp4  xp5(1)  yp5(1)  NaN  NaN   0 codMatFeRot indexEle
@@ -59,8 +59,8 @@ if geo.r_fillet == 0
     ];
 else
     Mag = [Mag
-    xc_fillet yc_fillet xp5(1) yp5(1) xp5(2) yp5(2) 1 codMatCuRot indexEle
-    xp5(2) yp5(2) xp6    yp6    NaN    NaN    0 codMatCuRot indexEle
+    xc_fillet yc_fillet xp5(1) yp5(1) xp5(2) yp5(2) 1 codMatFeRot indexEle
+    xp5(2) yp5(2) xp6    yp6    NaN    NaN    0 codMatFeRot indexEle
     ];
 end
 rotore = [rotore
@@ -92,11 +92,14 @@ Mag = [Mag
 if geo.r_fillet == 0
     Mag = [Mag
     xc2 yc2 xc3 yc3 NaN NaN 0 codMatCuRot indexEle
+    xc2 yc2 xc3 yc3 NaN NaN 0 codMatFeRot indexEle
     ];
 else
     Mag = [Mag
     xc_fillet yc_fillet xc2(1) yc2(1) xc2(2) yc2(2) 1 codMatCuRot indexEle
     xc2(2) yc2(2) xc3    yc3    NaN    NaN    0 codMatCuRot indexEle
+    xc_fillet yc_fillet xc2(1) yc2(1) xc2(2) yc2(2) 1 codMatFeRot indexEle
+    xc2(2) yc2(2) xc3    yc3    NaN    NaN    0 codMatFeRot indexEle
     ];
 end
 Mag = [Mag

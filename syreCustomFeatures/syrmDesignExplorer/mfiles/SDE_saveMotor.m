@@ -59,21 +59,36 @@ else
     dataSet.PMdim = -dataSet.PMdimPU./dataSet.PMdimPU;
     dataSet.PMdim(isnan(dataSet.PMdim)) = 0;
     dataSet.PMdim = dataSet.kPM*dataSet.PMdim;
-
+    
     hc_pu = zeros(1,dataSet.NumOfLayers);
     dx    = zeros(1,dataSet.NumOfLayers);
     [m,n]=size(map.xx);
     hcTmp=zeros(m,n);
     dxTmp=zeros(m,n);
-    for ii=1:dataSet.NumOfLayers
-        for mm=1:m
-            for nn=1:n
-                hcTmp(mm,nn)=map.hc_pu{mm,nn}(ii);
-                dxTmp(mm,nn)=map.dx{mm,nn}(ii);
+    if strcmp(dataSet.TypeOfRotor,'EESM')
+        dataSet.YokeWidth         = interp2(map.xx,map.bb,map.lyr,x,b);
+        dataSet.PoleBodyHeight    = interp2(map.xx,map.bb,map.hpb,x,b);
+        dataSet.PoleHeadHeight    = interp2(map.xx,map.bb,map.hph,x,b);
+        dataSet.PoleWidth         = interp2(map.xx,map.bb,map.wp,x,b);
+        dataSet.CoilWidth         = interp2(map.xx,map.bb,map.wb,x,b);
+        dataSet.CoilHeight        = interp2(map.xx,map.bb,map.hb,x,b);
+        dataSet.PoleRotHeadAngle  = interp2(map.xx,map.bb,map.thHead_deg,x,b);
+        dataSet.PoleRotHeadFillet = interp2(map.xx,map.bb,map.r_fillet,x,b);
+               
+        % dataSet.RotorConductorFillingFactor = map.win.kcuf;
+        % dataSet.FieldTurns                  = map.win.Nf;
+        % dataSet.FieldCurrent                = map.per.if;
+    else
+        for ii=1:dataSet.NumOfLayers
+            for mm=1:m
+                for nn=1:n
+                    hcTmp(mm,nn)=map.hc_pu{mm,nn}(ii);
+                    dxTmp(mm,nn)=map.dx{mm,nn}(ii);
+                end
             end
+            hc_pu(ii)=interp2(map.xx,map.bb,hcTmp,x,b);
+            dx(ii)=interp2(map.xx,map.bb,dxTmp,x,b);
         end
-        hc_pu(ii)=interp2(map.xx,map.bb,hcTmp,x,b);
-        dx(ii)=interp2(map.xx,map.bb,dxTmp,x,b);
     end
 
     dataSet.HCpu = round(hc_pu*100)/100;
@@ -82,40 +97,55 @@ end
 
 %Disable Optimization Check
 dataSet.PMdimBouCheck = 0;
-
+if ~isfield(map,'EI')
 figure();
 figSetting();
 title(['$x=' num2str(map.xSelect,2) '$ / $b=' num2str(map.bSelect,2) '$'])
-
+end
 
 [dataSet,~,~,~] = back_compatibility(dataSet,[],[],0);
 tmp.dataSet = dataSet;
 tmp.AxisGeometry = gca;
-
+if ~isfield(map,'EI')
 tmp = GUI_APP_DrawMachine(tmp);
 
-if saveFlag
-    dataSet = DrawAndSaveMachine(tmp.dataSet);
-else
-    button = questdlg('Open the motor in the main SyR-e GUI?','Select','Yes','No','Yes');
-    if strcmp(button,'Yes')
-        hApp = findall(0,'Name','GUI_Syre');
-        if isempty(hApp)
-            GUI_Syre(dataSet);
-        else
-            hApp.RunningAppInstance.dataSet = dataSet;
-            hApp.RunningAppInstance.GUI_update;
-            figure(hApp)
-            clear hApp
+    if saveFlag
+        dataSet = DrawAndSaveMachine(tmp.dataSet);
+    else
+        button = questdlg('Open the motor in the main SyR-e GUI?','Select','Yes','No','Yes');
+        if strcmp(button,'Yes')
+            hApp = findall(0,'Name','GUI_Syre');
+            if isempty(hApp)
+                GUI_Syre(dataSet);
+            else
+                hApp.RunningAppInstance.dataSet = dataSet;
+                hApp.RunningAppInstance.GUI_update;
+                figure(hApp)
+                clear hApp
+            end
         end
     end
+else
+    [~, ~, geo,per,mat] = data0(dataSet);
+    [geo,gamma,mat] = interpretRQ(geo.RQ,geo,mat);
+    fem.res = 0;
+    fem.res_traf = 0;
+    % nodes
+    [rotor,~,geo] = ROTmatr(geo,fem,mat);
+    [geo,stator,~] = STATmatr(geo,fem);
+    geo.pShape = dataSet.pShape;
+    geo.mCu = calcMassCu(geo,mat);
+    geo.mPM = calcMassPM(geo,mat);
+    geo.mAl = calcMassAl(geo,mat);
+    [geo.mFeS,geo.mFeR] = calcMassFe(geo,mat);
+    dataSet.MassWinding = geo.mCu;
+    dataSet.MassMagnet = geo.mPM;
+    dataSet.MassStatorIron = geo.mFeS;
+    dataSet.MassRotorIron  = geo.mFeR;
+    dataSet.MassRotorBar   = geo.mAl;
 end
 
 if nargout()==0
     clear dataSet
 end
-
-
-
-
 

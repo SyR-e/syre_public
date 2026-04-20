@@ -29,23 +29,23 @@ if nargin==1
     %flags for SyRM design
     f = dataSet.syrmDesignFlag;
     flag_kw=1;      % flag_kw=0 --> use Vagati's equations, with kw=pi/(2*sqrt(3))
-                    % flag_kw=1 --> use the winding factor
+    % flag_kw=1 --> use the winding factor
 
     flag_pb=f.hc;   % flag_pb=0 --> hc             = constant (useful for adding PMs)
-                    % flag_pb=1 --> sk/hc          = constant (reduce harmonic content)
-                    % flag_pb=2 --> hc/(df*sk^0.5) = constant (reduce Lfq)
+    % flag_pb=1 --> sk/hc          = constant (reduce harmonic content)
+    % flag_pb=2 --> hc/(df*sk^0.5) = constant (reduce Lfq)
 
     flag_dx=f.dx;   % flag_dx=0 --> dx=0
-                    % flag_dx=1 --> constant rotor carrier width
-                    % flag_dx=2 --> rotor carrier width proportional to sine integral
-                    % flag_dx=3 --> rotor carrier width proportional to flux of d-axis staircase (kt needed)
+    % flag_dx=1 --> constant rotor carrier width
+    % flag_dx=2 --> rotor carrier width proportional to sine integral
+    % flag_dx=3 --> rotor carrier width proportional to flux of d-axis staircase (kt needed)
 
     flag_ks=f.ks;   % flag_ks=0 --> no saturation factor used
-                    % flag_ks=1 --> saturation factor enabled
-    
+    % flag_ks=1 --> saturation factor enabled
+
     flag_i0=f.i0;   % flag_i0=0 --> kj=constant
-                    % flag_i0=1 --> J=constant
-                    % flag_i0=2 --> I=constant
+    % flag_i0=1 --> J=constant
+    % flag_i0=2 --> I=constant
 else
     flag_kw = flags.kw;
     flag_pb = flags.pb;
@@ -77,7 +77,6 @@ if Br~=0
     Bd  = interp1(mat.temp.temp,mat.temp.Bd,tempPM);
     dataSet.Br = Br;
 end
-
 
 PMdimPU = PMdimPU./PMdimPU;
 PMdimPU(isnan(PMdimPU)) = 0;
@@ -114,6 +113,8 @@ n3ph       = geo.win.n3phase;
 pontT      = geo.pontT;
 Nbob       = Ns/p/q/2;                                                   % conductors in slot per layer
 
+kjrs = 1;
+
 tempcu = per.tempcu;
 
 if length(dataSet.xRange)>1
@@ -121,7 +122,7 @@ if length(dataSet.xRange)>1
     m = 31; n = 21;                                                     % m x n grid of evaluated machines
     b = linspace(dataSet.bRange(1),dataSet.bRange(2),m);                % iron/copper split factor
     x = linspace(dataSet.xRange(1),dataSet.xRange(2),n);                % rotor/stator split factor
-    
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % parametric analysis: design domain (x,b)
     [xx,bb] = meshgrid(x,b);
@@ -145,17 +146,21 @@ rocu = 17.8*(234.5 + tempcu)/(234.5+20)*1e-9;                           % resist
 ssp = r * pi/(3*p*q*n3ph);                                              % stator slot pitch (x,b)
 sso = ssp * acs;                                                        % stator slot opening (x,b)
 kc = ssp./(ssp-2/pi*g*(sso/g.*atan(sso/(2*g))-log(1+(sso/(2*g)).^2)));  % Carter coefficient (x,b)
-% ly = pi/2*R/p*xx.*bb*kfm;                                              % yoke or back iron (x,b) [mm]
-%ly = R/p*xx.*bb;                                                       % yoke [mm], do not depend on kt
-% ly = 4/9*(1+sqrt(3))*R/p*xx.*bb*ky;                                     % yoke or back iron (x,b) [mm]
-% ly = (sqrt(3)-pi/6)*R/p*xx.*bb*ky;                                     % yoke or back iron (x,b) [mm], elmo
-ly = R/p*xx.*bb*ky;                                                       % yoke [mm], do not depend on kt, sin
+% ly = pi/2*R/p*xx.*bb*kfm;                                             % yoke or back iron (x,b) [mm]
+% ly = R/p*xx.*bb;                                                      % yoke [mm], do not depend on kt
+% ly = 4/9*(1+sqrt(3))*R/p*xx.*bb*ky;                                   % yoke or back iron (x,b) [mm]
+% ly = (sqrt(3)-pi/6)*R/p*xx.*bb*ky;                                    % yoke or back iron (x,b) [mm], elmo
+ly = R/p*xx.*bb*ky;                                                     % yoke [mm], do not depend on kt, sin
 wt = 2*pi*R/(6*p*q*n3ph)*xx.*bb.*kt;                                    % tooth width (x,b) [mm]
 cos_x0 = cos(pi/2/p);
 sin_x0 = sin(pi/2/p);
 Ar = geo.R*xx*(1/cos_x0-sqrt(((1-cos_x0^2)/cos_x0)^2+sin_x0^2));    % (max) shaft radius (x,b) [mm]
 ArLim = Ar;
 Ar(Ar>geo.Ar) = geo.Ar;
+if strcmp(geo.RotType,'EESM')
+    disp('Analytical evaluation...')
+    Ar = geo.Ar*ones(size(xx));
+end
 
 lt = R*(1-xx)-g-ly;
 lt(lt<2*ttd) = NaN;
@@ -207,6 +212,9 @@ c2 = zeros(m,n);
 ws = zeros(m,n);
 % additional ribs
 pontR   = zeros(m,n);
+if strcmp(dataSet.TypeOfRotor,'Seg')||strcmp(dataSet.TypeOfRotor,'Circular')
+    Radrib   = zeros(m,n, nlay);
+end
 BrPrime = cell(m,n);
 % PM remanence and flux linkage
 BrAvg = zeros(m,n);
@@ -246,209 +254,222 @@ for rr=1:m
             Aslots(rr,cc) = NaN;
             ws(rr,cc) = NaN;
         end
-        
+
         % rotor design
-        % sk
-        beta = calc_apertura_cerchio(geo.alpha*pi/180,geo.R*xx(rr,cc),x0(rr,cc));
-        rbeta = (x0(rr,cc) - R*xx(rr,cc) * cosd(geo.alpha))./(cos(beta));
-        [xpont,ypont] = calc_intersezione_cerchi(R*xx(rr,cc)-geo.pont0, rbeta, x0(rr,cc));
-        if strcmp(dataSet.TypeOfRotor,'Circular')
-            sk{rr,cc}    = rbeta.*beta;
-            lr(rr,cc)    = mean(sk{rr,cc}(end-1:end)); % length of the inner flux carrier (for saturation factor)
-            PMdim{rr,cc} = [sk{rr,cc};zeros(size(sk{rr,cc}))].*PMdimPU;
-        elseif strcmp(dataSet.TypeOfRotor,'Seg')|| strcmp(dataSet.TypeOfRotor,'ISeg')
+        if strcmp(geo.RotType,'EESM')
+
+        else
+            % sk
+            beta = calc_apertura_cerchio(geo.alpha*pi/180,geo.R*xx(rr,cc),x0(rr,cc));
+            rbeta = (x0(rr,cc) - R*xx(rr,cc) * cosd(geo.alpha))./(cos(beta));
+            [xpont,ypont] = calc_intersezione_cerchi(R*xx(rr,cc)-geo.pont0, rbeta, x0(rr,cc));
+            if strcmp(dataSet.TypeOfRotor,'Circular')
+                sk{rr,cc}    = rbeta.*beta;
+                lr(rr,cc)    = mean(sk{rr,cc}(end-1:end)); % length of the inner flux carrier (for saturation factor)
+                PMdim{rr,cc} = [sk{rr,cc};zeros(size(sk{rr,cc}))].*PMdimPU;
+            elseif strcmp(dataSet.TypeOfRotor,'Seg')|| strcmp(dataSet.TypeOfRotor,'ISeg')
+                rpont_x0=sqrt(ypont.^2+(x0(rr,cc)-xpont).^2);
+                Bx0=x0(rr,cc)-(rpont_x0);
+                mo=1;
+                y=ypont+mo*(Bx0-xpont);
+                y = y-geo.hcShrink.*y;
+                xBmk=Bx0;
+                yBmk=y;
+                skv{rr,cc}=calc_distanza_punti_altern(xBmk,yBmk,Bx0,zeros(size(Bx0)));
+                sko{rr,cc}=calc_distanza_punti_altern(xpont,ypont,xBmk,yBmk);
+                if length(skv{rr,cc})>1
+                    lrv(rr,cc)=mean(skv{rr,cc}(end-1:end));
+                else
+                    lrv(rr,cc)=skv{rr,cc};
+                end
+                if length(sko{rr,cc})>1
+                    lro(rr,cc)=mean(sko{rr,cc}(end-1:end));
+                else
+                    lro(rr,cc)=sko{rr,cc};
+                end
+
+                sk{rr,cc}    = skv{rr,cc}+sko{rr,cc};
+                lr(rr,cc)    = lrv(rr,cc)+lro(rr,cc);
+                PMdim{rr,cc} = [skv{rr,cc};sko{rr,cc}].*PMdimPU;
+            else
+                sk{rr,cc} = 0;
+                PMdim{rr,cc} = 0;
+            end
+
+            clear Bx0
+            switch flag_pb
+                case 0 % hc = cost
+                    hc{rr,cc}=la(rr,cc)/geo.nlay.*ones(1,geo.nlay);
+                    %disp('flux barrier design: hc = cost')
+                case 1 % pb = cost
+                    hc{rr,cc}=la(rr,cc)/sum(sk{rr,cc}).*sk{rr,cc};
+                    %disp('flux barrier design: pbk = hc/sk = cost')
+                case 2 % min Lfq
+                    hc{rr,cc}=la(rr,cc)/sum(dfQ.*sk{rr,cc}.^0.5).*(dfQ.*sk{rr,cc}.^0.5);
+                    %disp('flux barrier desig: hc/(df*sk) = cost')
+            end
+
+            hcMin(rr,cc) = min(hc{rr,cc});
+            skMax(rr,cc) = sk{rr,cc}(end);
+
             rpont_x0=sqrt(ypont.^2+(x0(rr,cc)-xpont).^2);
-            Bx0=x0(rr,cc)-(rpont_x0);
-            mo=1;
-            y=ypont+mo*(Bx0-xpont);
-            y = y-geo.hcShrink.*y;
-            xBmk=Bx0;
-            yBmk=y;
-            skv{rr,cc}=calc_distanza_punti_altern(xBmk,yBmk,Bx0,zeros(size(Bx0)));
-            sko{rr,cc}=calc_distanza_punti_altern(xpont,ypont,xBmk,yBmk);
-            if length(skv{rr,cc})>1
-                lrv(rr,cc)=mean(skv{rr,cc}(end-1:end));
+            Bx0{rr,cc}=x0(rr,cc)-(rpont_x0);
+            hc_min=(R*xx(rr,cc)-ArLim(rr,cc)-(geo.R-geo.R*xx(rr,cc)-geo.g-lt(rr,cc)))/geo.nlay/4;
+            hfe_min=2*geo.pont0;
+
+            if (nlay==1)
+                hc_half_min = la(rr,cc)/nlay/8;
+                % max hc according to alpha min
+                hc_half_max1 = (alpha*pi/180/(1+alpha*pi/180)*(r(rr,cc)-pont0));
+                % (needs division by 2 .. don't know why but it works)
+                hc_half_max1 = hc_half_max1 * 2;
+
+                % max hc according to alpha max (27 Jan 2011)
+                temp_alpha_hfemin = hfe_min/r(rr,cc); % rad
+                temp_alpha_hc_2 = pi/(2*p) - alpha*pi/180 - temp_alpha_hfemin;
+                hc_half_max2 = (temp_alpha_hc_2/(1+temp_alpha_hc_2)*(r(rr,cc)-pont0));
+                hc_half_max = min(hc_half_max1,hc_half_max2);
+
+                if hc{rr,cc}<2*hc_half_min
+                    hc{rr,cc}=2*hc_half_min;
+                end
+
+                if hc{rr,cc}>2*hc_half_max
+                    hc{rr,cc}=2*hc_half_max;
+                end
+
+                hc_pu{rr,cc} = hc{rr,cc}/(hc_half_max *2);
+
             else
-                lrv(rr,cc)=skv{rr,cc};
+                delta(rr,cc)=(0.5*hc{rr,cc}(1)+sum(hc{rr,cc}(2:end-1))+0.5*hc{rr,cc}(end)-hc_min*(geo.nlay-1))/(Bx0{rr,cc}(1)-Bx0{rr,cc}(end)-hfe_min*(geo.nlay-1)-hc_min*(geo.nlay-1));
+                hc_pu{rr,cc}=hc{rr,cc}*(delta(rr,cc)*geo.nlay)/sum(hc{rr,cc});
             end
-            if length(sko{rr,cc})>1
-                lro(rr,cc)=mean(sko{rr,cc}(end-1:end));
-            else
-                lro(rr,cc)=sko{rr,cc};
+            % dx (flux carrier design)
+            alphad=[0 90-fliplr(geo.alpha)*geo.p 90];                   % 0<=alphad<=90 [° elt]
+            r_all=geo.R*xx(rr,cc);
+            for ii=1:geo.nlay
+                r_all=[r_all Bx0{rr,cc}(ii)+hc{rr,cc}(ii)/2 Bx0{rr,cc}(ii)-hc{rr,cc}(ii)/2];
             end
+            r_all=[r_all ArLim(rr,cc)];
+            hf0=r_all(1:2:end)-r_all(2:2:end);
 
-            sk{rr,cc}    = skv{rr,cc}+sko{rr,cc};
-            lr(rr,cc)    = lrv(rr,cc)+lro(rr,cc);
-            PMdim{rr,cc} = [skv{rr,cc};sko{rr,cc}].*PMdimPU;
-        else
-            sk{rr,cc} = 0;
-            PMdim{rr,cc} = 0;
-        end
-        
-        clear Bx0
-        switch flag_pb
-            case 0 % hc = cost
-                hc{rr,cc}=la(rr,cc)/geo.nlay.*ones(1,geo.nlay);
-                %disp('flux barrier design: hc = cost')
-            case 1 % pb = cost
-                hc{rr,cc}=la(rr,cc)/sum(sk{rr,cc}).*sk{rr,cc};
-                %disp('flux barrier design: pbk = hc/sk = cost')
-            case 2 % min Lfq
-                hc{rr,cc}=la(rr,cc)/sum(dfQ.*sk{rr,cc}.^0.5).*(dfQ.*sk{rr,cc}.^0.5);
-                %disp('flux barrier desig: hc/(df*sk) = cost')
-        end
-
-        hcMin(rr,cc) = min(hc{rr,cc});
-        skMax(rr,cc) = sk{rr,cc}(end);
-
-        rpont_x0=sqrt(ypont.^2+(x0(rr,cc)-xpont).^2);
-        Bx0{rr,cc}=x0(rr,cc)-(rpont_x0);
-        hc_min=(R*xx(rr,cc)-ArLim(rr,cc)-(geo.R-geo.R*xx(rr,cc)-geo.g-lt(rr,cc)))/geo.nlay/4;
-        hfe_min=2*geo.pont0;
-        
-        if (nlay==1)
-            hc_half_min = la(rr,cc)/nlay/8;
-            % max hc according to alpha min
-            hc_half_max1 = (alpha*pi/180/(1+alpha*pi/180)*(r(rr,cc)-pont0));
-            % (needs division by 2 .. don't know why but it works)
-            hc_half_max1 = hc_half_max1 * 2;
-
-            % max hc according to alpha max (27 Jan 2011)
-            temp_alpha_hfemin = hfe_min/r(rr,cc); % rad
-            temp_alpha_hc_2 = pi/(2*p) - alpha*pi/180 - temp_alpha_hfemin;
-            hc_half_max2 = (temp_alpha_hc_2/(1+temp_alpha_hc_2)*(r(rr,cc)-pont0));
-            hc_half_max = min(hc_half_max1,hc_half_max2);
-            
-            if hc{rr,cc}<2*hc_half_min
-                hc{rr,cc}=2*hc_half_min;
+            switch flag_dx
+                case 0
+                    hf{rr,cc}=hf0;
+                case 1 % constant iron
+                    hf_cost=[ones(1,geo.nlay-1) 0.5]/(geo.nlay-0.5);
+                    hf{rr,cc}=hf_cost*sum(hf0(2:end));
+                    %disp('flux carrier design: Fe = cost')
+                case 2 % iron proportional to first harmonic flux
+                    level=(cosd(alphad(1:end-1))+cosd(alphad(2:end)))/2.*(alphad(2:end)-alphad(1:end-1));
+                    level_pu=level/sum(level);
+                    hfTemp=fliplr(level_pu)*sum(hf0);
+                    hf{rr,cc}=hfTemp(2:end);
+                    %disp('flux carrier design: Fe proportional to first harmonic flux')
+                case 3 % iron proportional to flux
+                    level_pu=evalSatStairCase(xGap,yGap,alphad);
+                    hf{rr,cc}=fliplr(level_pu)*sum(hf0);
+                    %disp('flux carrier design: Fe proportional to flux')
             end
 
-            if hc{rr,cc}>2*hc_half_max
-                hc{rr,cc}=2*hc_half_max;
+            for ii=geo.nlay:-1:1
+                if ii==geo.nlay
+                    B1tmp=ArLim(rr,cc)+hf{rr,cc}(ii);
+                else
+                    B1tmp=B2k(ii+1)+hf{rr,cc}(ii);
+                end
+                dxtmp=1-2/hc{rr,cc}(ii)*(Bx0{rr,cc}(ii)-B1tmp);
+                B1ktmp=Bx0{rr,cc}(ii)-hc{rr,cc}(ii)/2+dxtmp*hc{rr,cc}(ii)/2;
+                B2ktmp=Bx0{rr,cc}(ii)+hc{rr,cc}(ii)/2+dxtmp*hc{rr,cc}(ii)/2;
+                if B1ktmp>(Bx0{rr,cc}(ii)-geo.pont0)
+                    B1new=Bx0{rr,cc}(ii)-geo.pont0;
+                    dxtmp=1-2/hc{rr,cc}(ii)*(Bx0{rr,cc}(ii)-B1new);
+                elseif B2ktmp<(Bx0{rr,cc}(ii)+geo.pont0)
+                    B2new=Bx0{rr,cc}(ii)+geo.pont0;
+                    dxtmp=2/hc{rr,cc}(ii)*(B2new-Bx0{rr,cc}(ii))-1;
+                end
+                dx{rr,cc}(ii)=dxtmp;
+                B1k(ii)=Bx0{rr,cc}(ii)-hc{rr,cc}(ii)/2+dx{rr,cc}(ii)*hc{rr,cc}(ii)/2;
+                B2k(ii)=Bx0{rr,cc}(ii)+hc{rr,cc}(ii)/2+dx{rr,cc}(ii)*hc{rr,cc}(ii)/2;
             end
-            
-            hc_pu{rr,cc} = hc{rr,cc}/(hc_half_max *2);
-            
-        else
-            delta(rr,cc)=(0.5*hc{rr,cc}(1)+sum(hc{rr,cc}(2:end-1))+0.5*hc{rr,cc}(end)-hc_min*(geo.nlay-1))/(Bx0{rr,cc}(1)-Bx0{rr,cc}(end)-hfe_min*(geo.nlay-1)-hc_min*(geo.nlay-1));
-            hc_pu{rr,cc}=hc{rr,cc}*(delta(rr,cc)*geo.nlay)/sum(hc{rr,cc});
-        end
-        % dx (flux carrier design)
-        alphad=[0 90-fliplr(geo.alpha)*geo.p 90];                   % 0<=alphad<=90 [° elt]
-        r_all=geo.R*xx(rr,cc);
-        for ii=1:geo.nlay
-            r_all=[r_all Bx0{rr,cc}(ii)+hc{rr,cc}(ii)/2 Bx0{rr,cc}(ii)-hc{rr,cc}(ii)/2];
-        end
-        r_all=[r_all ArLim(rr,cc)];
-        hf0=r_all(1:2:end)-r_all(2:2:end);
-        
-        switch flag_dx
-            case 0
+
+            if flag_dx==0
+                dx{rr,cc}=zeros(1,geo.nlay);
+                %disp('flux carrier design: dx=0')
                 hf{rr,cc}=hf0;
-            case 1 % constant iron
-                hf_cost=[ones(1,geo.nlay-1) 0.5]/(geo.nlay-0.5);
-                hf{rr,cc}=hf_cost*sum(hf0(2:end));
-                %disp('flux carrier design: Fe = cost')
-            case 2 % iron proportional to first harmonic flux
-                level=(cosd(alphad(1:end-1))+cosd(alphad(2:end)))/2.*(alphad(2:end)-alphad(1:end-1));
-                level_pu=level/sum(level);
-                hfTemp=fliplr(level_pu)*sum(hf0);
-                hf{rr,cc}=hfTemp(2:end);
-                %disp('flux carrier design: Fe proportional to first harmonic flux')
-            case 3 % iron proportional to flux
-                level_pu=evalSatStairCase(xGap,yGap,alphad);
-                hf{rr,cc}=fliplr(level_pu)*sum(hf0);
-                %disp('flux carrier design: Fe proportional to flux')
-        end
-        
-        for ii=geo.nlay:-1:1
-            if ii==geo.nlay
-                B1tmp=ArLim(rr,cc)+hf{rr,cc}(ii);
+            end
+
+            % q-axis flow-through inductance [pu]
+            Lfqpu(rr,cc) = 4/pi*p*g*kc(rr,cc)/(xx(rr,cc)*R)*(sum((dfQ).^2.*(sk{rr,cc}./hc{rr,cc})));
+
+
+            % radial ribs (high speed motors)
+            if strcmp(dataSet.TypeOfRotor,'Seg')
+                geo0.x0 = x0(rr,cc);
+                geo0.r = r(rr,cc);
+                geo0.hc = hc{rr,cc};
+                geo0.dx = dx{rr,cc};
+                geo0.RotType = 'Seg';
+                geo0.delta_FBS = 0; % no pole deformation
+                [geo0,~,~,] = nodes_rotor_Seg(geo0,mat);
+                Radrib(rr,cc, :) = reshape(geo0.pontR, [1, 1, nlay]);
             else
-                B1tmp=B2k(ii+1)+hf{rr,cc}(ii);
+                temp.B1k=B1k;
+                temp.B2k=B2k;
+                temp.Bx0=Bx0;
+                temp.yyD2k = [];
+                geo0.x0 = x0(rr,cc);
+                geo0.r = r(rr,cc);
+                geo0.hc = hc{rr,cc};
+                if rr==1&&cc==1
+                    warning('Ribs computed for circular geometry');
+                end
+                geo0.RotType = 'Circular';
+                [~,geo0] = calc_ribs_rad_Circ(geo0,mat,temp);
             end
-            dxtmp=1-2/hc{rr,cc}(ii)*(Bx0{rr,cc}(ii)-B1tmp);
-            B1ktmp=Bx0{rr,cc}(ii)-hc{rr,cc}(ii)/2+dxtmp*hc{rr,cc}(ii)/2;
-            B2ktmp=Bx0{rr,cc}(ii)+hc{rr,cc}(ii)/2+dxtmp*hc{rr,cc}(ii)/2;
-            if B1ktmp>(Bx0{rr,cc}(ii)-geo.pont0)
-                B1new=Bx0{rr,cc}(ii)-geo.pont0;
-                dxtmp=1-2/hc{rr,cc}(ii)*(Bx0{rr,cc}(ii)-B1new);
-            elseif B2ktmp<(Bx0{rr,cc}(ii)+geo.pont0)
-                B2new=Bx0{rr,cc}(ii)+geo.pont0;
-                dxtmp=2/hc{rr,cc}(ii)*(B2new-Bx0{rr,cc}(ii))-1;
+
+            pontR(rr,cc) = mean(geo0.pontR);
+
+            % BrPrime for PM-assistance (ribs saturation)
+            BrPrime{rr,cc} = Bs*(geo0.pontR/2+geo0.pontT)./(sk{rr,cc}-geo0.pontR/2-geo0.pontT);
+
+            BrAvg(rr,cc) = mean(BrPrime{rr,cc});
+            BrMax(rr,cc) = max(BrPrime{rr,cc});
+            BrMin(rr,cc) = min(BrPrime{rr,cc});
+
+            Abar(rr,cc) = sum(2*sk{rr,cc}.*hc{rr,cc});
+
+            % PM dim (adapt after ribs computation)
+            if strcmp(dataSet.TypeOfRotor,'Circular')
+                PMdim{rr,cc} = PMdim{rr,cc}-[pontT+geo0.pontR/2;zeros(size(geo0.pontR))];
+            elseif strcmp(dataSet.TypeOfRotor,'Seg')|| strcmp(dataSet.TypeOfRotor,'ISeg')
+                PMdim{rr,cc} = PMdim{rr,cc}-[geo0.pontR/2;pontT];
             end
-            dx{rr,cc}(ii)=dxtmp;
-            B1k(ii)=Bx0{rr,cc}(ii)-hc{rr,cc}(ii)/2+dx{rr,cc}(ii)*hc{rr,cc}(ii)/2;
-            B2k(ii)=Bx0{rr,cc}(ii)+hc{rr,cc}(ii)/2+dx{rr,cc}(ii)*hc{rr,cc}(ii)/2;
-        end
-        
-        if flag_dx==0
-            dx{rr,cc}=zeros(1,geo.nlay);
-            %disp('flux carrier design: dx=0')
-            hf{rr,cc}=hf0;
-        end
-        
-        % q-axis flow-through inductance [pu]
-        Lfqpu(rr,cc) = 4/pi*p*g*kc(rr,cc)/(xx(rr,cc)*R)*(sum((dfQ).^2.*(sk{rr,cc}./hc{rr,cc})));
-        
-        % radial ribs (high speed motors)
-        temp.B1k=B1k;
-        temp.B2k=B2k;
-        temp.Bx0=Bx0;
-        temp.yyD2k = [];
-        
-        geo0.x0 = x0(rr,cc);
-        geo0.r = r(rr,cc);
-        geo0.RotType = 'Circular';
-        geo0.hc = hc{rr,cc};
-        if rr==1&&cc==1
-            warning('Ribs computed for circular geometry');
-        end
-        
-        [~,geo0] = calc_ribs_rad_Circ(geo0,mat,temp);
-        
-        pontR(rr,cc) = mean(geo0.pontR);
 
-        % BrPrime for PM-assistance (ribs saturation)
-        BrPrime{rr,cc} = Bs*(geo0.pontR/2+geo0.pontT)./(sk{rr,cc}-geo0.pontR/2-geo0.pontT);
-        
-        BrAvg(rr,cc) = mean(BrPrime{rr,cc});
-        BrMax(rr,cc) = max(BrPrime{rr,cc});
-        BrMin(rr,cc) = min(BrPrime{rr,cc});
+            % PM flux linkage
+            tmp.nlay    = nlay;
+            tmp.Ns      = Ns;
+            tmp.g       = g;
+            tmp.sk      = sk{rr,cc};
+            tmp.hc      = hc{rr,cc};
+            tmp.r       = r(rr,cc);
+            tmp.dalpha  = geo.dalpha;
+            tmp.l       = l;
+            tmp.kc      = kc(rr,cc);
+            tmp.kw      = kw;
+            tmp.PMdim   = PMdim{rr,cc};
+            tmp.pontT   = geo0.pontT;
+            tmp.pontR   = geo0.pontR;
+            tmp.Br      = Br;
+            tmp.Bs      = Bs;
+            tmp.p       = geo.p;
+            tmp.alpha   = alpha;
+            tmp.Tfillet = max(geo.RotorFilletTan1,geo.RotorFilletTan2);
+            tmp.Rfillet = max(geo.RotorFillet1,geo.RotorFillet2);
 
-        Abar(rr,cc) = sum(2*sk{rr,cc}.*hc{rr,cc});        
-        
-        % PM dim (adapt after ribs computation)
-        if strcmp(dataSet.TypeOfRotor,'Circular')
-            PMdim{rr,cc} = PMdim{rr,cc}-[pontT+geo0.pontR/2;zeros(size(geo0.pontR))];
-        elseif strcmp(dataSet.TypeOfRotor,'Seg')|| strcmp(dataSet.TypeOfRotor,'ISeg')
-            PMdim{rr,cc} = PMdim{rr,cc}-[geo0.pontR/2;pontT];
+            fM(rr,cc)   = evalPMfluxSyrmDesign(tmp);
         end
 
-        % PM flux linkage
-        tmp.nlay    = nlay;
-        tmp.Ns      = Ns;
-        tmp.g       = g;
-        tmp.sk      = sk{rr,cc};
-        tmp.hc      = hc{rr,cc};
-        tmp.r       = r(rr,cc);
-        tmp.dalpha  = geo.dalpha;
-        tmp.l       = l;
-        tmp.kc      = kc(rr,cc);
-        tmp.kw      = kw;
-        tmp.PMdim   = PMdim{rr,cc};
-        tmp.pontT   = geo0.pontT;
-        tmp.pontR   = geo0.pontR;
-        tmp.Br      = Br;
-        tmp.Bs      = Bs;
-        tmp.p       = geo.p;
-        tmp.alpha   = alpha;
-        tmp.Tfillet = max(geo.RotorFilletTan1,geo.RotorFilletTan2);
-        tmp.Rfillet = max(geo.RotorFillet1,geo.RotorFillet2);
-                
-        fM(rr,cc)   = evalPMfluxSyrmDesign(tmp);
-        
- 
     end
 end
 
@@ -490,7 +511,11 @@ Hy = interp1(mat.Stator.BH(:,1),mat.Stator.BH(:,2),Bfe./ky);
 if flag_ks
     %ksat = 1+mu0*pi/2*(Hy*pi/(6*p*q)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe*kf1.*kc*g);
     % ksat = 1+mu0*(Hy*pi/(6*p*q*n3ph)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe*kf1.*kc*g);
-    ksat = 1+mu0*(Hy*pi/(6*p*q*n3ph)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe.*kc*g);
+    if strcmp(geo.RotType,'EESM')
+        
+    else
+        ksat = 1+mu0*(Hy*pi/(6*p*q*n3ph)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe.*kc*g);
+    end
 else
     ksat=ones(size(xx));
     warning('saturation factor ksat not evaluated!!!')
@@ -500,6 +525,8 @@ if strcmp(geo.RotType,'SPM')
     id = zeros(m,n);
     Lbase = 6/pi*mu0*(kw*Ns/p).^2.*(R/1e3).*(l/1e3)./(kc.*(g+hc)/1e3).*xx;  % magnetizing unsaturated inductance (same as below, but with increased airgap due to PM thickness)
     Lmd   = Lbase./ksat;    % magnetizing inductance with stator iron saturation partially accounted for
+elseif strcmp(geo.RotType,'EESM')
+    
 else
     Fmd = 2*(R*1e-3)*(l*1e-3)*kw*Ns*Bfe./p.*xx.*bb;     % flux linkage [Vs]
     id = pi*Bfe*kc*(g*1e-3)*p.*ksat/(mu0*3*kw*Ns).*bb/n3ph;  % id [A]
@@ -522,6 +549,10 @@ geo0.lt = lt;
 
 lend = calc_endTurnLength(geo0);
 geo0.lend = lend;
+% if strcmp(geo.RotType,'EESM')
+%     lendf = calc_endTurnFieldLength(geo0);
+%     geo0.lendf = lendf;
+% end
 
 if flag_i0==0
     % compute the rated current from kj (kj=constant)
@@ -547,7 +578,6 @@ Rs = per0.Rs;
 kj = per0.kj.*ones(size(xx));
 J  = per0.J.*ones(size(xx));
 i0 = real(per0.i0).*ones(size(xx));
-
 
 id(id>loadpu*i0) = loadpu*i0(id>loadpu*i0);
 
@@ -577,12 +607,12 @@ for rr=1:m
         per0          = per;
         per0.overload = 1;
         per0.Loss     = kj(rr,cc)*(2*pi*R/1000*l/1000);
-        
+
         dTempCu(rr,cc) = temp_est_simpleMod(geo0,per0);
-%         % demagnetization index
-%         hcTmp = hc{rr,cc};
-%         NsI0Tmp = dfQ*Ns*i0(rr,cc);
-%         NsI0_hc{rr,cc} = NsI0Tmp./hcTmp;
+        %         % demagnetization index
+        %         hcTmp = hc{rr,cc};
+        %         NsI0Tmp = dfQ*Ns*i0(rr,cc);
+        %         NsI0_hc{rr,cc} = NsI0Tmp./hcTmp;
 
     end
 end
@@ -592,6 +622,8 @@ dTempCu = dTempCu-per.temphous;
 if strcmp(geo.RotType,'SPM')
     Lrib = nan(m,n);
     Lmq = Lmd;  % SPM is isotropic
+elseif strcmp(geo.RotType,'EESM')
+
 else
     Lrib = 4/pi*kw*Ns*((2*pont+pontR)*1e-3)*(l*1e-3)*Bs./(iq*n3ph);
     Lrib(iq==0) = mean(Lrib(iq~=0));
@@ -627,12 +659,16 @@ if strcmp(geo.RotType,'SPM')
     fd = fM;                    % d-axis flux linkage (PM axis)
     fq = n3ph*(Lq.*iq);         % q-axis flux linkage (PM axis)
     ich = fM./Ld;               % characteristic current
-    iHWC = abs(fd+j*fq)./Ld;    % Hyper-Worst-Case Peak Short-Circuit current
+    iHWC = abs(fd+j*fq)./Ld;    % Hyper-Worst-Case Peak Short-Circuit current @ MTPA
+    iUGO = 2*ich;            % Hyper-Worst-Case Peak Short-Circuit current @ UGO
+elseif strcmp(geo.RotType,'EESM')
+    
 else
     fd = n3ph*(Ld.*id);         % d-axis flux linkage (SR axis)
     fq = n3ph*(Lq.*iq)-fM;      % q-axis flux linkage (SR axis)
     ich = fM./Lq;               % characteristic current
-    iHWC = abs(fd+j*fq)./Lq;    % Hyper-Worst-Case Peak Short-Circuit current
+    iHWC = abs(fd+j*fq)./Lq;    % Hyper-Worst-Case Peak Short-Circuit current @ MTPA
+    iUGO = 2*ich;            % Hyper-Worst-Case Peak Short-Circuit current @ UGO
 end
 
 T = 3/2*p*n3ph*(fd.*iq-fq.*id);
@@ -647,14 +683,19 @@ PF = sind(gamma-delta);     % PF @ gamma (same gamma as torque)
 % active parts mass computation
 mCu = Aslots/1e6.*(l+lend)/1e3*mat.SlotCond.kgm3*kcu;
 mPM = nan(size(xx));
-if strcmp(mat.LayerMag.MatName,'Air')
-    mPM = zeros(size(xx));
+
+if strcmp(geo.RotType,'EESM')
+    
 else
-    if strcmp(geo.RotType,'SPM')
-        mPM = pi*((R/1e3*xx).^2-(R/1e3*xx-hc/1e3).^2)*l/1e3*alpha_pu*mat.LayerMag.kgm3;
+    if strcmp(mat.LayerMag.MatName,'Air')
+        mPM = zeros(size(xx));
     else
-        for ii=1:numel(xx)
-            mPM(ii) = sum(hc{ii}.*sum(PMdim{ii},1))/1e6.*l/1e3*2*(2*p)*mat.LayerMag.kgm3;
+        if strcmp(geo.RotType,'SPM')
+            mPM = pi*((R/1e3*xx).^2-(R/1e3*xx-hc/1e3).^2)*l/1e3*alpha_pu*mat.LayerMag.kgm3;
+        else
+            for ii=1:numel(xx)
+                mPM(ii) = sum(hc{ii}.*sum(PMdim{ii},1))/1e6.*l/1e3*2*(2*p)*mat.LayerMag.kgm3;
+            end
         end
     end
 end
@@ -664,11 +705,13 @@ end
 % rev 02: demagnetization volume and minimum PM flux density at i0 and iHWC
 tp = pi*r/p;
 if Br==0
-    Aqirr   = zeros(size(xx));
-    Bmin0   = nan(size(xx));
-    dPM0    = nan(size(xx));
-    BminHWC = nan(size(xx));
-    dPMHWC  = nan(size(xx));
+    Aqirr      = zeros(size(xx));
+    Bmin0      = nan(size(xx));
+    dPM0       = nan(size(xx));
+    BminHWC    = nan(size(xx));
+    dPMHWC     = nan(size(xx));
+    BminUGO = nan(size(xx));
+    dPMUGO  = nan(size(xx));
 else
     if strcmp(geo.RotType,'SPM')
         Bm0pu = nan(m,n);
@@ -697,18 +740,46 @@ else
         BminHWC = nan(size(xx));
         dPMHWC  = nan(size(xx));
     end
+    if dataSet.syrmDesignFlag.demagUGO
+        BminUGO = Bd*ones(size(xx));
+        dPMUGO  = ones(size(xx));
+    else
+        BminUGO = nan(size(xx));
+        dPMUGO  = nan(size(xx));
+    end
 end
 
-if dataSet.syrmDesignFlag.mech==1
-    mechStressRad = repmat({repmat(mat.Rotor.sigma_max*10^6,1,nlay)},length(xx(:,1)),length(xx(1,:)));
-    mechStressTan = repmat({repmat(mat.Rotor.sigma_max*10^6,1,nlay)},length(xx(:,1)),length(xx(1,:)));
-    kmechrad = repmat({repmat(1,1,nlay)},length(xx(:,1)),length(xx(1,:)));
-    kmechtan = repmat({repmat(1,1,nlay)},length(xx(:,1)),length(xx(1,:)));
+if dataSet.syrmDesignFlag.Mech==1
+    if (strcmp(geo.RotType,'Circular') || strcmp(geo.RotType,'Seg'))
+        MaxDef       = ones(size(xx));
+        agclear      = ones(size(xx));
+        MaxStress    = ones(size(xx));
+        TanRibStress = ones(size(xx));
+        RadRibStress = ones(size(xx));
+        % MaxStress_prc     = ones(size(xx));
+        PrcTanStress = ones(size(xx));
+        PrcRadStress = ones(size(xx));
+    else
+        MaxDef    = ones(size(xx));
+        agclear   = ones(size(xx));
+        MaxStress = ones(size(xx));
+        % MaxStress_prc     = ones(size(xx));
+    end
 else
-    mechStressRad = cell(size(xx));
-    mechStressTan = cell(size(xx));
-    kmechrad = cell(size(xx));
-    kmechtan = cell(size(xx));
+    if (strcmp(geo.RotType,'Circular') || strcmp(geo.RotType,'Seg'))
+        MaxDef       = nan(size(xx));
+        agclear      = nan(size(xx));
+        MaxStress    = nan(size(xx));
+        TanRibStress = nan(size(xx));
+        RadRibStress = nan(size(xx));
+        % MaxStress_prc     = nan(size(xx));
+        PrcTanStress = nan(size(xx));
+        PrcRadStress = nan(size(xx));
+    else
+        MaxDef    = nan(size(xx));
+        agclear   = nan(size(xx));
+        MaxStress = nan(size(xx));
+    end
 end
 
 ktempCuMax    = nan(m,n);
@@ -775,20 +846,84 @@ map.Bmin0         = Bmin0;
 map.dPM0          = dPM0;
 map.BminHWC       = BminHWC;
 map.dPMHWC        = dPMHWC;
-map.mechStressRad = mechStressRad;
-map.mechStressTan = mechStressTan;
-map.kmechrad      = kmechrad;
-map.kmechtan      = kmechtan;
+% map.mechStressRad = mechStressRad;
+% map.mechStressTan = mechStressTan;
+% map.kmechrad      = kmechrad;
+% map.kmechtan      = kmechtan;
 map.NsIch         = Ns.*map.ich;
 map.NsIHWC        = Ns.*map.iHWC;
 map.kUGO          = fM./(abs(fd+j*fq));
-map.ktempCuMax    = ktempCuMax; 
-map.tempCuMax     = tempCuMax; 
-map.ktempCuMaxAct = ktempCuMaxAct; 
+map.ktempCuMax    = ktempCuMax;
+map.tempCuMax     = tempCuMax;
+map.ktempCuMaxAct = ktempCuMaxAct;
 map.tempCuMaxAct  = tempCuMaxAct;
 %map.NsI0_hc       = NsI0_hc;
+map.iUGO          = iUGO;
+map.NsIUGO        = Ns.*map.iUGO;
+map.BminUGO       = BminUGO;
+map.dPMUGO        = dPMUGO;
+
+if (strcmp(geo.RotType,'Circular') || strcmp(geo.RotType,'Seg'))
+    if (nlay == 1)
+        map.pontR_1 = Radrib(:, :, 1);
+    elseif (nlay == 2)
+        map.pontR_1 = Radrib(:, :, 1);
+        map.pontR_2 = Radrib(:, :, 2);
+    elseif (nlay == 3)
+        map.pontR_1 = Radrib(:, :, 1);
+        map.pontR_2 = Radrib(:, :, 2);
+        map.pontR_3 = Radrib(:, :, 3);
+    elseif (nlay > 3)
+        map.pontR_1 = Radrib(:, :, 1);
+        map.pontR_2 = Radrib(:, :, 2);
+        map.pontR_3 = Radrib(:, :, 3);
+        map.pontR_4 = Radrib(:, :, 4);
+    end
+end
+
+if (strcmp(geo.RotType,'Circular') || strcmp(geo.RotType,'Seg'))
+    map.MaxDef       = MaxDef;
+    map.agclear      = agclear;
+    map.MaxStress    = MaxStress;
+    map.TanRibStress = TanRibStress;
+    map.RadRibStress = RadRibStress;
+    % map.MaxStress_prc         = MaxStress_prc;
+    map.PrcTanStress = PrcTanStress;
+    map.PrcRadStress = PrcRadStress;
+else
+    map.MaxDef    = MaxDef;
+    map.agclear   = agclear;
+    map.MaxStress = MaxStress;
+    % map.MaxStress_prc         = MaxStress_prc;
+end
+
+if strcmp(geo.RotType,'EESM')
+    map.ir           = ir;
+    map.M            = M;
+    map.wp           = wp;
+    map.dalpha_pu    = dalpha_pu;
+    map.dalpha       = dalpha;
+    map.lyr          = lyr;
+    map.hpb          = hpb;
+    map.hph          = hph;
+    map.wp           = wp;
+    map.wb           = wb;
+    map.hb           = hb;
+    map.r_fillet     = r_fillet;
+    map.thHead_deg   = thHead_deg;
+    map.pont0        = pont0;
+    map.g            = g;
+    map.Acoilf       = Acoilf;
+    map.Lmd          = Lmd;
+    map.Ld           = Ld;
+    map.Lmq          = Lmq;
+    map.Lq           = Lq;
+    map.NrIr         = map.ir.*geo.win.Nf;
+    map.mCoRo        = mCoRo;
+    map.Rr_Nr2       = Rr_Nr2;
+end
+
+map.mFeS = zeros(size(xx));
+map.mFeR = zeros(size(xx));
 
 map.dataSet       = dataSet;
-
-
-

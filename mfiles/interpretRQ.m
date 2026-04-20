@@ -39,10 +39,11 @@ if not(isempty(geo.RQnames))
     
     
     
-    flagPM = 0;
-    flagHC = 0;
-    flagPT = 0;
-    flagPR = 0;
+    flagPM     = 0;
+    flagHC     = 0;
+    flagPT     = 0;
+    flagPR     = 0;
+    flagDXIBPU = 0;
     for ii=1:length(geo.RQnames)
         eval(['geo.' geo.RQnames{ii} ' = ' num2str(RQ(ii)) ';'])
         if contains(geo.RQnames{ii},'PMdim')
@@ -54,11 +55,24 @@ if not(isempty(geo.RQnames))
         if contains(geo.RQnames{ii},'hc_pu')
             flagHC = 1;
         end
-        if contains(geo.RQnames{ii},'pontT')
+        if contains(geo.RQnames{ii},'pontTPU')
             flagPT = 1;
         end
-        if contains(geo.RQnames{ii},'pontR')
+        if contains(geo.RQnames{ii},'pontRPU')
             flagPR = 1;
+        end
+        if contains(geo.RQnames{ii},'dxIBPU')
+            flagDXIBPU = 1;
+        end
+        if strcmp(geo.RQnames{ii},'rPU')
+            geo.r = geo.rPU*geo.R;
+            geo = rmfield(geo,'rPU');
+        elseif strcmp(geo.RQnames{ii},'wtPU')
+            geo.wt = geo.wtPU*(2*pi*geo.r)/(6*geo.p*geo.q*geo.win.n3phase); 
+            geo = rmfield(geo,'wtPU');
+        elseif strcmp(geo.RQnames{ii},'ltPU')
+            geo.lt = geo.ltPU*(geo.R-geo.r); 
+            geo = rmfield(geo,'ltPU');
         end
     end
     
@@ -71,11 +85,19 @@ if not(isempty(geo.RQnames))
     end
 
     if flagPT
-        geo.pontT = sort(geo.pontT);
+        geo.pontTPU = sort(geo.pontTPU);
+        geo.pontT = geo.pontTPU*pi*geo.r/geo.p;
+        geo.pontT(geo.pontT~=0&geo.pontT<geo.pont0) = geo.pont0;
     end
     
     if flagPR
-        geo.pontR = sort(geo.pontR);
+        geo.pontRPU = sort(geo.pontRPU);
+        geo.pontR = geo.pontRPU*pi*geo.r/geo.p;
+    end
+
+    if flagDXIBPU
+        geo.dxIB = geo.dxIBPU*(geo.r);
+        geo = rmfield(geo,'dxIBPU');
     end
     
     if strcmp(geo.RQnames{ii},'gamma')
@@ -101,7 +123,7 @@ geo.dalpha = geo.dalpha_pu*(90/geo.p);  % [mec degrees]
 if (not(isempty(RQ))&&strcmp(geo.RQnames{end},'gamma'))
     gamma = RQ(end);
 else
-    if strcmp(geo.RotType,'SPM')
+    if strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'SPM-Hallbach')
         gamma = 90;
     elseif strcmp(geo.RotType,'Vtype')
         gamma = 135;
@@ -110,7 +132,7 @@ else
     end
 end
 
-if strcmp(geo.RotType,'SPM')
+if strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'SPM-Hallbach')
     geo.hc = geo.hc_pu*geo.g;
 end
 

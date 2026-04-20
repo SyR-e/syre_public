@@ -25,7 +25,7 @@ disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
 % Matlab
 disp('Check Matlab release...')
 disp('   minimum requirement      : 2019b (9.7)  released 18-Jul-2019')
-disp('   suggested release        : 2024b (24.2) released 01-Aug-2023')
+disp('   suggested release        : 2025b (25.2) released 28-Jul-2025')
 
 tmp = ver('matlab');
 vMatlab = eval(tmp.Version);
@@ -34,9 +34,9 @@ vMatlabDate = datetime(tmp.Date);
 disp(['   installed Matlab release : ' tmp.Release(3:end-1) ' (' tmp.Version ') released ' tmp.Date])
 
 if vMatlabDate>=datetime('24-May-2018')
-    disp('(v)Matlab release OK')
+    disp('(v) Matlab release OK')
 else
-    disp('(x)Matlab release too old. Some compatibility issues may arise')
+    disp('(x) Matlab release too old. Some compatibility issues may arise')
     out = 0;
 end
 
@@ -48,9 +48,9 @@ disp('Check FEMM version...')
 disp('   minimum requirement      : 25Feb2018')
 
 if exist('mo_getgapb')
-    disp('(v)FEMM version OK')
+    disp('(v) FEMM version OK')
 else
-    disp('(x)FEMM version too old. Please update FEMM')
+    disp('(x) FEMM version too old. Please update FEMM')
     out = 0;
 end
 
@@ -61,9 +61,9 @@ disp('Parallel Computing Toolbox check...')
 ppState = parallelComputingCheck(0);
 
 if ppState<0
-    disp('(x)Parallel Computing Toolbox not available')
+    disp('(x) Parallel Computing Toolbox not available')
 else
-    disp('(v)Parallel Computing Toolbox available')
+    disp('(v) Parallel Computing Toolbox available')
 end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
@@ -80,9 +80,9 @@ for ii=1:length(test)
 end
 
 if ~flag
-    disp('(x)Curve Fitting Toolbox not available')
+    disp('(x) Curve Fitting Toolbox not available')
 else
-    disp('(v)Curve Fitting Toolbox available')
+    disp('(v) Curve Fitting Toolbox available')
 end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
@@ -98,9 +98,9 @@ for ii=1:length(test)
 end
 
 if ~flag
-    disp('(x)PDE Toolbox not available')
+    disp('(x) PDE Toolbox not available')
 else
-    disp('(v)PDE Toolbox available')
+    disp('(v) PDE Toolbox available')
 end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
@@ -116,9 +116,9 @@ for ii=1:length(test)
 end
 
 if ~flag
-    disp('(x)Statistics and Machine Learning Toolbox not available')
+    disp('(x) Statistics and Machine Learning Toolbox not available')
 else
-    disp('(v)Statistics and Machine Learning Toolbox available')
+    disp('(v) Statistics and Machine Learning Toolbox available')
 end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
@@ -133,9 +133,9 @@ for ii=1:length(test)
     end
 end
 if ~flag
-    disp('(x)Simulink not available')
+    disp('(x) Simulink not available')
 else
-    disp('(v)Simulink available')
+    disp('(v) Simulink available')
 end
 
 flag=0;
@@ -145,9 +145,9 @@ for ii=1:length(test)
     end
 end
 if ~flag
-    disp('(x)Simscape not available')
+    disp('(x) Simscape not available')
 else
-    disp('(v)Simscape available')
+    disp('(v) Simscape available')
 end
 
 flag=0;
@@ -157,9 +157,9 @@ for ii=1:length(test)
     end
 end
 if ~flag
-    disp('(x)Simscape Electrical not available')
+    disp('(x) Simscape Electrical not available')
 else
-    disp('(v)Simscape Electrical available')
+    disp('(v) Simscape Electrical available')
 end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')

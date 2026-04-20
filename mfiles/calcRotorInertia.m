@@ -24,6 +24,7 @@ ps    = geo.ps;
 rhoFe = mat.Rotor.kgm3;
 rhoPM = mat.LayerMag.kgm3;
 rhoAir = -rhoFe;
+rhoCond = mat.BarCond.kgm3;
 if strcmp(mat.Shaft.MatName,'Air')
     rhoShaft = 0;
 else
@@ -47,6 +48,8 @@ for ii=1:nEle
             M(ii) = (M(ii)*l)/1e9*rhoFe;
         case codMatShaft
             M(ii) = (M(ii)*l)/1e9*rhoShaft;
+        case codMatCuRot
+            M(ii) = (M(ii)*l)/1e9*rhoCond;
     end
 end
 

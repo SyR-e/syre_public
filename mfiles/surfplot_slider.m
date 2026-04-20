@@ -159,7 +159,7 @@ function f = surfplot_slider(X,Y,Z,Ir,figureFullName,labels) % X,Y: [N x N]; Z: 
         current_guiData = get(fHandle, 'UserData'); 
         
         irValue = current_guiData.Ir(current_guiData.current_Ir_index);
-        title(['Torque map @ Ir = ', num2str(round(irValue,2)), ' A']);
+        title(['Map @ Ir = ', num2str(round(irValue,2)), ' A']);
         
         % Update visibility of all surfaces and contours
         for jj = 1:numel(current_guiData.hSurf) % Use numel for number of elements

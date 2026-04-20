@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [maxsegdeg,raggio,ang1,ang]=Disegna_Arco(dati,ris)
+function [maxsegdeg,raggio,ang1,ang,xy]=Disegna_Arco(dati,ris)
 % Disegna_Arco(dati,ris)
 % input:
 % - dati: una riga della matrice statore o rotore (xy punto 1, xy punto 2, xy centro, verso
@@ -68,7 +68,10 @@ end
 % mi_drawarc(x1,y1,x2,y2,ang,ris);
 
 % mi_addnode(x1,y1);mi_addnode(x2,y2)
-mi_drawarc(x1,y1,x2,y2,ang,maxsegdeg);
+
+xy = [x1,y1;x2,y2];
+
+% mi_drawarc(x1,y1,x2,y2,ang,maxsegdeg);
 
 
 

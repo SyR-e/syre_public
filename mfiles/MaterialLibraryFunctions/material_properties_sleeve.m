@@ -14,7 +14,9 @@
 
 function [mat] = material_properties_sleeve(MatName)
 
-load(checkPathSyntax('materialLibrary\sleeve_material.mat'))
+syreDirectory = fileparts(which('GUI_Syre.mlapp'));
+
+load(checkPathSyntax([syreDirectory '\materialLibrary\sleeve_material.mat']))
 
 ind=0;
 
@@ -29,7 +31,7 @@ matListBase = MatList;
 if ind~=0
     mat=MatLib{ind};
 else
-    load(checkPathSyntax('materialLibrary\custom_sleeve.mat'))
+    load(checkPathSyntax([syreDirectory '\materialLibrary\custom_sleeve.mat']))
     ind=0;
     for ii=1:length(MatList)
         if strcmp(MatList{ii},MatName)

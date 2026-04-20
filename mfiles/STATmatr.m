@@ -34,12 +34,18 @@ g            = geo.g;
 n3ph         = geo.win.n3phase;
 pont0        = geo.pont0;
 flagDivision = geo.statorYokeDivision;  % division line for end-winding extrusion (GalFer Challenge 2024)
+num_ph       = geo.win.nphases;  % number of phases
 
 % mesh resolution
 res     = fem.res;
 % res_traf = fem.res_traf;
 
-alpha_slot = 2*pi/(6*p*q*n3ph);   % angolo di passo cava
+if(isnan(n3ph))
+    alpha_slot = 2*pi/(2*p*q*num_ph);   % angolo di passo cava
+else
+    alpha_slot = 2*pi/(6*p*q*n3ph);   % angolo di passo cava
+end
+
 RSI=r+g;                     % r traferro statore
 RSE=R;                        % r esterno statore
 RS5=r+g+lt;                  % r esterno cave
@@ -103,7 +109,12 @@ end
 
 % draw the tooth divisions
 
-thFe = 0:alpha_slot:2*pi/(6*p*q*n3ph)*Qs;
+if(isnan(n3ph))
+    thFe = 0:alpha_slot:2*pi/(2*p*q*num_ph)*Qs;
+else
+    thFe = 0:alpha_slot:2*pi/(6*p*q*n3ph)*Qs;
+end
+
 nFe = length(thFe);
 
 stator = [stator
@@ -193,10 +204,19 @@ end
 
 % boundary conditions (FEMM-style codes)
 codBound_FluxTan  = 0;      % 0 flux tangential
-if (Qs<geo.p*geo.q*6*geo.win.n3phase)
-    codBound_periodic = 10;     % 10 odd or even periodicity
-else
-    codBound_periodic = -10;    % -10 no periodicity, simulate full machine
+
+if(isnan(n3ph))
+    if (Qs<geo.p*geo.q*2*geo.win.nphases)
+        codBound_periodic = 10;     % 10 odd or even periodicity
+    else
+        codBound_periodic = -10;    % -10 no periodicity, simulate full machine
+    end
+else    
+    if (Qs<geo.p*geo.q*6*geo.win.n3phase)
+        codBound_periodic = 10;     % 10 odd or even periodicity
+    else
+        codBound_periodic = -10;    % -10 no periodicity, simulate full machine
+    end
 end
 
 xyTmp = xyLabel(xyLabel(:,3)==codMatFeSta,:);

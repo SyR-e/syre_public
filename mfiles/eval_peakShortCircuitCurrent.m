@@ -40,7 +40,6 @@ end
 if ~flagFEAfix
     load([dataIn.currentpathname dataIn.currentfilename])
 
-
     if ~isfield(geo,'axisType')
         if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
             geo.axisType = 'PM';
@@ -48,7 +47,6 @@ if ~flagFEAfix
             geo.axisType = 'SR';
         end
     end
-
     if ~strcmp(geo.axisType,dataIn.axisType)
         %geo.axisType = dataIn.axisType;
         if strcmp(dataIn.axisType,'PM')
@@ -83,21 +81,6 @@ end
 
 per = rmfield(per,'custom_act');
 
-% create result folder
-if flagSave
-    outFolder = checkPathSyntax([filename(1:end-4) '_results\FEA results\']);
-    if ~exist([pathname outFolder],'dir')
-        mkdir([pathname outFolder]);
-    end
-
-    resFolder = checkPathSyntax(['peakShortCircuitCurrent_' datestr(now,30) '\']);
-    mkdir([pathname outFolder],resFolder);
-    resFolder = [pathname outFolder resFolder];
-
-
-    save([resFolder 'pkScOut.mat'],'dataSet');
-end
-
 if ~flagFEAfix
     % update per structure
     per.nsim_singt      = dataSet.NumOfRotPosPP;
@@ -112,8 +95,6 @@ if ~flagFEAfix
     T0   = nan(size(idq0));
     idq  = nan(size(idq0));
     fdq  = nan(size(idq0));
-
-
     i0 = per.i0;
 
     motname = [dataSet.currentpathname dataSet.currentfilename(1:end-4) '.fem'];
@@ -123,13 +104,12 @@ else
     i0 = per.i0;
 end
 
-tol = 100;
-maxIter = 10;
+geo.XFEMMsimulation = dataIn.XFEMMsimulation;
 
-
+maxIter = 10; % Max iteration for each SC calculation
+count = 0;
 
 for ii=1:length(idq0)
-        
     if ~flagFEAfix
         disp('Starting FEMM simulations...')
         disp(' Healthy point simulation...')
@@ -142,14 +122,11 @@ for ii=1:length(idq0)
         disp([' Healthy point simulation done: |fdq| = ' num2str(abs(fdq0(ii)),4) ' Vs'])
     else
         per.overload = abs(idq0(ii))/per.i0;
-        fdq0(ii) = dataIn.fdq0;
-        T0(ii)   = dataIn.T0;
+        fdq0(ii) = dataIn.fdq0(ii);
+        T0(ii)   = dataIn.T0(ii);
     end
 
-   
-
     tol = abs(fdq0(ii))/100;
-
     done = 0;
     jj=1;
 
@@ -157,11 +134,20 @@ for ii=1:length(idq0)
     fTest{ii} = nan(1,maxIter);
 
     while ~done
-        if ii==1 && jj<3
-            if jj==1
-                iTest{ii}(jj) = 1;
-            elseif jj==2
-                iTest{ii}(jj) = 2;
+        if jj < 3
+            % Use modified initial guesses for specific case, otherwise use original
+            if (flagFEAfix && ii == 2) || (~flagFEAfix && abs(idq0(ii)) == 0)
+                if jj==1
+                    iTest{ii}(jj) = 0.25;
+                elseif jj==2
+                    iTest{ii}(jj) = 0.5;
+                end
+            else
+                if jj==1
+                    iTest{ii}(jj) = 1;
+                elseif jj==2
+                    iTest{ii}(jj) = 2;
+                end
             end
         else
             fVect = [];
@@ -188,28 +174,30 @@ for ii=1:length(idq0)
         end
 
         per.overload = abs(iTest{ii}(jj));
+
         if strcmp(axis_type,'SR')
             per.gamma = 90;
+            if ~flagFEAfix
+                [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'singt',motname);
+                fTest{ii}(jj) = out.fq;
+                disp(['  - Iteration ' int2str(jj) ': ' num2str(abs(iTest{ii}(jj)*i0),4) ' A --> ' num2str(abs(fTest{ii}(jj)),4) ' Vs'])
+            else
+                RQ(end) = per.gamma;
+                [~,~,~,out,~] = FEMMfitness(RQ,geo,per,mat,'singt',motname);
+                fTest{ii}(jj) = out.fq;
+            end
         else
             per.gamma = -180;
+            if ~flagFEAfix
+                [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'singt',motname);
+                fTest{ii}(jj) = out.fd;
+                disp(['  - Iteration ' int2str(jj) ': ' num2str(abs(iTest{ii}(jj)*i0),4) ' A --> ' num2str(abs(fTest{ii}(jj)),4) ' Vs'])
+            else
+                RQ(end) = per.gamma;
+                [~,~,~,out,~] = FEMMfitness(RQ,geo,per,mat,'singt',motname);
+                fTest{ii}(jj) = out.fd;
+            end
         end
-        if ~flagFEAfix
-            [~,~,~,out,~] = FEMMfitness([],geo,per,mat,'singt',motname);
-        else
-            RQ(end) = per.gamma;
-            [~,~,~,out,~] = FEMMfitness(RQ,geo,per,mat,'singt',motname);
-        end
-
-        if strcmp(axis_type,'SR')
-            fTest{ii}(jj) = out.fq;
-        else
-            fTest{ii}(jj) = out.fd;
-        end
-
-        if ~flagFEAfix
-            disp(['  - Iteration ' int2str(jj) ': ' num2str(abs(iTest{ii}(jj)*i0),4) ' A --> ' num2str(abs(fTest{ii}(jj)),4) ' Vs'])
-        end
-
         if (abs(fTest{ii}(jj))>abs(fdq0(ii))+tol)||(abs(fTest{ii}(jj))<abs(fdq0(ii))-tol)
             done = 0;
             jj = jj+1;
@@ -224,18 +212,30 @@ for ii=1:length(idq0)
             end
         end
 
-        if ii>maxIter
+        if jj>maxIter % Best value found so far - Closest to target
             done=1;
+            if strcmp(axis_type,'SR')
+                errors = abs(abs(fTest{ii}(1:jj-1)) - abs(fdq0(ii)));
+            else
+                errors = abs(fTest{ii}(1:jj-1) - (-abs(fdq0(ii))));
+            end
+            [~, best_jj] = min(errors);
+            if strcmp(axis_type,'SR')
+                idq(ii) = j*iTest{ii}(best_jj);
+                fdq(ii) = j*fTest{ii}(best_jj);
+            else
+                idq(ii) = -iTest{ii}(best_jj);
+                fdq(ii) = -fTest{ii}(best_jj);
+            end
+            if ~flagFEAfix
+                warning('Max iterations reached for point %d. Using best value.', ii);
+            end
         end
     end
-end
-
-if ~flagFEAfix
-    disp('FEMM simulations done!!!')
+    count = count + jj;
 end
 
 idq = idq*per.i0;
-
 
 pkSCout.idq0    = idq0;
 pkSCout.fdq0    = fdq0;
@@ -244,6 +244,34 @@ pkSCout.idq     = idq;
 pkSCout.fdq     = fdq;
 pkSCout.iTest   = iTest;
 pkSCout.fTest   = fTest;
+pkSCout.count   = count;
+
+% create result folder
+if flagSave
+    outFolder = checkPathSyntax([filename(1:end-4) '_results\FEA results\']);
+    if ~exist([pathname outFolder],'dir')
+        mkdir([pathname outFolder]);
+    end
+
+    iSC  = abs(idq0(:).');
+    iStr = cell(1,numel(iSC));
+    for ii=1:numel(iSC)
+        % Format current
+        itemp = num2str(iSC(ii), 3);  % 3 significant digits
+        itemp = strtrim(itemp);
+        itemp = strrep(itemp, '.', 'A');        % Replace dot with 'A'
+        if ~contains(itemp, 'A')
+            itemp = [itemp 'A'];
+        end
+        iStr{ii} = itemp;
+    end
+    iStrAll = strjoin(iStr, '_');
+
+    resFolder = checkPathSyntax(['peakShortCircuitCurrent_' iStrAll '_' int2str(per.tempPP) 'deg\']);
+    mkdir([pathname outFolder],resFolder);
+    resFolder = [pathname outFolder resFolder];
+    save([resFolder 'pkScOut.mat'],'dataSet');
+end
 
 if flagSave
     save([resFolder 'pkScOut.mat'],'pkSCout','-append');
@@ -258,7 +286,6 @@ if flagSave
     set(hfig(1),'FileName',[resFolder 'peakShortCircuitCurrent.fig'])
     hleg(1) = legend(hax(1),'show','Location','southoutside','Orientation','horizontal');
 
-
     hfig(2) = figure();
     figSetting(16,10);
     hax(2) = axes('OuterPosition',[0 0 1 1]);
@@ -270,7 +297,6 @@ if flagSave
     bar(hax(1),abs(idq),'BarWidth',0.8,'EdgeColor',0.5*[1 0 0],'FaceColor',[1 0 0],'DisplayName','peak short circuit current')
     bar(hax(1),abs(idq0),'BarWidth',0.5,'EdgeColor',0.5*[0 0 1],'FaceColor',[0 0 1],'DisplayName','initial current')
 
-
     fVect = [];
     iVect = [];
     for ii=1:length(iTest)
@@ -280,7 +306,6 @@ if flagSave
         fPlot = fTest{ii}(~isnan(fTest{ii}));
         plot(hax(2),iPlot*per.i0,fPlot,'-o','DisplayName',['working point ' int2str(ii)]);
     end
-
     iVect = iVect(~isnan(iVect));
     fVect = fVect(~isnan(fVect));
     [iVect,index] = sort(iVect);

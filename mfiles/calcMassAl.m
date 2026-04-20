@@ -46,7 +46,8 @@ elseif strcmp(geo.RotType, 'EESM')
     
     Acu  = geo.Acoilf;
     kcuf = geo.win.kcuf;
-    Mass = round(rho*Acu/1e6*2*2*p*l/1e3*kcuf,2);
+    lendf = calc_endTurnFieldLength(geo); 
+    Mass = round(rho*Acu/1e6*2*2*p*(l+lendf)/1e3*kcuf,2);
 else
     Mass = 0;
 end

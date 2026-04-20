@@ -66,9 +66,11 @@ areaS = (areaS-Qs*(areaSlot+areaAir))*2*p/ps;
 
 mFeS = areaS/1e6*l/1e3*kgm3;
 
-if geo.pShape.flag
-    areaS = area(geo.pShape.stator);
-    mFeS = areaS/1e6*l/1e3*kgm3*2*p/ps;
+if isfield(geo,'pShape')
+    if geo.pShape.flag
+        areaS = area(geo.pShape.stator);
+        mFeS = areaS/1e6*l/1e3*kgm3*2*p/ps;
+    end
 end
 
 
@@ -99,7 +101,7 @@ if strcmp(geo.RotType,'EESM')
                 xR(pos) = rotor(ii,3);
                 yR(pos) = rotor(ii,4);
             else % ( == 1)
-                warning('Error in rotor iron mass calculation');
+                %warning('Error in rotor iron mass calculation');
             end
             pos = pos + 1;
         end
@@ -114,7 +116,7 @@ if strcmp(geo.RotType,'EESM')
                 xR(pos) = rotor(ii,3);
                 yR(pos) = rotor(ii,4);
             else % ( == 1)
-                warning('Error in rotor iron mass calculation');
+                %warning('Error in rotor iron mass calculation');
             end
             pos = pos + 1;
         elseif rotor(ii,9) == 2 && flag == 0
@@ -160,9 +162,11 @@ else
     
     mFeR = mFeR*2*p/ps;
     
-    if geo.pShape.flag
-        areaR = area(geo.pShape.rotor);
-        mFeR = areaR/1e6*l/1e3*kgm3*2*p/ps;
+    if isfield(geo,'pShape')
+        if geo.pShape.flag
+            areaR = area(geo.pShape.rotor);
+            mFeR = areaR/1e6*l/1e3*kgm3*2*p/ps;
+        end
     end
 end
 

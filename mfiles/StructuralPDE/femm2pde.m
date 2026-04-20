@@ -25,6 +25,8 @@ if ~isfield(geo,'custom')
     geo.custom = 0;
 end
 
+flag_xfemm = geo.XFEMMsimulation;
+
 % load data from input structures
 % rotor = geo.rotor;
 % nmax  = geo.nmax;
@@ -81,12 +83,18 @@ filename  = strrep(filename,'.mat','.fem');
 % syreDirectory = fileparts(which('GUI_Syre.mlapp'));
 
 [~,tmpath]=createTempDir();
-copyfile([pathname filename],[tmpath filename])
+copyfile(checkPathSyntax([pathname filename]),checkPathSyntax([tmpath filename]))
 
-newFile = [tmpath filename];
+newFile = checkPathSyntax([tmpath filename]);
 
-openfemm(1);
-opendocument(newFile);
+if ~flag_xfemm
+    openfemm(1);
+    opendocument(newFile);
+else
+    FemmProblem = loadfemmfile(newFile);
+    FemmProblem.ProbInfo.SmartMesh = 0;
+    FemmProblem = setcircuitcurrent(FemmProblem,'fase1',1);
+end
 % reduce mesh size (if not custom)
 
 if (strcmp(meshSize,'PDE fine')||strcmp(meshSize,'PDE coarse'))
@@ -105,40 +113,79 @@ if ~isnan(FEMMmesh.size)
     for ii=1:size(xy,1)
         if xy(ii,3)==1 % Air
             if ~geo.custom
-                mi_selectlabel(xy(ii,1),xy(ii,2));
-                mi_setblockprop('Air',1,0,'None',0,2,0);
-                mi_clearselected;
+                if ~flag_xfemm
+                    mi_selectlabel(xy(ii,1),xy(ii,2));
+                    mi_setblockprop('Air',1,0,'None',0,2,0);
+                    mi_clearselected;
+                else
+                    [id,~] = findblocklabel_mfemm(FemmProblem,[xy(ii,1),xy(ii,2)]);
+                    FemmProblem.BlockLabels(id+1).MaxArea = FemmProblem.BlockLabels(id+1).MaxArea;
+                end
             end
         elseif xy(ii,3)==7 % Shaft
             if simSetup.meshShaft
-                mi_selectlabel(xy(ii,1),xy(ii,2));
-                mi_setblockprop('Air',1,0,'None',0,400,0);
-                mi_clearselected;
+                if ~flag_xfemm
+                    mi_selectlabel(xy(ii,1),xy(ii,2));
+                    mi_setblockprop('Air',1,0,'None',0,400,0);
+                    mi_clearselected;
+                else
+                    [id,~] = findblocklabel_mfemm(FemmProblem,[xy(ii,1),xy(ii,2)]);
+                    FemmProblem.BlockLabels(id+1).MaxArea = FemmProblem.BlockLabels(id+1).MaxArea;
+                    FemmProblem.BlockLabels(id+1).InGroup = 400;
+                end
             end
         elseif xy(ii,3)==6 % PM
             if ~geo.custom
-                mi_selectlabel(xy(ii,1),xy(ii,2));
-                magdir=atan2(xy(ii,7),xy(ii,6))*180/pi;
-                mi_setblockprop('Air',FEMMmesh.auto,FEMMmesh.size,'None',magdir,201,0);
-                mi_clearselected;
+                if ~flag_xfemm
+                    mi_selectlabel(xy(ii,1),xy(ii,2));
+                    magdir=atan2(xy(ii,7),xy(ii,6))*180/pi;
+                    mi_setblockprop('Air',FEMMmesh.auto,FEMMmesh.size,'None',magdir,201,0);
+                    mi_clearselected;
+                else
+                    [id,~] = findblocklabel_mfemm(FemmProblem,[xy(ii,1),xy(ii,2)]);
+                    if ~((isnan(FEMMmesh.auto))||(FEMMmesh.size==0))
+                        FemmProblem.BlockLabels(id+1).MaxArea = FEMMmesh.size;
+                    end
+                end
             end
         elseif xy(ii,3)==5 % rotor iron
             if ~geo.custom
-                mi_selectlabel(xy(ii,1),xy(ii,2));
-                mi_setblockprop(mat.Rotor.MatName,FEMMmesh.auto,FEMMmesh.size,'None',0,22,0);
-                mi_clearselected;
+                if ~flag_xfemm
+                    mi_selectlabel(xy(ii,1),xy(ii,2));
+                    mi_setblockprop(mat.Rotor.MatName,FEMMmesh.auto,FEMMmesh.size,'None',0,22,0);
+                    mi_clearselected;
+                else
+                    [id,~] = findblocklabel_mfemm(FemmProblem,[xy(ii,1),xy(ii,2)]);
+                    if ~((isnan(FEMMmesh.auto))||(FEMMmesh.size==0))
+                        FemmProblem.BlockLabels(id+1).MaxArea = FEMMmesh.size;
+                    end
+                end
             end
         elseif xy(ii,3)==8 % rotor bar
             if ~geo.custom
-                mi_selectlabel(xy(ii,1),xy(ii,2));
-                mi_setblockprop(mat.BarCond.MatName,FEMMmesh.auto,FEMMmesh.size,'None',0,201,0);
-                mi_clearselected;
+                if ~flag_xfemm
+                    mi_selectlabel(xy(ii,1),xy(ii,2));
+                    mi_setblockprop(mat.BarCond.MatName,FEMMmesh.auto,FEMMmesh.size,'None',0,201,0);
+                    mi_clearselected;
+                else
+                    [id,~] = findblocklabel_mfemm(FemmProblem,[xy(ii,1),xy(ii,2)]);
+                    if ~((isnan(FEMMmesh.auto))||(FEMMmesh.size==0))
+                        FemmProblem.BlockLabels(id+1).MaxArea = FEMMmesh.size;
+                    end
+                end
             end
         elseif xy(ii,3)==9 % sleeve
             if ~geo.custom
-                mi_selectlabel(xy(ii,1),xy(ii,2));
-                mi_setblockprop(mat.Sleeve.MatName,FEMMmesh.auto,FEMMmesh.size,'None',0,199,0);
-                mi_clearselected;
+                if ~flag_xfemm  
+                    mi_selectlabel(xy(ii,1),xy(ii,2));
+                    mi_setblockprop(mat.Sleeve.MatName,FEMMmesh.auto,FEMMmesh.size,'None',0,199,0);
+                    mi_clearselected;
+                else
+                    [id,~] = findblocklabel_mfemm(FemmProblem,[xy(ii,1),xy(ii,2)]);
+                    if ~((isnan(FEMMmesh.auto))||(FEMMmesh.size==0))
+                        FemmProblem.BlockLabels(id+1).MaxArea = FEMMmesh.size;
+                    end
+                end
             end
         end
     end
@@ -177,12 +224,25 @@ if simSetup.meshShaft
     end
 end
 
-mi_createmesh;
-mi_analyze(1);
-mi_loadsolution;
+if ~flag_xfemm
+    mi_createmesh;
+    mi_analyze(1);
+    mi_loadsolution;
+else
+    writefemmfile(newFile,FemmProblem)
+    newFile = fmesher(newFile);
+    ansFile = fsolver(newFile,0,1);
+    myfpproc = fpproc();
+    myfpproc.opendocument(ansFile);
+end
 
-numNodes    = mo_numnodes;
-numElements = mo_numelements;
+if ~flag_xfemm
+    numNodes    = mo_numnodes;
+    numElements = mo_numelements;
+else
+    numNodes    = myfpproc.nummeshnodes;
+    numElements = myfpproc.numelements;
+end
 
 nodes       = zeros(2,numNodes);
 elements    = zeros(3,numElements);
@@ -190,9 +250,11 @@ eleGroup    = zeros(1,numElements);
 elementID   = ones(1,numElements); % 1-->Fe, 2-->PM/Al, 3-->sleeve
 
 for ii=1:numNodes
-    tmp=mo_getnode(ii);
-    nodes(1,ii)=tmp(1)/1000;
-    nodes(2,ii)=tmp(2)/1000;
+    if ~flag_xfemm
+        tmp = mo_getnode(ii);
+        nodes(1,ii)=tmp(1)/1000;
+        nodes(2,ii)=tmp(2)/1000;
+    end
 end
 
 
@@ -203,8 +265,14 @@ psSleeve = polyshape;
     psShaft  = polyshape;
 % end
 
+
 for ii=1:numElements
-    tmp=mo_getelement(ii);
+    if ~flag_xfemm
+        tmp = mo_getelement(ii);
+    else
+        tmp = myfpproc.getelements(ii);
+        tmp2 = myfpproc.getvertices(ii);
+    end
     elements(1,ii)  = tmp(1);
     elements(2,ii)  = tmp(2);
     elements(3,ii)  = tmp(3);
@@ -213,27 +281,56 @@ for ii=1:numElements
         filt(k)=ii;
         k=k+1;
     end
+    if flag_xfemm
+        nodes(:,elements(1,ii)) = [tmp2(1);tmp2(2)]/1000;
+        nodes(:,elements(2,ii)) = [tmp2(3);tmp2(4)]/1000;
+        nodes(:,elements(3,ii)) = [tmp2(5);tmp2(6)]/1000;
+    end
 
     if eleGroup(ii)==199
-        index    = elements(:,ii);
-        vertex   = nodes(:,index);
-        vertex   = vertex';
+        if ~flag_xfemm
+            index    = elements(:,ii);
+            vertex   = nodes(:,index);
+            vertex   = vertex';
+        else
+            tmp = myfpproc.getvertices(ii);
+            vertex = [tmp(1),tmp(2);tmp(3),tmp(4);tmp(5),tmp(6)];
+            nodes(:,elements(1,ii)) = [tmp(1);tmp(2)]/1000;
+            nodes(:,elements(2,ii)) = [tmp(3);tmp(4)]/1000;
+            nodes(:,elements(3,ii)) = [tmp(5);tmp(6)]/1000;
+        end
         psTemp   = polyshape(vertex);
         psSleeve = union(psSleeve,psTemp);
         elementID(ii) = 3;
     elseif (eleGroup(ii)==400)
-%         if simSetup.meshShaft
-            index = elements(:,ii);
+        %         if simSetup.meshShaft
+        if ~flag_xfemm
+            index    = elements(:,ii);
             vertex   = nodes(:,index);
             vertex   = vertex';
-            psTemp   = polyshape(vertex);
-            psShaft = union(psShaft,psTemp);
-            elementID(ii) = 4;
-%         end
+        else
+            tmp = myfpproc.getvertices(ii);
+            vertex = [tmp(1),tmp(2);tmp(3),tmp(4);tmp(5),tmp(6)];
+            nodes(:,elements(1,ii)) = [tmp(1);tmp(2)]/1000;
+            nodes(:,elements(2,ii)) = [tmp(3);tmp(4)]/1000;
+            nodes(:,elements(3,ii)) = [tmp(5);tmp(6)]/1000;
+        end
+        psTemp   = polyshape(vertex);
+        psShaft = union(psShaft,psTemp);
+        elementID(ii) = 4;
+        %         end
     elseif (eleGroup(ii)>199)
-        index    = elements(:,ii);
-        vertex   = nodes(:,index);
-        vertex   = vertex';
+        if ~flag_xfemm
+            index    = elements(:,ii);
+            vertex   = nodes(:,index);
+            vertex   = vertex';
+        else
+            tmp = myfpproc.getvertices(ii);
+            vertex = [tmp(1),tmp(2);tmp(3),tmp(4);tmp(5),tmp(6)];
+            nodes(:,elements(1,ii)) = [tmp(1);tmp(2)]/1000;
+            nodes(:,elements(2,ii)) = [tmp(3);tmp(4)]/1000;
+            nodes(:,elements(3,ii)) = [tmp(5);tmp(6)]/1000;
+        end
         psTemp   = polyshape(vertex);
         psMagnet = union(psMagnet,psTemp);
         elementID(ii) = 2;
@@ -266,7 +363,9 @@ end
 elements(:,filt) = [];
 elementID(:,filt) = [];
 
-closefemm
+if ~flag_xfemm
+    closefemm
+end
 % delete(newFile)
 
 % geometryFromMesh(structModel,nodes,elements,elementID);

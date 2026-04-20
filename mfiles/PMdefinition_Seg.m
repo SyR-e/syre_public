@@ -91,6 +91,7 @@ b_start = max(YpontRadBarDx,YpontRadBarSx);
 b_end   = min(YpontSplitBarDx(2,:),YpontSplitBarSx(2,:));
 b = b_end - b_start;
 % b=min(b1,b2);
+b(b<geo.pont0) = 0;
 
 AreaC = (hc-PMclearC).*b;
 if FBS>0

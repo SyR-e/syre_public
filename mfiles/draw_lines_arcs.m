@@ -28,20 +28,21 @@ for ii=1:nrig
         mi_setnodeprop('None',gruppo);
         mi_clearselected
         %         keyboard
-    elseif Mat(ii,7)== eps || Mat(ii,7)== -eps  %mod walter
-        mi_drawline(Mat(ii,1),Mat(ii,2),Mat(ii,3),Mat(ii,4));
-        mi_selectsegment(mean([Mat(ii,1) Mat(ii,3)]),mean([Mat(ii,2) Mat(ii,4)]));
-        
-        mi_setsegmentprop('None', res, 0, 0, gruppo);
-        mi_clearselected
-        mi_selectnode(Mat(ii,1),Mat(ii,2));
-        mi_selectnode(Mat(ii,3),Mat(ii,4));
-        mi_setnodeprop('None',gruppo);
-        mi_clearselected
+    % elseif Mat(ii,7)== eps || Mat(ii,7)== -eps  %mod walter
+    %     mi_drawline(Mat(ii,1),Mat(ii,2),Mat(ii,3),Mat(ii,4));
+    %     mi_selectsegment(mean([Mat(ii,1) Mat(ii,3)]),mean([Mat(ii,2) Mat(ii,4)]));
+    % 
+    %     mi_setsegmentprop('None', res, 0, 0, gruppo);
+    %     mi_clearselected
+    %     mi_selectnode(Mat(ii,1),Mat(ii,2));
+    %     mi_selectnode(Mat(ii,3),Mat(ii,4));
+    %     mi_setnodeprop('None',gruppo);
+    %     mi_clearselected
         
     else
         
-        [maxsegdeg,raggio,ang1,ang]=Disegna_Arco(Mat(ii,:),res);
+        [maxsegdeg,raggio,ang1,ang,xy]=Disegna_Arco(Mat(ii,:),res);
+        mi_drawarc(xy(1,1),xy(1,2),xy(2,1),xy(2,2),ang,maxsegdeg);
         [x_temp,y_temp]=pol2cart((ang1+0.5*ang)*pi/180,raggio);
         x=x_temp+Mat(ii,1);
         y=y_temp+Mat(ii,2);

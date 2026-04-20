@@ -85,46 +85,22 @@ n3ph   = geo.win.n3phase;
 
 alphaSlot = 2*pi/(6*p*q*n3ph);   % slot pitch [rad]
 
-if (~isnan(kcu) && strcmp(condType,'Round')) % conductor size computed from kCu
-    Acond = Aslot*kcu/nCondIn;
-%     if strcmp(condType,'Round')
-        rCond = (Acond/pi)^0.5;
-        wCond = 2*rCond;
-        hCond = 2*rCond;
-%     else
-        %wCond = (Acond/condHB)^0.5;
-        %hCond = condHB*wCond;
-%         wCond = geo.win.wCond;
-%         hCond = geo.win.hCond;
-%         rCond = geo.win.rCond;
-%         if rCond>wCond/2
-%             rCond=wCond/2;
-%         end
-%         if rCond>hCond/2
-%             rCond=hCond/2;
-%         end
-%     end
-else          % conductor size imposed, kCu computed at the end
-    if strcmp(condType,'Round')
-        rCond = geo.win.rCond;
-        wCond = 2*rCond;
-        hCond = 2*rCond;
-        kcu = (nCondIn*pi*rCond^2)/Aslot;
-        Acond = pi*rCond^2;
-    else
-        wCond = geo.win.wCond;
-        hCond = geo.win.hCond;
-        rCond = geo.win.rCond;
-        if rCond>wCond/2
-            rCond=wCond/2;
-        end
-        if rCond>hCond/2
-            rCond=hCond/2;
-        end
-        kcu = (nCondIn*wCond*hCond)/Aslot;
-        Acond = wCond*hCond;
-    end
+if strcmp(condType,'Round')
+    slotOut = slotModel_eval_roundCond(geo);
+else
+    geo.win.kcu = NaN;
+    slotOut = slotModel_eval_rectCond(geo);
 end
+
+rCond     = slotOut.rCond;
+wCond     = slotOut.wCond;
+hCond     = slotOut.hCond;
+nCond     = slotOut.nCond;
+% nCondMax  = slotOut.nCondMax;
+xyCenters = slotOut.centers;
+
+% Acond = pi*rCond^2+(wCond+2*rCond)*(hCond-2*rCond)+2*(wCond-2*rCond)*rCond+2*(hCond-2*rCond)*rCond;
+Acond = wCond*hCond-(4*rCond^2-pi*rCond^2);
 
 % define slot geometry
 indCu  = 1;
@@ -158,134 +134,50 @@ slotMat = [slotMat
     0     0     +x1Fe -y1Fe +x1Fe +y1Fe +1 codMatFeSta 0
     ];
 
+slotMat = rotateMatrix(slotMat,pi/2);
+
 
 xySlot = [
-    r+g/2     0 codMatAirSta res_traf 1
-    r+g+ttd/2 0 codMatAirSta res_traf 1
+    0 r+g/2     codMatAirSta res_traf 1
+    0 r+g+ttd/2 codMatAirSta res_traf 1
     ];
 
-% search the main slot size
 
-x1 = slotMat(3,1);
-y1 = slotMat(3,2);
-x2 = slotMat(3,3);
-y2 = slotMat(3,4);
-
-% computation of the slot profile
-hSlot    = x2-x1;
-wSlotMin = 2*y1;
-wSlotMax = 2*y2;
-
-if wSlotMin==wSlotMax
-    m = 0;
-    q = wSlotMin/2;
-else
-    m = (y2-y1)/(x2-x1);
-    q = y1-m*x1;
-end
-
-% if strcmp(condType,'Round')
-%     dh = 2*(rCond+tol)*sin(pi/3);
-%     db = 2*(rCond+tol);
-% else
-%     dh = hCond+2*tol;
-%     db = wCond+2*tol;
-% end
-
-if strcmp(condType,'Round')
-    nh = floor((hSlot-condBottomGap)/(hCond)); % max number of height divisions
-else
-    nh = floor(hSlot/(hCond+2*tol)); % max number of height divisions
-end
-
-% nb = floor(bSlot/(wCond+2*tol)); % max number of base divisions
-
-
-% slot filling, from the bottom slot
 matCond = [];
 xyCond  = [];
 indexCond = 1;
 
-dh = hCond/2;
-dw = wCond/2;
+dh = wCond/2;
+dw = hCond/2;
 rc = rCond;
 
-
-for xx=1:1:nh
-    if xx==1
-        x0 = x2-tol-hCond/2-condBottomGap;
-        xMin = x0-hCond;
-        % xMax = x0+hCond;
-        yLim = m*xMin+q;
-        nw = floor(2*yLim/(wCond+2*tol));
-        if rem(nw,2)==0
-            flagEven = 1;
-        else
-            flagEven = 0;
-        end
+for ii=1:length(xyCenters)
+    x0 = real(xyCenters(ii));
+    y0 = imag(xyCenters(ii));
+    xyCond = [xyCond; x0 y0 codMatCu res_traf 1];
+    if rCond>0
+        matCond = [matCond
+            x0-dh    y0-dw+rc x0-dh    y0+dw-rc NaN      NaN       0 codMatCu indexCond
+            x0-dh+rc y0+dw-rc x0-dh    y0+dw-rc x0-dh+rc y0+dw    -1 codMatCu indexCond
+            x0-dh+rc y0+dw    x0+dh-rc y0+dw    NaN      NaN       0 codMatCu indexCond
+            x0+dh-rc y0+dw-rc x0+dh-rc y0+dw    x0+dh    y0+dw-rc -1 codMatCu indexCond
+            x0+dh    y0+dw-rc x0+dh    y0-dw+rc NaN      NaN       0 codMatCu indexCond
+            x0+dh-rc y0-dw+rc x0+dh    y0-dw+rc x0+dh-rc y0-dw    -1 codMatCu indexCond
+            x0+dh-rc y0-dw    x0-dh+rc y0-dw    NaN      NaN       0 codMatCu indexCond
+            x0-dh+rc y0-dw+rc x0-dh+rc y0-dw    x0-dh    y0-dw+rc -1 codMatCu indexCond
+            ];
     else
-        if strcmp(condType,'Round')
-            x0 = x0-2*(rCond+tol)*sin(pi/3);
-            xMin = x0-hCond;
-            % xMax = x0+hCond;
-            yLim = m*xMin+q;
-            nw = floor(2*yLim/(wCond+2*tol));
-            if flagEven
-                if rem(nw,2)==0
-                    nw = nw-1;
-                end
-                flagEven = 0;
-            else
-                if rem(nw,2)>0
-                    nw = nw-1;
-                end
-                flagEven = 1;
-            end
-        else
-            x0 = x0-hCond-2*tol;
-            xMin = x0-hCond;
-            % xMax = x0+hCond;
-            yLim = m*xMin+q;
-            nw = floor(2*yLim/(wCond+2*tol));
-            if nw/2==0
-                flagEven = 1;
-            else
-                flagEven = 0;
-            end
-        end
+        matCond = [matCond
+            x0-dh y0-dw x0-dh y0+dw NaN NaN 0 codMatCu indexCond
+            x0-dh y0+dw x0+dh y0+dw NaN NaN 0 codMatCu indexCond
+            x0+dh y0+dw x0+dh y0-dw NaN NaN 0 codMatCu indexCond
+            x0+dh y0-dw x0-dh y0-dw NaN NaN 0 codMatCu indexCond
+            ];
     end
-    
-    % y0 = (nb-1)*(wCond/2+tol);
-    
-    for yy=1:1:nw
-        y0 = (nw-1)*(wCond/2+tol)-(wCond+2*tol)*(yy-1); % conductor center
-        xyCond = [xyCond; x0 y0 codMatCu res_traf 1];
-        % conductor definition
-        if rCond>0
-            matCond = [matCond
-                x0-dh    y0-dw+rc x0-dh    y0+dw-rc NaN      NaN       0 codMatCu indexCond
-                x0-dh+rc y0+dw-rc x0-dh    y0+dw-rc x0-dh+rc y0+dw    -1 codMatCu indexCond
-                x0-dh+rc y0+dw    x0+dh-rc y0+dw    NaN      NaN       0 codMatCu indexCond
-                x0+dh-rc y0+dw-rc x0+dh-rc y0+dw    x0+dh    y0+dw-rc -1 codMatCu indexCond
-                x0+dh    y0+dw-rc x0+dh    y0-dw+rc NaN      NaN       0 codMatCu indexCond
-                x0+dh-rc y0-dw+rc x0+dh    y0-dw+rc x0+dh-rc y0-dw    -1 codMatCu indexCond
-                x0+dh-rc y0-dw    x0-dh+rc y0-dw    NaN      NaN       0 codMatCu indexCond
-                x0-dh+rc y0-dw+rc x0-dh+rc y0-dw    x0-dh    y0-dw+rc -1 codMatCu indexCond
-                ];
-        else
-            matCond = [matCond
-                x0-dh y0-dw x0-dh y0+dw NaN NaN 0 codMatCu indexCond
-                x0-dh y0+dw x0+dh y0+dw NaN NaN 0 codMatCu indexCond
-                x0+dh y0+dw x0+dh y0-dw NaN NaN 0 codMatCu indexCond
-                x0+dh y0-dw x0-dh y0-dw NaN NaN 0 codMatCu indexCond
-                ];
-        end
-        indexCond = indexCond+1;
-    end
-    
+    indexCond = indexCond+1;
 end
 
-nCond = indexCond-1;
+
 disp(['Number of input conductor = ' int2str(nCondIn)])
 disp(['Max number of conductor = ' int2str(nCond)])
 if nCond<nCondIn
@@ -339,44 +231,48 @@ save([resFolder 'slotModel.mat'],'dataSet','geo','per','mat','slot');
 copyfile([pathname filename(1:end-4) '.mat'],[resFolder filename(1:end-4) '.mat'])
 copyfile([pathname filename(1:end-4) '.fem'],[resFolder filename(1:end-4) '.fem'])
 
-openfemm(1);
-FEMM_initialize(geo,mat);
-mi_probdef(0,'millimeters','planar',1e-8,l,15);
-
-% draw slot (air)
-draw_lines_arcs(slotMat,1,mesh_res.res_traf);
-for ii=1:size(xySlot,1)
-    mi_addblocklabel(xySlot(ii,1),xySlot(ii,2));
-    mi_selectlabel(xySlot(ii,1),xySlot(ii,2));
-    mi_setblockprop('Air',0,res_traf,'None',0,1,0);
+if ~geo.XFEMMcreation
+    openfemm(1);
+    FEMM_initialize(geo,mat);
+    mi_probdef(0,'millimeters','planar',1e-8,l,15);
+    
+    % draw slot (air)
+    draw_lines_arcs(slotMat,1,mesh_res.res_traf);
+    for ii=1:size(xySlot,1)
+        mi_addblocklabel(xySlot(ii,1),xySlot(ii,2));
+        mi_selectlabel(xySlot(ii,1),xySlot(ii,2));
+        mi_setblockprop('Air',0,res_traf,'None',0,1,0);
+        mi_clearselected;
+    end
+    
+    mi_addboundprop('A=0', 0, 0, 0, 0, 0, 0, 0, 0, 0);  % inner and outer circles
+    xBou = (x1Fe+x2Fe)/2;
+    yBou = (y1Fe+y2Fe)/2;
+    mi_selectarcsegment(xBou,yBou);
+    mi_setarcsegmentprop(res_traf,'A=0',0,1);
     mi_clearselected;
-end
-
-mi_addboundprop('A=0', 0, 0, 0, 0, 0, 0, 0, 0, 0);  % inner and outer circles
-xBou = (x1Fe+x2Fe)/2;
-yBou = (y1Fe+y2Fe)/2;
-mi_selectarcsegment(xBou,yBou);
-mi_setarcsegmentprop(res_traf,'A=0',0,1);
-mi_clearselected;
-mi_selectarcsegment(xBou,-yBou);
-mi_setarcsegmentprop(res_traf,'A=0',0,1);
-mi_clearselected;
-
-% draw conductors
-draw_lines_arcs(matCond,3,res_traf);
-for ii=1:size(xyCond,1)
-    circuitName = ['conductor_' int2str(ii)];
-    mi_addcircprop(circuitName,0,1);
-    mi_addblocklabel(xyCond(ii,1),xyCond(ii,2));
-    mi_selectlabel(xyCond(ii,1),xyCond(ii,2));
-    mi_setblockprop(mat.SlotCond.MatName,0,res_traf,circuitName,0,3,0);
+    mi_selectarcsegment(xBou,-yBou);
+    mi_setarcsegmentprop(res_traf,'A=0',0,1);
     mi_clearselected;
+    
+    % draw conductors
+    draw_lines_arcs(matCond,3,res_traf);
+    for ii=1:size(xyCond,1)
+        circuitName = ['conductor_' int2str(ii)];
+        mi_addcircprop(circuitName,0,1);
+        mi_addblocklabel(xyCond(ii,1),xyCond(ii,2));
+        mi_selectlabel(xyCond(ii,1),xyCond(ii,2));
+        mi_setblockprop(mat.SlotCond.MatName,0,res_traf,circuitName,0,3,0);
+        mi_clearselected;
+    end
+    
+    % save model
+    
+    mi_saveas([resFolder 'slotModel.fem'])
+    closefemm();
+else
+    error('Slot model creation with XFEMM not yet implemented!')
 end
-
-% save model
-
-mi_saveas([resFolder 'slotModel.fem'])
-closefemm();
 disp(['Slot model saved in:'])
 disp([resFolder 'slotModel.fem'])
 

@@ -20,7 +20,7 @@ else
     rhoPM = mat.LayerMag.kgm3;
     if isfield(geo,'pShape')
         if geo.pShape.flag
-            Mass = (2*geo.p)*rhoPM*(geo.l/1000)*area(geo.pShape.magnet)/1e6;
+            Mass = (2*geo.p)/geo.ps*rhoPM*(geo.l/1000)*area(geo.pShape.magnet)/1e6;
         else
             if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'SPM-Halbach')
                 Mass = pi*(geo.r^2-(geo.r-geo.hc_pu*geo.g)^2)*geo.l*(geo.dalpha_pu)/1e9*rhoPM;

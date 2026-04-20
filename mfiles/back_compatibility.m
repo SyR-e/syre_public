@@ -568,7 +568,7 @@ end
 
 % Current density value
 if ~isfield(dataSet,'CurrentDensity')
-    dataSet.CurrentDensity = [];
+    dataSet.CurrentDensity = NaN;
     if Dflag
         disp('rev446 - added current density on GUI')
     end
@@ -687,8 +687,8 @@ if ~isfield(dataSet,'TanRibBou')
     dataSet.MinExpPowerFactor     = 0;
     dataSet.NoLoadFluxOptCheck    = 0;
     dataSet.MaxExpNoLoadFlux      = 0; 
-    dataSet.MechStressOptCheck    = 0;
-    dataSet.MaxExpMechStress      = 0;
+    % dataSet.MechStressOptCheck    = 0;
+    % dataSet.MaxExpMechStress      = 0;
     if Dflag
         disp('2021 04 20 - Added new bounds and objectives in the Optimization tab')
     end
@@ -1218,6 +1218,55 @@ if ~isfield(dataSet,'StatorJouleLossOptCheck')
     flag = 1;
 end
 
+% demagnetization in syrmDesign
+if ~isfield(dataSet.syrmDesignFlag,'demagUGO')
+    dataSet.syrmDesignFlag.demagUGO = 0;
+    if Dflag
+        disp('2025 09 22 - added HWC-SC demagnetization @ UGO in FEAfix')
+    end
+    flag=1;
+end
+
+% Structural simulations in FEAfix
+if ~isfield(dataSet.syrmDesignFlag,'Mech')
+    dataSet.syrmDesignFlag.Mech = 0;
+    if Dflag
+        disp('2025 10 21 - added structural simulation in FEAfix')
+    end
+    flag=1;
+end
+
+
+% Mechanical stress as optimization objectives
+if ~isfield(dataSet,'MaxExpMechStress')  
+    dataSet.VonMisesstressOptCheck = 0;
+    dataSet.MaxExpMechStress = 450;
+ 
+    if Dflag
+        disp('2025 11 06 - added mechanical stress as optimization objectives')
+    end
+    flag = 1;
+end
+
+% Offset current (DC-bias, 0-component)
+if ~isfield(dataSet,'SimulatedCurrentOffset')
+    dataSet.SimulatedCurrentOffset = zeros(size(dataSet.CurrLoPP));
+    if Dflag
+        disp('2025 12 08 - added current offset for single points simulations')
+    end
+    flag = 1;
+end
+
+% XFEMM compatibility
+if ~isfield(dataSet,'XFEMMsimulation')
+    dataSet.XFEMMcreation = 0;
+    dataSet.XFEMMsimulation = 0;
+    if Dflag
+        disp('2025 12 16 - added XFEMM compatibility')
+    end
+    flag = 1;
+end
+
 %% remove old fields of dataSet
 flagClear = 0;
 if isfield(dataSet,'BarFillFac')
@@ -1276,10 +1325,10 @@ if isfield(dataSet,'MachineTemperature')
     flagClear = 1;
 end
 
-if isfield(dataSet,'MaxExpMechStress')
-    dataSet = rmfield(dataSet,'MaxExpMechStress');
-    flagClear = 1;
-end
+% if isfield(dataSet,'MaxExpMechStress')
+%     dataSet = rmfield(dataSet,'MaxExpMechStress');
+%     flagClear = 1;
+% end
 
 if isfield(dataSet,'RotorFillet')
     dataSet = rmfield(dataSet,'RotorFillet');
@@ -1292,14 +1341,25 @@ if isfield(dataSet,'pontRoffsetEdit')
 end
 
 if isfield(dataSet,'ThicknessOfPM')
-    if strcmp(dataSet.TypeOfRotor,'SPM')
+    if strcmp(dataSet.TypeOfRotor,'SPM')||strcmp(dataSet.TypeOfRotor,'SPM-Hallbach')
         dataSet.HCmm     = dataSet.ThicknessOfPM;
         dataSet.HCpu     = dataSet.ThicknessOfPM/dataSet.AirGapThickness;
+    end
+    dataSet = rmfield(dataSet,'ThicknessOfPM');
+    flagClear = 1;
+end
+
+if isfield(dataSet,'AngleSpanOfPM')
+    if strcmp(dataSet.TypeOfRotor,'SPM')||strcmp(dataSet.TypeOfRotor,'SPM-Hallbach')
         dataSet.ALPHAdeg = dataSet.AngleSpanOfPM;
         dataSet.ALPHApu  = dataSet.AngleSpanOfPM/180;
     end
-    dataSet = rmfield(dataSet,'ThicknessOfPM');
     dataSet = rmfield(dataSet,'AngleSpanOfPM');
+    flagClear = 1;
+end
+
+if isfield(dataSet,'MechStressOptCheck')
+    dataSet = rmfield(dataSet,'MechStressOptCheck');
     flagClear = 1;
 end
 
@@ -1353,5 +1413,20 @@ if flag && Dflag
 %     f = warndlg(msg,title,'modal');
     disp(msg)
 end
+
+
+% GUI updated for EESM Rotor Current Load
+if ~isfield(dataSet,'FieldCurrLoPP')
+    dataSet.FieldCurrLoPP = 1;
+    [~, ~, geo, ~, ~] = data0(dataSet);
+    dataSet.RotorEndWindingsLength = calc_endTurnFieldLength(geo);
+end
+
+% GUI updated for EESM Pole Head Shape
+if ~isfield(dataSet,'PoleHeadShape')
+    dataSet.PoleHeadShape = 1;
+    [~, ~, geo, ~, ~] = data0(dataSet);
+end
+
 
 end

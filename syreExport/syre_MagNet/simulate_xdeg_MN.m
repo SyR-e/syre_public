@@ -13,7 +13,7 @@
 %    limitations under the License.
 
 function [SOL] = simulate_xdeg_MN(geo,per,eval_type,pathname,filename)
-
+disp('Starting MagNet Simulation....')
 h = OpenMagnet(1);
 
 switch eval_type
@@ -137,7 +137,8 @@ invoke(h.magnetHandler, 'processCommand', Command);
 phase_index = {'U','V','W'};
 if exist('th0')
     % casi successivi feb 2010 (+90 perch? Waveform in Magnet\coil ? un sin)
-    phase_angle = [0 -120 120] + (gamma_*180/pi + th0(1) + 90);
+    % phase_angle = [0 -120 120] + (gamma_*180/pi + th0(1) + 90); eliminato da simodelsa
+    phase_angle = [0 -120 120] + (gamma_*180/pi + th0(1));  
 else
     % casi precedenti feb 2010
     phase_angle = [0 -120 120] - 180/pi*(pi-gamma_);
@@ -329,40 +330,54 @@ pos_Mov = pos_Mov(1:end)';
 %% posizione del rotore (rad elt)
 if exist('th0')
     % casi successivi feb 2010 (+90 perch� Waveform in Magnet\coil � un sin)
-    theta = th0(1) * pi/180 + pos_Mov * geo.p;
+    thetaIni = (th0(1)) * pi/180 + pos_Mov * geo.p;
 else
     % casi precedenti feb 2010
     % d_axis Vs alpha_axis mechanical position
-    theta = pi/2 + pos_Mov * geo.p;  % mec rad
+    thetaIni = pi/2 + pos_Mov * geo.p;  % elt rad
 end
-
-Fluxa = zeros(size(theta,1),n3ph);
-Fluxb = zeros(size(theta,1),n3ph);
-Fluxc = zeros(size(theta,1),n3ph);
-Fluxd = zeros(size(theta,1),n3ph);
-Fluxq = zeros(size(theta,1),n3ph);
+tempo   = time(1:end);
+Fluxa = zeros(size(thetaIni,1),n3ph);
+Fluxb = zeros(size(thetaIni,1),n3ph);
+Fluxc = zeros(size(thetaIni,1),n3ph);
+% Fluxd = zeros(size(thetaIni,1),n3ph);
+% Fluxq = zeros(size(thetaIni,1),n3ph);
 
 for ii=1:n3ph
-    theta = theta+(th0(ii)-th0(1))*pi/180;
+    theta = thetaIni+(th0(ii)-th0(1))*pi/180;
     
     Fluxa(:,ii) = Flux_1sim(:,1+3*(ii-1));
     Fluxb(:,ii) = Flux_1sim(:,2+3*(ii-1));
     Fluxc(:,ii) = Flux_1sim(:,3+3*(ii-1));
     
-    Fluxd(:,ii) = 2/3*(+(Fluxa(:,ii)-0.5*Fluxb(:,ii)-0.5*Fluxc(:,ii)).*cos(theta)+sqrt(3)/2*(Fluxb(:,ii)-Fluxc(:,ii)).*sin(theta));
-    Fluxq(:,ii) = 2/3*(-(Fluxa(:,ii)-0.5*Fluxb(:,ii)-0.5*Fluxc(:,ii)).*sin(theta)+sqrt(3)/2*(Fluxb(:,ii)-Fluxc(:,ii)).*cos(theta));
+    % Fluxd(:,ii) = 2/3*(+(Fluxa(:,ii)-0.5*Fluxb(:,ii)-0.5*Fluxc(:,ii)).*cos(theta)+sqrt(3)/2*(Fluxb(:,ii)-Fluxc(:,ii)).*sin(theta));
+    % Fluxq(:,ii) = 2/3*(-(Fluxa(:,ii)-0.5*Fluxb(:,ii)-0.5*Fluxc(:,ii)).*sin(theta)+sqrt(3)/2*(Fluxb(:,ii)-Fluxc(:,ii)).*cos(theta));
+end
+% Fluxd = 2/3*(+(Fluxa(:,1)-0.5*Fluxb(:,1)-0.5*Fluxc(:,1)).*cos(theta)+sqrt(3)/2*(Fluxb(:,1)-Fluxc(:,1)).*sin(theta));
+% Fluxq =
+% 2/3*(-(Fluxa(:,1)-0.5*Fluxb(:,1)-0.5*Fluxc(:,1)).*sin(theta)+sqrt(3)/2*(Fluxb(:,1)-Fluxc(:,1)).*cos(theta));
+% eliminato da simodelsa
+tempo   = time(1:end);
+for l = 1:n3ph
+    theta = ((geo.th0(l)-90) * pi/180 + tempo/1000 * per.EvalSpeed * pi/30 * geo.p)';
+    for ii = 1:length(thetaIni)-1
+    Fluxdq = abc2dq(Fluxa(ii,l),Fluxb(ii,l),Fluxc(ii,l),((geo.th0(l)-90) * pi/180 + tempo(ii)/1000 * per.EvalSpeed * pi/30 * geo.p));
+    Fluxd(l,ii) = Fluxdq(1,1);
+    Fluxq(l,ii) = Fluxdq(2,1);
+    end
+    % Fluxd(l,:) = Fluxd(l,1:end-1);
+    % Fluxq(l,:) = Fluxq(l,1:end-1);
 end
 
-Fluxd = Fluxd(2:end,:);
-Fluxd = [Fluxd(NTime-1,:);Fluxd];
-Fluxq = Fluxq(2:end,:);
-Fluxq = [Fluxq(NTime-1,:);Fluxq];
+% Fluxd = Fluxd(2:end,:); eliminato da simodelsa
+% Fluxd = [Fluxd(NTime-1,:);Fluxd];eliminato da simodelsa
+% Fluxq = Fluxq(2:end,:); eliminato da simodelsa
+% Fluxq = [Fluxq(NTime-1,:);Fluxq];eliminato da simodelsa
 
-Fluxd = Fluxd(1:(end-1),:);
-Fluxq = Fluxq(1:(end-1),:);
 
-Fluxd = mean(Fluxd,2);
-Fluxq = mean(Fluxq,2);
+% 
+% Fluxd = mean(Fluxd,2);eliminato da simodelsa
+% Fluxq = mean(Fluxq,2);eliminato da simodelsa
 
 %% Voltage Elab (RunS_VoltageElab_MN)
 % dq e.m.f.
@@ -422,9 +437,8 @@ Command=['Call getDocument().save("',[pathname,filename(1:end-4) '.mn'],'")'];
 invoke(h.magnetHandler, 'processCommand', Command);
 
 % output
-tempo   = time(2:end);         %ms
-th = (geo.th0(1) * pi/180 + tempo/1000 * per.EvalSpeed * pi/30 * geo.p);
-
+tempo   = time(1:end);         %ms
+th = ((geo.th0(1)-90) * pi/180 + tempo/1000 * per.EvalSpeed * pi/30 * geo.p); 
 if (xdeg == 360)
     SOL.Pfes_h = Pfes_h;
     SOL.Pfes_c = Pfes_c;
@@ -433,22 +447,41 @@ if (xdeg == 360)
     SOL.PjrBar = PjrBar;
     SOL.Ppm    = Ppm;
 end
-SOL.th = th*180/pi;
+% SOL.th = th*180/pi; eliminato da simodelsa
+SOL.th = th(1:end-1)*180/pi;
 SOL.id = tmp1(2:end)';
 SOL.iq = tmp2(2:end)';
-SOL.fd = Fluxd';
-SOL.fq = Fluxq';
+SOL.fd = Fluxd;
+SOL.fq = Fluxq;
 SOL.T = (mean([-Torque_1sim(:,1) Torque_1sim(:,2)],2))';
 
-tmp = dq2abc(SOL.id,SOL.iq,theta(1:end-1)');
-SOL.ia = tmp(1,:);
-SOL.ib = tmp(2,:);
-SOL.ic = tmp(3,:);
+% tmp = dq2abc(SOL.id,SOL.iq,theta(1:end-1)');
+% SOL.ia = tmp(1,:);
+% SOL.ib = tmp(2,:);eliminato da simodelsa
+% SOL.ic = tmp(3,:);
 
-tmp = dq2abc(SOL.fd,SOL.fq,theta(1:end-1)');
-SOL.fa = tmp(1,:);
-SOL.fb = tmp(2,:);
-SOL.fc = tmp(3,:);
+for ii = 1:n3ph
+    theta = ((geo.th0(ii)-90) * pi/180 + tempo/1000 * per.EvalSpeed * pi/30 * geo.p)';
+    tmp = dq2abc(SOL.id,SOL.iq,theta(1:end-1)');
+    SOL.ia(ii,:) = tmp(1,:);
+    SOL.ib(ii,:) = tmp(2,:);
+    SOL.ic(ii,:) = tmp(3,:);
+
+end
+
+
+% tmp = dq2abc(SOL.fd,SOL.fq,theta(1:end-1)');
+% SOL.fa = Fluxa';
+% SOL.fb = Fluxb'; eliminato da simodelsa
+% SOL.fc = Fluxc';
+Fluxa = Fluxa';
+Fluxb = Fluxb';
+Fluxc = Fluxc';
+
+SOL.fa = Fluxa(:,1:end-1);
+SOL.fb = Fluxb(:,1:end-1); % aggiunto da simodelsa
+SOL.fc = Fluxc(:,1:end-1);
+
 
 CloseMagnet(h);
 

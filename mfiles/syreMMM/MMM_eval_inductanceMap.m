@@ -22,10 +22,23 @@ Iq = motorModel.FluxMap_dq.Iq;
 Fd = motorModel.FluxMap_dq.Fd;
 Fq = motorModel.FluxMap_dq.Fq;
 
-[dFdd,dFdq] = gradient(Fd);
-[dFqd,dFqq] = gradient(Fq);
-[dIdd,~]    = gradient(Id);
-[~,dIqq]    = gradient(Iq);
+motorType = motorModel.data.motorType;
+
+switch motorType
+    case 'VFM'
+        MS = motorModel.FluxMap_dq.MS;
+        for i = 1:size(Fd,3)
+            [dFdd(:,:,i), dFdq(:,:,i)] = gradient(Fd(:,:,i));
+            [dFqd(:,:,i), dFqq(:,:,i)] = gradient(Fq(:,:,i));
+            [dIdd(:,:,i),~]    = gradient(Id(:,:,i)); % They shuold be all the same 
+            [~,dIqq(:,:,i)]    = gradient(Iq(:,:,i));
+        end
+    otherwise
+        [dFdd,dFdq] = gradient(Fd);
+        [dFqd,dFqq] = gradient(Fq);
+        [dIdd,~]    = gradient(Id);
+        [~,dIqq]    = gradient(Iq);
+end 
 
 Ldd = dFdd./dIdd;
 Ldq = dFdq./dIqq;
@@ -39,4 +52,8 @@ Inductance.Ldd = Ldd;
 Inductance.Ldq = Ldq;
 Inductance.Lqd = Lqd;
 Inductance.Lqq = Lqq;
+if strcmp(motorType, 'VFM')
+    Inductance.MS = MS;
+end
+
 end

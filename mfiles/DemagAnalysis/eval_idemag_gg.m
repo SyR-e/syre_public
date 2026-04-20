@@ -45,6 +45,7 @@ else % per ora non entro in else
     setup.filename = temp.currentfilename;
     setup.pathname = temp.currentpathname;
     setup.gamVect = temp.GammaPP;
+    setup.XFEMMsimulation = temp.XFEMMsimulation;
     setup.figFlag  = 1;
     
     
@@ -52,6 +53,7 @@ else % per ora non entro in else
 
     dataSet.axisType = temp.axisType;
     dataSet.tempPP   = temp.tempPP;
+    dataSet.XFEMMsimulation = setup.XFEMMsimulation;
     clear temp
 
     if ~isfield(dataSet,'axisType')
@@ -81,6 +83,9 @@ figFlag  = setup.figFlag;
 per.nsim_singt      = dataSet.NumOfRotPosPP;
 per.delta_sim_singt = dataSet.AngularSpanPP;
 per.gamma          = gamVect; % qui sostituisco dentro 'per' , alla tempPP, i valori di gamma scelti
+per.tempPP = dataSet.tempPP; % metto temperature scelte
+per.BrPP = dataSet.BrPP;
+geo.XFEMMsimulation = dataSet.XFEMMsimulation;
 
 outFolder = [filename(1:end-4) '_results\FEA results\'];
 outFolder = checkPathSyntax(outFolder);
@@ -100,24 +105,23 @@ dPMdemagVect = zeros(size(gamVect));
 BminVect     = zeros(size(gamVect));
 
 disp('Starting FEMM simulations...')
-openfemm(1)
-opendocument([pathname filename(1:end-4) '.fem'])
-
-mi_saveas([resFolder filename(1:end-4) '.fem']);
-mi_close;
+if ~geo.XFEMMsimulation
+    openfemm(1)
+    opendocument([pathname filename(1:end-4) '.fem'])
+    
+    mi_saveas([resFolder filename(1:end-4) '.fem']);
+    mi_close;
+end
 
 i0 = per.i0; 
 
-maxIter = 500; % numero max di iterazioni
+maxIter = 50; % numero max di iterazioni
 dPMtarget = 0.01; % percentuale smagnetizzazione 
-tolPU = 0.5;
-IstepLim = i0/100;
+tolPU = 0.25;
+IstepLim = i0/1000;
 
-% if strcmp(dataSet.axisType,'PM') % Qui imposto temperatura (fissa) a cui fare calcoli.
-    per.tempPP = 80; % metto temperature scelte
-% else
-%     per.tempPP = 20;
-% end
+
+
 
 for gg=1:length(gamVect) % ciclo su cui devo lavorare (tt --> gg) 
     

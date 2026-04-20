@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [OUT] = FEAfixSimulation(RQ,geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC,flagMech,flagTherm)
+function [OUT] = FEAfixSimulation(RQ,geo,per,mat,eval_type,filemot,gammaFix,flagIch,flagSC,flagDemag0,flagDemagHWC,flagDemagUGO,flagMech,flagTherm)
 
 if strcmp(mat.LayerMag.MatName,'Air')
     flagPM=0;
@@ -28,6 +28,7 @@ i0 = per.i0;
 per.custom_act = 0;
 
 % load simulation (Torque)
+stp = false;
 if ~gammaFix
     [~,geo,~,out,pathname] = FEMMfitness(RQ,geo,per,mat,eval_type,filemot);
     nFEA = nFEA+1;
@@ -38,56 +39,145 @@ if ~gammaFix
     OUT.mPM = calcMassPM(geo,mat);
     OUT.mCu = calcMassCu(geo,mat);
     OUT.T   = out.T;
-    gamma0 = RQ(end);
+
+    % gamma0 = RQ(end);
 else
-    %Initialization
-    maxIter = 5;
-    gammaVect = nan(1, 3 + maxIter);
-    TVect  = nan(1,3 + maxIter);
-    FdVect = nan(1,3 + maxIter);
-    FqVect = nan(1,3 + maxIter);
-    IdVect = nan(1,3 + maxIter);
-    IqVect = nan(1,3 + maxIter);
-    gVect  = nan(1,3 + maxIter);
+    if strcmp(geo.RotType,'EESM') % Metodo della sezione aurea
+        
 
-    % First 3 fixed tests
-    gammaVect(1:3) = [90, 120, 30];
-    for ii = 1:3
-        gammaSim = gammaVect(ii);
-        RQ(end) = gammaSim;
-        [~,geo,~,out,pathname] = FEMMfitness(RQ,geo,per,mat,eval_type,filemot);
-        nFEA = nFEA+1;
-        TVect(ii)  = out.T;
-        FdVect(ii) = out.fd;
-        FqVect(ii) = out.fq;
-        IdVect(ii) = out.id;
-        IqVect(ii) = out.iq;
-        gVect(ii)  = gammaSim;
+    else
+        %Initialization
+        maxIter = 5;
+        GR       = (sqrt(5)-1)/2; % Golden ratio (0.618034)
+        lock    = false;
+        gammaVect = nan(1, 3 + maxIter);
+        TVect  = nan(1,3 + maxIter);
+        FdVect = nan(1,3 + maxIter);
+        FqVect = nan(1,3 + maxIter);
+        IdVect = nan(1,3 + maxIter);
+        IqVect = nan(1,3 + maxIter);
+        gVect  = nan(1,3 + maxIter);
+
+        % First 3 fixed tests
+        gammaVect(1:3) = [90, 120, 60];
+        for ii = 1:3
+            gammaSim = gammaVect(ii);
+            RQ(end) = gammaSim;
+            [~,geo,~,out,pathname] = FEMMfitness(RQ,geo,per,mat,eval_type,filemot);
+            nFEA = nFEA+1;
+            TVect(ii)  = out.T;
+            FdVect(ii) = out.fd;
+            FqVect(ii) = out.fq;
+            IdVect(ii) = out.id;
+            IqVect(ii) = out.iq;
+            gVect(ii)  = gammaSim;
+        end
+
+        % Interpolation loop
+        for jj = 1:maxIter
+            % Sorting gammas
+            [g, ord] = sort(gammaVect(1:(3 + jj - 1)));
+            T = TVect(ord);
+            % Best index in the sorted arrays
+            [~, best] = max(TVect(1:(3 + jj - 1)), [], 'omitnan');
+            gbest = gammaVect(best);
+            [~, index] = min(abs(g - gbest));
+            brkt = (index > 1) && (index < numel(g)) && (T(index) >= T(index-1)) && (T(index) >= T(index+1));
+            % 1 if max is between two limits
+
+            if lock && index > 1 && index < numel(g)
+                brkt = true;
+            end
+
+            % Next trial
+            if index == 1 || index == numel(g) % maximum at edges - expand
+                if index == 1
+                    step = g(2) - g(1); if step <= 0, step = 1; end
+                    gammaSim = g(1) - step;      % expand left edge
+                else
+                    step = g(end) - g(end-1); if step <= 0, step = 1; end
+                    gammaSim = g(end) + step;    % expand right edge
+                end
+            elseif brkt % maximum in the middle - refinement inside
+                gmin = g(index-1); gmid = g(index); gmax = g(index+1);
+                Tmin = T(index-1); Tmid = T(index); Tmax = T(index+1);
+                d = ((gmid - gmin)*(Tmid - Tmax) - (gmid - gmax)*(Tmid - Tmin));
+                Par = false;
+                if d ~= 0 % Parabolic
+                    n = ((gmid - gmin)^2)*(Tmid - Tmax) - ((gmid - gmax)^2)*(Tmid - Tmin);
+                    u = gmid - 0.5 * (n / d);   % candidate vertex
+                    % Safeguards: keep strictly inside, not too close to existing
+                    span = gmax - gmin;
+                    samp = 0.25;
+                    inside = (u > gmin + 0.10*span) && (u < gmax - 0.10*span);  % stay well within bracket
+                    farenough = all(abs(u - g) > samp);                        % not too close to any sampled gamma
+                    if isfinite(u) && inside && farenough
+                        gammaSim = u;
+                        Par = true;
+                    end
+                end
+                if ~Par % Golden ratio + "cold-region"
+                    dTl  = gmid - gmin; dTu = gmax - gmid; % Distance (in angle) from the middle
+                    dgl = Tmid - Tmin; dgU = Tmid - Tmax;  % Distance (in torque) from the middle
+                    if dgU >= 1.15*dgl % higher angles 115% further away
+                        gammaSim = gmid - GR*dTl;
+                    elseif dgl >= 1.15*dgU % lower angles 115% further away
+                        gammaSim = gmid + GR*dTu;
+                    else % safety
+                        if dTu >= dTl
+                            gammaSim = gmid + GR*dTu;
+                        else
+                            gammaSim = gmid - GR*dTl;
+                        end
+                    end
+                end
+                lock = true;
+            else % midpoint toward the higher neighbor
+                if T(index-1) > T(index+1)
+                    gammaSim = 0.5*(g(index-1) + g(index));
+                else
+                    gammaSim = 0.5*(g(index) + g(index+1));
+                end
+            end
+            gammaSim = round(gammaSim);  % force integer angle
+            prevg = gammaVect(1:(3 + jj - 1));
+            if any(abs(prevg - gammaSim) < 1e-9) % Repeated gamma: loop stops
+                [~, final] = max(TVect(1:(3 + jj - 1)), [], 'omitnan');
+                OUT.fd  = FdVect(final);
+                OUT.fq  = FqVect(final);
+                OUT.id  = IdVect(final);
+                OUT.iq  = IqVect(final);
+                OUT.mPM = calcMassPM(geo,mat);
+                OUT.mCu = calcMassCu(geo,mat);
+                OUT.T   = TVect(final);
+                stp = true;
+                break; % exit only the interpolation loop
+            end
+            % FEMM
+            ii = 3 + jj;
+            gammaVect(ii) = gammaSim;
+            RQ(end) = gammaSim;
+            [~,geo,~,out,pathname] = FEMMfitness(RQ,geo,per,mat,eval_type,filemot);
+            nFEA = nFEA+1;
+            TVect(ii)  = out.T;
+            FdVect(ii) = out.fd;
+            FqVect(ii) = out.fq;
+            IdVect(ii) = out.id;
+            IqVect(ii) = out.iq;
+            gVect(ii)  = gammaSim;
+        end
+        if ~stp
+            [~,index] = max(TVect,[],'omitnan');
+            OUT.fd  = FdVect(index);
+            OUT.fq  = FqVect(index);
+            OUT.id  = IdVect(index);
+            OUT.iq  = IqVect(index);
+            OUT.mPM = calcMassPM(geo,mat);
+            OUT.mCu = calcMassCu(geo,mat);
+            %gamma0 = gVect(index);
+            OUT.T   = TVect(index);
+        end
     end
-
-    % Interpolation loop
-    for jj = 1:maxIter
-        % Find top 2 values so far
-        [~, idxSort] = sort(TVect(1:3+jj-1), 'descend');
-        g1 = gammaVect(idxSort(1));
-        g2 = gammaVect(idxSort(2));
-
-        % Midpoints
-        gammaSim = (g1 + g2)/2;
-        ii = 3 + jj;
-        gammaVect(ii) = gammaSim;
-
-        RQ(end) = gammaSim;
-        [~,geo,~,out,pathname] = FEMMfitness(RQ,geo,per,mat,eval_type,filemot);
-        nFEA = nFEA+1;
-        TVect(ii)  = out.T;
-        FdVect(ii) = out.fd;
-        FqVect(ii) = out.fq;
-        IdVect(ii) = out.id;
-        IqVect(ii) = out.iq;
-        gVect(ii)  = gammaSim;
-    end
-
     [~,index] = max(TVect,[],'omitnan');
     OUT.fd  = FdVect(index);
     OUT.fq  = FqVect(index);
@@ -95,8 +185,9 @@ else
     OUT.iq  = IqVect(index);
     OUT.mPM = calcMassPM(geo,mat);
     OUT.mCu = calcMassCu(geo,mat);
-    gamma0 = gVect(index);
+    % gamma0 = gVect(index);
     OUT.T   = TVect(index);
+
 end
 
 per = calc_i0(geo,per,mat);
@@ -115,7 +206,7 @@ per = calc_i0(geo,per,mat);
 %     %     OUT.fM = out.fd;
 % else
 %     %     OUT.fM = 0;
-    OUT.f0 = 0;
+OUT.f0 = 0;
 % end
 
 % Flux density in airgap, tooth and stator yoke (debug mode)
@@ -136,15 +227,8 @@ else
     OUT.Bg = 0;
 end
 
-
-if flagPM
-    % no-load simulation
-    per.overload=0;
-    RQ(end)=0;
-    [~,~,~,out,~] = FEMMfitness(RQ,geo,per,mat,eval_type,filemot);
-    nFEA = nFEA+1;
-%     OUT.fM = -out.fq;
-    OUT.fM = abs(out.fd+j*out.fq);
+if flagPM || strcmp(geo.RotType,'EESM')
+    
 else
     OUT.fM = 0;
 end
@@ -205,24 +289,25 @@ else
 end
 
 if flagSC
-    per.overload           = 1;
-    setup.RQ               = RQ;
-    setup.RQ(end)          = 90;
-    setup.flagSave         = 0;
-    setup.flagFEAfix       = 1;
-    setup.filemot          = filemot;
-    setup.geo              = geo;
-    setup.mat              = mat;
-    setup.per              = per;
-    setup.idq0             = OUT.id+1i*OUT.iq;
-    setup.fdq0             = OUT.fd+1i*OUT.fq;
-    setup.T0               = OUT.T;
-
+    per.overload     = [1 0];
+    setup.RQ         = RQ;
+    setup.RQ(end)    = 90;
+    setup.flagSave   = 0;
+    setup.flagFEAfix = 1;
+    setup.filemot    = filemot;
+    setup.geo        = geo;
+    setup.mat        = mat;
+    setup.per        = per;
+    setup.idq0       = [OUT.id+1i*OUT.iq 0+j*0]; %#ok<IJCL>
+    setup.fdq0       = [OUT.fd+1i*OUT.fq 0-j*OUT.fM]; %#ok<IJCL>
+    setup.T0         = [OUT.T 0];
     [pkSCout] = eval_peakShortCircuitCurrent(setup);
-
-    OUT.iHWC = abs(pkSCout.idq);
+    nFEA             = nFEA+pkSCout.count;
+    OUT.iHWC         = abs(pkSCout.idq(1));
+    OUT.iUGO         = abs(pkSCout.idq(2));
 else
     OUT.iHWC = NaN;
+    OUT.iUGO = NaN;
 end
 
 if flagDemagHWC
@@ -258,38 +343,19 @@ else
     OUT.Bmin0 = NaN;
 end
 
-if flagMech
-    [geo,~,mat] = interpretRQ(RQ,geo,mat);
+OUT.dPMUGO  = NaN;
+OUT.BminUGO = NaN;
 
-    simSetup.evalSpeed = geo.nmax;
-    simSetup.meshSize  = 'coarse';
-    simSetup.meshShaft = 0;
-    simSetup.flagFull  = 0;
-    simSetup.shaftBC   = 1;
-    geo.custom = 0;
-    warning('off')
-    [~, filename, ~] = fileparts(filemot);
 
-    [geo,mat] = draw_motor_in_FEMM(geo,mat,pathname,filename);
+OUT.MaxDef       = NaN;
+OUT.agclear      = NaN;
+OUT.MaxStress    = NaN;
+OUT.TanRibStress = NaN;
+OUT.RadRibStress = NaN;
+% OUT.MaxStress_prc     = NaN;
+OUT.PrcTanStress = NaN;
+OUT.PrcRadStress = NaN;
 
-    simSetup.pathname  = pathname;
-    simSetup.filename  = [filename '.mat'];
-
-    [out.structModel] = femm2pde(geo,mat,simSetup);
-    [out.sVonMises,~,out.structModel] = calcVonMisesStress(out.structModel);
-    [outMech] = eval_maxStress(out.structModel,out.sVonMises,geo,mat);
-    figure
-    figSetting
-    pdeplot(out.structModel)
-    saveas(gcf,[pathname 'mechMesh.fig']);
-    close
-    warning('on')
-
-    OUT.outMech = outMech;
-else
-    OUT.outMech.sigmaRadAvg = NaN;
-    OUT.outMech.sigmaTanAvg = NaN;
-end
 
 if flagTherm
     mcad=actxserver('MotorCAD.AppAutomation');

@@ -67,6 +67,10 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     elseif strcmp(mod.dataSet.TypeOfRotor,'EESM')
         data.motorType = 'EE';
         data.axisType = 'SR';
+        if ~isfield(mod.dataSet,'RotorEndWindingsLength')
+            mod.dataSet.RotorEndWindingsLength = NaN;
+        end
+        data.lendf = mod.dataSet.RotorEndWindingsLength;
     end
     
     data.pathname = pathname;

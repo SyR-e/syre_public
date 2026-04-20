@@ -31,17 +31,25 @@ n3ph  = geo.win.n3phase;                % number of 3phase sets
 dis   = geo.win.liner;                  % liner thickness [mm]
 pont0 = geo.pont0;                      % minimum mechanical tolerance [mm]
 flagDivision = geo.statorYokeDivision;  % division line for end-winding extrusion (GalFer Challenge 2024)
-
+num_ph = geo.win.nphases;
 
 slot_layer_pos = geo.win.slot_layer_pos;    % side-by-side flag winding
 
-alpha_slot = 2*pi/(6*p*q*n3ph);  % angolo di passo cava
+if(isnan(n3ph))
+    alpha_slot = 2*pi/(2*p*q*num_ph);  % angolo di passo cava
+else    
+    alpha_slot = 2*pi/(6*p*q*n3ph);  % angolo di passo cava
+end
+
 RSI        = r+g;           % r traferro statore
 RSE        = R;             % r esterno statore
 RS5        = r+g+lt;        % r esterno cave
 
-slot_open_ang = acs*2*pi/(6*q*p*n3ph)/2;
-
+if(isnan(n3ph))
+    slot_open_ang = acs*2*pi/(2*q*p*num_ph)/2;
+else
+    slot_open_ang = acs*2*pi/(6*q*p*n3ph)/2;
+end
 
 % r eq for middle of slot computation
 mr = tan(alpha_slot/2);

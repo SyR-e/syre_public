@@ -13,7 +13,7 @@
 %    limitations under the License.
 % '#'_______________________________________________________________
 % '# Apply Iron loss condition on Iron Cores
-function Iron_losscondition_JMAG (study,core_groupname,Core_LossName,PresetType,HysteresisLossCalcType,JouleLossCalcType)
+function Iron_losscondition_JMAG (study,core_groupname,Core_LossName,PresetType,HysteresisLossCalcType,JouleLossCalcType, flagCharger)
         study.CreateCondition('Ironloss', Core_LossName);
         IronLoss_Condition_stator = study.GetCondition(Core_LossName);
         IronLoss_Condition_stator.SetName(Core_LossName);
@@ -22,8 +22,13 @@ function Iron_losscondition_JMAG (study,core_groupname,Core_LossName,PresetType,
         IronLoss_Condition_stator.SetValue('HysteresisLossCalcType', HysteresisLossCalcType);    % 1 or fft; 2 or loop; 3 or hysteresis_model; 4 or usersubroutine 
         IronLoss_Condition_stator.SetValue('JouleLossCalcType', JouleLossCalcType);         % 1 or fft; 2 or max; 3 or lamination_analysis; 4 or usersubroutine
         % % Basic frquency
-        IronLoss_Condition_stator.SetValue('Poles', 'PolePair*2');
-        IronLoss_Condition_stator.SetValue('RevolutionSpeed', 'rspeed');
+        if(flagCharger)
+            IronLoss_Condition_stator.SetValue("BasicFrequencyType", 2);
+            IronLoss_Condition_stator.SetValue("BasicFrequency", 60);
+        else
+            IronLoss_Condition_stator.SetValue('Poles', 'PolePair*2');
+            IronLoss_Condition_stator.SetValue('RevolutionSpeed', 'rspeed');
+        end
         % % Reference settings
         IronLoss_Condition_stator.SetCoordinateSystem('CoordinateSystem', 'Global Rectangular');
         % % Stress Dependent

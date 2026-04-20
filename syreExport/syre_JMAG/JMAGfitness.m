@@ -23,15 +23,28 @@ copyfile(fullfile(pathnameIn, strcat(strrep(filename,'.mat','.jmag'),'.jproj')),
 [SOL] = simulate_xdeg_JMAG(geo,per,pathname,filename);
 
 % Post processing
-out.id     = mean(SOL.id);
-out.iq     = mean(SOL.iq);
-out.fd     = mean(SOL.fd);
-out.fq     = mean(SOL.fq);
+if(isnan(geo.win.n3phase))
+    out.id1     = mean(SOL.id1);
+    out.iq1     = mean(SOL.iq1);
+    out.id3     = mean(SOL.id3);
+    out.iq3     = mean(SOL.iq3);
+    out.fd1     = mean(SOL.fd1);
+    out.fq1     = mean(SOL.fq1);
+    out.fd3     = mean(SOL.fd3);
+    out.fq3     = mean(SOL.fq3);
+    out.IPF    = sin(atan(out.iq1./out.id1)-atan(out.fq1./out.fd1));
+else
+    out.id     = mean(SOL.id);
+    out.iq     = mean(SOL.iq);
+    out.fd     = mean(SOL.fd);
+    out.fq     = mean(SOL.fq);
+    out.IPF    = sin(atan(out.iq./out.id)-atan(out.fq./out.fd));
+end
+
 out.T      = abs(mean(SOL.T));
 out.dT     = std(SOL.T);
 out.dTpu   = std(SOL.T)/out.T;
 out.dTpp   = max(SOL.T)-min(SOL.T);
-out.IPF    = sin(atan(out.iq./out.id)-atan(out.fq./out.fd));
 out.Ppm    = sum(abs(mean(SOL.Ppm)));
 out.Pfes_h = SOL.Pfes_h;
 out.Pfer_h = SOL.Pfer_h;

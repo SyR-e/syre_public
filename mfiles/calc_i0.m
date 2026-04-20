@@ -20,12 +20,7 @@ kj   = per.kj;      % thermal load [W/m^2]
 J    = per.J;       % current density [Arms/mm^2]
 loss = per.Loss;    % admitted loss [W]
 i0   = per.i0;      % current [Apk]
-%% rimuovere
-% kj   = nan;
-% J    = nan;
-% loss = nan;
-% i0   = per.i0;
-%%
+
 
 lend  = geo.lend/1e3;       % end-winding length [m]
 l     = geo.l/1e3;          % stack length [m]
@@ -47,32 +42,64 @@ else
     rocu = (1.7241e-08)*(234.5+tempCu)/(234.5+20);
     warning('Copper windings computation');
 end
-Aslots = Aslot*(6*p*q*n3ph);
 
-flag = 1;
-if ~isnan(kj)
-    loss = kj.*(2*pi*R*l);
-    J = ((kj.*pi*R/3.*l./(l+lend)./n3ph./(p*q*Aslot*kcu)./rocu).^0.5)/1e6;
-elseif ~isnan(loss)
-    kj = loss./(2*pi*R*l);
-    J = ((kj.*pi*R/3.*l./(l+lend)./n3ph./(p*q*Aslot*kcu)./rocu).^0.5)/1e6;
-elseif ~isnan(J)
-    kj = (J*1e6).^2.*p*q.*Aslot.*kcu.*rocu.*3./(pi*R).*(l+lend)./l.*n3ph;
-    loss = kj.*(2*pi*R*l);
-elseif ~isnan(i0)
-    Rs   = 12*rocu*(l+lend)./(kcu*Aslots)*Ns^2*n3ph;
-    loss = n3ph*3/2*Rs*i0^2;
-    kj   = loss./(2*pi*R*l);
-    J    = ((kj.*pi*R/3.*l./(l+lend)./n3ph./(p*q*Aslot*kcu)./rocu).^0.5)/1e6;
-    flag = 0;
+if(isnan(n3ph))
+    nphases = 5;
+    Aslots = Aslot*(2*p*q*nphases);
+
+    flag = 1;
+    if ~isnan(kj)
+        loss = kj.*(2*pi*R*l);
+        J = ((kj.*2*pi*R.*l./(l+lend)./nphases./(2*p*q*Aslot*kcu)./rocu).^0.5)/1e6;
+    elseif ~isnan(loss)
+        kj = loss./(2*pi*R*l);
+        J = ((kj.*2*pi*R.*l./(l+lend)./nphases./(2*p*q*Aslot*kcu)./rocu).^0.5)/1e6;
+    elseif ~isnan(J)
+        kj = (J*1e6).^2.*2*p*q.*Aslot.*kcu.*rocu.*nphases./(2*pi*R).*(l+lend)./l;
+        loss = kj.*(2*pi*R*l);
+    elseif ~isnan(i0)
+        Rs   = 4*rocu*(l+lend)./(kcu*Aslots)*Ns^2*nphases;
+        loss = nphases/2*Rs*i0^2;
+        kj   = loss./(2*pi*R*l);
+        J    = ((kj.*2*pi*R.*l./(l+lend)./nphases./(2*p*q*Aslot*kcu)./rocu).^0.5)/1e6;
+        flag = 0;
+    else
+        warning('Wrong rated currrent input!')
+    end
+    
+    if flag
+        i0 = 1/Ns.*(kj.*kcu./rocu.*l./(l+lend).*pi.*R.*Aslots).^0.5/nphases; % [Apk]
+        i0 = real(i0);
+        Rs = loss./(nphases/2.*i0.^2);
+    end
 else
-    warning('Wrong rated currrent input!')
-end
+    Aslots = Aslot*(6*p*q*n3ph);
 
-if flag
-    i0 = 1/Ns.*(kj.*kcu./rocu.*l./(l+lend).*pi.*R.*Aslots/9).^0.5/n3ph; % [Apk]
-    i0 = real(i0);
-    Rs = loss./(n3ph.*3/2.*i0.^2);
+    flag = 1;
+    if ~isnan(kj)
+        loss = kj.*(2*pi*R*l);
+        J = ((kj.*pi*R/3.*l./(l+lend)./n3ph./(p*q*Aslot*kcu)./rocu).^0.5)/1e6;
+    elseif ~isnan(loss)
+        kj = loss./(2*pi*R*l);
+        J = ((kj.*pi*R/3.*l./(l+lend)./n3ph./(p*q*Aslot*kcu)./rocu).^0.5)/1e6;
+    elseif ~isnan(J)
+        kj = (J*1e6).^2.*p*q.*Aslot.*kcu.*rocu.*3./(pi*R).*(l+lend)./l.*n3ph;
+        loss = kj.*(2*pi*R*l);
+    elseif ~isnan(i0)
+        Rs   = 12*rocu*(l+lend)./(kcu*Aslots)*Ns^2*n3ph;
+        loss = n3ph*3/2*Rs*i0^2;
+        kj   = loss./(2*pi*R*l);
+        J    = ((kj.*pi*R/3.*l./(l+lend)./n3ph./(p*q*Aslot*kcu)./rocu).^0.5)/1e6;
+        flag = 0;
+    else
+        warning('Wrong rated currrent input!')
+    end
+    
+    if flag
+        i0 = 1/Ns.*(kj.*kcu./rocu.*l./(l+lend).*pi.*R.*Aslots/9).^0.5/n3ph; % [Apk]
+        i0 = real(i0);
+        Rs = loss./(n3ph.*3/2.*i0.^2);
+    end
 end
 
 per.Loss = loss;

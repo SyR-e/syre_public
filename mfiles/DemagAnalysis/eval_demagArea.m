@@ -12,7 +12,11 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [DemagArea,resFolder] = eval_demagArea(dataIn)
+function [DemagArea,resFolder] = eval_demagArea(dataIn,flagSave)
+
+if nargin()==1
+    flagSave=2;
+end
 
 load([dataIn.currentpathname dataIn.currentfilename])
 
@@ -27,6 +31,8 @@ BrPP = dataIn.BrPP;
 tempPP = dataIn.tempPP(1);
 
 per.EvalSpeed = dataIn.EvalSpeed;
+
+geo.XFEMMsimulation = dataIn.XFEMMsimulation;
 
 clc;
 
@@ -68,10 +74,12 @@ if ~exist([pathname outFolder],'dir')
     mkdir([pathname outFolder]);
 end
 
-resFolder = ['demagArea_' int2str(per.tempPP) 'degC_' int2str(per.i0*per.overload) 'Amp_' int2str(per.gamma) 'degGamma' dataIn.axisType '\'];
-resFolder = checkPathSyntax(resFolder);
-mkdir([pathname outFolder resFolder]);
-resFolder = [pathname outFolder resFolder];
+if flagSave>0
+    resFolder = ['demagArea_' int2str(per.tempPP) 'degC_' int2str(per.i0*per.overload) 'Amp_' int2str(per.gamma) 'degGamma' dataIn.axisType '\'];
+    resFolder = checkPathSyntax(resFolder);
+    mkdir([pathname outFolder resFolder]);
+    resFolder = [pathname outFolder resFolder];
+end
 
 eval_type    = 'demagArea';
 
@@ -94,42 +102,45 @@ DemagArea.xyC         = out.SOL.xyDemagTmpC;
 DemagArea.xyV         = out.SOL.xyDemagTmpV;
 DemagArea.xyB         = out.SOL.xyDemagTmpB;
 
-
-save([resFolder 'demagAreaResults.mat'],'DemagArea','geo','per','mat','dataSet');
-
-figure()
-figSetting(20,10)
-for ii=1:2
-    hax(ii) = axes(...
-        'OuterPosition',[0+0.5*(ii-1) 0 0.5 1],...
-        'XLim',[-1 geo.r+1],...
-        'YLim',[-1 geo.r+1],...
-        'DataAspectRatio',[1 1 1],...
-        'XTick',[],...
-        'YTick',[]);
-    GUI_Plot_Machine(hax(ii),geo.rotor);
-    hchild = get(hax(ii),'Children');
-    for jj=1:length(hchild)
-        set(hchild(jj),'Color','k','LineWidth',1.5);
-    end
-    
-    title([num2str(DemagArea.dPM(ii)*100) '\% of the PMs demagnetized'])
-    
-    if ~isempty(DemagArea.xyV{ii})
-        vTmp = [DemagArea.xyV{ii};DemagArea.xyV{ii}(1,:)];
-        cTmp = DemagArea.xyC{ii};
-    else
-        vTmp = [0];
-        cTmp = [0];
-    end
-    
-    for jj=1:length(vTmp(1,:))
-        fill(hax(ii),real(vTmp(:,jj)),imag(vTmp(:,jj)),'r');
-        %         plot(hax(ii),real(cTmp(jj)),imag(cTmp(jj)),'r.');
-    end
+if flagSave>0
+    save([resFolder 'demagAreaResults.mat'],'DemagArea','geo','per','mat','dataSet');
 end
 
-saveas(gcf,[resFolder 'Demagnetized_PM_Area.fig']);
+if flagSave==2
+    figure()
+    figSetting(20,10)
+    for ii=1:2
+        hax(ii) = axes(...
+            'OuterPosition',[0+0.5*(ii-1) 0 0.5 1],...
+            'XLim',[-1 geo.r+1],...
+            'YLim',[-1 geo.r+1],...
+            'DataAspectRatio',[1 1 1],...
+            'XTick',[],...
+            'YTick',[]);
+        GUI_Plot_Machine(hax(ii),geo.rotor);
+        hchild = get(hax(ii),'Children');
+        for jj=1:length(hchild)
+            set(hchild(jj),'Color','k','LineWidth',1.5);
+        end
+        
+        title([num2str(DemagArea.dPM(ii)*100) '\% of the PMs demagnetized'])
+        
+        if ~isempty(DemagArea.xyV{ii})
+            vTmp = [DemagArea.xyV{ii};DemagArea.xyV{ii}(1,:)];
+            cTmp = DemagArea.xyC{ii};
+        else
+            vTmp = [0];
+            cTmp = [0];
+        end
+        
+        for jj=1:length(vTmp(1,:))
+            fill(hax(ii),real(vTmp(:,jj)),imag(vTmp(:,jj)),'r');
+            %         plot(hax(ii),real(cTmp(jj)),imag(cTmp(jj)),'r.');
+        end
+    end
+    
+    saveas(gcf,[resFolder 'Demagnetized_PM_Area.fig']);
+end
 
 
 

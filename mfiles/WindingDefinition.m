@@ -23,6 +23,11 @@ q    = dataSet.NumOfSlots;
 n3ph = dataSet.Num3PhaseCircuit;
 yq   = dataSet.PitchShortFac;
 
+if(isnan(n3ph))
+    win = [1 1 -4 -4 2 2 -5 -5 3 3; 1 1 -4 -4 2 2 -5 -5 3 3]; % use fixed winding scheme
+    return;
+end
+
 if n3ph>1
     yq=1;
 end

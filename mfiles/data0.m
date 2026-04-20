@@ -33,6 +33,8 @@ function [bounds, objs, geo, per, mat] = data0(dataIn)
 % materials
 mat = assign_mat_prop(dataIn);
 
+geo.XFEMMsimulation = dataIn.XFEMMsimulation;
+geo.XFEMMcreation   = dataIn.XFEMMcreation;
 
 % main performance target
 per.Loss = dataIn.AdmiJouleLosses;            % admitted Joule loss [W]
@@ -55,6 +57,8 @@ per.Rf   = dataIn.Rf;                       % field circuit resistance
 per.if0  = dataIn.RatedFieldCurrent;
 per.JfPU = dataIn.FieldStatorCurrentDensityRatio;
 
+per.iOffset = 0;
+
 %Custom current
 per.custom_ia         = dataIn.CustomCurrentA;
 per.custom_ib         = dataIn.CustomCurrentB;
@@ -72,7 +76,7 @@ per.min_pf         = dataIn.MinExpPowerFactor;
 per.max_fdq0       = dataIn.MaxExpNoLoadFlux;
 per.max_exp_Pjs    = dataIn.MaxExpPjs;
 per.max_exp_Pjf    = dataIn.MaxExpPjf;
-% per.max_mechstress = dataIn.MaxExpMechStress;
+per.max_mechstress = dataIn.MaxExpMechStress;
 per.EvalSpeed      = dataIn.EvalSpeed;
 
 
@@ -173,6 +177,11 @@ geo.win.kcu        = dataIn.SlotFillFactor;                % slot filling factor
 geo.win.avv        = dataIn.WinMatr;
 geo.win.avv_flag   = dataIn.WinFlag; %AS
 geo.win.n3phase    = dataIn.Num3PhaseCircuit; %AS stator 3-phase circuits number
+if(isnan(dataIn.Num3PhaseCircuit))
+    geo.win.nphases      = 5;
+else
+    geo.win.nphases      = 3*dataIn.Num3PhaseCircuit;
+end
 geo.win.kracc      = dataIn.PitchShortFac;       % pitch shortening factor (for end connections length estimation)
 geo.win.Ns         = dataIn.TurnsInSeries;          % turns in series per phase (entire motor, one way, all poles in series)
 geo.win.Nbob       = geo.win.Ns/geo.p/(geo.q)/size(geo.win.avv,1);  % conductors in slot per layer
@@ -195,6 +204,10 @@ geo.r_fillet    = dataIn.PoleRotHeadFillet;
 
 geo.win.kcuf = dataIn.RotorConductorFillingFactor;
 geo.win.Nf   = dataIn.FieldTurns;   % turns in series per pole
+
+if isfield(dataIn,'PoleHeadShape')
+    geo.headShape = dataIn.PoleHeadShape;
+end
 
 % END EESM
 
@@ -247,7 +260,12 @@ geo.hs = dataIn.SleeveThickness; % sleeve thickness [mm]
 
 % calc winding factor (kavv) and rotor offset (phase1_offset)
 [kw,phase1_offset] = calcKwTh0(geo);
-phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %first slot in 360/(6pq)/2 position
+
+if(isnan(geo.win.n3phase))
+    phase1_offset = phase1_offset+360/(2*geo.p*geo.q*geo.win.nphases)/2*geo.p;    %first slot in 360/(6pq)/2 position
+else
+    phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %first slot in 360/(6pq)/2 position
+end
 
 if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
     phase1_offset = phase1_offset - 90;   % valid for d axis on PM direction
@@ -353,8 +371,9 @@ end
 
 for ii=1:geo.nlay
     RQnames{rr} = ['hc_pu(' int2str(ii) ')'];
-    if strcmp(geo.RotType,'SPM')
-        bounds(rr,:) = [geo.hc_pu*geo.g*dataIn.hcBou dataIn.hcBouCheck];
+    if strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'SPM-Hallbach')
+        % bounds(rr,:) = [geo.hc_pu*geo.g*dataIn.hcBou dataIn.hcBouCheck];
+        bounds(rr,:) = [dataIn.hcBou dataIn.hcBouCheck];
     else
         if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
             bounds(rr,:) = [dataIn.hcBou dataIn.hcBouCheck];
@@ -400,31 +419,37 @@ end
 RQ(rr) = geo.g;
 rr = rr+1;
 
-RQnames{rr} = 'r';          % rotor radius
+RQnames{rr} = 'rPU';          % rotor radius
 if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.GapRadiusBou dataIn.AirgapRadiusBouCheck];
 else
     bounds(rr,:) = [dataIn.AirGapRadius*dataIn.GapRadiusBou dataIn.AirgapRadiusBouCheck];
 end
-RQ(rr) = geo.r;
+RQ(rr) = geo.r/geo.R;
 rr = rr+1;
 
-RQnames{rr} = 'wt';         % tooth width
+RQnames{rr} = 'wtPU';         % tooth width
 if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.ToothWiBou dataIn.ToothWidthBouCheck];
 else
     bounds(rr,:) = [dataIn.ToothWidth*dataIn.ToothWiBou dataIn.ToothWidthBouCheck];
 end
-RQ(rr) = geo.wt;
+
+if(isnan(geo.win.n3phase))
+    RQ(rr) = geo.wt/(2*pi*geo.r/(2*geo.p*geo.q*geo.win.nphases));
+else
+    RQ(rr) = geo.wt/(2*pi*geo.r/(6*geo.p*geo.q*geo.win.n3phase));
+end
+
 rr = rr+1;
 
-RQnames{rr} = 'lt';         % tooth length
+RQnames{rr} = 'ltPU';         % tooth length
 if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
     bounds(rr,:) = [dataIn.ToothLeBou dataIn.ToothLengthBouCheck];
 else
     bounds(rr,:) = [dataIn.ToothLength*dataIn.ToothLeBou dataIn.ToothLengthBouCheck];
 end
-RQ(rr) = geo.lt;
+RQ(rr) = geo.lt/(geo.R-geo.r);
 rr = rr+1;
 
 RQnames{rr} = 'acs';        % stator slot opening [p.u.]
@@ -482,24 +507,24 @@ for ii=1:length(geo.PMdim(:))
 end
 
 for ii=1:geo.nlay
-    RQnames{rr} = ['pontR(' int2str(ii) ')'];
+    RQnames{rr} = ['pontRPU(' int2str(ii) ')'];
     if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.RadRibBou dataIn.RadRibBouCheck];
     else
         bounds(rr,:) = [dataIn.RadRibEdit(ii)*dataIn.RadRibBou dataIn.RadRibBouCheck];
     end
-    RQ(rr) = geo.pontR(ii);
+    RQ(rr) = geo.pontR(ii)/(pi*geo.r/geo.p);
     rr=rr+1;
 end
 
 for ii=1:geo.nlay
-    RQnames{rr} = ['pontT(' int2str(ii) ')'];
+    RQnames{rr} = ['pontTPU(' int2str(ii) ')'];
     if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.TanRibBou dataIn.TanRibBouCheck];
     else
         bounds(rr,:) = [dataIn.TanRibEdit(ii)*dataIn.TanRibBou dataIn.TanRibBouCheck];
     end
-    RQ(rr) = geo.pontT(ii);
+    RQ(rr) = geo.pontT(ii)/(pi*geo.r/geo.p);
     rr=rr+1;
 end
 
@@ -515,13 +540,13 @@ for ii=1:geo.nlay
 end
 
 for ii=1:geo.nlay
-    RQnames{rr} = ['dxIB(' int2str(ii) ')'];
+    RQnames{rr} = ['dxIBPU(' int2str(ii) ')'];
     if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
         bounds(rr,:) = [dataIn.RadShiftInnerBou dataIn.RadShiftInnerBouCheck];
     else
         bounds(rr,:) = [dataIn.RadShiftInner(ii)*dataIn.RadShiftInnerBou dataIn.RadShiftInnerBouCheck];
     end
-    RQ(rr) = geo.dxIB(ii);
+    RQ(rr) = geo.dxIB(ii)/(geo.r);
     rr=rr+1;
 end
 
@@ -669,37 +694,44 @@ objs = [
     per.max_PM_mass         dataIn.MassPMOptCheck           0
     per.min_pf              dataIn.PowerFactorOptCheck      0.1
     per.max_fdq0            dataIn.NoLoadFluxOptCheck       0
-    mat.Rotor.sigma_max     dataIn.MechStressOptCheck       0
+    per.max_mechstress      dataIn.VonMisesstressOptCheck   0
     per.max_exp_Pjs         dataIn.StatorJouleLossOptCheck  0
     per.max_exp_Pjf         dataIn.FieldJouleLossOptCheck   0
     ];
 
-per.MechStressOptCheck = dataIn.MechStressOptCheck;
+per.MechStressOptCheck = dataIn.VonMisesstressOptCheck;
 per.flag_OptCurrConst  = dataIn.flag_OptCurrConst;
 
-filt_objs = (objs(:,2)==1);
-objs = objs(objs(:,2)==1,:);
+objs_check = objs(:,2);
+
+%filt_objs = (objs(:,2)==1);
+%objs = objs(objs(:,2)==1,:);
 per.objs=objs;
+per.objs_check = objs_check;
 
 % end
 
 % names of the MODE objectives
-OBJnames{1} = 'Torque';
-OBJnames{2} = 'TorRip';
-OBJnames{3} = 'MassCu';
-OBJnames{4} = 'MassPM';
+OBJnames{1} = 'Torque [Nm]';
+OBJnames{2} = 'TorRip [Nm]';
+OBJnames{3} = 'MassCu [kg]';
+OBJnames{4} = 'MassPM [kg]';
 OBJnames{5} = 'PF';
-OBJnames{6} = 'Fdq0';
-OBJnames{7} = 'MechStress';
-OBJnames{8} = 'Pjs';
-OBJnames{9} = 'Pjf';
+OBJnames{6} = 'Fdq0 [Vs]';
+OBJnames{7} = 'MechStress [MPa]';
+OBJnames{8} = 'Pjs [W]';
+OBJnames{9} = 'Pjf [W]';
 
 % eliminate unnecessary OBJnames
-OBJnames = OBJnames(filt_objs);
+%OBJnames = OBJnames(filt_objs);
 geo.OBJnames = OBJnames;
 
 %% Machine periodicity
-Q = round(6*geo.q*geo.p*geo.win.n3phase);          % number of slots
+if(isnan(geo.win.n3phase))
+    Q = round(2*geo.q*geo.p*geo.win.nphases);          % number of slots
+else
+    Q = round(6*geo.q*geo.p*geo.win.n3phase);          % number of slots
+end
 geo.t = gcd(Q,geo.p);    % number of periods
 t2=gcd(Q,2*geo.p);
 QsCalc=Q/t2;

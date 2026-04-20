@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [out,senseOut,newDir] = eval_operatingPoint(dataIn)
+function [out,senseOut,newDir] = eval_operatingPoint(dataIn,flagSave)
 
 % simulates single or multiple (id,iq) conditions
 % example inputs:
@@ -32,22 +32,38 @@ pathname=dataIn.currentpathname;
 filemot = strrep(dataIn.currentfilename,'.mat','.fem');
 load([dataIn.currentpathname dataIn.currentfilename]);
 
-RatedCurrent = dataIn.RatedCurrent;
-CurrLoPP = dataIn.CurrLoPP;
-%SimulatedCurrent = dataIn.SimulatedCurrent;
-SimulatedCurrent = RatedCurrent*CurrLoPP;
-GammaPP  = dataIn.GammaPP;
-BrPP = dataIn.BrPP;
-NumOfRotPosPP = dataIn.NumOfRotPosPP;
-AngularSpanPP = dataIn.AngularSpanPP;
-per.flag3phaseSet = dataIn.Active3PhaseSets;
-n3ph = dataIn.Num3PhaseCircuit;
+RatedCurrent      = dataIn.RatedCurrent;
+CurrLoPP          = dataIn.CurrLoPP;
+GammaPP           = dataIn.GammaPP;
+iOffsetPP         = dataIn.SimulatedCurrentOffset;
 
+if(isnan(dataIn.Num3PhaseCircuit))
+    if(dataIn.CustomCurrentEnable)
+        CurrLoPP = CurrLoPP(1)*ones(1,length(dataIn.CustomCurrentRotorPos));
+        GammaPP = GammaPP(1)*ones(1,length(dataIn.CustomCurrentRotorPos));
+        iOffsetPP = iOffsetPP(1)*ones(1,length(dataIn.CustomCurrentRotorPos));
+    end
+end
+
+%SimulatedCurrent = dataIn.SimulatedCurrent;
+SimulatedCurrent  = RatedCurrent*CurrLoPP;
+BrPP              = dataIn.BrPP;
+NumOfRotPosPP     = dataIn.NumOfRotPosPP;
+AngularSpanPP     = dataIn.AngularSpanPP;
+per.flag3phaseSet = dataIn.Active3PhaseSets;
+n3ph              = dataIn.Num3PhaseCircuit;
+% iOffsetPP = 0.*ones(1,n3ph);
+
+geo.XFEMMsimulation = dataIn.XFEMMsimulation;
 
 per.EvalSpeed = dataIn.EvalSpeed;
 EvalSpeed = per.EvalSpeed*ones(size(CurrLoPP));
 
 clc;
+
+if nargin()==1
+    flagSave = 2;
+end
 
 % back compatibility EESM
 if strcmp(geo.RotType,'EESM')
@@ -78,6 +94,7 @@ eval_type = dataIn.EvalType;
 per.overload=CurrLoPP;
 per.i0 = RatedCurrent;
 per.BrPP=BrPP;
+per.iOffset = iOffsetPP;
 
 per.nsim_singt = NumOfRotPosPP;       % # simulated positions
 per.delta_sim_singt = AngularSpanPP;  % angular span of simulation
@@ -91,11 +108,21 @@ end
 
 %custom current
 if dataIn.CustomCurrentEnable
-    per.custom_ia         = dataIn.CustomCurrentA;
-    per.custom_ib         = dataIn.CustomCurrentB;
-    per.custom_ic         = dataIn.CustomCurrentC;
-    per.custom_time       = dataIn.CustomCurrentTime;
-    per.custom_act        = dataIn.CustomCurrentEnable;
+    if(isnan(n3ph))
+        per.custom_ia         = dataIn.CustomCurrentA;
+        per.custom_ib         = dataIn.CustomCurrentB;
+        per.custom_ic         = dataIn.CustomCurrentC;
+        per.custom_id         = dataIn.CustomCurrentD;
+        per.custom_ie         = dataIn.CustomCurrentE;
+        per.custom_rotorPos       = dataIn.CustomCurrentRotorPos;
+        per.custom_act        = dataIn.CustomCurrentEnable;
+    else
+        per.custom_ia         = dataIn.CustomCurrentA;
+        per.custom_ib         = dataIn.CustomCurrentB;
+        per.custom_ic         = dataIn.CustomCurrentC;
+        per.custom_time       = dataIn.CustomCurrentTime;
+        per.custom_act        = dataIn.CustomCurrentEnable;
+    end
 else
     per.custom_act = 0;
 end
@@ -116,10 +143,13 @@ flag_singtpp = 0;   %no parallel pool
 if ~strcmp(eval_type,'singt')
     flag_singtpp = 0;
 end
+per.flag_singtpp = flag_singtpp;
 
-if (strcmp(eval_type,'singtIron') || flag_singtpp == 1)
+% if (strcmp(eval_type,'singtIron') || flag_singtpp == 1)
+if (strcmp(eval_type,'singtIron') && flag_singtpp == 1)
     CurrLoPP = CurrLoPP*ones(1,ppState1);
     GammaPP  = GammaPP*ones(1,ppState1);
+    iOffsetPP = iOffsetPP*ones(1,ppState1);
     tmp      = linspace(0,AngularSpanPP,ppState1+1);
     offset              = tmp(1,1:end-1);
     if length(offset)>1
@@ -142,6 +172,13 @@ for ii = 1:length(CurrLoPP)
     performance{ii}.offset    = offset(ii);
     performance{ii}.if        = FieldCurrent(ii);
     performance{ii}.EvalSpeed = EvalSpeed(ii);
+    performance{ii}.iOffset   = iOffsetPP(ii);
+
+    if(isnan(n3ph))
+        if(per.custom_act)
+            performance{ii}.rotorPos  = ii;
+        end
+    end
 end
 
 % if strcmp(eval_type,'singtIron') && length(CurrLoPP)>1
@@ -149,15 +186,28 @@ end
 % end
 
 nSim = length(CurrLoPP);
-if nSim==n3ph
-    nSim = 1;
-    performance{1}          = per;
-    performance{1}.overload = CurrLoPP;
-    performance{1}.gamma    = GammaPP;
-    performance{1}.offset   = zeros(1,n3ph);
-    performance{1}.if       = FieldCurrent(ii);
-end
 
+if(isnan(n3ph))
+    if nSim==1
+        performance{1}          = per;
+        performance{1}.overload = CurrLoPP;
+        performance{1}.gamma    = GammaPP;
+        performance{1}.offset   = 0;
+        performance{1}.if       = FieldCurrent(1);
+        performance{1}.iOffset  = iOffsetPP;
+        performance{1}.rotorPos  = 1;
+    end
+else
+    if nSim==n3ph
+        nSim = 1;
+        performance{1}          = per;
+        performance{1}.overload = CurrLoPP;
+        performance{1}.gamma    = GammaPP;
+        performance{1}.offset   = 0;
+        performance{1}.if       = FieldCurrent(1);
+        performance{1}.iOffset  = iOffsetPP;
+    end
+end
 
 geo.RemoveTMPfile = 'OFF';
 
@@ -188,7 +238,7 @@ else
 end
 
 
-if (strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron')||flag_singtpp == 1)
+if ((strcmp(eval_type,'singtIron')||strcmp(eval_type,'singmIron'))&&flag_singtpp == 1)
 
     out.SOL.th    = [];
     out.SOL.id    = [];
@@ -336,14 +386,20 @@ for ii = 1:nSim
         %     FILENAME = [filemot(1:end-4) '_T_eval_',iStr,'_',gammaStr];
     end
 
-    if sum(per.flag3phaseSet)~=geo.win.n3phase
-        FILENAME = [FILENAME '_' mat2str(per.flag3phaseSet)];
-    end
+    if(isnan(geo.win.n3phase))
+            FILENAME = [FILENAME '_n5ph_' char(datetime('now','Format','uuuuMMdd''T''HHmmss'))];
+    else
+        if sum(per.flag3phaseSet)~=geo.win.n3phase
+            FILENAME = [FILENAME '_' mat2str(per.flag3phaseSet)];
+        end
+    
+        if ((length(SimulatedCurrent)==geo.win.n3phase)&&(geo.win.n3phase~=1))
+            % FILENAME = [FILENAME '_n3ph_' char(datetime('now','Format','uuuuMMdd''T''HHmmss'))];
+            FILENAME = [FILENAME '_n3ph_' mat2str(CurrLoPP*RatedCurrent,3) '_' mat2str(GammaPP,3)];
 
-    if ((length(SimulatedCurrent)==geo.win.n3phase)&&(geo.win.n3phase~=1))
-        FILENAME = [FILENAME '_n3ph_' char(datetime('now','Format','uuuuMMdd''T''HHmmss'))];
+        end
     end
-
+    
     switch eval_type
         case 'flxdn'
             FILENAME = [FILENAME '_flxdn'];
@@ -365,42 +421,58 @@ for ii = 1:nSim
         mkdir([pathname resFolder]);
     end
 
-    mkdir([pathname resFolder],FILENAME);
-    newDir = checkPathSyntax([pathname resFolder FILENAME '\']);
-
-    if isoctave()            %OCT
-        file_name1= strcat(newDir,filemot(1:end-4),'_',FILENAME,'.mat');
-        save('-mat7-binary', file_name1,'geo','per','mat','out');
-        dirIn=checkPathSyntax(strcat(dirName, ['\' filemot]));
-        dirDest=strcat(newDir,filemot(1:end-4),'_',FILENAME,'.fem');
-        movefile(dirIn, dirDest);
-        clear file_name1 dirIn dirDest
-    else
-        %save([newDir filemot(1:end-4) '_' FILENAME '.mat'],'geo','per','mat','out');
-        save([newDir filemot(1:end-4) '_OpPointResults.mat'],'geo','per','mat','out');
-        copyfile([dirName filemot],[newDir filemot(1:end-4) '_solved.fem']);
+    if flagSave~=0
+        mkdir([pathname resFolder],FILENAME);
+        newDir = checkPathSyntax([pathname resFolder FILENAME '\']);
+    end
+    
+    if flagSave>0
+        if isoctave()            %OCT
+            file_name1= strcat(newDir,filemot(1:end-4),'_',FILENAME,'.mat');
+            save('-mat7-binary', file_name1,'geo','per','mat','out');
+            dirIn=checkPathSyntax(strcat(dirName, ['\' filemot]));
+            dirDest=strcat(newDir,filemot(1:end-4),'_',FILENAME,'.fem');
+            movefile(dirIn, dirDest);
+            clear file_name1 dirIn dirDest
+        else
+            %save([newDir filemot(1:end-4) '_' FILENAME '.mat'],'geo','per','mat','out');
+            save([newDir filemot(1:end-4) '_OpPointResults.mat'],'geo','per','mat','out');
+            copyfile([dirName filemot],[newDir filemot(1:end-4) '_solved.fem']);
+        end
     end
 
     % plot and save figs
     delta_sim_singt = per.delta_sim_singt;
-
-    plot_singt(out,delta_sim_singt,newDir,filemot);
-
-    switch eval_type
-        case 'flxdn'
-            plot_flxdn_fig(geo,out,newDir,filemot);
-            plot_flxdn_gif(geo,out,newDir,filemot);
-        case'force'
-            plot_force_fig(geo,out,newDir,filemot);
-            plot_force_gif(geo,out,newDir,filemot);
-            forceOut = elab_singt_toothForce(geo,per,out,newDir);
-            plot_forceOut_gif(forceOut,newDir)
-            elab_singt_NVH(geo,per,out,forceOut,newDir);
-        case 'singtIron'
-            plot_singtIron(geo,out,newDir,filemot);
-            if exist('plot_ironLoss_geometry.m','file')
-                plot_ironLoss_geometry(geo,per,mat,out,newDir);
+    
+    if flagSave==2
+        if(isnan(n3ph))
+            if(per.custom_act)            
+                if(isscalar(per.custom_rotorPos))
+                    plot_singt_5(out,delta_sim_singt,newDir,filemot);
+                end
+            else
+                plot_singt_5(out,delta_sim_singt,newDir,filemot);
             end
+        else        
+            plot_singt(out,delta_sim_singt,newDir,filemot);
+        end
+
+        switch eval_type
+            case 'flxdn'
+                plot_flxdn_fig(geo,out,newDir,filemot);
+                plot_flxdn_gif(geo,out,newDir,filemot);
+            case'force'
+                plot_force_fig(geo,out,newDir,filemot);
+                plot_force_gif(geo,out,newDir,filemot);
+                forceOut = elab_singt_toothForce(geo,per,out,newDir);
+                plot_forceOut_gif(forceOut,newDir)
+                elab_singt_NVH(geo,per,out,forceOut,newDir);
+            case 'singtIron'
+                plot_singtIron(geo,out,newDir,filemot);
+                if exist('plot_ironLoss_geometry.m','file')
+                    plot_ironLoss_geometry(geo,per,mat,out,newDir);
+                end
+        end
     end
     
     if nSim>5
@@ -414,93 +486,310 @@ senseOut = [];
 % extra figs, if input current is array
 if nSim>1
 
-    id = zeros(1,length(CurrLoPP));
-    iq = zeros(1,length(CurrLoPP));
-    T = zeros(1,length(CurrLoPP));
-    dTpu = zeros(1,length(CurrLoPP));
-    dTpp = zeros(1,length(CurrLoPP));
-    fd = zeros(1,length(CurrLoPP));
-    fq = zeros(1,length(CurrLoPP));
+    if(isnan(n3ph))
+        id1 = nan(1,length(CurrLoPP));
+        iq1 = nan(1,length(CurrLoPP));
+        id3 = nan(1,length(CurrLoPP));
+        iq3 = nan(1,length(CurrLoPP));
+        fd1 = nan(1,length(CurrLoPP));
+        fq1 = nan(1,length(CurrLoPP));
+        fd3 = nan(1,length(CurrLoPP));
+        fq3 = nan(1,length(CurrLoPP));
+    else
+        id = nan(1,length(CurrLoPP));
+        iq = nan(1,length(CurrLoPP));
+        fd = nan(1,length(CurrLoPP));
+        fq = nan(1,length(CurrLoPP));
+    end
+
+    T = nan(1,length(CurrLoPP));
+    dTpu = nan(1,length(CurrLoPP));
+    dTpp = nan(1,length(CurrLoPP));
+    ir = nan(1,length(CurrLoPP));
+    fr = nan(1,length(CurrLoPP));
+
+    if(isnan(n3ph))
+        if(per.custom_act)
+            T = nan(length(CurrLoPP),per.nsim_singt);
+        end
+    end
 
     for ii = 1:length(CurrLoPP)
-        id(ii) = output{ii}.id;
-        iq(ii) = output{ii}.iq;
-        T(ii) = output{ii}.T;
+        if(isnan(n3ph))
+            id1(ii) = output{ii}.id1;
+            iq1(ii) = output{ii}.iq1;
+            id3(ii) = output{ii}.id3;
+            iq3(ii) = output{ii}.iq3;
+            fd1(ii) = output{ii}.fd1;
+            fq1(ii) = output{ii}.fq1;
+            fd3(ii) = output{ii}.fd3;
+            fq3(ii) = output{ii}.fq3;
+        else
+            id(ii) = output{ii}.id;
+            iq(ii) = output{ii}.iq;
+            fd(ii) = output{ii}.fd;
+            fq(ii) = output{ii}.fq;
+        end
+
+        if(isnan(n3ph))
+            if(per.custom_act)
+                T(ii,:) = output{ii}.T;
+                ia(ii,:) = output{ii}.ia;
+                ib(ii,:) = output{ii}.ib;
+                ic(ii,:) = output{ii}.ic;
+                id(ii,:) = output{ii}.id;
+                ie(ii,:) = output{ii}.ie;
+            else
+                T(ii) = output{ii}.T;
+            end
+        else
+            T(ii) = output{ii}.T;
+        end
+
         dTpu(ii) = output{ii}.dTpu;
         dTpp(ii) = output{ii}.dTpp;
-        fd(ii) = output{ii}.fd;
-        fq(ii) = output{ii}.fq;
+
+        if isfield(output{ii},'if')
+            ir(ii) = output{ii}.if;
+            fr(ii) = output{ii}.ff;
+        end
+        OUT(ii) = output{ii};
     end
     %dirPower = [pathname resFolder filemot(1:end-4) '_singT - ' int2str(dataIn.tempPP) 'deg\'];
-    dirPower = checkPathSyntax([pathname resFolder 'senseOut - ' int2str(dataIn.tempPP) 'deg - ' datestr(now,30) '\']);
-    mkdir(dirPower);
-
-    x = 1:length(CurrLoPP);
-    figure();
-    if ~isoctave()
-        figSetting();
-    end
-    subplot(2,1,1)
-    plot(x,T,'-x',x,T+0.5*dTpp,'r',x,T-0.5*dTpp,'r'), grid on, ylabel('$T$ [Nm]')
-    subplot(2,1,2)
-    plot(x,dTpp,'-x'), grid on, ylabel('$\Delta T_{pp}$ [Nm]')
-    xlabel('simulation \#')
-    h=gcf();
-    if isoctave() %OCT
-        fig_name=strcat(dirPower, filemot(1:end-4), '_torque_sens');
-        hgsave(h,[fig_name]);
-    else
-        saveas(gcf,[dirPower,filemot(1:end-4),'_torque_sens.fig'])
+    if flagSave~=0
+        dirPower = checkPathSyntax([pathname resFolder 'senseOut - ' int2str(dataIn.tempPP) 'deg - ' datestr(now,30) '\']);
+        mkdir(dirPower);
     end
 
-    figure()
-    if ~isoctave()
-        figSetting();
-    end
-    subplot(2,1,1)
-    plot(x,fd,'-x',x,fq,'-x'), grid on, ylabel('[Vs]'), legend('$\lambda_d$','$\lambda_q$'),
-    subplot(2,1,2)
-    plot(x,abs(sin(atan(iq./id)-atan(fq./fd))),'-x'), grid on, ylabel('$cos \varphi$')
-    xlabel('simulation \#'),
-    h=gcf();
-    if isoctave() %OCT
-        fig_name=strcat(dirPower, filemot(1:end-4), '_fdq_IPF_sens');
-        hgsave(h,[fig_name]);
-    else
-        saveas(gcf,[dirPower,filemot(1:end-4),'_fdq_IPF_sens.fig'])
+    if flagSave==2
+        x = 1:length(CurrLoPP);
+
+        flagPlot3D = false;
+        flagCharger = false;
+
+        if(isnan(n3ph))
+            if(per.custom_act)
+                flagPlot3D = true;
+                flagCharger = true;
+            end
+        end
+
+        figure();
+        if ~isoctave()
+            figSetting();
+        end
+        if(flagCharger)
+            if(flagPlot3D)
+                x = geo.p*per.custom_rotorPos;
+                y = linspace(0,2*pi,per.nsim_singt);
+                surf(x,y,T'), grid on, 
+                xlabel('$\theta_{rotor}$ [el. deg.]')
+                ylabel('${\omega}t$ [rad]')
+                zlabel('$T$ [Nm]')
+            else
+                x = geo.p*per.custom_rotorPos;
+                for i=1:length(x)
+                    Trms(i) = sqrt(mean(T(i,:,:).^2));
+                    Tpk(i) = max(max(abs(T(i,:,:))));
+                end
+                subplot(2,1,1)
+                plot(x,Trms), grid on, 
+                xlabel('$\theta_{rotor}$ [el. deg.]')
+                ylabel('$T_{RMS}$ [Nm]')
+                subplot(2,1,2)
+                plot(x,Tpk), grid on, 
+                xlabel('$\theta_{rotor}$ [el. deg.]')
+                ylabel('$T_{Peak}$ [Nm]')
+            end
+        else
+            subplot(2,1,1)
+            plot(x,T,'-x',x,T+0.5*dTpp,'r',x,T-0.5*dTpp,'r'), grid on, ylabel('$T$ [Nm]')
+            subplot(2,1,2)
+            plot(x,dTpp,'-x'), grid on, ylabel('$\Delta T_{pp}$ [Nm]')
+            xlabel('simulation \#')
+        end
+        h=gcf();
+        if isoctave() %OCT
+            fig_name=strcat(dirPower, filemot(1:end-4), '_torque_sens');
+            hgsave(h,[fig_name]);
+        else
+            saveas(gcf,[dirPower,filemot(1:end-4),'_torque_sens.fig'])
+        end
+
+        if(flagCharger)
+
+            figure()
+            if ~isoctave()
+                figSetting();
+            end
+
+            loss_pu = (ia.^2+ib.^2+ic.^2+id.^2+ie.^2)./(ia.^2+0.5*(ib.^2+id.^2)+0.5*(ic.^2+ie.^2));
+            x = geo.p*per.custom_rotorPos;
+            y = linspace(0,2*pi,per.nsim_singt);
+            surf(x,y,loss_pu'), grid on, 
+            xlabel('$\theta_{rotor}$ [el. deg.]')
+            ylabel('${\omega}t$ [rad]')
+            zlabel('$Joule losses$ [pu]')
+        else
+
+            figure()
+            if ~isoctave()
+                figSetting();
+            end
+
+            if(isnan(n3ph))
+                subplot(2,1,1)
+                plot(x,fd1,'-x',x,fq1,'-x'), grid on, ylabel('[Vs]'), legend('$\lambda_{d1}$','$\lambda_{q1}$'),
+                subplot(2,1,2)
+                plot(x,abs(sin(atan(iq1./id1)-atan(fq1./fd1))),'-x'), grid on, ylabel('$cos \varphi$')
+                xlabel('simulation \#'),
+            else
+                subplot(2,1,1)
+                plot(x,fd,'-x',x,fq,'-x'), grid on, ylabel('[Vs]'), legend('$\lambda_d$','$\lambda_q$'),
+                subplot(2,1,2)
+                plot(x,abs(sin(atan(iq./id)-atan(fq./fd))),'-x'), grid on, ylabel('$cos \varphi$')
+                xlabel('simulation \#'),
+            end
+
+            h=gcf();
+            if isoctave() %OCT
+                fig_name=strcat(dirPower, filemot(1:end-4), '_fdq_IPF_sens');
+                hgsave(h,[fig_name]);
+            else
+                saveas(gcf,[dirPower,filemot(1:end-4),'_fdq_IPF_sens.fig'])
+            end
+        end
+
+        if(flagCharger)
+
+            figure()
+            if ~isoctave()
+                figSetting();
+            end
+
+            x = geo.p*per.custom_rotorPos;
+            y = linspace(0,2*pi,per.nsim_singt);
+            surf(x,y,ia'), grid on, 
+            xlabel('$\theta_{rotor}$ [el. deg.]')
+            ylabel('${\omega}t$ [rad]')
+            zlabel('$I_a$ [A]')
+
+            figure()
+            if ~isoctave()
+                figSetting();
+            end
+
+            x = geo.p*per.custom_rotorPos;
+            y = linspace(0,2*pi,per.nsim_singt);
+            surf(x,y,ib'), grid on, 
+            xlabel('$\theta_{rotor}$ [el. deg.]')
+            ylabel('${\omega}t$ [rad]')
+            zlabel('$I_b$ [A]')
+
+            figure()
+            if ~isoctave()
+                figSetting();
+            end
+
+            x = geo.p*per.custom_rotorPos;
+            y = linspace(0,2*pi,per.nsim_singt);
+            surf(x,y,ic'), grid on, 
+            xlabel('$\theta_{rotor}$ [el. deg.]')
+            ylabel('${\omega}t$ [rad]')
+            zlabel('$I_c$ [A]')
+
+            figure()
+            if ~isoctave()
+                figSetting();
+            end
+
+            x = geo.p*per.custom_rotorPos;
+            y = linspace(0,2*pi,per.nsim_singt);
+            surf(x,y,id'), grid on, 
+            xlabel('$\theta_{rotor}$ [el. deg.]')
+            ylabel('${\omega}t$ [rad]')
+            zlabel('$I_d$ [A]')
+
+            figure()
+            if ~isoctave()
+                figSetting();
+            end
+
+            x = geo.p*per.custom_rotorPos;
+            y = linspace(0,2*pi,per.nsim_singt);
+            surf(x,y,ib'), grid on, 
+            xlabel('$\theta_{rotor}$ [el. deg.]')
+            ylabel('${\omega}t$ [rad]')
+            zlabel('$I_e$ [A]')
+
+        else
+
+            figure()
+            if ~isoctave()
+                figSetting();
+            end
+
+            if(isnan(n3ph))
+                subplot(2,1,1)
+                plot(x,fd1,'-x','DisplayName','$\lambda_{d1}$');
+                plot(x,fq1,'-x','DisplayName','$\lambda_{q1}$');
+                ylabel('[Vs]')
+                legend('show');
+                subplot(2,1,2)
+                plot(x,id1,'-x','DisplayName','$i_{d1}$');
+                plot(x,iq1,'-x','DisplayName','$i_{q1}$');
+                xlabel('simulation \#')
+                ylabel('[A]')
+            else
+                subplot(2,1,1)
+                plot(x,fd,'-x','DisplayName','$\lambda_d$');
+                plot(x,fq,'-x','DisplayName','$\lambda_q$');
+                ylabel('[Vs]')
+                legend('show');
+                subplot(2,1,2)
+                plot(x,id,'-x','DisplayName','$i_d$');
+                plot(x,iq,'-x','DisplayName','$i_q$');
+                xlabel('simulation \#')
+                ylabel('[A]')
+            end
+        end
+
+        legend('show');
+        h=gcf();
+        if isoctave() %OCT
+            fig_name=strcat(dirPower, filemot(1:end-4), '_fdq_idiq_sens');
+            hgsave(h,[fig_name]);
+        else
+            saveas(gcf,[dirPower,filemot(1:end-4),'_fdq_idiq_sens.fig'])
+        end
     end
 
-    figure()
-    if ~isoctave()
-        figSetting();
-    end
-    subplot(2,1,1)
-    plot(x,fd,'-x','DisplayName','$\lambda_d$');
-    plot(x,fq,'-x','DisplayName','$\lambda_q$');
-    ylabel('[Vs]')
-    legend('show');
-    subplot(2,1,2)
-    plot(x,id,'-x','DisplayName','$i_d$');
-    plot(x,iq,'-x','DisplayName','$i_q$');
-    xlabel('simulation \#')
-    ylabel('[A]')
-    legend('show');
-    h=gcf();
-    if isoctave() %OCT
-        fig_name=strcat(dirPower, filemot(1:end-4), '_fdq_idiq_sens');
-        hgsave(h,[fig_name]);
+    if(isnan(n3ph))
+        senseOut.id1   = id1;
+        senseOut.iq1   = iq1;
+        senseOut.id3   = id3;
+        senseOut.iq3   = iq3;
+        senseOut.fd1   = fd1;
+        senseOut.fq1   = fq1;
+        senseOut.fd3   = fd3;
+        senseOut.fq3   = fq3;
+        senseOut.PF   = abs(sin(atan(iq1./id1)-atan(fq1./fd1)));
     else
-        saveas(gcf,[dirPower,filemot(1:end-4),'_fdq_idiq_sens.fig'])
+        senseOut.id   = id;
+        senseOut.iq   = iq;
+        senseOut.fd   = fd;
+        senseOut.fq   = fq;
+        senseOut.PF   = abs(sin(atan(iq./id)-atan(fq./fd)));
     end
-    senseOut.id   = id;
-    senseOut.iq   = iq;
-    senseOut.fd   = fd;
-    senseOut.fq   = fq;
+
     senseOut.T    = T;
     senseOut.dTpp = dTpp;
-    senseOut.PF   = abs(sin(atan(iq./id)-atan(fq./fd)));
-    save([dirPower,filemot(1:end-4),'_senseResults.mat'],'senseOut');
-
+    senseOut.if   = ir;
+    senseOut.ff   = fr;
+    senseOut.OUT  = OUT;
+    if flagSave>0
+        save([dirPower,filemot(1:end-4),'_senseResults.mat'],'senseOut');
+    end
 end
 
 if nargout()==0

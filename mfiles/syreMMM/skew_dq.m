@@ -174,11 +174,11 @@ for ss=1:length(alfa_k)
             FqSlice(real(Idq)>IdMax) = NaN;
             TSlice(real(Idq)>IdMax) = NaN;
             if ~isempty(ironLoss)
-                Pfes_cSlice(real(Idq)<IdMax) = NaN;
-                Pfes_hSlice(real(Idq)<IdMax) = NaN;
-                Pfer_cSlice(real(Idq)<IdMax) = NaN;
-                Pfer_hSlice(real(Idq)<IdMax) = NaN;
-                PpmSlice(real(Idq)<IdMax)    = NaN;
+                Pfes_cSlice(real(Idq)>IdMax) = NaN;
+                Pfes_hSlice(real(Idq)>IdMax) = NaN;
+                Pfer_cSlice(real(Idq)>IdMax) = NaN;
+                Pfer_hSlice(real(Idq)>IdMax) = NaN;
+                PpmSlice(real(Idq)>IdMax)    = NaN;
             end
             FdSlice(imag(Idq)<IqMin) = +fInt.Fd(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin));
             FqSlice(imag(Idq)<IqMin) = -fInt.Fq(IdSlice(imag(Idq)<IqMin),-IqSlice(imag(Idq)<IqMin));

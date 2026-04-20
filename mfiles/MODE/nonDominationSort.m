@@ -18,7 +18,7 @@ function f = nonDominationSort(x, objectivesNumber, variablesNumber)
 
 %% function f = non_domination_sort_mod(x, objectivesNumber, variablesNumber)
 
-[N] = size(x);
+[N] = size(x,1);
 
 % Initialize the front number to 1.
 front = 1;

@@ -74,7 +74,7 @@ switch axisType
                 lim.IqMin = -lim.IqMax;
                 lim.nD = nPoints;
                 lim.nQ = 2*nPoints-1;
-            case 3
+            case 4
                 lim.IdMin = -lim.IdMax;
                 lim.IqMin = -lim.IqMax;
                 lim.nD = 2*nPoints-1;
@@ -108,7 +108,7 @@ switch axisType
                 lim.IdMax = -lim.IdMin;
                 lim.IqMin = -lim.IqMax;
                 lim.nD = 2*nPoints-1;
-                lim.nq = 2*nPoints-1;
+                lim.nQ = 2*nPoints-1;
         end
 end
 

@@ -33,6 +33,8 @@ if dataSet.custom
 
 end
 
+flag_xfemm = dataSet.XFEMMcreation;
+
 if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom)) 
     if nargin==1
         [filename,pathname] = uiputfile([dataSet.currentpathname 'newmachine.fem'],'Input machine name and location');
@@ -50,31 +52,15 @@ if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom))
     
     geo.custom = dataSet.custom;
 
-    %% ==== FIRST PART FROM FEMMFitnessX ======================================
-    % currentDir = pwd;
-    
-    % RQ defines the candidate machine
-    % [geo,gamma,mat] = interpretRQ(RQ,geo,mat);
-    
-    % FemmProblem.ProbInfo.Frequency = 0;
-    % FemmProblem.ProbInfo.Precision = 1e-8;
-    % FemmProblem.ProbInfo.MinAngle = 15;
-    % FemmProblem.ProbInfo.LengthUnits = 'millimeters';
-    % FemmProblem.ProbInfo.Depth = geo.l;
-    % FemmProblem.Segments = [];
-    % FemmProblem.ArcSegments = [];
-    % FemmProblem.Nodes = [];
-    % FemmProblem.BoundaryProps = [];
-    % FemmProblem.Circuits = [];
-    % FemmProblem.BlockLabels = [];
-    % FemmProblem.PointProps = [];
     eval_type = 'singt';
 end
 
 if dataSet.custom
     if isequal(button,'Yes')
         [geo,mat] = draw_motor_in_FEMM(geo,mat, pathname, filename);
-        mi_close, closefemm
+        if ~flag_xfemm
+            mi_close, closefemm
+        end
         
 %         if ~strcmp(fileIn,[pathname filename])
             fileTmp = [cd '\tmp\' filename];  
@@ -89,7 +75,9 @@ if dataSet.custom
         end
          
         [geo,mat] = draw_motor_in_FEMM(geo,mat, pathname, filename);
-        mi_close, closefemm
+        if ~flag_xfemm
+            mi_close, closefemm
+        end
 
     else
         disp('Custom machine not saved')
@@ -97,7 +85,9 @@ if dataSet.custom
     
 else
     [geo,mat] = draw_motor_in_FEMM(geo,mat, pathname, filename);
-    mi_close, closefemm
+    if ~flag_xfemm
+        mi_close, closefemm
+    end
 end
 
 if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom)) 

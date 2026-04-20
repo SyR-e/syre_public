@@ -56,7 +56,12 @@ else
         fin=c+1;
     end
     yq=fin-ini;
-    alpha=2*pi*yq/(6*geo.p*geo.q*geo.win.n3phase);  % coil pitch in radians
+    if(isnan(geo.win.n3phase))
+        nphases = 5;
+        alpha=2*pi*yq/(2*geo.p*geo.q*nphases);  % coil pitch in radians
+    else
+        alpha=2*pi*yq/(6*geo.p*geo.q*geo.win.n3phase);  % coil pitch in radians
+    end
     taucp = (geo.r+geo.g+geo.lt/2)*alpha*1e-3;   % mean coil pitch (m)
     
     mu0 = 4e-7*pi;

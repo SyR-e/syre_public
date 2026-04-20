@@ -55,6 +55,7 @@ else
     lend=2*geo.lt+(geo.r+geo.g+geo.lt/2)*alpha;
     clear alpha
 end
+
 if isfield(geo,'pShape')
     if geo.pShape.flag
         geo.Aslot = area(geo.pShape.slot)/c;

@@ -12,25 +12,30 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function f = MTPX_slider(X,Y,Z1,Z2,Ir,MTPA,MTPV,figureFullName,labels) % X,Y: [N x N]; Z: [N x N x M]; Ir [L x 1] L-> Number of shown layers
+function f = MTPX_slider(X,Y,Z1,Z2,Ir,MTPA,MTPV,figureFullName,labels) % X,Y: [N x N]; Z: [N x N x M]; Ir [L x 1]; ... ; label 0 for current, 1 for flux
     
     % --- Input Handling for Optional Labels ---
-    if nargin < 9 || isempty(labels)
+    if nargin < 9 || isempty(labels) || labels == 0
         % If 'labels' is not provided or is empty, use default labels
+        labels = 0;
         xlabel_str = '$i_d$ (A)';
         ylabel_str = '$i_q$ (A)';
     else
-        % If 'labels' is provided, use them
-        % Ensure 'labels' is a cell array with 3 elements (for x, y, z)
-        if ~iscell(labels) || numel(labels) ~= 3
-            warning('surfplot_slider:InvalidLabels', 'Labels input must be a 1x3 cell array. Using default labels.');
-            xlabel_str = '$i_d$ (A)';
-            ylabel_str = '$i_q$ (A)';
-        else
-            xlabel_str = labels{1};
-            ylabel_str = labels{2};
-        end
+        xlabel_str = '$\lambda_d$ (Vs)';
+        ylabel_str = '$\lambda_q$ (Vs)';
     end
+% Plot in function of currents/fluxes instead of more generic x,y,z -> lables now is a flag!!!
+    %     % If 'labels' is provided, use them
+    %     % Ensure 'labels' is a cell array with 3 elements (for x, y, z)
+    %     if ~iscell(labels) || numel(labels) ~= 3
+    %         warning('surfplot_slider:InvalidLabels', 'Labels input must be a 1x3 cell array. Using default labels.');
+    %         xlabel_str = '$i_d$ (A)';
+    %         ylabel_str = '$i_q$ (A)';
+    %     else
+    %         xlabel_str = labels{1};
+    %         ylabel_str = labels{2};
+    %     end
+    % end
 
     % --- Figure and Axes Setup ---
     f = figure;
@@ -64,31 +69,48 @@ function f = MTPX_slider(X,Y,Z1,Z2,Ir,MTPA,MTPV,figureFullName,labels) % X,Y: [N
     guiData.current_Ir_index = numel(Ir); % Start at max Ir value (last index)
 
     % Preallocate handles for surfaces and contours
-    num_ir_values = numel(Ir);
-    guiData.hCont_dT = gobjects(num_ir_values, 1); % Use gobjects for graphics handles
-    guiData.hCont_T = gobjects(num_ir_values, 1);
-    guiData.hCont_I = gobjects(num_ir_values, 1);
-    guiData.hPlot_MTPA = gobjects(num_ir_values, 1);
-    guiData.hPlot_MTPV = gobjects(num_ir_values, 1);
+    num_Ir_values = numel(Ir);
+    guiData.hCont_dT = gobjects(num_Ir_values, 1); % Use gobjects for graphics handles
+    guiData.hCont_T = gobjects(num_Ir_values, 1);
+    guiData.hCont_I = gobjects(num_Ir_values, 1);
+    guiData.hPlot_MTPA = gobjects(num_Ir_values, 1);
+    guiData.hPlot_MTPV = gobjects(num_Ir_values, 1);
     
-    MTPA_id = interp1(MTPA.ir_layers,MTPA.id,Ir(:));
-    MTPA_iq = interp1(MTPA.ir_layers,MTPA.iq,Ir(:));
-    MTPV_id = interp1(MTPV.ir_layers,MTPV.id,Ir(:));
-    MTPV_iq = interp1(MTPV.ir_layers,MTPV.iq,Ir(:));
+    MTPA_id = interp1(MTPA.Ir_layers,MTPA.id,Ir(:));
+    MTPA_iq = interp1(MTPA.Ir_layers,MTPA.iq,Ir(:));
+    MTPV_id = interp1(MTPV.Ir_layers,MTPV.id,Ir(:));
+    MTPV_iq = interp1(MTPV.Ir_layers,MTPV.iq,Ir(:));
+
+    MTPA_fd = interp1(MTPA.Ir_layers,MTPA.fd,Ir(:));
+    MTPA_fq = interp1(MTPA.Ir_layers,MTPA.fq,Ir(:));
+    MTPV_fd = interp1(MTPV.Ir_layers,MTPV.fd,Ir(:));
+    MTPV_fq = interp1(MTPV.Ir_layers,MTPV.fq,Ir(:));
 
     % Create all surfaces and contours, initially hidden
-    for ii = 1:num_ir_values
+    for ii = 1:num_Ir_values
         if ~sum(isnan(Z2(:,:,ii)))
-            [~,guiData.hCont_dT(ii)] = contourf(X,Y,Z2(:,:,ii),'LineWidth',1,'DisplayName','$\Delta T_{pp}$ (Nm)','ShowText','on', 'Visible', 'off');
+            [~,guiData.hCont_dT(ii)] = contourf(X(:,:,ii),Y(:,:,ii),Z2(:,:,ii),'LineWidth',1,'DisplayName','$\Delta T_{pp}$ (Nm)','ShowText','on', 'Visible', 'off');
         else
-            [~,guiData.hCont_dT(ii)] = contourf(X,Y,zeros(size(X)),'LineWidth',1,'DisplayName','$\Delta T_{pp}$ (Nm)','ShowText','on', 'Visible', 'off');
+            [~,guiData.hCont_dT(ii)] = contourf(X(:,:,ii),Y(:,:,ii),zeros(size(X(:,:,ii))),'LineWidth',1,'DisplayName','$\Delta T_{pp}$ (Nm)','ShowText','on', 'Visible', 'off');
         end
         
-        [~,guiData.hCont_T(ii)] = contour(X,Y,Z1(:,:,ii),'-','LineColor',[0.0 0.0 0.0],'LineWidth',1,'DisplayName','$T$ (Nm)','showText','on', 'Visible', 'off');
-        [~,guiData.hCont_I(ii)] = contour(X,Y,abs(X+j*Y),abs(unique(iLevels)),'-','LineColor',[1.0 0.0 0.0],'LineWidth',0.5,'DisplayName','$I$ (A)','ShowText','on', 'Visible', 'off');
-        guiData.hPlot_MTPA(ii) = plot(MTPA_id(ii,:),MTPA_iq(ii,:),'-r','DisplayName','MTPA', 'Visible', 'off');
-        guiData.hPlot_MTPV(ii) = plot(MTPV_id(ii,:),MTPV_iq(ii,:),'-b','DisplayName','MTPV', 'Visible', 'off');
+        [~,guiData.hCont_T(ii)] = contour(X(:,:,ii),Y(:,:,ii),Z1(:,:,ii),'-','LineColor',[0.0 0.0 0.0],'LineWidth',1,'DisplayName','$T$ (Nm)','showText','on', 'Visible', 'off');
+        if labels == 0
+            legLabel = '$I$ (A)';
+        else
+            legLabel = '$\lambda$ (Vs)';
+        end
+        [~,guiData.hCont_I(ii)] = contour(X(:,:,ii),Y(:,:,ii),abs(X(:,:,ii)+j*Y(:,:,ii)),abs(unique(iLevels)),'-','LineColor',[1.0 0.0 0.0],'LineWidth',0.5,'DisplayName',legLabel,'ShowText','on', 'Visible', 'off');
         
+        if labels == 0
+            guiData.hPlot_MTPA(ii) = plot(MTPA_id(ii,:),MTPA_iq(ii,:),'-r','DisplayName','MTPA', 'Visible', 'off');
+            guiData.hPlot_MTPV(ii) = plot(MTPV_id(ii,:),MTPV_iq(ii,:),'-b','DisplayName','MTPV', 'Visible', 'off');
+        else
+            guiData.hPlot_MTPA(ii) = plot(MTPA_fd(ii,:),MTPA_fq(ii,:),'-r','DisplayName','MTPA', 'Visible', 'off');
+            guiData.hPlot_MTPV(ii) = plot(MTPV_fd(ii,:),MTPV_fq(ii,:),'-b','DisplayName','MTPV', 'Visible', 'off');
+        end
+        
+
     end
     legend('show','Location','northeast');
     
@@ -180,8 +202,8 @@ function f = MTPX_slider(X,Y,Z1,Z2,Ir,MTPA,MTPV,figureFullName,labels) % X,Y: [N
         % Retrieve current GUI state
         current_guiData = get(fHandle, 'UserData'); 
         
-        irValue = current_guiData.Ir(current_guiData.current_Ir_index);
-        title(['Torque map @ Ir = ', num2str(round(irValue,2)), ' A']);
+        IrValue = current_guiData.Ir(current_guiData.current_Ir_index);
+        title(['Torque map @ Ir = ', num2str(round(IrValue,2)), ' A']);
         
         % Update visibility of all surfaces and contours
         for jj = 1:numel(current_guiData.hCont_dT) % Use numel for number of elements

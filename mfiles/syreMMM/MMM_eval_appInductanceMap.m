@@ -22,18 +22,36 @@ Iq = motorModel.FluxMap_dq.Iq;
 Fd = motorModel.FluxMap_dq.Fd;
 Fq = motorModel.FluxMap_dq.Fq;
 
-axisType = motorModel.data.axisType;
-p        = motorModel.data.p;
+axisType  = motorModel.data.axisType;
+motorType = motorModel.data.motorType;
+p         = motorModel.data.p;
 
 switch axisType
     case 'PM'
-        Fm = interp2(Id,Iq,Fd,zeros(size(Id)),Iq);
-        Ld = (Fd-Fm)./Id;
-        Lq = Fq./Iq;
+        if strcmp(motorType, 'VFM')
+            MS = motorModel.FluxMap_dq.MS;            
+            Fdm = zeros(1,size(MS,3));
+            Fqm = zeros(1,size(MS,3));
+            FLd = zeros(size(Fd));
+            FLq = zeros(size(Fd));
+
+            Fdm = interp3(Id, Iq, MS, Fd, zeros(size(Id)), Iq, MS);
+            Fqm = interp3(Id, Iq, MS, Fq, Id, zeros(size(Iq)), MS);
+            FLd = Fd - Fdm;
+            FLq = Fq - Fqm;
+
+            Ld = FLd./Id;
+            Lq = FLq./Iq;
+        else
+            Fm = interp2(Id,Iq,Fd,zeros(size(Id)),Iq);
+            Ld = (Fd-Fm)./Id;
+            Lq = Fq./Iq;
+        end
     case 'SR'
         Fm = interp2(Id,Iq,Fq,Id,zeros(size(Iq)));
         Ld = Fd./Id;
         Lq = (Fq-Fm)./Iq;
+        
 end
 
 % output data
@@ -41,9 +59,19 @@ Inductance.Id = Id;
 Inductance.Iq = Iq;
 Inductance.Ld = Ld;
 Inductance.Lq = Lq;
-Inductance.Fm = Fm;
+if strcmp(motorType, 'VFM')
+    Inductance.MS = MS; 
+    Inductance.Fdm = Fdm;
+    Inductance.Fqm = Fqm;
+    Inductance.Tm = 3/2*p*(Fdm.*Iq - Fqm.*Id);
+    Inductance.Tr = 3/2*p*(Ld-Lq).*Id.*Iq;
 
-Inductance.Tm = 3/2*p*Fm.*Iq;
-Inductance.Tr = 3/2*p*(Ld-Lq).*Id.*Iq;
+else
+    Inductance.Fm = Fm;
+    Inductance.Tm = 3/2*p*Fm.*Iq;
+    Inductance.Tr = 3/2*p*(Ld-Lq).*Id.*Iq;
+end
+
+
 
 end

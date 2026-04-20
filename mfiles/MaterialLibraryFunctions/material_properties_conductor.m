@@ -14,7 +14,9 @@
 
 function [mat] = material_properties_conductor(MatName)
 
-load(checkPathSyntax('materialLibrary\conductor_material.mat'))
+syreDirectory = fileparts(which('GUI_Syre.mlapp'));
+
+load(checkPathSyntax([syreDirectory '\materialLibrary\conductor_material.mat']))
 
 ind=0;
 
@@ -29,7 +31,7 @@ matListBase = MatList;
 if ind~=0
     mat=MatLib{ind};
 else
-    load(checkPathSyntax('materialLibrary\custom_conductor.mat'))
+    load(checkPathSyntax([syreDirectory '\materialLibrary\custom_conductor.mat']))
     ind=0;
     for ii=1:length(MatList)
         if strcmp(MatList{ii},MatName)

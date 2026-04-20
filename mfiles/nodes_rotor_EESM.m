@@ -78,8 +78,8 @@ else
 end
 
 
-% xp1 = ri;
-% yp1 = 0;
+xp1 = ri;
+yp1 = 0;
 
 xp2 = ri*cos(theta);
 yp2 = ri*sin(theta);
@@ -104,11 +104,39 @@ yp6 = xp6*tan(beta/2);
 xM = re;
 yM = 0;
 tau = beta/2/narcs;
-for ii=1:narcs
-    gamma = beta/2 - (ii-1)*tau;
-    [xp7(ii),yp7(ii)] = rot_point(xM,yM,gamma);
-    xp7(ii) = xp7(ii) - g0*(1/cos(gamma*p)-1)*cos(gamma);
-    yp7(ii) = yp7(ii) - g0*(1/cos(gamma*p)-1)*sin(gamma);
+kmax = 0;
+xp7 = zeros(1,narcs);
+yp7 = zeros(1,narcs);
+PoleShape = geo.headShape;
+
+if PoleShape == 0       % CRF Pole Shape
+    for ii=1:narcs
+        gamma = beta/2 - (ii-1)*tau;
+        [xp7(ii),yp7(ii)] = rot_point(xM,yM,gamma);
+    end
+
+elseif PoleShape == 1   % 1/cos Pole Shape
+    for ii=1:narcs
+        gamma = beta/2 - (ii-1)*tau;
+        [xp7(ii),yp7(ii)] = rot_point(xM,yM,gamma);
+        xp7(ii) = xp7(ii) - g0*(1/cos(gamma*p)-1)*cos(gamma);
+        yp7(ii) = yp7(ii) - g0*(1/cos(gamma*p)-1)*sin(gamma);
+    end
+
+elseif PoleShape == 2   % Third Harmonic Pole Shape
+    for ii=1:narcs
+        gamma = beta/2 - (ii-1)*tau;
+        k3 = 0.23;
+        if cos(gamma*p)+k3*cos(3*gamma*p) > kmax
+            kmax = cos(gamma*p)+k3*cos(3*gamma*p);
+        end
+    end
+    for ii=1:narcs
+        gamma = beta/2 - (ii-1)*tau;
+        [xp7(ii),yp7(ii)] = rot_point(xM,yM,gamma);
+        xp7(ii) = xp7(ii) - g0*(kmax/(cos(gamma*p)+k3*cos(3*gamma*p))-1)*cos(gamma);
+        yp7(ii) = yp7(ii) - g0*(kmax/(cos(gamma*p)+k3*cos(3*gamma*p))-1)*sin(gamma);
+    end
 end
 
 if xp7(1) < xp5     %rotor pole beta saturation (extreme situation for p = 1)
@@ -116,13 +144,29 @@ if xp7(1) < xp5     %rotor pole beta saturation (extreme situation for p = 1)
         xTemp = ri+3*MinTol;
         yTemp = sqrt(re^2-xTemp^2);
         beta = 2*atan(yTemp/xTemp);
-        beta_pu = beta*p/pi; 
+        beta_pu = beta*p/pi;
         tau = beta/2/narcs;
-        for ii=1:narcs
-            gamma = beta/2 - (ii-1)*tau;
-            [xp7(ii),yp7(ii)] = rot_point(xM,yM,gamma);
-            xp7(ii) = xp7(ii) - g0*(1/cos(gamma*p)-1)*cos(gamma);
-            yp7(ii) = yp7(ii) - g0*(1/cos(gamma*p)-1)*sin(gamma);
+        if PoleShape == 0       % CRF Pole Shape
+            for ii=1:narcs
+                gamma = beta/2 - (ii-1)*tau;
+                [xp7(ii),yp7(ii)] = rot_point(xM,yM,gamma);
+            end
+
+        elseif PoleShape == 1   % 1/cos Pole Shape
+            for ii=1:narcs
+                gamma = beta/2 - (ii-1)*tau;
+                [xp7(ii),yp7(ii)] = rot_point(xM,yM,gamma);
+                xp7(ii) = xp7(ii) - g0*(1/cos(gamma*p)-1)*cos(gamma);
+                yp7(ii) = yp7(ii) - g0*(1/cos(gamma*p)-1)*sin(gamma);
+            end
+
+        elseif PoleShape == 2   % Third Harmonic Pole Shape
+            for ii=1:narcs
+                gamma = beta/2 - (ii-1)*tau;
+                [xp7(ii),yp7(ii)] = rot_point(xM,yM,gamma);
+                xp7(ii) = xp7(ii) - g0*(kmax/(cos(gamma*p)+k3*cos(3*gamma*p))-1)*cos(gamma);
+                yp7(ii) = yp7(ii) - g0*(kmax/(cos(gamma*p)+k3*cos(3*gamma*p))-1)*sin(gamma);
+            end
         end
         xp4 = xp7(1) - MinTol;
     end
@@ -269,7 +313,7 @@ if xc1 < xp4
     yc1 = yp4;
 end
 
-for ii = 2:1:7
+for ii = 1:1:7
     x_var = sprintf('xp%d',ii);
     y_var = sprintf('yp%d',ii);
     temp.(x_var) = eval(x_var);
@@ -356,9 +400,9 @@ geo.filsub = ry-xp3;
 % = wb;
 % = MinTol
 
-%figure
-%figSetting
-%axis equal
-%plot([xp1,xp2,xp3,xp4,xp5,xp6,xp7,xM],[yp1,yp2,yp3,yp4,yp5,yp6,yp7,yM],'b')
-%plot([xc1,xc2,xc3,xc4],[yc1,yc2,yc3,yc4],'r')
-%plot([temp.xc, temp.xair],[temp.yc, temp.yair],'g*')
+% figure
+% figSetting
+% axis equal
+% plot([xp1,xp2,xp3,xp4,xp5,xp6,xp7,xM],[yp1,yp2,yp3,yp4,yp5,yp6,yp7,yM],'b')
+% plot([xc1,xc2,xc3,xc4,xc1],[yc1,yc2,yc3,yc4,yc1],'r')
+% plot([temp.xc, temp.xair],[temp.yc, temp.yair],'g*')

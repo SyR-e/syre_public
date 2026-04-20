@@ -32,77 +32,99 @@ figNames{4} = 'RotorEddyCurrents';
 figNames{5} = 'PermanentMagnets';
 figNames{6} = 'IronLoss';
 
+nbase = motorModel.data.n0;
+nmax  = motorModel.data.nmax;
+p     = motorModel.data.p;
+
 nPU = [0.5 1 2];
+%fEval = [nbase nmax]*p/60;
+fEval = f0;
 
 colors{1} = [1.0 0.0 0.0];
 colors{2} = [0.0 0.0 1.0];
 colors{3} = [0.0 0.8 0.0];
 
-for ii=1:length(figNames)
-    hfig(ii) = figure();
-    figSetting()
-    hax(ii) = axes('OuterPosition',[0 0 1 1],...
-        'XLim',[min(fdfq.Id,[],'all') max(fdfq.Id,[],'all')],...
-        'YLim',[min(fdfq.Iq,[],'all') max(fdfq.Iq,[],'all')],...
-        'PlotBoxAspectRatio',[1 1 0.8]);
-    view(3)
-    xlabel('$i_d$ (A)')
-    ylabel('$i_q$ (A)')
-    switch ii
-        case 1
-            zlabel('$P_{Fe,s,h}$ (W)')
-            title('Stator Hysteresis')
-        case 2
-            zlabel('$P_{Fe,s,c}$ (W)')
-            title('Stator Eddy-currents')
-        case 3
-            zlabel('$P_{Fe,r,h}$ (W)')
-            title('Rotor Hysteresis')
-        case 4
-            zlabel('$P_{Fe,r,c}$ (W)')
-            title('Rotor Eddy-currents')
-        case 5
-            zlabel('$P_{PM}$ (W)')
-            title('Permanent Magnets')
-        case 6
-            zlabel('$P_{Fe}$ (W)')
-            title('Total Iron Loss')
+if ~strcmp(motorModel.dataSet.TypeOfRotor,'EESM')
+
+    for ii=1:length(figNames)
+        hfig(ii) = figure();
+        figSetting()
+        hax(ii) = axes('OuterPosition',[0 0 1 1],...
+            'XLim',[min(fdfq.Id,[],'all') max(fdfq.Id,[],'all')],...
+            'YLim',[min(fdfq.Iq,[],'all') max(fdfq.Iq,[],'all')],...
+            'PlotBoxAspectRatio',[1 1 0.8]);
+        view(3)
+        xlabel('$i_d$ (A)')
+        ylabel('$i_q$ (A)')
+        switch ii
+            case 1
+                zlabel('$P_{Fe,s,h}$ (W)')
+                title('Stator Hysteresis')
+            case 2
+                zlabel('$P_{Fe,s,c}$ (W)')
+                title('Stator Eddy-currents')
+            case 3
+                zlabel('$P_{Fe,r,h}$ (W)')
+                title('Rotor Hysteresis')
+            case 4
+                zlabel('$P_{Fe,r,c}$ (W)')
+                title('Rotor Eddy-currents')
+            case 5
+                zlabel('$P_{PM}$ (W)')
+                title('Permanent Magnets')
+            case 6
+                zlabel('$P_{Fe}$ (W)')
+                title('Total Iron Loss')
+        end
+        set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
+        set(hfig(ii),'Name',figNames{ii})
     end
-    set(hfig(ii),'FileName',[pathname resFolder figNames{ii} '.fig'])
-    set(hfig(ii),'Name',figNames{ii})
-end
 
 
-for ii=1:length(nPU)
-    [Pfe,Pfesh,Pfesc,Pferh,Pferc,Ppm] = calcIronLoss(ironLoss,fdfq,f0*nPU(ii));
-    surf(hax(1),fdfq.Id,fdfq.Iq,Pfesh,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
-    surf(hax(2),fdfq.Id,fdfq.Iq,Pfesc,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
-    surf(hax(3),fdfq.Id,fdfq.Iq,Pferh,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
-    surf(hax(4),fdfq.Id,fdfq.Iq,Pferc,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
-    surf(hax(5),fdfq.Id,fdfq.Iq,Ppm,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
-    surf(hax(6),fdfq.Id,fdfq.Iq,Pfe,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
-end
-
-for ii=1:length(hax)
-    hleg(ii) = legend(hax(ii),'show','Location','northeast');
-end
-
-%% Save figures
-answer = 'No';
-answer = questdlg('Save figures?','Save','Yes','No',answer);
-if strcmp(answer,'Yes')
-    if ~exist([pathname resFolder],'dir')
-        mkdir([pathname resFolder]);
+    for ii=1:length(nPU)
+        [Pfe,Pfesh,Pfesc,Pferh,Pferc,Ppm] = calcIronLoss(ironLoss,fdfq,f0*nPU(ii));
+        surf(hax(1),fdfq.Id,fdfq.Iq,Pfesh,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+        surf(hax(2),fdfq.Id,fdfq.Iq,Pfesc,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+        surf(hax(3),fdfq.Id,fdfq.Iq,Pferh,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+        surf(hax(4),fdfq.Id,fdfq.Iq,Pferc,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+        surf(hax(5),fdfq.Id,fdfq.Iq,Ppm,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
+        surf(hax(6),fdfq.Id,fdfq.Iq,Pfe,'FaceColor',colors{ii},'EdgeColor',0.5*colors{ii},'DisplayName',['$n=' int2str(n0*nPU(ii)) '$ rpm'])
     end
-    
-    for ii=1:length(hfig)
-        savePrintFigure(hfig(ii));
+    for ii=1:length(hax)
+        hleg(ii) = legend(hax(ii),'show','Location','northeast');
+    end
+
+else
+    Id = fdfq.Id;
+    Iq = fdfq.Iq;
+    Ir = fdfq.Ir;
+    size_Ir = size(Ir(1,1,:));
+    Ir_plot_index = round(linspace(1, size_Ir(end), 10)); % 10 è il # di plot tra da vedere
+    Ir_plot_index(1) = 1;
+    Ir_plot_index(end) = max(size_Ir);
+    Ir_plot_index = unique(Ir_plot_index); %Eventuali indici ripetuti vengono rimossi
+    Ir_values = Ir(1,1,:);
+    Ir_plot_values = Ir_values(Ir_plot_index);
+    for ii=1:length(fEval)
+        [Pfe,Pfesh,Pfesc,Pferh,Pferc,~] = calcIronLoss(ironLoss,fdfq,fEval(ii),motorModel.data.motorType);
+        hfig(5*(ii-1)+1) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pfesh,Ir_plot_values,[pathname resFolder 'StatorHystereis.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfes_h$ (W)'}]);
+        hfig(5*(ii-1)+2) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pfesc,Ir_plot_values,[pathname resFolder 'StatorEddyCurrents.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfe_ec$ (W)'}]);
+        hfig(5*(ii-1)+3) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pferh,Ir_plot_values,[pathname resFolder 'RotorHysteresis.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfer_h$ (W)'}]);
+        hfig(5*(ii-1)+4) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pferc,Ir_plot_values,[pathname resFolder 'RotorEddyCurrents.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfer_ec$ (W)'}]);
+        hfig(5*(ii-1)+5) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pfe  ,Ir_plot_values,[pathname resFolder 'TotalIronLosses.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfe$ (W)'}]);
     end
 end
 
 
-
-
-
-
-
+    %% Save figures
+    answer = 'No';
+    answer = questdlg('Save figures?','Save','Yes','No',answer);
+    if strcmp(answer,'Yes')
+        if ~exist([pathname resFolder],'dir')
+            mkdir([pathname resFolder]);
+        end
+        
+        for ii=1:length(hfig)
+            savePrintFigure(hfig(ii));
+        end
+    end

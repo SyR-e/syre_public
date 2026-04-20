@@ -22,6 +22,8 @@ pathname=dataIn.currentpathname;
 filemot= dataIn.currentfilename;
 load([pathname filemot]);
 
+n3ph = dataIn.Num3PhaseCircuit;
+
 
 if ~isfield(geo,'axisType')
     if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
@@ -38,6 +40,29 @@ if ~strcmp(geo.axisType,dataIn.axisType)
     else
         geo.th0 = geo.th0+90;
     end
+end
+
+%custom current
+if dataIn.CustomCurrentEnable
+    if(isnan(n3ph))
+        per.custom_ia         = dataIn.CustomCurrentA;
+        per.custom_ib         = dataIn.CustomCurrentB;
+        per.custom_ic         = dataIn.CustomCurrentC;
+        per.custom_id         = dataIn.CustomCurrentD;
+        per.custom_ie         = dataIn.CustomCurrentE;
+        per.custom_Amp         = dataIn.CustomCurrentAmp;
+        per.custom_Ph         = dataIn.CustomCurrentPh;
+        per.custom_rotorPos       = dataIn.CustomCurrentRotorPos;
+        per.custom_act        = dataIn.CustomCurrentEnable;
+    else
+        per.custom_ia         = dataIn.CustomCurrentA;
+        per.custom_ib         = dataIn.CustomCurrentB;
+        per.custom_ic         = dataIn.CustomCurrentC;
+        per.custom_time       = dataIn.CustomCurrentTime;
+        per.custom_act        = dataIn.CustomCurrentEnable;
+    end
+else
+    per.custom_act = 0;
 end
 
 % '------------------------------------------------------------------------
@@ -103,7 +128,13 @@ copyfile(fullfile(dirName, strcat(strrep(filemot,'.mat','.jmag'),'.jproj')),full
 
 % plot and save figs
 delta_sim_singt = 360;
-plot_singt(out,delta_sim_singt,newDir,filemot);
+
+if(isnan(n3ph))
+    plot_singt_5(out,delta_sim_singt,newDir,filemot);
+else
+    plot_singt(out,delta_sim_singt,newDir,filemot);
+end
+
 if delta_sim_singt==360
     plot_singtIron(geo,out,newDir,filemot);
 end

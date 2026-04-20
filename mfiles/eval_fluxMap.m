@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [NewDir] = eval_fluxMap(dataIn)
+function [NewDir] = eval_fluxMap(dataIn,flagPlot)
 
 % calculates the flux map(id,iq) of an existing machine
 % regular grid of (id,iq) combinations, d,q flux linkages versus id,iq
@@ -27,6 +27,10 @@ function [NewDir] = eval_fluxMap(dataIn)
 %             AngularSpanPP: angular span of simulation
 %             NumGrid: number of points in [0 Imax] for the single machine post-processing
 %=========================================================================
+
+if nargin()==1
+    flagPlot = 1;
+end
 
 if isfield(dataIn,'flagHWCMap')
     dataIntmp = dataIn;
@@ -56,7 +60,16 @@ per.flag3phaseSet = dataIn.Active3PhaseSets;
 per.EvalSpeed = dataIn.EvalSpeed;
 per = rmfield(per,'custom_act');
 
+geo.XFEMMsimulation = dataIn.XFEMMsimulation;
+
 MapQuadrants = dataIn.MapQuadrants;
+MapType = 'grid';
+% MapType = 'sobol';
+
+
+if strcmp(MapType,'sobol')
+    warning('Reference current grid computed with Sobol set')
+end
 
 clc;
 
@@ -121,7 +134,7 @@ if isfield(dataIn,'flagHWCMap')
     NumGridPM = ceil(dataIn.SimulatedCurrent_HWC/CurrStep);
     if strcmp(dataIn.axisType,'PM')
         idvect = linspace(-abs(dataIn.SimulatedCurrent_HWC),SimulatedCurrent,NumGrid+NumGridPM-1);
-%         idvect = linspace(-SimulatedCurrent,dataIn.SimulatedCurrent_HWC,NumGrid+NumGridPM-1);
+        %         idvect = linspace(-SimulatedCurrent,dataIn.SimulatedCurrent_HWC,NumGrid+NumGridPM-1);
         iqvect = linspace(0,SimulatedCurrent,NumGrid);
     else
         idvect = linspace(0,SimulatedCurrent,NumGrid);
@@ -140,7 +153,23 @@ end
 if strcmp(geo.RotType,'EESM')
     [Id,Iq,If] = meshgrid(idvect,iqvect,ifvect);
 else
-    [Id,Iq] = meshgrid(idvect,iqvect);
+    if strcmp(MapType,'grid')
+        [Id,Iq] = meshgrid(idvect,iqvect);
+    elseif strcmp(MapType,'sobol')
+        [Id,Iq] = meshgrid(idvect,iqvect);
+        nPoints = numel(Id);
+        clear Id Iq
+        Id = [idvect,zeros(size(iqvect))];
+        Iq = [zeros(size(idvect)),iqvect];
+        nPoints = nPoints-numel(Id);
+        pSobol = sobolset(2);
+        pSobol = scramble(pSobol,'MatousekAffineOwen');
+        X = net(pSobol,nPoints);
+        % Id = [Id, X(:,1)'*(max(idvect)-min(idvect))+(max(idvect)+min(idvect))/2];
+        % Iq = [Iq, X(:,2)'*(max(iqvect)-min(iqvect))+(max(iqvect)+min(iqvect))/2];
+        Id = [Id, X(:,1)'*(max(idvect)-min(idvect))+min(idvect)];
+        Iq = [Iq, X(:,2)'*(max(iqvect)-min(iqvect))+min(iqvect)];
+    end
 end
 
 I = Id + 1i * Iq;
@@ -169,7 +198,7 @@ numWidth = 4; %For text displacement in the command window
 parfor ii=1:length(iVect)
     perTmp = per;
     if strcmp(geo.RotType,'EESM')
-        fprintf('Evaluation of position   I: %-*g A   gamma: %-*g °   If: %-*g A\n', 5, round(iVect(ii),1), 4, round(gVect(ii),1), 4, round(fVect(ii),1));
+        fprintf('Evaluation of position   I: %-*g A   gamma: %-*g °   If: %-*g A\n', 5, round(iVect(ii),4,'significant'), 4, round(gVect(ii),3,'significant'), 4, round(fVect(ii),3,'significant'));
         % disp(['Evaluation of position   I:',num2str(round(iVect(ii),1)),'A  gamma:',num2str(round(gVect(ii),1)),'°  If:',num2str(round(fVect(ii),1)),'A']);
         perTmp.if = fVect(ii);
     else
@@ -184,15 +213,15 @@ Id = Id(:);
 Iq = Iq(:);
 if strcmp(geo.RotType,'EESM')
     If   = If(:);
-    Fr  = zeros(size(Id)); % Fdr / Fqr - Vr?    
+    Fr  = zeros(size(Id)); % Fdr / Fqr - Vr?
 end
 Fd   = zeros(size(Id));
 Fq   = zeros(size(Id));
 T    = zeros(size(Id));
 dT   = zeros(size(Id));
 dTpp = zeros(size(Id));
-We   = zeros(size(Id));
-Wc   = zeros(size(Id));
+% We   = zeros(size(Id));
+% Wc   = zeros(size(Id));
 SOL  = cell(size(Id));
 if isfield(OUT{1},'Pfes_h')
     Pfes_h = zeros(size(Id));
@@ -219,10 +248,10 @@ for ii=1:length(Id)
     T(ii)    = OUT{ii}.T;
     dT(ii)   = OUT{ii}.dT;
     dTpp(ii) = OUT{ii}.dTpp;
-    We(ii)   = OUT{ii}.We;
-    Wc(ii)   = OUT{ii}.Wc;
+    % We(ii)   = OUT{ii}.We;
+    % Wc(ii)   = OUT{ii}.Wc;
     SOL{ii}  = OUT{ii}.SOL;
-    
+
     if isfield(OUT{ii},'Pfes_h')
         Pfes_h(ii) = OUT{ii}.Pfes_h;
         Pfes_c(ii) = OUT{ii}.Pfes_c;
@@ -243,98 +272,134 @@ for ii=1:length(Id)
     end
 end
 
-if strcmp(geo.RotType,'EESM')
-    Id   = reshape(Id,[nR,nC,nF]);
-    Iq   = reshape(Iq,[nR,nC,nF]);
-    If   = reshape(If,[nR,nC,nF]);
-    Fd   = reshape(Fd,[nR,nC,nF]);
-    Fq   = reshape(Fq,[nR,nC,nF]);
-    T    = reshape(T,[nR,nC,nF]);
-    dT   = reshape(dT,[nR,nC,nF]);
-    dTpp = reshape(dTpp,[nR,nC,nF]);
-    We   = reshape(We,[nR,nC,nF]);
-    Wc   = reshape(Wc,[nR,nC,nF]);
-    SOL  = reshape(SOL,[nR,nC,nF]);
+if strcmp(MapType,'grid')
+    if strcmp(geo.RotType,'EESM')
+        Id   = reshape(Id,[nR,nC,nF]);
+        Iq   = reshape(Iq,[nR,nC,nF]);
+        If   = reshape(If,[nR,nC,nF]);
+        Fd   = reshape(Fd,[nR,nC,nF]);
+        Fq   = reshape(Fq,[nR,nC,nF]);
+        T    = reshape(T,[nR,nC,nF]);
+        dT   = reshape(dT,[nR,nC,nF]);
+        dTpp = reshape(dTpp,[nR,nC,nF]);
+        % We   = reshape(We,[nR,nC,nF]);
+        % Wc   = reshape(Wc,[nR,nC,nF]);
+        SOL  = reshape(SOL,[nR,nC,nF]);
 
-    if isfield(OUT{1},'Pfes_h')
-        Pfes_h = reshape(Pfes_h,[nR,nC,nF]);
-        Pfes_c = reshape(Pfes_c,[nR,nC,nF]);
-        Pfer_h = reshape(Pfer_h,[nR,nC,nF]);
-        Pfer_c = reshape(Pfer_c,[nR,nC,nF]);
-        Ppm    = reshape(Ppm,[nR,nC,nF]);
+        if isfield(OUT{1},'Pfes_h')
+            Pfes_h = reshape(Pfes_h,[nR,nC,nF]);
+            Pfes_c = reshape(Pfes_c,[nR,nC,nF]);
+            Pfer_h = reshape(Pfer_h,[nR,nC,nF]);
+            Pfer_c = reshape(Pfer_c,[nR,nC,nF]);
+            Ppm    = reshape(Ppm,[nR,nC,nF]);
+        end
+
+    else
+        Id   = reshape(Id,[nR,nC]);
+        Iq   = reshape(Iq,[nR,nC]);
+        Fd   = reshape(Fd,[nR,nC]);
+        Fq   = reshape(Fq,[nR,nC]);
+        T    = reshape(T,[nR,nC]);
+        dT   = reshape(dT,[nR,nC]);
+        dTpp = reshape(dTpp,[nR,nC]);
+        % We   = reshape(We,[nR,nC]);
+        % Wc   = reshape(Wc,[nR,nC]);
+        SOL  = reshape(SOL,[nR,nC]);
+
+        if isfield(OUT{1},'Pfes_h')
+            Pfes_h = reshape(Pfes_h,[nR,nC]);
+            Pfes_c = reshape(Pfes_c,[nR,nC]);
+            Pfer_h = reshape(Pfer_h,[nR,nC]);
+            Pfer_c = reshape(Pfer_c,[nR,nC]);
+            Ppm    = reshape(Ppm,[nR,nC]);
+        end
+
+        if isfield(OUT{1},'IM')
+            Ir      = reshape(Ir,[nR,nC]);
+            Fdr     = reshape(Fdr,[nR,nC]);
+            Fqr     = reshape(Fqr,[nR,nC]);
+            kr      = reshape(kr,[nR,nC]);
+            Ibar    = reshape(Ibar,[nR,nC]);
+            Vbar    = reshape(Vbar,[nR,nC]);
+            Fbar    = reshape(Fbar,[nR,nC]);
+            FbarTot = reshape(FbarTot,[nR,nC]);
+        end
     end
 
+
+
+    F_map.Id   = Id;
+    F_map.Iq   = Iq;
+    F_map.Fd   = Fd;
+    F_map.Fq   = Fq;
+    F_map.T    = T;
+    F_map.dT   = dT;
+    F_map.dTpp = dTpp;
+    % F_map.We   = We;
+    % F_map.Wc   = Wc;
+    if strcmp(geo.RotType,'EESM')
+        F_map.If   = If;
+    end
+
+    if exist('Pfes_h','var')
+        F_map.Pfes_h = Pfes_h;
+        F_map.Pfes_c = Pfes_c;
+        F_map.Pfer_h = Pfer_h;
+        F_map.Pfer_c = Pfer_c;
+        F_map.Ppm    = Ppm;
+        F_map.Pfe    = Pfes_h+Pfes_c+Pfer_h+Pfer_c;
+        F_map.velDim = velDim;
+    end
+
+    if exist('Ir','var')
+        F_map.IM.Ir  = Ir;
+        F_map.IM.Fdr = Fdr;
+        F_map.IM.Fqr = Fqr;
+        F_map.IM.kr  = kr;
+
+        F_map.bar.I    = Ibar;
+        F_map.bar.V    = Vbar;
+        F_map.bar.F    = Fbar;
+        F_map.bar.Ftot = FbarTot;
+
+        [F_map] = elab_Fmap_IM(F_map,geo,per);
+
+    end
 else
-    Id   = reshape(Id,[nR,nC]);
-    Iq   = reshape(Iq,[nR,nC]);
-    Fd   = reshape(Fd,[nR,nC]);
-    Fq   = reshape(Fq,[nR,nC]);
-    T    = reshape(T,[nR,nC]);
-    dT   = reshape(dT,[nR,nC]);
-    dTpp = reshape(dTpp,[nR,nC]);
-    We   = reshape(We,[nR,nC]);
-    Wc   = reshape(Wc,[nR,nC]);
-    SOL  = reshape(SOL,[nR,nC]);
-
-    if isfield(OUT{1},'Pfes_h')
-        Pfes_h = reshape(Pfes_h,[nR,nC]);
-        Pfes_c = reshape(Pfes_c,[nR,nC]);
-        Pfer_h = reshape(Pfer_h,[nR,nC]);
-        Pfer_c = reshape(Pfer_c,[nR,nC]);
-        Ppm    = reshape(Ppm,[nR,nC]);
+    F_map.Id   = Id;
+    F_map.Iq   = Iq;
+    F_map.Fd   = Fd;
+    F_map.Fq   = Fq;
+    F_map.T    = T;
+    F_map.dT   = dT;
+    F_map.dTpp = dTpp;
+    % F_map.We   = We;
+    % F_map.Wc   = Wc;
+    if strcmp(geo.RotType,'EESM')
+        F_map.If   = If;
     end
-    
-    if isfield(OUT{1},'IM')
-        Ir      = reshape(Ir,[nR,nC]);
-        Fdr     = reshape(Fdr,[nR,nC]);
-        Fqr     = reshape(Fqr,[nR,nC]);
-        kr      = reshape(kr,[nR,nC]);
-        Ibar    = reshape(Ibar,[nR,nC]);
-        Vbar    = reshape(Vbar,[nR,nC]);
-        Fbar    = reshape(Fbar,[nR,nC]);
-        FbarTot = reshape(FbarTot,[nR,nC]);
+    if exist('Pfes_h','var')
+        F_map.Pfes_h = Pfes_h;
+        F_map.Pfes_c = Pfes_c;
+        F_map.Pfer_h = Pfer_h;
+        F_map.Pfer_c = Pfer_c;
+        F_map.Ppm    = Ppm;
+        F_map.Pfe    = Pfes_h+Pfes_c+Pfer_h+Pfer_c;
+        F_map.velDim = velDim;
+    end
+
+    if exist('Ir','var')
+        F_map.IM.Ir  = Ir;
+        F_map.IM.Fdr = Fdr;
+        F_map.IM.Fqr = Fqr;
+        F_map.IM.kr  = kr;
+
+        F_map.bar.I    = Ibar;
+        F_map.bar.V    = Vbar;
+        F_map.bar.F    = Fbar;
+        F_map.bar.Ftot = FbarTot;
     end
 end
-
-
-F_map.Id   = Id;
-F_map.Iq   = Iq;
-F_map.Fd   = Fd;
-F_map.Fq   = Fq;
-F_map.T    = T;
-F_map.dT   = dT;
-F_map.dTpp = dTpp;
-F_map.We   = We;
-F_map.Wc   = Wc;
-if strcmp(geo.RotType,'EESM')
-    F_map.If   = If;
-end
-
-if exist('Pfes_h','var')
-    F_map.Pfes_h = Pfes_h;
-    F_map.Pfes_c = Pfes_c;
-    F_map.Pfer_h = Pfer_h;
-    F_map.Pfer_c = Pfer_c;
-    F_map.Ppm    = Ppm;
-    F_map.Pfe    = Pfes_h+Pfes_c+Pfer_h+Pfer_c;
-    F_map.velDim = velDim;
-end
-
-if exist('Ir','var')
-    F_map.IM.Ir  = Ir;
-    F_map.IM.Fdr = Fdr;
-    F_map.IM.Fqr = Fqr;
-    F_map.IM.kr  = kr;
-
-    F_map.bar.I    = Ibar;
-    F_map.bar.V    = Vbar;
-    F_map.bar.F    = Fbar;
-    F_map.bar.Ftot = FbarTot;
-
-    [F_map] = elab_Fmap_IM(F_map,geo,per);
-
-end
-
 % results folder
 Idstr=num2str(max(abs(idvect)),3); Idstr = strrep(Idstr,'.','A');
 Iqstr=num2str(max(abs(iqvect)),3); Iqstr = strrep(Iqstr,'.','A');
@@ -384,10 +449,12 @@ end
 
 % interp and then plots the magnetic curves
 
-if strcmp(geo.RotType,'EESM')
-    plot_singm3D(F_map,NewDir);
-else
-    plot_singm(F_map,NewDir);
+if strcmp(MapType,'grid')
+    if strcmp(geo.RotType,'EESM')
+        plot_singm3D(F_map,NewDir,flagPlot);
+    else
+        plot_singm(F_map,NewDir,flagPlot);
+    end
 end
 
 % add motor information to flux map files
@@ -402,7 +469,13 @@ dataSet.EvalSpeed        = per.EvalSpeed;
 dataSet.axisType         = dataIn.axisType;
 
 save([NewDir,'F_map','.mat'],'dataSet','geo','per','mat','-append');
-save([NewDir,'fdfq_idiq_n256.mat'],'dataSet','geo','per','mat','-append'); 
+if strcmp(MapType,'grid')
+    if strcmp(geo.RotType,'EESM')
+        save([NewDir,'fdfq_idiq_n41.mat'],'dataSet','geo','per','mat','-append');
+    else
+        save([NewDir,'fdfq_idiq_n256.mat'],'dataSet','geo','per','mat','-append');
+    end
+end
 
 if nargout()==0
     clear NewDir

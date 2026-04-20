@@ -31,6 +31,9 @@ else
         IronLossModel.n0     = velDim;
         IronLossModel.Id     = Id;
         IronLossModel.Iq     = Iq;
+        if exist('Ir','var')
+            IronLossModel.Ir     = Ir;
+        end
         
         if exist('geo','var') % from FEA simulations
             p = geo.p;

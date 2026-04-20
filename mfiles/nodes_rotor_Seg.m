@@ -22,7 +22,7 @@ pontT           = geo.pontT;            % Airgap ribs [mm]
 p               = geo.p;                % Paia poli
 nlay            = geo.nlay;             % N° layers
 dalpha          = geo.dalpha;           % Angoli dalpha
-alpha           = cumsum(dalpha); 
+alpha           = cumsum(dalpha);
 dx              = geo.dx;
 dxIB            = geo.dxIB;
 kOB             = geo.kOB;
@@ -45,7 +45,7 @@ YpBar1 = zeros(1,nlay);
 XpBar2 = zeros(1,nlay);
 YpBar2 = zeros(1,nlay);
 
-xxD1k = zeros(1,nlay); 
+xxD1k = zeros(1,nlay);
 yyD1k = zeros(1,nlay);
 xxD2k = zeros(1,nlay);
 yyD2k = zeros(1,nlay);
@@ -63,7 +63,7 @@ yRaccR1_B2 = NaN(1,nlay);
 xRaccR2_B2 = NaN(1,nlay);
 yRaccR2_B2 = NaN(1,nlay);
 
-%%%Tangential Rotor Fillet 
+%%%Tangential Rotor Fillet
 xC1k  = nan(1,nlay);
 yC1k  = nan(1,nlay);
 xC2k  = nan(1,nlay);
@@ -83,11 +83,11 @@ LowDimBarrier = zeros(1,nlay);
 % new rotor radius: sleeve thickness is inside the rotor space
 % r = r-hs;
 
-%% Computation of the circumferences centered in (x0,0) to draw the barriers 
+%% Computation of the circumferences centered in (x0,0) to draw the barriers
 
 % Find xpont ypont
-beta = 180/pi * calc_apertura_cerchio(pi/180*alpha,r,x0);      
-rbeta = (x0 - r * cos(alpha*pi/180))./(cos(beta*pi/180)); 
+beta = 180/pi * calc_apertura_cerchio(pi/180*alpha,r,x0);
+rbeta = (x0 - r * cos(alpha*pi/180))./(cos(beta*pi/180));
 [xpont,ypont] = calc_intersezione_cerchi(r-pontT-hs, rbeta, x0);
 
 % Check
@@ -160,32 +160,32 @@ xTraf2 = (-b-sqrt(round((b.^2-4*a.*c),3)))./(2*a);
 yTraf2 = m.*xTraf2+q;
 
 %% Inner branch radial shift [mm]
-hfe_min_check = hfe_min*3;
+hfe_min_check = hfe_min*5;
 
 if any(dxIB)
     B1k_old=B1k;
-    
+
     B1k=B1k+dxIB;
     B2k=B2k+dxIB;
-    
+
     % Check first barrier
     if B2k(1)>xTraf2(1)
         B2k(1)=xTraf2(1)-pont0/2;
         B1k(1)=B2k(1)-hc(1);
     end
-    
+
     % Check interference between last barrier and the shaft
     if B1k(end)<Ar
         B1k(end) = Ar+hfe_min_check;
         B2k(end) = B1k(end)+hc(end);
     end
-    
+
     % Check if the barrier can fit between B1k and xTraf2
     if B1k(end)+sum(hc)+hfe_min*(nlay-1)>xTraf2(1)
         B1k(end)= xTraf2(1) - (sum(hc)+hfe_min*(nlay));
         B2k(end)= B1k(end)+hc(end);
     end
-    
+
     % Apply the chosen dxIB
     for ii=1:(nlay-1)
         if B1k(ii)<B2k(ii+1)+hfe_min_check
@@ -197,7 +197,7 @@ if any(dxIB)
                 B2k(ii+1)=B1k(ii)-hfe_min_check;
                 B1k(ii+1)=B2k(ii+1)-hc(ii+1);
             end
-            for jj=ii:-1:2          
+            for jj=ii:-1:2
                 if B2k(jj)>B1k(jj-1)-hfe_min_check
                     B1k(jj-1)=B2k(jj)+hfe_min_check;
                     B2k(jj-1)=B1k(jj-1)+hc(jj-1);
@@ -205,7 +205,7 @@ if any(dxIB)
             end
         end
     end
-end    
+end
 
 % Check if the YBar has a negative value
 m = tan(pi/2/p+delta_FBS/2)*ones(1,nlay);
@@ -226,7 +226,7 @@ B2k(ii) = xpont(ii);
 B1k(ii) = B2k(ii)-hc(ii);
 
 if any(dxIB)
-    dxIB = round(B1k-B1k_old,2);
+    dxIB = floor((B1k-B1k_old)*100)/100;
 end
 
 %% Elbow definition
@@ -284,55 +284,56 @@ c2 = (yTraf1-m.*xTraf1);
 [XpBar1(ii),YpBar1(ii)] = intersezione_tra_rette(a1(ii),b1(ii),c1(ii),a2(ii),b2(ii),c2(ii));
 
 
-%Check hc shrink interference
-if any(hcShrink_val)   
-for jj = nlay:-1:2
-    if(m(jj)*XpBar1(jj-1)+q(jj)<YpBar1(jj-1))
-        YpBar2(jj) = YpBar1(jj-1)+hfe_min;
+%% Check hc shrink interference
+if any(hcShrink_val)
+    for jj = nlay:-1:2
+        if(m(jj)*XpBar1(jj-1)+q(jj)<YpBar1(jj-1))
+            YpBar2(jj) = YpBar1(jj-1)+hfe_min;
+        end
     end
+
+    flag_V = zeros(1,nlay);
+    flag_V(YpBar2<=geo.pontR+pont0 & hcShrink_val~=0) = 1;
+    flag_V(hcShrink_val==YpBar2_old)=1;
+    [a,b,c] = retta_per_2pti(XpBar2,YpBar2,xTraf2,yTraf2);
+    [m,q,~] = retta_abc2mq(a,b,c);
+    hcAngle = atan(m);
+    B1k(flag_V==1) = B2k(flag_V==1) - hc(flag_V==1)./sin(hcAngle(flag_V==1));
+    B1k(flag_V==0) = B1k_old(flag_V==0);
+
+    mTraf = -m.^-1;
+    qTraf = yTraf2-mTraf.*xTraf2;
+
+    a = (1+mTraf.^2);
+    b = -2*xTraf2+2*mTraf.*(qTraf-yTraf2);
+    c = -hc.*hc+xTraf2.^2+(qTraf-yTraf2).^2;
+    xTraf1_new = (-b-sqrt(b.^2-4*a.*c))./(2*a);
+    yTraf1_new = mTraf.*xTraf1_new+qTraf;
+
+    xTraf1(hcShrink_val~=0) = xTraf1_new(hcShrink_val~=0);
+    yTraf1(hcShrink_val~=0) = yTraf1_new(hcShrink_val~=0);
+
+    % Compute pBar1
+    XpBar1(LowDimBarrier>0) = B1k(LowDimBarrier>0);
+    YpBar1(LowDimBarrier>0) = 0;
+    a1 = ones(1,nlay);
+    b1 = zeros(1,nlay);
+    c1 = -B1k;
+    a2 = m;
+    b2 = -ones(1,nlay);
+    c2 = (yTraf1-m.*xTraf1);
+    [XpBar1(ii),YpBar1(ii)] = intersezione_tra_rette(a1(ii),b1(ii),c1(ii),a2(ii),b2(ii),c2(ii));
 end
 
-flag_V = zeros(1,nlay);
-flag_V(YpBar2<=geo.pontR+pont0 & hcShrink_val~=0) = 1;
-flag_V(hcShrink_val==YpBar2_old)=1;
-[a,b,c] = retta_per_2pti(XpBar2,YpBar2,xTraf2,yTraf2);
-[m,q,~] = retta_abc2mq(a,b,c);
-hcAngle = atan(m);
-B1k(flag_V==1) = B2k(flag_V==1) - hc(flag_V==1)./sin(hcAngle(flag_V==1));
-B1k(flag_V==0) = B1k_old(flag_V==0);
-
-mTraf = -m.^-1;
-qTraf = yTraf2-mTraf.*xTraf2;
-
-a = (1+mTraf.^2);
-b = -2*xTraf2+2*mTraf.*(qTraf-yTraf2);
-c = -hc.*hc+xTraf2.^2+(qTraf-yTraf2).^2;
-xTraf1_new = (-b-sqrt(b.^2-4*a.*c))./(2*a);
-yTraf1_new = mTraf.*xTraf1_new+qTraf;
-
-xTraf1(hcShrink_val~=0) = xTraf1_new(hcShrink_val~=0);
-yTraf1(hcShrink_val~=0) = yTraf1_new(hcShrink_val~=0);
-
-% Compute pBar1
-XpBar1(LowDimBarrier>0) = B1k(LowDimBarrier>0);
-YpBar1(LowDimBarrier>0) = 0;
-a1 = ones(1,nlay);
-b1 = zeros(1,nlay);
-c1 = -B1k;
-a2 = m;
-b2 = -ones(1,nlay);
-c2 = (yTraf1-m.*xTraf1);
-[XpBar1(ii),YpBar1(ii)] = intersezione_tra_rette(a1(ii),b1(ii),c1(ii),a2(ii),b2(ii),c2(ii));
-end
 
 % Compute D1k D2k
 xxD1k(LowDimBarrier>0) = B1k(LowDimBarrier>0);
 yyD1k(LowDimBarrier>0) = 0;
-[xxD1k(ii),yyD1k(ii),XcRibTraf1(ii),YcRibTraf1(ii),~] = tg_cir(XpBar1(ii),YpBar1(ii),xTraf1(ii),yTraf1(ii),xpont(ii),ypont(ii));  
+[xxD1k(ii),yyD1k(ii),XcRibTraf1(ii),YcRibTraf1(ii),~] = tg_cir(XpBar1(ii),YpBar1(ii),xTraf1(ii),yTraf1(ii),xpont(ii),ypont(ii));
 
 xxD2k(LowDimBarrier>0) = B2k(LowDimBarrier>0);
 yyD2k(LowDimBarrier>0) = 0;
-[xxD2k(ii),yyD2k(ii),XcRibTraf2(ii),YcRibTraf2(ii),~] = tg_cir(XpBar2(ii),YpBar2(ii),xTraf2(ii),yTraf2(ii),xpont(ii),ypont(ii));  
+[xxD2k(ii),yyD2k(ii),XcRibTraf2(ii),YcRibTraf2(ii),~] = tg_cir(XpBar2(ii),YpBar2(ii),xTraf2(ii),yTraf2(ii),xpont(ii),ypont(ii));
 
 % Check D2k
 ii = (xxD2k<=XpBar2 & XpBar2>xpont & LowDimBarrier==1);
@@ -358,12 +359,12 @@ end
 
 %if any(hcShrink_val) & any(flag_Vkdx==0)
 ii = ((hcShrink_val>0) & (flag_Vkdx==0));
-    hcShrink(ii) = round((YpBar2_old(ii) - YpBar2(ii))./YpBar2_old(ii),2);
+hcShrink(ii) = round((YpBar2_old(ii) - YpBar2(ii))./YpBar2_old(ii),2);
 %else
 %hcShrink(hcShrink<0)=0;
-    %hcShrink(ii==0) = 0;
+%hcShrink(ii==0) = 0;
 %end
-%% No Vagati's Finger
+%% Straight ribs
 
 RotorFilletTan2(isfinite(RotorFilletTan1) & ~isfinite(RotorFilletTan2)) =   RotorFilletTan1(isfinite(RotorFilletTan1) & ~isfinite(RotorFilletTan2));
 RotorFilletTan1(isfinite(RotorFilletTan2) & ~isfinite(RotorFilletTan1)) =   RotorFilletTan2(isfinite(RotorFilletTan2) & ~isfinite(RotorFilletTan1));
@@ -440,7 +441,7 @@ temp.yyD2k  = yyD2k;
 
 %Shrink
 temp.hcAngle = hcAngle;
-temp.flag_segV = flag_V; 
+temp.flag_segV = flag_V;
 
 [temp,geo] = calc_ribs_rad_Seg(geo,mat,temp);
 
@@ -451,14 +452,14 @@ end
 if (LowDimBarrier(1)==1)
     temp.xc=(xxD1k(2:end)+xxD2k(2:end))/2;
     temp.yc=(yyD1k(2:end)+yyD2k(2:end))/2;
-    
+
 else
     temp.xc=(xxD1k+xxD2k)/2;
     temp.yc=(yyD1k+yyD2k)/2;
 end
 
 
-%% temp 
+%% temp
 temp.Bx0 = Bx0;
 
 temp.XcRacc_B1  = XcRacc_B1;
@@ -494,7 +495,7 @@ if strcmp(mat.LayerMag.MatName,'Air')
 end
 
 temp.LowDimBarrier = LowDimBarrier;
-hf = [r,B1k]-[B2k,Ar]; 
+hf = [r,B1k]-[B2k,Ar];
 geo.hf = hf;
 
 % barrier transverse dimension (for permeance evaluation)
@@ -529,10 +530,12 @@ geo.yyD2k = yyD2k;
 geo.CentBarLength = temp.YpontSplitBarSx(2,:)*2;
 geo.hrheight      = temp.XpontSplitDx(2,:)-temp.XpontSplitSx(2,:);
 
-geo.XpontRadDx      = temp.XpontRadDx;   
-geo.YpontRadDx      = temp.YpontRadDx;   
-geo.XpontRadSx      = temp.XpontRadSx;   
-geo.YpontRadSx      = temp.YpontRadSx;   
+geo.hc_pu = hc2hcpu(geo);
+
+geo.XpontRadDx      = temp.XpontRadDx;
+geo.YpontRadDx      = temp.YpontRadDx;
+geo.XpontRadSx      = temp.XpontRadSx;
+geo.YpontRadSx      = temp.YpontRadSx;
 geo.XpontRadBarDx   = temp.XpontRadBarDx;
 geo.XpontRadBarSx   = temp.XpontRadBarSx;
 geo.YpontRadBarDx   = temp.YpontRadBarDx;
@@ -543,8 +546,8 @@ geo.YpontSplitBarSx =  temp.YpontSplitBarSx;
 geo.XpontSplitBarDx =  temp.XpontSplitBarDx;
 geo.YpontSplitBarDx =  temp.YpontSplitBarDx;
 geo.XpontSplitDx    =  temp.XpontSplitDx;
-geo.YpontSplitDx    =  temp.YpontSplitDx;   
-geo.XpontSplitSx    =  temp.XpontSplitSx;   
+geo.YpontSplitDx    =  temp.YpontSplitDx;
+geo.XpontSplitSx    =  temp.XpontSplitSx;
 geo.YpontSplitSx    =  temp.YpontSplitSx;
 
 temp.xC1k  = xC1k;

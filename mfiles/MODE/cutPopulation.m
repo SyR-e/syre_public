@@ -20,7 +20,7 @@ function f  = cutPopulation(intermediatePopulation, objNumber, varNumber, popula
 % exceeding the population size. At this point the chromosomes in that
 % front is added subsequently to the population based on crowding distance.
 
-[N] = size(intermediatePopulation);
+[N] = size(intermediatePopulation,1);
 
 % Get the index for the population sort based on the rank
 [~,index] = sort(intermediatePopulation(:,objNumber + varNumber + 1));
