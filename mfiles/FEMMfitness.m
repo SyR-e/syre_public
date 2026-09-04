@@ -27,6 +27,12 @@ filename = [filename ext]; % fem file name
 
 [~,pathname]=createTempDir();
 
+flagCharger = false;
+if isfield(per,'rotorPos')
+    if(~isnan(per.rotorPos))
+        flagCharger = true;
+    end
+end
 
 if ~isempty(RQ)
 
@@ -87,7 +93,14 @@ else
 end
 
 mat.LayerMag.Br = per.BrPP;
-mat.LayerMag.Hc = per.BrPP/(4e-7*pi*mat.LayerMag.mu);
+
+%tale definizione vale unicamente se abbiamo un materiale lineare nel
+%secondo quadrante:
+
+%MODIFICHE APPORTATE:
+if ~strcmp(eval_type,'first_mag') && ~strcmp(eval_type,'idemag_non_linear_Node')
+    mat.LayerMag.Hc = per.BrPP/(4e-7*pi*mat.LayerMag.mu);
+end
 
 flagSim = 1;
 if ~isempty(RQ)
@@ -170,7 +183,7 @@ if flagSim
     else
         runSimFlag=1;
         if geo.XFEMMsimulation
-            if strcmp(geo.RotType,'EESM')
+            if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType, 'Hybrid')
                 if per.overload==0 && per.if==0
                     runSimFlag=0;
                     SOL.th = per.offset:per.delta_sim_singt/per.nsim_singt:per.delta_sim_singt+per.offset;
@@ -314,14 +327,26 @@ if flagSim
     out.dTpu   = std(SOL.T)/out.T;                                  % [pu]
     out.dTpp   = max(SOL.T)-min(SOL.T);                             % [Nm]
     
-    if(isnan(geo.win.n3phase))
-        if(per.custom_act)
+    if(flagCharger)
+        if(isnan(geo.win.n3phase))
             out.T = SOL.T;
             out.ia = SOL.ia;
             out.ib = SOL.ib;
             out.ic = SOL.ic;
             out.id = SOL.id;
             out.ie = SOL.ie;
+            out.parms = SOL.parms;
+            out.perf = SOL.perf;
+        else
+            out.T = SOL.T;
+            out.ia = SOL.ia;
+            out.ib = SOL.ib;
+            out.ic = SOL.ic;
+            out.id = SOL.id;
+            out.ie = SOL.ie;    
+            out.if = SOL.if;
+            out.parms = SOL.parms;
+            out.perf = SOL.perf;
         end
     end
     
@@ -329,30 +354,63 @@ if flagSim
     out.Wc     = mean(SOL.wc);                                      % [J]
     out.SOL    = SOL;
 
-    if(isnan(geo.win.n3phase))
+    if(flagCharger)
+        if(isnan(geo.win.n3phase))
+    
+            out.id1     = mean(SOL.id1(:));                                   % [A]
+            out.iq1     = mean(SOL.iq1(:));                                   % [A]
+            out.id3     = mean(SOL.id3(:));                                   % [A]
+            out.iq3     = mean(SOL.iq3(:));                                   % [A
+            out.io     = mean(SOL.io(:));                                   % [A]
+            out.fd1     = mean(SOL.fd1);                                      % [Vs]
+            out.fq1     = mean(SOL.fq1);                                      % [Vs]
+            out.fd3     = mean(SOL.fd3);                                      % [Vs]
+            out.fq3     = mean(SOL.fq3);                                      % [Vs]
+            out.fo     = mean(SOL.fo);                                      % [Vs]
+    
+            out.IPF    = sin(atan2(out.iq1,out.id1)-atan2(out.fq1,out.fd1));
+        else
+            out.ida     = mean(SOL.ida(:));                                   % [A]
+            out.iqa     = mean(SOL.iqa(:));                                   % [A]
+            out.idb     = mean(SOL.idb(:));                                   % [A]
+            out.iqb     = mean(SOL.iqb(:));                                   % [A
+            out.ioa     = mean(SOL.ioa(:));                                   % [A]
+            out.iob     = mean(SOL.iob(:));                                   % [A]
+            out.fda     = mean(SOL.fda);                                      % [Vs]
+            out.fqa     = mean(SOL.fqa);                                      % [Vs]
+            out.fdb     = mean(SOL.fdb);                                      % [Vs]
+            out.fqb     = mean(SOL.fqb);                                      % [Vs]
+            out.foa     = mean(SOL.foa);                                      % [Vs]
+            out.fob     = mean(SOL.fob);
 
-        out.id1     = mean(SOL.id1(:));                                   % [A]
-        out.iq1     = mean(SOL.iq1(:));                                   % [A]
-        out.id3     = mean(SOL.id3(:));                                   % [A]
-        out.iq3     = mean(SOL.iq3(:));                                   % [A
-        out.io     = mean(SOL.io(:));                                   % [A]
-        out.fd1     = mean(SOL.fd1);                                      % [Vs]
-        out.fq1     = mean(SOL.fq1);                                      % [Vs]
-        out.fd3     = mean(SOL.fd3);                                      % [Vs]
-        out.fq3     = mean(SOL.fq3);                                      % [Vs]
-        out.fo     = mean(SOL.fo);                                      % [Vs]
-
-        out.IPF    = sin(atan2(out.iq1,out.id1)-atan2(out.fq1,out.fd1));
-
+            out.IPF    = sin(atan2(out.iqa,out.ida)-atan2(out.fqa,out.fda));
+        end
     else
-        out.id     = mean(SOL.id(:));                                   % [A]
-        out.iq     = mean(SOL.iq(:));                                   % [A]
-        out.io     = mean(SOL.io(:));                                   % [A]
-        out.fd     = mean(SOL.fd);                                      % [Vs]
-        out.fq     = mean(SOL.fq);                                      % [Vs]
-        out.fo     = mean(SOL.fo);                                      % [Vs]
-
-        out.IPF    = sin(atan2(out.iq,out.id)-atan2(out.fq,out.fd));
+        if(isnan(geo.win.n3phase))
+    
+            out.id1     = mean(SOL.id1(:));                                   % [A]
+            out.iq1     = mean(SOL.iq1(:));                                   % [A]
+            out.id3     = mean(SOL.id3(:));                                   % [A]
+            out.iq3     = mean(SOL.iq3(:));                                   % [A
+            out.io     = mean(SOL.io(:));                                   % [A]
+            out.fd1     = mean(SOL.fd1);                                      % [Vs]
+            out.fq1     = mean(SOL.fq1);                                      % [Vs]
+            out.fd3     = mean(SOL.fd3);                                      % [Vs]
+            out.fq3     = mean(SOL.fq3);                                      % [Vs]
+            out.fo     = mean(SOL.fo);                                      % [Vs]
+    
+            out.IPF    = sin(atan2(out.iq1,out.id1)-atan2(out.fq1,out.fd1));
+    
+        else
+            out.id     = mean(SOL.id(:));                                   % [A]
+            out.iq     = mean(SOL.iq(:));                                   % [A]
+            out.io     = mean(SOL.io(:));                                   % [A]
+            out.fd     = mean(SOL.fd);                                      % [Vs]
+            out.fq     = mean(SOL.fq);                                      % [Vs]
+            out.fo     = mean(SOL.fo);                                      % [Vs]
+    
+            out.IPF    = sin(atan2(out.iq,out.id)-atan2(out.fq,out.fd));
+        end
     end
 
     if isfield(out.SOL,'if')
@@ -363,7 +421,7 @@ if flagSim
     %     out.ff = NaN;
     end
     
-    if(~isnan(geo.win.n3phase))
+    if(~flagCharger)
         if geo.win.n3phase>1
             for ff=1:geo.win.n3phase
                 th = out.SOL.th;
@@ -401,19 +459,34 @@ if flagSim
             end
         end
     end
-
     % check Torque sign
-    if(isnan(geo.win.n3phase))
-        if sign(out.T)~=sign(out.fd1*out.iq1-out.fq1*out.id1)
-            out.T = -out.T;
-            out.SOL.T = -out.SOL.T;
-            % warning('Torque sign correction')
+    if(flagCharger)
+        if(isnan(geo.win.n3phase))
+            if sign(out.T)~=sign(out.fd1*out.iq1-out.fq1*out.id1)
+                out.T = -out.T;
+                out.SOL.T = -out.SOL.T;
+                % warning('Torque sign correction')
+            end
+        else
+            if sign(out.T)~=sign(out.fda*out.iqa-out.fqa*out.ida)
+                out.T = -out.T;
+                out.SOL.T = -out.SOL.T;
+                % warning('Torque sign correction')
+            end
         end
     else
-        if sign(out.T)~=sign(out.fd*out.iq-out.fq*out.id)
-            out.T = -out.T;
-            out.SOL.T = -out.SOL.T;
-            % warning('Torque sign correction')
+        if(isnan(geo.win.n3phase))
+            if sign(out.T)~=sign(out.fd1*out.iq1-out.fq1*out.id1)
+                out.T = -out.T;
+                out.SOL.T = -out.SOL.T;
+                % warning('Torque sign correction')
+            end
+        else
+            if sign(out.T)~=sign(out.fd*out.iq-out.fq*out.id)
+                out.T = -out.T;
+                out.SOL.T = -out.SOL.T;
+                % warning('Torque sign correction')
+            end
         end
     end
 
@@ -469,16 +542,30 @@ end
 if flagDemag
     SOL = simulate_xdeg(geo,per,mat,eval_type,pathname,filename);
     
-    if(isnan(geo.win.n3phase))
-        out.id1   = mean(SOL.id1);
-        out.iq1   = mean(SOL.iq1);
-        out.id3   = mean(SOL.id3);
-        out.iq3   = mean(SOL.iq3);
+    if(flagCharger)
+        if(isnan(geo.win.n3phase))
+            out.id1   = mean(SOL.id1);
+            out.iq1   = mean(SOL.iq1);
+            out.id3   = mean(SOL.id3);
+            out.iq3   = mean(SOL.iq3);
+        else
+            out.ida   = mean(SOL.ida);
+            out.iqa   = mean(SOL.iqa);
+            out.idb   = mean(SOL.idb);
+            out.iqb   = mean(SOL.iqb);
+        end
     else
-        out.id   = mean(SOL.id);
-        out.iq   = mean(SOL.iq);
+        if(isnan(geo.win.n3phase))
+            out.id1   = mean(SOL.id1);
+            out.iq1   = mean(SOL.iq1);
+            out.id3   = mean(SOL.id3);
+            out.iq3   = mean(SOL.iq3);
+        else
+            out.id   = mean(SOL.id);
+            out.iq   = mean(SOL.iq);
+        end
     end
-    
+
     out.SOL  = SOL;
     out.Bmin = min(SOL.Bmin);
     out.dPM  = max(SOL.dPM);
@@ -487,18 +574,18 @@ end
 % Variables necessary for MTPA calculation
 flagMTPA = 0;
 
-maxIter = 4;
-gammaStep = 2;
-direction = 0;
-
-if isfield(per,'if0')
-    per.if = per.if0;
-else
-    per.if = 0;
-end
-if ~isempty(RQ)
-    RQ(end) = 90;
-end
+% maxIter = 4;
+% gammaStep = 2;
+% direction = 0;
+% 
+% if isfield(per,'if0')
+%     per.if = per.if0;
+% else
+%     per.if = 0;
+% end
+% if ~isempty(RQ)
+%     RQ(end) = 90;
+% end
 
 if any(strcmp ('gamma', geo.RQnames))
     flagMTPA = 0;
@@ -518,111 +605,160 @@ if ~isempty(RQ)     % MODE optimization (RQ geometry)
         if ~flagMTPA
             cost(1) = -out.T;
         else
-            % aggiungere ricerca MTPA
-            gamma0 = RQ(end);
-            jj = 1;
-            done = 0;
-            TVect    = nan(1,maxIter);
-            gVect    = nan(1,maxIter);
-            dTppVect = nan(1,maxIter);
-            idqVect  = nan(1,maxIter);
-            fdqVect  = nan(1,maxIter);
-
-            perTmp = per;
-            TmpSOL_old = [];
-            TmpSOL_new = [];
-
-
-             while ~done
-                    if jj==1
-                        gammaSim = gamma0;
-                    elseif jj==2
-                        gammaSim = gamma0+gammaStep;
-                    elseif jj==3
-                        gammaSim = gamma0-gammaStep;
+            % golden ratio search
+            switch geo.RotType
+                case 'EESM'
+                    maxIter = 8;
+                    minGamma = 55;
+                    maxGamma = 125;
+                    % max gamma error = 3.16°
+                case {'SPM','SPM-Halbach'}
+                    maxIter = 4;
+                    minGamma = 90;
+                    maxGamma = 110;
+                    % max gamma error = 2.36° (typically not needed)
+                otherwise
+                    if strcmp(mat.LayerMag.MatName,'Air')
+                        maxIter = 6;
+                        minGamma = 40;
+                        maxGamma = 75;
+                        % max gamma error = 1.56°
                     else
-                        gammaSim = gammaSim+direction*gammaStep;
+                        maxIter = 6;
+                        minGamma = 30;
+                        maxGamma = 80;
+                        % max gamma error = 2.25°
                     end
+            end
 
-                     RQ(end) = gammaSim;
-                     TmpSOL = simulate_xdeg(geo,perTmp,mat,eval_type,pathname,filename);
-                     TVect(jj)    = mean(TmpSOL.T);
-                     gVect(jj)    = gammaSim;
-                     dTppVect(jj) = max(TmpSOL.T) - min(TmpSOL.T);
-                     idqVect(jj)  = mean(TmpSOL.id)+j*mean(TmpSOL.iq);
-                     fdqVect(jj)  = mean(TmpSOL.fd)+j*mean(TmpSOL.fq);
-                     
-                    % To save the last 2 results of the iteractive process
-                     TmpSOL_old = TmpSOL_new;
-                     TmpSOL_new = TmpSOL;
+            phi  = (1 + sqrt(5))/2;
+            invp = 1/phi;
+            x = (-1+sqrt(5))/2;
 
-
-                     if jj==3
-                            [~,index] = max(TVect,[],'omitnan');
-                            if index==1
-                               done=1;
-                            elseif index==2
-                                   direction=+1;
-                            else
-                                   direction=-1;
-                            end
-                      elseif jj>3
-                          if TVect(jj)<TVect(jj-1)
-                             done=1;
-                          end
-                     end
-
-                     if jj==maxIter
-                          done=1;
-                     end
-
-                     jj = jj+1;
-                     disp(['Simulation ' int2str(jj-1) ' done'])
-             end
-
-             [~,index] = max(TVect,[],'omitnan');
-
+            gammaErrMax = x^(maxIter-3)*(1-x)/2*abs(maxGamma-minGamma);
             
+            perTmp = per;
+            nFEA = 0;
 
-             % Output data
-              OUT.geo   = geo;
-              OUT.per   = perTmp;
-              OUT.mat   = mat;
-              OUT.T     = TVect(index);
-              OUT.dTpp  = dTppVect(index);
-              OUT.gamma = gVect(index);
-              OUT.idq   = idqVect(index);
-              OUT.fdq   = fdqVect(index);
-              OUT.RQ    = RQ;
-              %OUT.nFEMM = nFEMM;
-              OUT.Pjs   = 3/2*per.Rs*abs(OUT.idq)^2;
+            %Initialization
+            TVect  = nan(1,maxIter);
+            FdVect = nan(1,maxIter);
+            FqVect = nan(1,maxIter);
+            IdVect = nan(1,maxIter);
+            IqVect = nan(1,maxIter);
+            gVect  = nan(1,maxIter);
 
-              % Identify Rf value depending on rotor geometry
-              if strcmp(geo.RotType, 'EESM')
-                 Rf=per.Rf;
-                 OUT.Pjf   = Rf*out.if;
-              else
-                  Rf=0;
-                  OUT.Pjf = nan;
-              end
+            % simulations - golden ratio search
+            a = minGamma;
+            b = maxGamma;
+            c = b - (b-a)*invp;
+            d = a + (b-a)*invp;
+            for ii=1:maxIter-4
+                if ii==1
+                    gammaSim = a;
+                    perTmp.gamma = gammaSim;
+                    SOLtmp{1} = simulate_xdeg(geo,perTmp,mat,eval_type,pathname,filename);
+                    nFEA = nFEA+1;
+                    Ta           = mean(SOLtmp{nFEA}.T);
+                    TVect(nFEA)  = mean(SOLtmp{nFEA}.T);
+                    FdVect(nFEA) = mean(SOLtmp{nFEA}.fd);
+                    FqVect(nFEA) = mean(SOLtmp{nFEA}.fq);
+                    IdVect(nFEA) = mean(SOLtmp{nFEA}.id);
+                    IqVect(nFEA) = mean(SOLtmp{nFEA}.iq);
+                    gVect(nFEA)  = gammaSim;
+                    gammaSim = b;
+                    perTmp.gamma = gammaSim;
+                    SOLtmp{2} = simulate_xdeg(geo,perTmp,mat,eval_type,pathname,filename);
+                    nFEA = nFEA+1;
+                    Tb           = mean(SOLtmp{nFEA}.T);
+                    TVect(nFEA)  = mean(SOLtmp{nFEA}.T);
+                    FdVect(nFEA) = mean(SOLtmp{nFEA}.fd);
+                    FqVect(nFEA) = mean(SOLtmp{nFEA}.fq);
+                    IdVect(nFEA) = mean(SOLtmp{nFEA}.id);
+                    IqVect(nFEA) = mean(SOLtmp{nFEA}.iq);
+                    gVect(nFEA)  = gammaSim;
+                    c = b - (b-a)*invp;
+                    gammaSim = c;
+                    perTmp.gamma = gammaSim;
+                    SOLtmp{3} = simulate_xdeg(geo,perTmp,mat,eval_type,pathname,filename);
+                    nFEA = nFEA+1;
+                    Tc           = mean(SOLtmp{nFEA}.T);
+                    TVect(nFEA)  = mean(SOLtmp{nFEA}.T);
+                    FdVect(nFEA) = mean(SOLtmp{nFEA}.fd);
+                    FqVect(nFEA) = mean(SOLtmp{nFEA}.fq);
+                    IdVect(nFEA) = mean(SOLtmp{nFEA}.id);
+                    IqVect(nFEA) = mean(SOLtmp{nFEA}.iq);
+                    gVect(nFEA)  = gammaSim;
+                    d = a + (b-a)*invp;
+                    gammaSim = d;
+                    perTmp.gamma = gammaSim;
+                    SOLtmp{4} = simulate_xdeg(geo,perTmp,mat,eval_type,pathname,filename);
+                    nFEA = nFEA+1;
+                    Td           = mean(SOLtmp{nFEA}.T);
+                    TVect(nFEA)  = mean(SOLtmp{nFEA}.T);
+                    FdVect(nFEA) = mean(SOLtmp{nFEA}.fd);
+                    FqVect(nFEA) = mean(SOLtmp{nFEA}.fq);
+                    IdVect(nFEA) = mean(SOLtmp{nFEA}.id);
+                    IqVect(nFEA) = mean(SOLtmp{nFEA}.iq);
+                    gVect(nFEA)  = gammaSim;
+                end
+                if Tc>Td
+                    b = d;
+                    Tb = Td;
+                    d = c;
+                    Td = Tc;
+                    c = b - (b-a)*invp;
+                    gammaSim = c;
+                    perTmp.gamma = gammaSim;
+                    SOLtmp{nFEA+1} = simulate_xdeg(geo,perTmp,mat,eval_type,pathname,filename);
+                    nFEA = nFEA+1;
+                    Tc           = mean(SOLtmp{nFEA}.T);
+                    TVect(nFEA)  = mean(SOLtmp{nFEA}.T);
+                    FdVect(nFEA) = mean(SOLtmp{nFEA}.fd);
+                    FqVect(nFEA) = mean(SOLtmp{nFEA}.fq);
+                    IdVect(nFEA) = mean(SOLtmp{nFEA}.id);
+                    IqVect(nFEA) = mean(SOLtmp{nFEA}.iq);
+                    gVect(nFEA)  = gammaSim;
+                else
+                    a = c;
+                    Ta = Tc;
+                    c = d;
+                    Tc = Td;
+                    d = a + (b-a)*invp;
+                    gammaSim = d;
+                    perTmp.gamma = gammaSim;
+                    SOLtmp{nFEA+1} = simulate_xdeg(geo,perTmp,mat,eval_type,pathname,filename);
+                    nFEA = nFEA+1;
+                    Td           = mean(SOLtmp{nFEA}.T);
+                    TVect(nFEA)  = mean(SOLtmp{nFEA}.T);
+                    FdVect(nFEA) = mean(SOLtmp{nFEA}.fd);
+                    FqVect(nFEA) = mean(SOLtmp{nFEA}.fq);
+                    IdVect(nFEA) = mean(SOLtmp{nFEA}.id);
+                    IqVect(nFEA) = mean(SOLtmp{nFEA}.iq);
+                    gVect(nFEA)  = gammaSim;
+                end
+            end
 
-              if mean(TmpSOL_new.T) > mean(TmpSOL_old.T)
-                  OUT.SOL = TmpSOL_new;
-              else
-                  OUT.SOL = TmpSOL_old;
-              end
+            [~,index] = max(TVect,[],'omitnan');
+            OUT.fd  = FdVect(index);
+            OUT.fq  = FqVect(index);
+            OUT.id  = IdVect(index);
+            OUT.iq  = IqVect(index);
+            % gamma0 = gVect(index);
+            OUT.T   = TVect(index);
+            OUT.SOL = SOLtmp{index};
 
-             out.SOL = OUT.SOL;
-             out.id     = real(OUT.idq);                                   % [A]
-             out.iq     = imag(OUT.idq);                                   % [A]
-             out.fd     = real(OUT.fdq);                                   % [Vs]
-             out.fq     = imag(OUT.fdq);                                   % [Vs]
-             out.T      = OUT.T;                                           % [Nm]
-             out.dTpp   = OUT.dTpp;                                        % [Nm]
-             out.gamma = OUT.gamma;                                        % [degrees] MTPA angle
+            out.SOL = OUT.SOL;
+            out.id     = real(OUT.idq);                                   % [A]
+            out.iq     = imag(OUT.idq);                                   % [A]
+            out.fd     = real(OUT.fdq);                                   % [Vs]
+            out.fq     = imag(OUT.fdq);                                   % [Vs]
+            out.T      = OUT.T;                                           % [Nm]
+            out.dTpp   = OUT.dTpp;                                        % [Nm]
+            out.gamma = OUT.gamma;                                        % [degrees] MTPA angle
 
-             cost(1) = -mean(OUT.T);
-             %temp1 = temp1+1;
+            cost(1) = -mean(out.T);
+            %temp1 = temp1+1;
    
         end
         
@@ -686,11 +822,13 @@ if ~isempty(RQ)     % MODE optimization (RQ geometry)
 
         [geo,~,mat] = interpretRQ(RQ,geo,mat);
         % Set up info for solving structural model
-        simSetup0.evalSpeed = geo.nmax;
-        simSetup0.meshSize  = 'PDE fine';
-        simSetup0.meshShaft = 0;
-        simSetup0.flagFull  = 0;
-        simSetup0.shaftBC   = 1;
+        simSetup0.evalSpeed  = geo.nmax;
+        simSetup0.meshSize   = 'PDE fine';
+        simSetup0.meshShaft  = 0;
+        simSetup0.flagFull   = 0;
+        simSetup0.shaftBC    = 1;
+        simSetup0.flagSoftPM = 0;
+        simSetup0.flagResin  = 0;
         geo.custom = 0;
         warning('off')
         filemot = [pathname filename];
@@ -801,6 +939,6 @@ if ~isempty(RQ)     % MODE optimization (RQ geometry)
     end
 else
     cost = [];
-    save([pathname strrep(filename,'.fem','.mat')],'geo','out','mat','per');   % save geo and out
+    save([pathname strrep(filename,'.fem','.mat')],'geo','out','mat','per','-v7.3');   % save geo and out
 end
 

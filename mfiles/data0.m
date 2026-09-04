@@ -42,7 +42,7 @@ per.tempcu = dataIn.TargetCopperTemp;         % Target Copper Temperature [C]
 %     per.Vdc = dataIn.DCVoltage;             % dc-link voltage [V]
 per.overload = dataIn.CurrOverLoad;           % current overload factor used for optimization (1 means Joule loss = per.Loss)
 per.BrPP = dataIn.BrPP;                       % Br used for postprocessing [T]
-per.tempPP = dataIn.tempPP;                   % PMs temperature in postprocessing [°C]
+per.tempPP = dataIn.tempPP;                   % PMs temperature in postprocessing [Â°C]
 per.temphous = dataIn.HousingTemp;            % Housing Temperature [C]
 per.tempcuest = dataIn.EstimatedCopperTemp;   % Estimated Copper Temperatue [C]
 
@@ -58,6 +58,7 @@ per.if0  = dataIn.RatedFieldCurrent;
 per.JfPU = dataIn.FieldStatorCurrentDensityRatio;
 
 per.iOffset = 0;
+per.gammaPP = dataIn.GammaPP;
 
 %Custom current
 per.custom_ia         = dataIn.CustomCurrentA;
@@ -100,7 +101,9 @@ geo.BLKLABELSmaterials = {
     dataIn.RotorMaterial;
     dataIn.FluxBarrierMaterial;
     dataIn.ShaftMaterial;
-    dataIn.RotorCondMaterial};
+    dataIn.RotorCondMaterial;
+    'IdealBarrier';
+    'IdealBarrier'};
 
 geo.pont0 = dataIn.MinMechTol;  % thickness of the structural bridges at the airgap [mm]
 
@@ -201,6 +204,8 @@ geo.wb          = dataIn.CoilWidth;
 geo.hb          = dataIn.CoilHeight;
 geo.thHead_deg  = dataIn.PoleRotHeadAngle;
 geo.r_fillet    = dataIn.PoleRotHeadFillet;
+geo.thYoke_deg  = dataIn.PoleRotYokeAngle;
+geo.r_bfillet    = dataIn.PoleRotYokeFillet;
 
 geo.win.kcuf = dataIn.RotorConductorFillingFactor;
 geo.win.Nf   = dataIn.FieldTurns;   % turns in series per pole
@@ -210,6 +215,19 @@ if isfield(dataIn,'PoleHeadShape')
 end
 
 % END EESM
+
+if strcmp(geo.RotType,'Hybrid')
+    % geo.h_pm = dataIn.MagnetHeight;
+    % geo.o_pm = dataIn.MagnetOffset;
+
+    geo.w_bridge_pm = dataIn.RadRibEdit;
+    geo.h_pm = dataIn.MagnetLength;
+    geo.o_pm = dataIn.MagnetOffset;
+
+    % geo.pontR = 0.4; 
+    % geo.w_bridge_pm = dataIn.MagnetBridgeWidth;
+    % geo.pont0 = dataIn.MinMechTol
+end
 
 per.flag3phaseSet = dataIn.Active3PhaseSets;
 
@@ -612,14 +630,26 @@ end
 RQ(rr) = geo.hpb;
 rr=rr+1;
 
-% RQnames{rr} = 'hph';
-% if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
-%     bounds(rr,:) = [dataIn.PoleHeadHeightBou dataIn.PoleHeadHeightBouCheck];
-% else
-%     bounds(rr,:) = [dataIn.PoleHeadHeight*dataIn.PoleHeadHeightBou dataIn.PoleHeadHeightBouCheck];
-% end
-% RQ(rr) = geo.hph;
-% rr=rr+1;
+
+if strcmp(geo.RotType,'Hybrid')
+    RQnames{rr} = 'h_pm';
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
+        bounds(rr,:) = [dataIn.MagnetLengthBou dataIn.MagnetLengthBouCheck];
+    else
+        bounds(rr,:) = [dataIn.MagnetLength*dataIn.MagnetLengthBou dataIn.MagnetLengthBouCheck];
+    end
+    RQ(rr) = geo.h_pm;
+    rr=rr+1;
+    
+    RQnames{rr} = 'o_pm';
+    if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
+        bounds(rr,:) = [dataIn.MagnetOffsetBou dataIn.MagnetOffsetBouCheck];
+    else
+        bounds(rr,:) = [dataIn.MagnetOffset*dataIn.MagnetOffsetBou dataIn.MagnetOffsetBouCheck];
+    end
+    RQ(rr) = geo.o_pm;
+    rr=rr+1;
+end
 
 RQnames{rr} = 'wp';
 if (strcmp(dataIn.optType,'MODE Design')||strcmp(dataIn.optType,'Surrogate model dataset (LHS)')||strcmp(dataIn.optType,'Surrogate model dataset (Sobol)'))
@@ -751,6 +781,3 @@ else
     geo.Qs = QsCalc;
     geo.ps = psCalc;
 end
-
-
-

@@ -54,7 +54,7 @@ for ii=1:length(hfig)
 end
 
 scatter(hax(1),real(SOL.pos),imag(SOL.pos),10,(SOL.psh+SOL.psc+SOL.prc+SOL.prh),'filled')
-scatter(hax(2),real(SOL.pos),imag(SOL.pos),10,max(SOL.ppm),'filled')
+scatter(hax(2),real(SOL.pos),imag(SOL.pos),10,sum(SOL.ppm),'filled')
 hgif = scatter(hax(3),real(SOL.pos),imag(SOL.pos),10,abs(SOL.bs(1,:)+SOL.br(1,:)),'filled');
 
 colorbar(hax(1));

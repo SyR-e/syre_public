@@ -67,6 +67,11 @@ kyr      = dataSet.RotorYokeFactor;  % kyr = lyr/lys = increase factor for rotor
 ky       = dataSet.StatorYokeFactor; % ky = ly/ly_ideal
 PMdimPU  = dataSet.PMdimPU;          % per-unit PM dimension
 kPM      = dataSet.kPM;              % PM filling factor
+if strcmp(dataSet.TypeOfRotor,'EESM')
+    kPS   = dataSet.PoleHeadFactor;
+    kR_by = dataSet.RotorBody2YokeFactor;
+end
+
 Br       = dataSet.Br;               % PM remanence @ design temperature
 tempPM   = dataSet.PMtemp;           % PM temperature
 alpha_pu = dataSet.ALPHApu;          % alpha_pu
@@ -257,6 +262,47 @@ for rr=1:m
 
         % rotor design
         if strcmp(geo.RotType,'EESM')
+            % Defined values
+            pr = geo.dalpha_pu*pi;
+            Ratio_dq = (pr-sin(pr))/(pr+sin(pr));
+            %Ratio_dq = 0.5;
+            hpsPU = kPS; %dataSet.kPM;%0.0179;%0.0246;%0.131; %Typical values are between 0.12 - 0.2
+            geo0.lyr = kyr*ly(rr,cc);                   % rotor yoke height         (mm)
+            %kR_by = 0.7904;%1.566;
+            geo0.wp  = kR_by*geo0.lyr;              % rotor pole body width     (mm)
+            % Extimated values that will saturate with nodes_rotor function
+            geo0.hpb = geo0.r;%-geo0.Ar-geo0.lyr;   % rotor pole body length    (mm)
+            geo0.wb  = 0.5*pi*geo0.r/p;             % coil width extimation     (mm)
+            geo0.hb  = geo0.hpb;                    % coil height               (mm)
+
+            [geo0,~,~] = nodes_rotor_EESM(geo0,[]);
+
+            hPS = hpsPU*geo0.r/p;
+            geo0.hpb = geo0.hpb - hPS;
+            geo0.wb  = 0.5*pi*geo0.r/p;             % coil width extimation     (mm)
+
+            [geo0,~,~] = nodes_rotor_EESM(geo0,[]);
+
+            wp(rr,cc)           = geo0.wp;
+            dalpha_pu(rr,cc)    = geo0.dalpha_pu;
+            dalpha(rr,cc)       = geo0.dalpha;
+            lyr(rr,cc)          = geo0.lyr;
+            hpb(rr,cc)          = geo0.hpb;
+            hph(rr,cc)          = geo0.hph;
+            wp(rr,cc)           = geo0.wp;
+            wb(rr,cc)           = geo0.wb;
+            hb(rr,cc)           = geo0.hb;
+            r_fillet(rr,cc)     = geo0.r_fillet;
+            thHead_deg(rr,cc)   = geo0.thHead_deg;
+            r_bfillet(rr,cc)    = geo0.r_bfillet;
+            thYoke_deg(rr,cc)   = geo0.thYoke_deg;
+            pont0(rr,cc)        = geo0.pont0;
+            g                   = geo0.g;
+            Acoilf(rr,cc)       = geo0.Acoilf;
+
+            %Tiro fuori parametri che mi servono per le variabili
+            %magnetiche (tipo per poi trovare i flussi) in forma
+            %matriciale.
 
         else
             % sk
@@ -468,8 +514,17 @@ for rr=1:m
             tmp.Rfillet = max(geo.RotorFillet1,geo.RotorFillet2);
 
             fM(rr,cc)   = evalPMfluxSyrmDesign(tmp);
-        end
 
+
+        end
+        % mass computation
+        fem = dimMesh(geo,'singt');
+        [~,~,geo0,~] = ROTmatr(geo0,fem,mat);
+        [geo0,~,~] = STATmatr(geo0,fem);
+        [mFeS(rr,cc),mFeR(rr,cc)] = calcMassFe(geo0,mat);
+        mCu(rr,cc) = calcMassCu(geo0,mat);
+        mPM(rr,cc) = calcMassPM(geo0,mat);
+        mCoRo(rr,cc) = calcMassAl(geo0,mat);
     end
 end
 
@@ -512,7 +567,51 @@ if flag_ks
     %ksat = 1+mu0*pi/2*(Hy*pi/(6*p*q)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe*kf1.*kc*g);
     % ksat = 1+mu0*(Hy*pi/(6*p*q*n3ph)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe*kf1.*kc*g);
     if strcmp(geo.RotType,'EESM')
-        
+        ksat=ones(size(xx));
+        %warning('Evaluate here ksat for EESM!!!')
+        for rr=1:m
+            for cc=1:n
+                geo1 = geo;
+                geo1.r           = r(rr,cc);
+                geo1.ly          = ly(rr,cc);
+                geo1.lyr         = lyr(rr,cc);
+                geo1.hpb         = hpb(rr,cc);
+                geo1.hph         = hph(rr,cc);
+                geo1.wp          = wp(rr,cc);
+                geo1.lt          = lt(rr,cc);
+                geo1.wt          = wt(rr,cc);
+                mat1 = mat;
+                per1 = per;
+                per1.if0 = geo.win.kcuf*Acoilf(rr,cc)*per.Jf/geo.win.Nf;
+                %ksat(rr,cc) = NoLoad_EESM(geo1,mat1,per1);
+                if dataSet.syrmDesignFlag.gf == 1
+                    tau_p = r(rr,cc)/1000/p*pi;
+                    g_eq = 4/pi*g*kc(rr,cc)/1000;
+                    Lbase = 3/2*2/pi*mu0/2/p*4/pi*tau_p/g_eq*l/1000*(kw+Ns)^2;
+                    Mbase = 3/2*2/pi*mu0*2/pi*tau_p/g_eq*l/1000*kw*Ns*geo.win.Nf;
+                    DeltaL = (1-Ratio_dq)*Lbase;
+                    Aslot = Aslots./(6*p*q*n3ph);
+                    geo1.Aslot = Aslot(rr,cc);
+                    per1 = calc_i0(geo1,per1,mat);
+                    a = (Mbase .* per1.if0) ./ (DeltaL .* per1.i0);
+                    cos_gamma_star = (-a + sqrt(a.^2 + 8)) ./ 4;
+                    %cos_gamma_star = cosd(100);
+                    % if rr == m && cc == n
+                    % warning('gamma set to 100°')
+                    % end
+                    id = +cos_gamma_star.*per1.i0;
+                    %per1.id = id;
+                    per1.id = 0*id;
+                end
+                ksat(rr,cc) = compute_kMsat_EESM(geo1, mat1, per1);
+                % per1.id = 0*id;
+                % ksat2(rr,cc) = compute_kMsat_EESM(geo1, mat1, per1);
+                %ksat(rr,cc) = compute_kMsat_EESM_WC(geo1, mat1, per1);
+                %disp([num2str((rr-1)*n+cc),'/',num2str(n*m)])
+            end
+        end
+        %ksat
+        %xx
     else
         ksat = 1+mu0*(Hy*pi/(6*p*q*n3ph)*(R-ly/2) + Ht*lt + Hy*lr)./(bb*Bfe.*kc*g);
     end
@@ -526,7 +625,13 @@ if strcmp(geo.RotType,'SPM')
     Lbase = 6/pi*mu0*(kw*Ns/p).^2.*(R/1e3).*(l/1e3)./(kc.*(g+hc)/1e3).*xx;  % magnetizing unsaturated inductance (same as below, but with increased airgap due to PM thickness)
     Lmd   = Lbase./ksat;    % magnetizing inductance with stator iron saturation partially accounted for
 elseif strcmp(geo.RotType,'EESM')
-    
+    tau_p = r/1000/geo.p*pi;
+    g_eq = 4/pi*g*kc/1000;
+    Lbase = 3/2*2/pi*mu0/2/p*4/pi*tau_p./g_eq*l/1000*(kw+Ns)^2;
+    Lmd = Lbase./ksat;
+    Mbase = 3/2*2/pi*mu0*2/pi*tau_p./g_eq*l/1000*kw*Ns*geo.win.Nf;
+    M = Mbase./ksat;
+    id = zeros(size(xx));
 else
     Fmd = 2*(R*1e-3)*(l*1e-3)*kw*Ns*Bfe./p.*xx.*bb;     % flux linkage [Vs]
     id = pi*Bfe*kc*(g*1e-3)*p.*ksat/(mu0*3*kw*Ns).*bb/n3ph;  % id [A]
@@ -549,10 +654,10 @@ geo0.lt = lt;
 
 lend = calc_endTurnLength(geo0);
 geo0.lend = lend;
-% if strcmp(geo.RotType,'EESM')
-%     lendf = calc_endTurnFieldLength(geo0);
-%     geo0.lendf = lendf;
-% end
+if strcmp(geo.RotType,'EESM')
+    lendf = calc_endTurnFieldLength(geo0);
+    geo0.lendf = lendf;
+end
 
 if flag_i0==0
     % compute the rated current from kj (kj=constant)
@@ -578,6 +683,21 @@ Rs = per0.Rs;
 kj = per0.kj.*ones(size(xx));
 J  = per0.J.*ones(size(xx));
 i0 = real(per0.i0).*ones(size(xx));
+
+if strcmp(geo.RotType,'EESM') && dataSet.syrmDesignFlag.gf == 1
+    %DeltaL = Ld - Lq;
+    if0 = per0.Jf.*(Acoilf*geo.win.kcuf)/geo.win.Nf;
+    DeltaL = (1-Ratio_dq)*Lmd;
+    a = (M .* if0) ./ (DeltaL .* i0);
+    cos_gamma_star = (-a + sqrt(a.^2 + 8)) ./ 4;
+    % cos_gamma_star2 = -cos_gamma_star;
+    % sin_gamma_star = sqrt(1 - cos_gamma_star.^2);      % sin(gamma*) >= 0
+    % Te_max  = (3/2) * p .* i0 .* sin_gamma_star .* ( M.*if0 + DeltaL .* i0 .* cos_gamma_star);
+    % Te_max2 = (3/2) * p .* i0 .* sin_gamma_star .* ( M.*if0 + DeltaL .* i0 .* cos_gamma_star2);
+    % gamma = acos(cos_gamma_star);
+    %cos_gamma_star = cosd(100);
+    id = cos_gamma_star.*(loadpu*i0);
+end
 
 id(id>loadpu*i0) = loadpu*i0(id>loadpu*i0);
 
@@ -623,7 +743,8 @@ if strcmp(geo.RotType,'SPM')
     Lrib = nan(m,n);
     Lmq = Lmd;  % SPM is isotropic
 elseif strcmp(geo.RotType,'EESM')
-
+    Lrib= nan(m,n);
+    Lmq = (1-Ratio_dq)*Lmd;
 else
     Lrib = 4/pi*kw*Ns*((2*pont+pontR)*1e-3)*(l*1e-3)*Bs./(iq*n3ph);
     Lrib(iq==0) = mean(Lrib(iq~=0));
@@ -662,7 +783,14 @@ if strcmp(geo.RotType,'SPM')
     iHWC = abs(fd+j*fq)./Ld;    % Hyper-Worst-Case Peak Short-Circuit current @ MTPA
     iUGO = 2*ich;            % Hyper-Worst-Case Peak Short-Circuit current @ UGO
 elseif strcmp(geo.RotType,'EESM')
-    
+    Jr = per.Jf;
+    ir = Jr.*Acoilf*geo.win.kcuf/geo.win.Nf;
+    fd = n3ph*(Ld.*id+M.*ir);   % d-axis flux linkage (SR axis)
+    fq = n3ph*(Lq.*iq);         % q-axis flux linkage (SR axis)
+    fM = n3ph*M.*ir;    %Serve n3ph???
+    ich = zeros(size(xx));                    % characteristic current
+    iHWC = abs(fd+j*fq)./Ld;    % Hyper-Worst-Case Peak Short-Circuit current @ MTPA
+    iUGO = 2*ich;            % Hyper-Worst-Case Peak Short-Circuit current @ UGO
 else
     fd = n3ph*(Ld.*id);         % d-axis flux linkage (SR axis)
     fq = n3ph*(Lq.*iq)-fM;      % q-axis flux linkage (SR axis)
@@ -685,19 +813,21 @@ mCu = Aslots/1e6.*(l+lend)/1e3*mat.SlotCond.kgm3*kcu;
 mPM = nan(size(xx));
 
 if strcmp(geo.RotType,'EESM')
-    
+    Acoilf_t = Acoilf*2*2*p;
+    mCoRo = Acoilf_t/1e6.*(l+lendf)/1e3*mat.BarCond.kgm3*geo.win.kcuf;
+    Rr_Nr2 = 1/mat.BarCond.sigma*2*(l+lendf)*1000./(Acoilf*geo.win.kcuf)*(2*p);
 else
-    if strcmp(mat.LayerMag.MatName,'Air')
-        mPM = zeros(size(xx));
-    else
-        if strcmp(geo.RotType,'SPM')
-            mPM = pi*((R/1e3*xx).^2-(R/1e3*xx-hc/1e3).^2)*l/1e3*alpha_pu*mat.LayerMag.kgm3;
-        else
-            for ii=1:numel(xx)
-                mPM(ii) = sum(hc{ii}.*sum(PMdim{ii},1))/1e6.*l/1e3*2*(2*p)*mat.LayerMag.kgm3;
-            end
-        end
-    end
+    % if strcmp(mat.LayerMag.MatName,'Air')
+    %     mPM = zeros(size(xx));
+    % else
+    %     if strcmp(geo.RotType,'SPM')
+    %         mPM = pi*((R/1e3*xx).^2-(R/1e3*xx-hc/1e3).^2)*l/1e3*alpha_pu*mat.LayerMag.kgm3;
+    %     else
+    %         for ii=1:numel(xx)
+    %             mPM(ii) = sum(hc{ii}.*sum(PMdim{ii},1))/1e6.*l/1e3*2*(2*p)*mat.LayerMag.kgm3;
+    %         end
+    %     end
+    % end
 end
 
 % Demagnetization indicators
@@ -911,6 +1041,8 @@ if strcmp(geo.RotType,'EESM')
     map.hb           = hb;
     map.r_fillet     = r_fillet;
     map.thHead_deg   = thHead_deg;
+    map.r_bfillet    = r_bfillet;
+    map.thYoke_deg   = thYoke_deg;
     map.pont0        = pont0;
     map.g            = g;
     map.Acoilf       = Acoilf;
@@ -923,7 +1055,7 @@ if strcmp(geo.RotType,'EESM')
     map.Rr_Nr2       = Rr_Nr2;
 end
 
-map.mFeS = zeros(size(xx));
-map.mFeR = zeros(size(xx));
+map.mFeS = mFeS;
+map.mFeR = mFeR;
 
 map.dataSet       = dataSet;

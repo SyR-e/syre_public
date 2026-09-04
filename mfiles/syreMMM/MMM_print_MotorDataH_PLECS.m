@@ -36,33 +36,34 @@ deadtime = motorModel.SyreDrive.Converter.dT;
 
 id_MTPA  = interp1(abs(MTPA.id+1i*MTPA.iq),MTPA.id,i0);
 iq_MTPA  = interp1(abs(MTPA.id+1i*MTPA.iq),MTPA.iq,i0);
-Ld_inic  = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Ldd,id_MTPA,iq_MTPA);
-Lq_inic  = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Lqq,id_MTPA,iq_MTPA);
-ld_inic  = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Ldd,id_MTPA,iq_MTPA);
-lq_inic  = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Lqq,id_MTPA,iq_MTPA);
-ldq_inic = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Ldq,id_MTPA,iq_MTPA);
+Ld0  = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Ldd,id_MTPA,iq_MTPA);
+Lq0  = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Lqq,id_MTPA,iq_MTPA);
+ld0  = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Ldd,id_MTPA,iq_MTPA);
+lq0  = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Lqq,id_MTPA,iq_MTPA);
+ldq0 = interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Ldq,id_MTPA,iq_MTPA);
 
 fid = fopen(MotorDataH_path,'w');
-fprintf(fid,'#define I_rated            %4.2f\n',i0);
-fprintf(fid,'#define T_rated            %4.2f\n',T_rated);
-fprintf(fid,'#define Tmax_mot           %4.2f\n',Tmax_mot);
-fprintf(fid,'#define Imax_mot           %4.2f\n',Imax_mot);
-fprintf(fid,'#define nmax_mot           %d\n',nmax_mot);
+fprintf(fid,'#define Imax               %4.2f\n',i0);
+fprintf(fid,'#define Tmax               %4.2f\n',T_rated);
+fprintf(fid,'#define Tmax_tables        %4.2f\n',Tmax_mot);
+fprintf(fid,'#define Imax_tables        %4.2f\n',Imax_mot);
+fprintf(fid,'#define nmax               %d\n',nmax_mot);
 fprintf(fid,'#define RS                 %4.4f\n',RS);
 fprintf(fid,'#define PP                 %d // pole pairs\n',PP);
 fprintf(fid,'#define ONE_P              1/PP\n');
 fprintf(fid,'#define J                  %4.4f\n',J);
-fprintf(fid,'#define ENCODER_RESOLUTION 2048 //1024 //512\n');
+% fprintf(fid,'#define fs 				%4.2f\n',fs);
+% fprintf(fid,'#define Ts 				(1.0f/(float)fs)\n');
 fprintf(fid,' \n');
 
 fprintf(fid,'#define deadtime %4.2fe-6\n',deadtime);
 
 fprintf(fid,' \n');
-fprintf(fid,'#define Ld_inic %d\n',Ld_inic);
-fprintf(fid,'#define Lq_inic %d\n',Lq_inic);
-fprintf(fid,'#define ld_inic %d\n',ld_inic);
-fprintf(fid,'#define lq_inic %d\n',lq_inic);
-fprintf(fid,'#define ldq_inic %d\n',ldq_inic);
+fprintf(fid,'#define Ld0 %d\n',Ld0);
+fprintf(fid,'#define Lq0 %d\n',Lq0);
+fprintf(fid,'#define ld0 %d\n',ld0);
+fprintf(fid,'#define lq0 %d\n',lq0);
+fprintf(fid,'#define ldq0 %d\n',ldq0);
 fprintf(fid,' \n');
 fclose(fid);
 
@@ -77,16 +78,20 @@ step = Tmax/n;
 T_set = 0:step:Tmax;
 
 id_set    = interp1(MTPA.T,MTPA.id,T_set);
-id_set(1) = 0;
+id_set = fillmissing(id_set,'linear');
+%id_set(1) = 0;
 iq_set    = interp1(MTPA.T,MTPA.iq,T_set);
-iq_set(1) = 0.2*i0;
+iq_set = fillmissing(iq_set,'linear');
+%iq_set(1) = 0.2*i0;
 fd_set    = interp1(MTPA.T,MTPA.fd,T_set);
-fd_set(1) = 0;
+fd_set = fillmissing(fd_set,'linear');
+%fd_set(1) = 0;
 fq_set    = interp1(MTPA.T,MTPA.fq,T_set);
-fq_set(1) = 0;
-f_set     = abs(fd_set+j*fq_set);
-f_set(1)  = 0;
-
+fq_set = fillmissing(fq_set,'linear');
+%fq_set(1) = 0;
+f_set     = abs(fd_set+1j*fq_set);
+f_set = fillmissing(f_set,'linear');
+% f_set(1)  = 0;
 
 
 % print txt file (MTPA)
@@ -108,6 +113,7 @@ fprintf(fid,' \n');
 lambda_amp_MTPA = abs(MTPA.fd+1j*MTPA.fq);
 lambda_amp_MTPA_max = max(lambda_amp_MTPA);
 lambda_amp_MTPA_min = min(lambda_amp_MTPA);
+
 if(lambda_amp_MTPA_min<0.001)
    lambda_amp_MTPA_min =lambda_amp_MTPA_max/5;
 end   
@@ -134,7 +140,7 @@ if not(isempty(MTPV.iq))
 
     fprintf(fid,'float FMIN    = %4.3f; //Vs\n',min(lambda_MTPV));
     fprintf(fid,'float FMAX    = %4.3f; //Vs\n',max(lambda_MTPV));
-    step = (max(lambda_MTPV)-min(lambda_MTPV))/n;
+    % step = (max(lambda_MTPV)-min(lambda_MTPV))/n;
     fprintf(fid,'float DF      = %4.4f; //Vs\n',step);
     fprintf(fid,'float INV_DF  = %4.4f; //Vs^-1\n',1/step);
     fprintf(fid,' \n');
@@ -143,6 +149,8 @@ else
     fprintf(fid,' \n');
     fprintf(fid,' \n');
 end
+
+fclose(fid);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -174,6 +182,22 @@ Didq = (id_tab_max-id_tab_min)/(m-1);
 fd=interp2(Id,Iq,Fd,idd,iqd);
 fq=interp2(Id,Iq,Fq,idq,iqq);
 fq=fq';
+Ld=interp2(motorModel.AppInductanceMap_dq.Id,motorModel.AppInductanceMap_dq.Iq,motorModel.AppInductanceMap_dq.Ld,idd,iqd);
+Lq=interp2(motorModel.AppInductanceMap_dq.Id,motorModel.AppInductanceMap_dq.Iq,motorModel.AppInductanceMap_dq.Lq,idq,iqq);
+Lq=Lq';
+ld=interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Ldd,idd,iqd);
+lq=interp2(motorModel.IncInductanceMap_dq.Id,motorModel.IncInductanceMap_dq.Iq,motorModel.IncInductanceMap_dq.Lqq,idq,iqq);
+lq=lq';
+
+Ld = fillmissing(Ld,'linear',2);
+Lq = fillmissing(Lq,'linear',1);
+ld = fillmissing(ld,'linear',2);
+lq = fillmissing(lq,'linear',1);
+
+Ld(isinf(Ld)) = 0;
+Lq(isinf(Lq)) = 0;
+lq(isinf(ld)) = 0;
+lq(isinf(lq)) = 0;
 
 % print to FluxTables.txt
 fid = fopen(MotorDataH_path,'a');
@@ -194,8 +218,9 @@ fprintf(fid,['float  n_size     = ' num2str(m) ' ;\r\n']);
 % fd(:,1)=0*fd(:,1);  % Fd @ id=0
 StampaVarg(fid,fd',m,n,'FD_LUT','//Fluxd(iq,id)','%6.4f')
 StampaVarg(fid,fq',m,n,'FQ_LUT','//Fluxq(id,iq)','%6.4f')
-
-
-
+StampaVarg(fid,Ld',m,n,'LD_LUT','//Ld(id,iq) apparent inductance','%6.8f')
+StampaVarg(fid,Lq',m,n,'LQ_LUT','//Lq(id,iq) apparent inductance','%6.8f')
+StampaVarg(fid,ld',m,n,'lD_LUT','//ld(id,iq) incremental inductance','%6.8f')
+StampaVarg(fid,lq',m,n,'lQ_LUT','//lq(id,iq) incremental inductance','%6.8f')
 fclose(fid);
 end

@@ -33,6 +33,15 @@ switch motorType
             [dIdd(:,:,i),~]    = gradient(Id(:,:,i)); % They shuold be all the same 
             [~,dIqq(:,:,i)]    = gradient(Iq(:,:,i));
         end
+    case 'EE'
+        If = motorModel.FluxMap_dq.Ir;
+        Ff = motorModel.FluxMap_dq.Fr;
+        [dFdd, dFdq, dFdf] = gradient(Fd);
+        [dFqd, dFqq, dFqf] = gradient(Fq);
+        [dFfd, dFfq, dFff] = gradient(Ff);
+        [dIdd,~,~]         = gradient(Id); % They shuold be all the same
+        [~,dIqq,~]         = gradient(Iq);
+        [~,~,dIff]         = gradient(If);
     otherwise
         [dFdd,dFdq] = gradient(Fd);
         [dFqd,dFqq] = gradient(Fq);
@@ -44,6 +53,13 @@ Ldd = dFdd./dIdd;
 Ldq = dFdq./dIqq;
 Lqd = dFqd./dIdd;
 Lqq = dFqq./dIqq;
+if strcmp(motorType,'EE')
+    Ldf = dFdf./dIff;
+    Lqf = dFqf./dIff;
+    Lfd = dFfd./dIdd;
+    Lfq = dFfq./dIqq;
+    Lff = dFff./dIff;
+end
 
 % output data
 Inductance.Id = Id;
@@ -52,6 +68,13 @@ Inductance.Ldd = Ldd;
 Inductance.Ldq = Ldq;
 Inductance.Lqd = Lqd;
 Inductance.Lqq = Lqq;
+if strcmp(motorType,'EE')
+    Inductance.Ldf = Ldf;
+    Inductance.Lqf = Lqf;
+    Inductance.Lfd = Lfd;
+    Inductance.Lfq = Lfq;
+    Inductance.Lff = Lff;
+end
 if strcmp(motorType, 'VFM')
     Inductance.MS = MS;
 end

@@ -448,8 +448,6 @@ for ii=1:length(geo0.RQnames)
     end
 end
 
-
-
 % [uniqueRQ,~,~] = unique(geo0.RQnames,'stable');
 % for ii=1:length(uniqueRQ)
 %     tmp =  eval(upper(uniqueRQ{ii}));

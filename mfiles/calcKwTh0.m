@@ -33,11 +33,7 @@ end
 
 p = geo.p;
 
-if(isnan(geo.win.n3phase))
-    n3ph = 1;
-else
-    n3ph = geo.win.n3phase;
-end
+n3ph = geo.win.n3phase;
 
 % Star of slots
 [nLayers,nSlots] = size(WinTable);
@@ -53,13 +49,10 @@ end
 % Seleziono i vettori della stella degli avvolgimenti appartenenti alla fase 1 e ne eseguo la somma vettoriale
 % La fase del vettore risultante identifica la posizione dell'asse della fase 1
 
-kw = zeros(1,n3ph);
-th0 = zeros(1,n3ph);
-
-for ss=1:n3ph
+if(isnan(geo.win.n3phase))
     num = 0;
     den = 0;
-    iph = 1+3*(ss-1);
+    iph = 1;
     for tt=1:nLayers
         for yy=1:nSlots
             if WinTable(tt,yy)==iph || WinTable(tt,yy)==-iph
@@ -69,8 +62,29 @@ for ss=1:n3ph
         end
     end
     
-    kw(ss)  = abs(num)/den; % winding factor for each 3-phase set
-    th0(ss) = angle(num);   % angular position of the axis of first phase of the 3-phase set respect to the x-axis
+    kw(1)  = abs(num)/den; % winding factor for each 3-phase set
+    th0(1) = angle(num);   % angular position of the axis of first phase of the 3-phase set respect to the x-axis
+else
+
+    kw = zeros(1,n3ph);
+    th0 = zeros(1,n3ph);
+
+    for ss=1:n3ph
+        num = 0;
+        den = 0;
+        iph = 1+3*(ss-1);
+        for tt=1:nLayers
+            for yy=1:nSlots
+                if WinTable(tt,yy)==iph || WinTable(tt,yy)==-iph
+                    den=den+1;
+                    num = num+WinTable(tt,yy)/iph*exp(1i*(Posiz_cave(yy)+0.5*pi));
+                end
+            end
+        end
+        
+        kw(ss)  = abs(num)/den; % winding factor for each 3-phase set
+        th0(ss) = angle(num);   % angular position of the axis of first phase of the 3-phase set respect to the x-axis
+    end
 end
 
 th0 = th0*180/pi;   % elec rad --> elec deg

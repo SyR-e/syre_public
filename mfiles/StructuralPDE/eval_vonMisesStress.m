@@ -25,7 +25,7 @@ end
 
 pathname = dataIn.currentpathname;
 filename = dataIn.currentfilename;
-load([pathname filename]); %#ok<LOAD>
+load([pathname filename]);
 
 dataSet.EvalSpeed = dataIn.EvalSpeed;
 dataSet.MeshStructuralPDE = dataIn.MeshStructuralPDE;
@@ -54,13 +54,15 @@ if flagSave>0
 
 end
 
-simSetup.filename  = filename;
-simSetup.pathname  = pathname;
-simSetup.evalSpeed = evalSpeed;
-simSetup.meshSize  = dataSet.MeshStructuralPDE;
-simSetup.flagFull  = 0;         % 0-->Qs simulation / 1-->full motor simulation
-simSetup.shaftBC   = 0;         % 1-->locked shaft / 0-->free shaft / 2-->spring ring
-simSetup.meshShaft = 0;         % 0-->shaft not meshed / 1-->shaft meshed
+simSetup.filename   = filename;
+simSetup.pathname   = pathname;
+simSetup.evalSpeed  = evalSpeed;
+simSetup.meshSize   = dataSet.MeshStructuralPDE;
+simSetup.flagFull   = 0;         % 0-->Qs simulation / 1-->full motor simulation
+simSetup.shaftBC    = 0;         % 1-->locked shaft / 0-->free shaft / 2-->spring ring
+simSetup.meshShaft  = 0;         % 0-->shaft not meshed / 1-->shaft meshed
+simSetup.flagSoftPM = 0;        % 0-->hard PM / 1--> soft PM (or rotor conductors)
+simSetup.flagResin  = 0;        % 0--> interpole air as air / 1--> interpole air as resin (group=23)
 % if simSetup.meshShaft
 %     simSetup.shaftBC   = 2;
 % end
@@ -87,7 +89,7 @@ tic
 
 % if (custom)
 %     [structModel,data4GeoMat] = femm2pde(geo,mat,simSetup);
-[structModel] = femm2pde(geo,mat,simSetup); %#ok
+[structModel,data4GeoMat] = femm2pde(geo,mat,simSetup); %#ok
 
 % else
 %     [structModel] = syre2pde(geo,mat,simSetup);
@@ -112,7 +114,8 @@ warning('off')
 disp('Solving the PDE model...')
 tic
 [sVonMises,R,structModel] = calcVonMisesStress(structModel);
-[out] = eval_maxStress(structModel,sVonMises,R,geo,mat);
+[sVonMises_filt,R_filt] = filt_structural_lamination(structModel,R,sVonMises,data4GeoMat);
+[out] = eval_maxStress(structModel,sVonMises_filt,R_filt,geo,mat);
 tEnd = toc();
 warning('on')
 disp(['PDE model solved in ' num2str(tEnd) ' s'])
@@ -173,16 +176,32 @@ if flagSave==2
     set(gcf,'FileName',[newDir 'VonMisesStressDeformation.fig'],'Name','VonMisesStressDeformation')
     savePrintFigure(gcf)
 
+    figure();
+    figSetting();
+    set(gca,'DataAspectRatio',[1 1 1]);
+    tmp.ux = R_filt.NodalSolution(:,1);
+    tmp.uy = R_filt.NodalSolution(:,2);
+    pdeplot(structModel,'XYData',sVonMises_filt/1e6,'ZData',sVonMises_filt/1e6,'Deformation',tmp,'DeformationScaleFactor',100);
+    colormap jet
+    xlabel('[m]')
+    ylabel('[m]')
+    view(2)
+    title('Von Mises Stress [MPa] - deformation scale=100')
+    %legend ('Location','northwest')
+    set(gca,'CLim',[0 max(sVonMises)]/1e6)
+    set(gcf,'FileName',[newDir 'VonMisesStressLaminationDeformation.fig'],'Name','VonMisesStressLaminationDeformation')
+    savePrintFigure(gcf)
+
 
     if ~isempty(out.x_over)
         figure()
         figSetting()
         hax=axes('OuterPosition',[0 0 1 1]);
         set(gca,'DataAspectRatio',[1 1 1]);
-        set(gca,'XLim',[geo.r-geo.r*sin(pi/geo.p)-1 geo.r+1]/1e3,'YLim',[-1 geo.r*sin(pi/geo.p)+1]/1e3);
-        xlabel('[m]')
-        ylabel('[m]')
-        %set(gca,'XTick',[],'YTick',[]);
+        set(gca,'XLim',[geo.r-geo.r*sin(pi/geo.p)-1 geo.r+1],'YLim',[-1 geo.r*sin(pi/geo.p)+1]);
+        % xlabel('(mm)')
+        % ylabel('(mm)')
+        set(gca,'XTick',[],'YTick',[]);
         title('Von Mises Stress Limit Exceeded')
 
         x_over = out.x_over;
@@ -190,16 +209,27 @@ if flagSave==2
         x_max = out.x_max;
         y_max = out.y_max;
 
-        rotorplot = geo.rotor;
-        rotorplot(:,1:6) = rotorplot(:,1:6)/1e3;
-        tmp = rotorplot(:,8);
-        index = 1:1:numel(tmp);
-        index = index(tmp~=codMatShaft);
-        rotorplot = rotorplot(index,:);
-        GUI_Plot_Machine(hax,rotorplot);
+        plot_motorGeometryFEMM(hax,pathname,[filename(1:end-4) '.fem'],0);
 
-        plot(x_over/1e3,y_over/1e3,'r.','MarkerSize',5,'DisplayName', 'Stress Exceeded');
-        plot(x_max/1e3,y_max/1e3,'bo','MarkerSize',5.5,'DisplayName', 'Max Stress')
+        set(gca,'XLim',[geo.r-geo.r*sin(pi/geo.p)-1 geo.r+1],'YLim',[-1 geo.r*sin(pi/geo.p)+1]);
+        
+        hChild = get(hax,'Children');
+        for ii=1:length(hChild)
+            if (strcmp(hChild(ii).DisplayName,'Stator core')||strcmp(hChild(ii).DisplayName,'Stator windings'))
+                delete(hChild(ii))
+            end
+        end
+
+        % rotorplot = geo.rotor;
+        % rotorplot(:,1:6) = rotorplot(:,1:6)/1e3;
+        % tmp = rotorplot(:,8);
+        % index = 1:1:numel(tmp);
+        % index = index(tmp~=codMatShaft);
+        % rotorplot = rotorplot(index,:);
+        % GUI_Plot_Machine(hax,rotorplot);
+
+        plot(x_over,y_over,'r.','MarkerSize',5,'DisplayName', 'Stress Exceeded');
+        plot(x_max,y_max,'ko','MarkerSize',5.5,'DisplayName', 'Max Stress')
         grid off
         %legend ('Location','northwest')
         set(gcf,'FileName',[newDir 'VonMisesStressLimit.fig'],'Name','VonMisesStressLimit')

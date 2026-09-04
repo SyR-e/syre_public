@@ -67,6 +67,17 @@ switch geo.RotType
     case 'EESM'
         [geo,mat,temp] = nodes_rotor_EESM(geo,mat);
         rotor = build_matrix_EESM(temp,geo);
+
+        %======================================================================
+    case 'Hybrid'
+        [geo,mat,temp] = nodes_rotor_Hybrid(geo,mat);
+        rotor = build_matrix_Hybrid(temp,geo);
+        if isfield(mat, 'LayerMag')
+            disp(['Material Code of the magnet: ', num2str(mat.LayerMag.MatName)]);
+        else
+            disp('ATTENZIONE: mat.LayerMag non esiste!');
+        end
+        %======================================================================
 end
 
 % check about the PM area (to add to the nodes_rotor_xxx.m functions)

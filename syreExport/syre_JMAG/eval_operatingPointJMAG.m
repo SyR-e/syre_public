@@ -22,8 +22,22 @@ pathname=dataIn.currentpathname;
 filemot= dataIn.currentfilename;
 load([pathname filemot]);
 
-n3ph = dataIn.Num3PhaseCircuit;
+% geo.RotType = 'Hybrid';
 
+n3ph = dataIn.Num3PhaseCircuit;
+NumOfRotPosPP_     = dataIn.NumOfRotPosPP;
+
+flagCharger = false;
+if(isinf(NumOfRotPosPP_))
+    flagCharger = true;
+    NumOfRotPosPP_ = length(dataIn.CustomCurrentRotorPos);
+end
+
+if(flagCharger)
+    nSim = length(dataIn.CustomCurrentRotorPos);
+else
+    nSim = 1;
+end
 
 if ~isfield(geo,'axisType')
     if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype')
@@ -44,12 +58,24 @@ end
 
 %custom current
 if dataIn.CustomCurrentEnable
-    if(isnan(n3ph))
-        per.custom_ia         = dataIn.CustomCurrentA;
-        per.custom_ib         = dataIn.CustomCurrentB;
-        per.custom_ic         = dataIn.CustomCurrentC;
-        per.custom_id         = dataIn.CustomCurrentD;
-        per.custom_ie         = dataIn.CustomCurrentE;
+    if(flagCharger)
+        if(isnan(n3ph))
+            per.custom_ia         = dataIn.CustomCurrentA;
+            per.custom_ib         = dataIn.CustomCurrentB;
+            per.custom_ic         = dataIn.CustomCurrentC;
+            per.custom_id         = dataIn.CustomCurrentD;
+            per.custom_ie         = dataIn.CustomCurrentE;
+        else
+            if(n3ph==2)
+                per.custom_ia         = dataIn.CustomCurrentA;
+                per.custom_ib         = dataIn.CustomCurrentB;
+                per.custom_ic         = dataIn.CustomCurrentC;
+                per.custom_id         = dataIn.CustomCurrentD;
+                per.custom_ie         = dataIn.CustomCurrentE;
+                per.custom_if         = dataIn.CustomCurrentF;
+            end
+            per.custom_win_delta      = dataIn.CustomWinDelta;
+        end
         per.custom_Amp         = dataIn.CustomCurrentAmp;
         per.custom_Ph         = dataIn.CustomCurrentPh;
         per.custom_rotorPos       = dataIn.CustomCurrentRotorPos;
@@ -78,7 +104,7 @@ gamma_temp = dataIn.GammaPP;%Phase Agle of Drive
 
 %% 'Study property settings: Step Control and Resolution
 % 'Resolution or number of Step division per cycle of calculations
-NumOfRotPosPP = dataIn.NumOfRotPosPP; 
+NumOfRotPosPP = NumOfRotPosPP_; 
 %'#Number of electric periods to be calculed
 AngularSpanPP = dataIn.AngularSpanPP;
 % '------------------------------------------------------------------------
@@ -94,11 +120,26 @@ per.delta_sim_singt = AngularSpanPP;  % angular span of simulation
 performance = per;
 performance.gamma=gamma_temp;
 
-[geometry,mat,output,tempDirName] = JMAGfitness([],geo,performance,mat,pathname,filemot);
+for ii = 1:nSim
+
+    % disp(strcat(num2str(ii),'/',num2str(nSim)))
+    geoTmp = geo;
+    perTmp = performance;
+    matTmp = mat;
+
+    if(flagCharger)
+        perTmp.rotorPos = ii;
+    else
+        perTmp.rotorPos = NaN;
+    end
+
+    % [geometry,mat,output,tempDirName] = JMAGfitness([],geo,performance,mat,pathname,filemot);
+    [geometry{ii},~,output{ii},tempDirName] = JMAGfitness([],geoTmp,perTmp,matTmp,pathname,filemot);
+end
 
 % save output into individual folders
-geo = geometry;
-out = output;
+geo = geometry{1};
+out = output{1};
 per = performance;
 dirName = tempDirName;
 
@@ -129,14 +170,23 @@ copyfile(fullfile(dirName, strcat(strrep(filemot,'.mat','.jmag'),'.jproj')),full
 % plot and save figs
 delta_sim_singt = 360;
 
-if(isnan(n3ph))
-    plot_singt_5(out,delta_sim_singt,newDir,filemot);
+if nSim>1
+    if(flagCharger)
+       plot_singt_chargerJMAG(geo.p, nSim, output, n3ph, per.custom_rotorPos);
+    end
 else
-    plot_singt(out,delta_sim_singt,newDir,filemot);
-end
-
-if delta_sim_singt==360
-    plot_singtIron(geo,out,newDir,filemot);
-end
+    if(flagCharger)
+        if(isnan(n3ph))
+            plot_singt_5(out,delta_sim_singt,newDir,filemot);
+        else
+            plot_singt_3n(n3ph, out,delta_sim_singt,newDir,filemot);
+        end
+    else
+        plot_singt(out,delta_sim_singt,newDir,filemot);
+    end
+    
+    if delta_sim_singt==360
+        plot_singtIron(geo,out,newDir,filemot);
+    end
 end
 

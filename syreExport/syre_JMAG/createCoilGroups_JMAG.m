@@ -21,7 +21,12 @@ function createCoilGroups_JMAG(model, JDesigner, CoilCGX_reshape, CoilCGY_reshap
                 part = model.GetPartByPosition(P);
                 part.SetName(strcat(coilType, num2str(slot_ID)));
                 part.SetColor(color);
-                model.GetGroupList().AddPartToGroup(strcat(coil_groupname, '_', coilType(1)), ...
+                if(isempty(str2num(coilType(2))))
+                    coil_group = coilType(1);
+                else
+                    coil_group = coilType(1:2);
+                end
+                model.GetGroupList().AddPartToGroup(strcat(coil_groupname, '_', coil_group), ...
                                                     strcat(coilType, num2str(slot_ID)));
             end
         end

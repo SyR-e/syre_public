@@ -145,7 +145,6 @@ elseif strcmp(geo.RotType,'EESM')
     RQnames{7}  = 'hb';
     RQnames{8}  = 'wb';
     RQnames{9} = 'gamma';
-
 else
     index=0;
     for ii=1:geo.nlay

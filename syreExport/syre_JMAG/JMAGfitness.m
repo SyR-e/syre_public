@@ -14,31 +14,59 @@
 
 function [geo,mat,out,pathname] = JMAGfitness(RQ,geo,per,mat,pathname,filename)
 
+flagCharger = false;
+
+if(~isnan(per.rotorPos))
+    flagCharger = true;
+end
+
 % currentDir=pwd();
 pathnameIn = pathname;
 [~,pathname]=createTempDir();
 copyfile(fullfile(pathnameIn, strcat(strrep(filename,'.mat','.jmag'),'.jproj')),fullfile (pathname, strcat(strrep(filename,'.mat','.jmag'),'.jproj'))); % copy .jproj in the temporary folder
 
-
 [SOL] = simulate_xdeg_JMAG(geo,per,pathname,filename);
 
 % Post processing
-if(isnan(geo.win.n3phase))
-    out.id1     = mean(SOL.id1);
-    out.iq1     = mean(SOL.iq1);
-    out.id3     = mean(SOL.id3);
-    out.iq3     = mean(SOL.iq3);
-    out.fd1     = mean(SOL.fd1);
-    out.fq1     = mean(SOL.fq1);
-    out.fd3     = mean(SOL.fd3);
-    out.fq3     = mean(SOL.fq3);
-    out.IPF    = sin(atan(out.iq1./out.id1)-atan(out.fq1./out.fd1));
+if(flagCharger)
+    if(isnan(geo.win.n3phase))
+        out.id1     = mean(SOL.id1);
+        out.iq1     = mean(SOL.iq1);
+        out.id3     = mean(SOL.id3);
+        out.iq3     = mean(SOL.iq3);
+        out.fd1     = mean(SOL.fd1);
+        out.fq1     = mean(SOL.fq1);
+        out.fd3     = mean(SOL.fd3);
+        out.fq3     = mean(SOL.fq3);
+        out.IPF    = sin(atan(out.iq1./out.id1)-atan(out.fq1./out.fd1));
+    else
+        for i=1:geo.win.n3phase
+            out.id(:,i)     = mean(SOL.id(:,i));
+            out.iq(:,i)     = mean(SOL.iq(:,i));
+            out.fd(:,i)     = mean(SOL.fd(:,i));
+            out.fq(:,i)     = mean(SOL.fq(:,i));
+        end
+
+        out.IPF    = sin(atan(out.iq(:,1)./out.id(:,1))-atan(out.fq(:,1)./out.fd(:,1)));
+    end
 else
-    out.id     = mean(SOL.id);
-    out.iq     = mean(SOL.iq);
-    out.fd     = mean(SOL.fd);
-    out.fq     = mean(SOL.fq);
-    out.IPF    = sin(atan(out.iq./out.id)-atan(out.fq./out.fd));
+    if(isnan(geo.win.n3phase))
+        out.id1     = mean(SOL.id1);
+        out.iq1     = mean(SOL.iq1);
+        out.id3     = mean(SOL.id3);
+        out.iq3     = mean(SOL.iq3);
+        out.fd1     = mean(SOL.fd1);
+        out.fq1     = mean(SOL.fq1);
+        out.fd3     = mean(SOL.fd3);
+        out.fq3     = mean(SOL.fq3);
+        out.IPF    = sin(atan(out.iq1./out.id1)-atan(out.fq1./out.fd1));
+    else
+        out.id     = mean(SOL.id);
+        out.iq     = mean(SOL.iq);
+        out.fd     = mean(SOL.fd);
+        out.fq     = mean(SOL.fq);
+        out.IPF    = sin(atan(out.iq./out.id)-atan(out.fq./out.fd));
+    end
 end
 
 out.T      = abs(mean(SOL.T));

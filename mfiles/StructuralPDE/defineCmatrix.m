@@ -22,6 +22,9 @@ E_sleeve = dataForCmaxtrix.E_sleeve;
 psSleeve = dataForCmaxtrix.psSleeve;
 psShaft  = dataForCmaxtrix.psShaft;
 E_shaft  = dataForCmaxtrix.E_shaft;
+psResin  = dataForCmaxtrix.psResin;
+E_resin  = dataForCmaxtrix.E_resin;
+
 
 
 xy = (region.x)+j*(region.y);
@@ -30,53 +33,10 @@ f = zeros(10,length(xy));
 if ~isempty(psMagnet)
     for ii=1:length(xy)
         psTest = nsidedpoly(20,'Center',[real(xy(ii)) imag(xy(ii))],'Radius',eps*1e10);
+        % PM test
+        done=0;
         [psInt] = intersect(psMagnet,psTest);
-        if psInt.NumRegions==0 % no-PM area
-            [psInt] = intersect(psSleeve,psTest);
-            if psInt.NumRegions==0 % no-sleeve area
-                [psInt] = intersect(psShaft,psTest);
-                if psInt.NumRegions==0 % no-shaft section
-                    % iron section
-                    f(:,ii) = [
-                        E_Fe/(1-nu^2)
-                        0
-                        E_Fe/(2*(1+nu))
-                        0
-                        E_Fe/(2*(1+nu))
-                        E_Fe*nu/(1-nu^2)
-                        0
-                        E_Fe/(2*(1+nu))
-                        0
-                        E_Fe/(1-nu^2)];
-                else
-                    % gummy-shaft section
-                    f(:,ii) = [
-                        E_shaft/(1-nu^2)
-                        0
-                        E_shaft/(2*(1+nu))
-                        0
-                        E_shaft/(2*(1+nu))
-                        E_shaft*nu/(1-nu^2)
-                        0
-                        E_shaft/(2*(1+nu))
-                        0
-                        E_shaft/(1-nu^2)];
-                end
-            else
-                % sleeve section
-                f(:,ii) = [
-                    E_sleeve/(1-nu^2)
-                    0
-                    E_sleeve/(2*(1+nu))
-                    0
-                    E_sleeve/(2*(1+nu))
-                    E_sleeve*nu/(1-nu^2)
-                    0
-                    E_sleeve/(2*(1+nu))
-                    0
-                    E_sleeve/(1-nu^2)];
-            end
-        else
+        if psInt.NumRegions~=0
             % PM section --> no structural and set as gum
             f(:,ii) = [
                 E_PM/(1-nu^2)
@@ -89,6 +49,73 @@ if ~isempty(psMagnet)
                 E_PM/(2*(1+nu))
                 0
                 E_PM/(1-nu^2)];
+            done=1;
+        end
+        %sleeve test
+        [psInt] = intersect(psSleeve,psTest);
+        if psInt.NumRegions~=0 % sleeve area
+            % sleeve section
+            f(:,ii) = [
+                E_sleeve/(1-nu^2)
+                0
+                E_sleeve/(2*(1+nu))
+                0
+                E_sleeve/(2*(1+nu))
+                E_sleeve*nu/(1-nu^2)
+                0
+                E_sleeve/(2*(1+nu))
+                0
+                E_sleeve/(1-nu^2)];
+            done=1;
+        end
+        % shaft test
+        [psInt] = intersect(psShaft,psTest);
+        if psInt.NumRegions~=0 % shaft section
+            % gummy-shaft section
+            f(:,ii) = [
+                E_shaft/(1-nu^2)
+                0
+                E_shaft/(2*(1+nu))
+                0
+                E_shaft/(2*(1+nu))
+                E_shaft*nu/(1-nu^2)
+                0
+                E_shaft/(2*(1+nu))
+                0
+                E_shaft/(1-nu^2)];
+            done=1;
+        end
+        % resin test
+        [psInt] = intersect(psResin,psTest);
+        if psInt.NumRegions~=0 % resin section
+            % gummy-shaft section
+            f(:,ii) = [
+                E_resin/(1-nu^2)
+                0
+                E_resin/(2*(1+nu))
+                0
+                E_resin/(2*(1+nu))
+                E_resin*nu/(1-nu^2)
+                0
+                E_resin/(2*(1+nu))
+                0
+                E_resin/(1-nu^2)];
+            done=1;
+        end
+        if ~done
+            % iron section
+            f(:,ii) = [
+                E_Fe/(1-nu^2)
+                0
+                E_Fe/(2*(1+nu))
+                0
+                E_Fe/(2*(1+nu))
+                E_Fe*nu/(1-nu^2)
+                0
+                E_Fe/(2*(1+nu))
+                0
+                E_Fe/(1-nu^2)];
+            done=1;
         end
     end
 end

@@ -17,6 +17,7 @@ function [motorModel] = MMM_scale(motorModel,scaleFactors)
 % motor model.
 
 kN  = scaleFactors.Ns/motorModel.data.Ns;
+kE  = scaleFactors.Nr/motorModel.data.Nr;
 kL  = scaleFactors.l/motorModel.data.l;
 kD  = scaleFactors.R/motorModel.data.R;
 Lld = scaleFactors.Lld;
@@ -28,16 +29,34 @@ motorModel.FluxMap_dq.Id    = motorModel.FluxMap_dq.Id/kN;
 motorModel.FluxMap_dq.Iq    = motorModel.FluxMap_dq.Iq/kN;
 motorModel.FluxMap_dq.Fd    = motorModel.FluxMap_dq.Fd*kN;
 motorModel.FluxMap_dq.Fq    = motorModel.FluxMap_dq.Fq*kN;
+% a1) change number of rotor turns
+if isfield(motorModel.FluxMap_dq, 'Ir')
+    motorModel.FluxMap_dq.Ir = motorModel.FluxMap_dq.Ir/kE;
+end
+if isfield(motorModel.FluxMap_dq, 'Fr')
+    motorModel.FluxMap_dq.Fr = motorModel.FluxMap_dq.Fr*kE;
+end
+    
+
 %  b) change stack length
 motorModel.FluxMap_dq.Fd    = motorModel.FluxMap_dq.Fd*kL;
 motorModel.FluxMap_dq.Fq    = motorModel.FluxMap_dq.Fq*kL;
+if isfield(motorModel.FluxMap_dq, 'Fr')
+    motorModel.FluxMap_dq.Fr = motorModel.FluxMap_dq.Fr*kL;
+end
 motorModel.FluxMap_dq.T     = motorModel.FluxMap_dq.T*kL;
 motorModel.FluxMap_dq.dTpp  = motorModel.FluxMap_dq.dTpp*kL;
 %  c) change stator radius
 motorModel.FluxMap_dq.Id    = motorModel.FluxMap_dq.Id*kD;
 motorModel.FluxMap_dq.Iq    = motorModel.FluxMap_dq.Iq*kD;
+if isfield(motorModel.FluxMap_dq, 'Ir')
+    motorModel.FluxMap_dq.Ir = motorModel.FluxMap_dq.Ir*kD;
+end
 motorModel.FluxMap_dq.Fd    = motorModel.FluxMap_dq.Fd*kD;
 motorModel.FluxMap_dq.Fq    = motorModel.FluxMap_dq.Fq*kD;
+if isfield(motorModel.FluxMap_dq, 'Fr')
+    motorModel.FluxMap_dq.Fr = motorModel.FluxMap_dq.Fr*kD;
+end
 motorModel.FluxMap_dq.T     = motorModel.FluxMap_dq.T*kD^2;
 motorModel.FluxMap_dq.dTpp  = motorModel.FluxMap_dq.dTpp*kD^2;
 %  d) add leakage inductances
@@ -77,6 +96,7 @@ if ~isempty(motorModel.IronPMLossMap_dq)
 end
 
 % 3) check for dqtMap model update
+% mancano la Ir e la Fr in motorModel.FluxMap_dqt
 if ~isempty(motorModel.FluxMap_dqt)
     dqtMap = motorModel.FluxMap_dqt;
     %  a) change number of turns
@@ -96,9 +116,22 @@ if ~isempty(motorModel.FluxMap_dqt)
         dqtMap.data.Fb = dqtMap.data.Fb*kN;
         dqtMap.data.Fc = dqtMap.data.Fc*kN;
     end
+    % a1) change number of rotor turns
+    if isfield(dqtMap,'Ir')
+        dqtMap.Ir = dqtMap.Ir/kE;
+    end
+    if isfield(dqtMap.data,'Ir')
+        dqtMap.data.Ir = dqtMap.data.Ir/kE;
+    end
+    if isfield(dqtMap.data,'Fr')
+        dqtMap.data.Fr = dqtMap.data.Fr*kE;
+    end
     %  b) change stack length
     dqtMap.data.Fd = dqtMap.data.Fd*kL;
     dqtMap.data.Fq = dqtMap.data.Fq*kL;
+    if isfield(dqtMap.data,'Fr')
+        dqtMap.data.Fr = dqtMap.data.Fr*kL;
+    end
     if isfield(dqtMap.data,'Fa')
         dqtMap.data.Fa = dqtMap.data.Fa*kL;
         dqtMap.data.Fb = dqtMap.data.Fb*kL;
@@ -108,8 +141,14 @@ if ~isempty(motorModel.FluxMap_dqt)
     %  c) change stator radius
     dqtMap.Id = dqtMap.Id*kD;
     dqtMap.Iq = dqtMap.Iq*kD;
+    if isfield(dqtMap, 'Ir')
+        dqtMap.Ir = dqtMap.Ir * kD;
+    end
     dqtMap.data.Id = dqtMap.data.Id*kD;
     dqtMap.data.Iq = dqtMap.data.Iq*kD;
+    if isfield(dqtMap.data, 'Ir')
+        dqtMap.data.Ir = dqtMap.data.Ir * kD;
+    end
     if isfield(dqtMap.data,'Ia')
         dqtMap.data.Ia = dqtMap.data.Ia*kD;
         dqtMap.data.Ib = dqtMap.data.Ib*kD;
@@ -117,6 +156,9 @@ if ~isempty(motorModel.FluxMap_dqt)
     end
     dqtMap.data.Fd = dqtMap.data.Fd*kD;
     dqtMap.data.Fq = dqtMap.data.Fq*kD;
+    if isfield(dqtMap.data,'Fr')
+        dqtMap.data.Fr = dqtMap.data.Fr*kD;
+    end
     if isfield(dqtMap.data,'Fa')
         dqtMap.data.Fa = dqtMap.data.Fa*kD;
         dqtMap.data.Fb = dqtMap.data.Fb*kD;
@@ -167,6 +209,9 @@ motorModel.data.Ns   = motorModel.data.Ns*kN;
 motorModel.data.l    = motorModel.data.l*kL;
 motorModel.data.R    = motorModel.data.R*kD;
 motorModel.data.nmax = motorModel.data.nmax/kD;
+if isfield(motorModel.data, 'Nr')
+    motorModel.data.Nr = motorModel.data.Nr*kE;
+end
 
 if isfield(motorModel,'dataSet')
     if ~isempty(motorModel.dataSet)
@@ -203,8 +248,19 @@ if isfield(motorModel,'dataSet')
         motorModel.dataSet.AdmiJouleLosses   = NaN;
         motorModel.dataSet.CurrentDensity    = motorModel.dataSet.CurrentDensity/kD;
         motorModel.dataSet.TargetCopperTemp  = motorModel.data.tempCu;
+        % motorModel.dataSet.RotorCurrentDensity = motorModel.dataSet.RotorCurrentDensity/kE;
 
-        [~,~,motorModel.geo,motorModel.per,~] = data0(motorModel.dataSet);
+        motorModel.dataSet.YokeWidth         = motorModel.dataSet.YokeWidth*kD;
+        motorModel.dataSet.PoleBodyHeight    = motorModel.dataSet.PoleBodyHeight*kD;
+        motorModel.dataSet.PoleHeadHeight    = motorModel.dataSet.PoleHeadHeight*kD;
+        motorModel.dataSet.PoleWidth         = motorModel.dataSet.PoleWidth*kD;
+        motorModel.dataSet.CoilWidth         = motorModel.dataSet.CoilWidth*kD;
+        motorModel.dataSet.CoilHeight        = motorModel.dataSet.CoilHeight*kD;
+        motorModel.dataSet.PoleRotHeadAngle  = motorModel.dataSet.PoleRotHeadAngle*kD;
+        motorModel.dataSet.PoleRotHeadFillet = motorModel.dataSet.PoleRotHeadFillet*kD;
+        motorModel.dataSet.FieldTurns        = motorModel.data.Nr;
+
+        [~,~,motorModel.geo,motorModel.per,mat] = data0(motorModel.dataSet);
 
 
 %         motorModel.geo.R               = motorModel.dataSet.StatorOuterRadius;
@@ -285,6 +341,11 @@ if isfield(motorModel,'dataSet')
         motorModel.data.i0                 = per.i0;
         motorModel.data.Rs                 = per.Rs;
 
+        geo.lendf = calc_endTurnFieldLength(geo);
+        per = calc_if(geo,per,mat);
+        motorModel.data.if0 = per.if0;
+        motorModel.data.Rf  = per.Rf;
+
         motorModel.dataSet.ThermalLoadKj   = per.kj;
         motorModel.dataSet.AdmiJouleLosses = per.Loss;
         motorModel.dataSet.RatedCurrent    = per.i0;
@@ -294,6 +355,8 @@ if isfield(motorModel,'dataSet')
         % motorModel.geo.win.Ns            = motorModel.data.Ns;
         motorModel.per.Rs                  = per.Rs;
         motorModel.per.i0                  = per.i0;
+
+        
 
 
 

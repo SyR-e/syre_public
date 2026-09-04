@@ -483,6 +483,15 @@ if ~isfield(dataSet,'RatedCurrent')
     flag=1;
 end
 
+% Rated current and Rs in dataSet
+if ~isfield(dataSet,'Rs')
+    dataSet.Rs = NaN;
+    if Dflag
+        disp('rev393 - added rated current and phase resistance to dataSet')
+    end
+    flag=1;
+end
+
 % PM shape factor (beta)
 if ~isfield(dataSet,'betaPMshape')
     if strcmp(dataSet.TypeOfRotor,'Vtype')
@@ -1180,6 +1189,18 @@ if ~isfield(dataSet,'CoilHeightBou')
     flag = 1;
 end
 
+if ~isfield(dataSet,'MagnetLengthBou')
+    dataSet.MagnetLengthBouCheck = 0;
+    dataSet.MagnetLengthBou = [4 30];
+
+end
+
+if ~isfield(dataSet,'MagnetOffsetBou')
+    dataSet.MagnetOffsetBouCheck = 0;
+    dataSet.MagnetOffsetBou = [0.4 20];
+end
+
+
 % EESM parametrization improvement and optimization
 if ~isfield(dataSet,'RatedFieldCurrent')
     
@@ -1263,6 +1284,46 @@ if ~isfield(dataSet,'XFEMMsimulation')
     dataSet.XFEMMsimulation = 0;
     if Dflag
         disp('2025 12 16 - added XFEMM compatibility')
+    end
+    flag = 1;
+end
+
+% GUI updated for EESM Rotor Current Load
+if ~isfield(dataSet,'FieldCurrLoPP')
+    dataSet.FieldCurrLoPP = 1;
+    dataSet.RotorEndWindingsLength = 0;
+end
+
+% GUI updated for EESM Pole Head Shape
+if ~isfield(dataSet,'PoleHeadShape')
+    dataSet.PoleHeadShape = 1;
+end
+
+
+% added Extra parameters to EESM (Yoke fillet and angle)
+if ~isfield(dataSet,'PoleRotYokeFillet')
+    dataSet.PoleRotYokeFillet = 0;
+    dataSet.PoleRotYokeAngle = 0;
+    if Dflag
+        disp('2026 07 08 - added for EESM rotor geometry')
+    end
+    flag = 1;
+end
+
+% added FEAfix flag
+if ~isfield(dataSet,'FEAfixFlag')
+    dataSet.FEAfixFlag = 1;
+    if Dflag
+        disp('2026 07 21 - added FEAfix flag')
+    end
+    flag = 1;
+end
+
+if ~isfield(dataSet,'PoleHeadFactor')
+    dataSet.PoleHeadFactor = 0;
+    dataSet.RotorBody2YokeFactor = 2;
+    if Dflag
+        disp('2026 08 26 - added x,b factors for EESM')
     end
     flag = 1;
 end
@@ -1397,7 +1458,7 @@ if dataSet.FEAfixN==0
 end
 
 % check axis type for EESM
-if strcmp(dataSet.TypeOfRotor,'EESM')
+if strcmp(dataSet.TypeOfRotor,'EESM') || strcmp(dataSet.TypeOfRotor,'Hybrid')
     if strcmp(dataSet.axisType,'PM')
         dataSet.axisType = 'SR';
         if Dflag
@@ -1415,18 +1476,6 @@ if flag && Dflag
 end
 
 
-% GUI updated for EESM Rotor Current Load
-if ~isfield(dataSet,'FieldCurrLoPP')
-    dataSet.FieldCurrLoPP = 1;
-    [~, ~, geo, ~, ~] = data0(dataSet);
-    dataSet.RotorEndWindingsLength = calc_endTurnFieldLength(geo);
-end
-
-% GUI updated for EESM Pole Head Shape
-if ~isfield(dataSet,'PoleHeadShape')
-    dataSet.PoleHeadShape = 1;
-    [~, ~, geo, ~, ~] = data0(dataSet);
-end
 
 
 end

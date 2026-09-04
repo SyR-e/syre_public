@@ -27,6 +27,7 @@ codMatBar    = 6;   % Permanent Magnet
 codMatShaft  = 7;   % Shaft
 codMatCuRot  = 8;   % rotor conductor
 codMatSleeve = 9;   % rotor sleeve
+codMatIdealBarrier = 10; %Ideal Barrier 'Hybrid?
 
 
 

@@ -68,6 +68,7 @@ set(gcf,'defaultAxesTickLabelInterpreter','Latex');
 
 set(gcf,'defaultAxesLineWidth',1);
 set(gcf,'defaultLineLineWidth',1.5);
+% set(gcf,'defaultContourLineWidth', 1.5);
 
 set(gcf,'defaultAxesGridLineStyle',':');
 set(gcf,'defaultAxesXGrid','on');
@@ -76,6 +77,7 @@ set(gcf,'defaultAxesZGrid','on');
 set(gcf,'defaultAxesXColor',0*[1 1 1]);
 set(gcf,'defaultAxesYColor',0*[1 1 1]);
 set(gcf,'defaultAxesZColor',0*[1 1 1]);
+set(gcf,'defaultAxesColor',[1 1 1]);
 %set(gcf,'defaultAxesGridAlpha',1);
 %set(gcf,'defaultAxesLayer','top');
 set(gcf,'defaultAxesBox','on');
@@ -111,7 +113,7 @@ figPos(4)=height;
 % colors{9}  = [1.0 0.5 0.5];
 % colors{10} = [0.5 0.5 1.0];
 
-colors = [...
+colors = [
     0.0 0.0 1.0
     1.0 0.0 0.0
     0.0 0.8 0.0
@@ -125,6 +127,21 @@ colors = [...
     ];
 
 set(gcf,'defaultAxesColorOrder',colors);
+
+% --- Apply same defaults to PolarAxes so polaraxes match standard axes ---
+% Use matching interpreter, font, sizes, line/grid styles and color order
+set(gcf,'defaultPolarAxesTickLabelInterpreter','Latex');
+set(gcf,'defaultPolarAxesFontSize',textSize);
+set(gcf,'defaultPolarAxesFontName','Times');
+set(gcf,'defaultPolarAxesLineWidth',1);
+set(gcf,'defaultPolarAxesGridLineStyle',':');
+set(gcf,'defaultPolarAxesGridColor',0.0*[1 1 1]); % black grid lines
+set(gcf,'defaultPolarAxesGridAlpha',0.6);
+set(gcf,'defaultPolarAxesThetaZeroLocation','right');   % choose orientation similar to cartesian plots
+set(gcf,'defaultPolarAxesThetaDir','counterclockwise');
+set(gcf,'defaultPolarAxesColorOrder',colors);
+set(gcf,'defaultPolarAxesNextPlot','add');
+% end polar defaults
 
 % set(gcf,'Renderer','painters');
 set(gcf,'Units','centimeters');

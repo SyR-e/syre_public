@@ -11,20 +11,45 @@ if nargin()<4
     fullRotor = 1;
 end
 
-disp('Importing machine geometry from FEMM...')
 
 filename = [filename(1:end-4) '.fem'];
 
-openfemm(1)
-opendocument([pathname filename]);
-mi_createmesh;
-mi_analyze(1);
-closefemm;
+% if exist('openfemm.m','file')
+%     flag_xfemm = 0;
+% else
+%     flag_xfemm = 1;
+% end
 
-fileans = [filename(1:end-4) '.ans'];
+flag_xfemm = 1;
+
+if ~flag_xfemm
+    disp('Importing machine geometry from FEMM...')
+else
+    disp('Importing machine geometry from XFEMM...')
+end
+
+if ~flag_xfemm
+    openfemm(1)
+    opendocument([pathname filename]);
+    mi_createmesh;
+    mi_analyze(1);
+    closefemm;
+    fileans = [pathname filename(1:end-4) '.ans'];
+else
+    syreDirectory = fileparts(which('GUI_Syre.mlapp'));
+    newFile = checkPathSyntax([syreDirectory '\tmp\tmpPlotFEMM.fem']);
+    FemmProblem = loadfemmfile([pathname filename]);
+    FemmProblem.ProbInfo.SmartMesh = 0;
+    FemmProblem = setcircuitcurrent(FemmProblem,'fase1',1);
+    writefemmfile(newFile,FemmProblem)
+    newFile = fmesher(newFile);
+    fileans = fsolver(newFile,0,1);
+end
+
+% fileans = [filename(1:end-4) '.ans'];
 
 keyWord = '[NumBlockLabels]';
-fid=fopen([pathname fileans],'r');
+fid=fopen([fileans],'r');
 l=fgetl(fid);
 while  ~contains(l,keyWord)
     l=fgetl(fid);
@@ -103,11 +128,11 @@ colors.conductors = [1.0 0.5 0.0];
 colors.magnets    = [0.0 0.0 1.0];
 colors.sleeve     = [0.0 0.6 0.0];
 
-plot(hax,psMagnet,'FaceColor',colors.magnets,'EdgeColor','none','FaceAlpha',0.8)
-plot(hax,psRotor,'FaceColor',colors.lamination,'EdgeColor','none','FaceAlpha',0.8)
-plot(hax,psStator,'FaceColor',colors.lamination,'EdgeColor','none','FaceAlpha',0.8)
-plot(hax,psSlot,'FaceColor',colors.conductors,'EdgeColor','none','FaceAlpha',0.8)
-plot(hax,psSleeve,'FaceColor',colors.sleeve,'EdgeColor','none','FaceAlpha',0.8)
+plot(hax,psMagnet,'FaceColor',colors.magnets,'EdgeColor','none','FaceAlpha',0.8,'DisplayName','PM')
+plot(hax,psRotor,'FaceColor',colors.lamination,'EdgeColor','none','FaceAlpha',0.8,'DisplayName','Rotor core')
+plot(hax,psStator,'FaceColor',colors.lamination,'EdgeColor','none','FaceAlpha',0.8,'DisplayName','Stator core')
+plot(hax,psSlot,'FaceColor',colors.conductors,'EdgeColor','none','FaceAlpha',0.8,'DisplayName','Stator windings')
+plot(hax,psSleeve,'FaceColor',colors.sleeve,'EdgeColor','none','FaceAlpha',0.8,'DisplayName','Rotor sleeve')
 
 pShape.rotor  = psRotor;
 pShape.stator = psStator;

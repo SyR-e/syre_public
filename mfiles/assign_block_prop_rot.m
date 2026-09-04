@@ -34,11 +34,11 @@ Q = 6*geo.q*geo.p;                    % number of slots
 if ((max(geo.betaPMshape)~=0)&&strcmp('Circular',geo.RotType))
     tmp = [mat.LayerMag.Br mat.LayerMag.Br];
     Br = repmat(tmp,1,geo.ps);
-elseif strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'Spoke-type')||strcmp(geo.RotType,'SPM-Halbach')
+elseif strcmp(geo.RotType,'SPM')||strcmp(geo.RotType,'Spoke-type')||strcmp(geo.RotType,'SPM-Halbach')|| strcmp(geo.RotType,'Hybrid')
     Br = mat.LayerMag.Br(1)*ones(size(BLKLABELSrot.xy(:,1)));
 end
 
-if strcmp(geo.RotType,'EESM')
+if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
     if ~flag_xfemm
         mi_addcircprop('field',0,1);
     else
@@ -51,18 +51,38 @@ bb = 1; % tiene conto di quale barra di rotore sto assegnando
 for ii=1:length(BLKLABELSrot.xy(:,1))
     switch BLKLABELSrot.xy(ii,3)
         case 1  % Aria
+            % if strcmp(geo.RotType,'EESM')||strcmp(geo.RotType,'Hybrid')
+            %     groupAir = 23;
+            % else
+                groupAir = group;
+            % end
             if ~flag_xfemm
                 mi_addblocklabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
                 mi_selectlabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
-                mi_setblockprop(BLKLABELS.materials{BLKLABELSrot.xy(ii,3)}, 0, fem.res,'None', 0, group, 0);
-                mi_setblockprop('Air', 0, fem.res,'None', 0, group, 0);
+                mi_setblockprop(BLKLABELS.materials{BLKLABELSrot.xy(ii,3)}, 0, fem.res,'None', 0, groupAir, 0);
+                mi_setblockprop('Air', 0, fem.res,'None', 0, groupAir, 0);
                 mi_clearselected;
             else
                 FemmProblem = addblocklabel_mfemm(FemmProblem,...
                     BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2),...
                     'BlockType','Air',...
                     'MaxArea',fem.res,...
-                    'InGroup',group);
+                    'InGroup',groupAir);
+            end
+        %Definiamo Ideal Label
+        case 10  % ideal flux barrier
+            if ~flag_xfemm
+                mi_addblocklabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
+                mi_selectlabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
+                mi_setblockprop(BLKLABELS.materials{BLKLABELSrot.xy(ii,3)}, 0, fem.res,'None', 0, 500, 0);
+                mi_setblockprop('IdealBarrier', 0, fem.res,'None', 0, 500, 0);
+                mi_clearselected;
+            else
+                FemmProblem = addblocklabel_mfemm(FemmProblem,...
+                    BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2),...
+                    'BlockType','IdealBarrier',...
+                    'MaxArea',fem.res,...
+                    'InGroup',500);
             end
         case 6 % PM
             if isfield(mat.LayerMag,'BH')
@@ -71,24 +91,75 @@ for ii=1:length(BLKLABELSrot.xy(:,1))
                     mi_addblocklabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
                     mi_selectlabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
                     mi_setblockprop(mat.LayerMag.MatName, 0, fem.res,'None', magdir, 200, 0);
+                    
+
+                    if strcmp(geo.RotType,'Hybrid')
+                        mi_setblockprop(mat.LayerMag.MatName, 0, fem.res,'None', magdir, 401, 0);
+                    end
+
                     mi_clearselected;
+
                 else
+                    if strcmp(geo.RotType,'Hybrid')
+                        %modifica alla stringa mag name per farla
+                        %funzionare in simulated xdeg
+                        % indMat = length(FemmProblem.Materials)+1;
+                        % FemmProblem.Materials(indMat) = newmaterial_mfemm([mat.LayerMag.MatName '_' num2str(kk)]);
+                        % FemmProblem.Materials(indMat).Mu_x  = mat.LayerMag.mu;
+                        % FemmProblem.Materials(indMat).Mu_y  = mat.LayerMag.mu;
+                        % FemmProblem.Materials(indMat).H_c   = Hc;
+                        % FemmProblem.Materials(indMat).Sigma = mat.LayerMag.sigmaPM/1e6;
+                        % FemmProblem = addblocklabel_mfemm(FemmProblem,...
+                        %     BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2),...
+                        %     'BlockType',[mat.LayerMag.MatName '_' num2str(kk)],...
+                        %     'MaxArea',fem.res/geo.mesh_kpm,...
+                        %     'InGroup',400+kk,...
+                        %     'MagDir',magdir);
+                        FemmProblem = addblocklabel_mfemm(FemmProblem,...
+                            BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2),...
+                            'BlockType',mat.LayerMag.MatName,...
+                            'MaxArea',fem.res,...
+                            'InGroup',400,...
+                            'MagDir',magdir);
+                    else
                     FemmProblem = addblocklabel_mfemm(FemmProblem,...
                         BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2),...
                         'BlockType',mat.LayerMag.MatName,...
                         'MaxArea',fem.res,...
                         'InGroup',200,...
                         'MagDir',magdir);
+                    end
                 end
             else
+
                 Hc=1/(4e-7*pi*mat.LayerMag.mu)*Br(kk);
                 magdir=atan2(BLKLABELSrot.xy(ii,7),BLKLABELSrot.xy(ii,6))*180/pi;
+
                 if ~flag_xfemm
                     mi_addmaterial([mat.LayerMag.MatName '_' num2str(kk)], mat.LayerMag.mu, mat.LayerMag.mu, Hc, 0, mat.LayerMag.sigmaPM/1e6);
                     mi_addblocklabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
                     mi_selectlabel(BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2));
-                    mi_setblockprop([mat.LayerMag.MatName '_' num2str(kk)], 0, fem.res/geo.mesh_kpm,'None', magdir, 200+kk, 0);
+                    if strcmp(geo.RotType,'Hybrid')
+                        mi_setblockprop([mat.LayerMag.MatName '_' num2str(kk)], 0, fem.res/geo.mesh_kpm,'None', magdir, 400+kk, 0);
+                    else
+                        mi_setblockprop([mat.LayerMag.MatName '_' num2str(kk)], 0, fem.res/geo.mesh_kpm,'None', magdir, 200+kk, 0);
+                    end
+                    
                     mi_clearselected;
+                else
+                if strcmp(geo.RotType,'Hybrid')
+                    indMat = length(FemmProblem.Materials)+1;
+                    FemmProblem.Materials(indMat) = newmaterial_mfemm([mat.LayerMag.MatName '_' num2str(kk)]);
+                    FemmProblem.Materials(indMat).Mu_x  = mat.LayerMag.mu;
+                    FemmProblem.Materials(indMat).Mu_y  = mat.LayerMag.mu;
+                    FemmProblem.Materials(indMat).H_c   = Hc;
+                    FemmProblem.Materials(indMat).Sigma = mat.LayerMag.sigmaPM/1e6;
+                    FemmProblem = addblocklabel_mfemm(FemmProblem,...
+                        BLKLABELSrot.xy(ii,1),BLKLABELSrot.xy(ii,2),...
+                        'BlockType',[mat.LayerMag.MatName '_' num2str(kk)],...
+                        'MaxArea',fem.res/geo.mesh_kpm,...
+                        'InGroup',400+kk,...
+                        'MagDir',magdir);
                 else
                     indMat = length(FemmProblem.Materials)+1;
                     FemmProblem.Materials(indMat) = newmaterial_mfemm([mat.LayerMag.MatName '_' num2str(kk)]);
@@ -102,6 +173,8 @@ for ii=1:length(BLKLABELSrot.xy(:,1))
                         'MaxArea',fem.res/geo.mesh_kpm,...
                         'InGroup',200+kk,...
                         'MagDir',magdir);
+                end
+
                 end
                 kk=kk+1;
             end

@@ -29,12 +29,11 @@ ironLoss = motorModel.IronPMLossMap_dq;
 ang_sk_m = motorModel.tmpSkew.thSkw;
 nSlice   = motorModel.tmpSkew.nSlice;
 nPoints  = motorModel.tmpSkew.nPoints;
+sk_shape = motorModel.tmpSkew.shape;
 
 ang_sk = ang_sk_m*p*pi/180; % elt rad
-k = 1:1:nSlice;
-k = k-mean(k);
-alfa_k = k*ang_sk/(nSlice);
-rot_alfa_k = exp(-1i*alfa_k);
+
+[alfa_k,rot_alfa_k] = calcSkewSliceAngle(motorModel);
 
 IdMax = max(fdfq.Id,[],'all');
 IdMin = min(fdfq.Id,[],'all');
@@ -82,7 +81,7 @@ lim.IqMin = IqMin;
 
 % interpolant and new matrices
 fInt.Fd = griddedInterpolant(fdfq.Id',fdfq.Iq',fdfq.Fd'-Lld*fdfq.Id','linear','none');
-fInt.Fq = griddedInterpolant(fdfq.Id',fdfq.Iq',fdfq.Fq'-Llq*fdfq.Id','linear','none');
+fInt.Fq = griddedInterpolant(fdfq.Id',fdfq.Iq',fdfq.Fq'-Llq*fdfq.Iq','linear','none');
 fInt.T  = griddedInterpolant(fdfq.Id',fdfq.Iq',fdfq.T','linear','none');
 
 Fd = zeros(size(Id));

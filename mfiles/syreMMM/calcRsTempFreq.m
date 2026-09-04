@@ -12,10 +12,14 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [Rs,kAC] = calcRsTempFreq(Rs0,temp0,l,lend,acLossFactor,skinEffectMethod,temp,freq)
+function [Rs,kAC] = calcRsTempFreq(Rs0,temp0,alpha,l,lend,acLossFactor,skinEffectMethod,temp,freq)
+
+if isnan(lend)
+    lend = 0;
+end
 
 % calcolo della resistenza a 20°C
-R20 = Rs0/(1+0.004*(temp0-20));
+R20 = Rs0/(1+alpha*(temp0-20));
 
 if strcmp(skinEffectMethod,'0')
     kAC = 1;
@@ -23,5 +27,5 @@ else
     kAC = calcSkinEffect(acLossFactor,abs(freq),abs(temp),skinEffectMethod);
 end
 
-% Rs  = R20.*(kAC*l/(lend+l)+lend/(lend+l)).*(1+0.004*(temp-20)).*ones(size(freq));
-Rs  = R20.*(kAC*l/(lend+l)+lend/(lend+l)).*(1+0.004*(temp-20));
+% Rs  = R20.*(kAC*l/(lend+l)+lend/(lend+l)).*(1+alpha*(temp-20)).*ones(size(freq));
+Rs  = R20.*(kAC*l/(lend+l)+lend/(lend+l)).*(1+alpha*(temp-20));

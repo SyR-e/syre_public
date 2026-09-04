@@ -34,7 +34,7 @@ if nargin()==1
 end
 
 clc,
-[~, ~, geo, per, mat] = data0(dataSet); %#ok<ASGLU>
+[~, ~, geo, per, mat] = data0(dataSet);
 
 % Default syrmDesign flag
 dataSet.syrmDesignFlag.ks = 1;  % always account for saturation factor
@@ -67,14 +67,14 @@ else
     flagIM = 0;
 end
 
-if (dataSet.FEAfixN==8 || dataSet.FEAfixN==16) && strcmp(dataSet.TypeOfRotor,'EESM') && isempty(gcp('nocreate'))
-    parpool(8)
-end
+% if (dataSet.FEAfixN==8 || dataSet.FEAfixN==16) && strcmp(dataSet.TypeOfRotor,'EESM') && isempty(gcp('nocreate'))
+%     parpool()
+% end
 
 map = xbPlane_analyticalDesign(dataSet);
 
 % FEAfix
-if dataSet.FEAfixN==0
+if (dataSet.FEAfixN*dataSet.FEAfixFlag)==0
     map.kd       = ones(size(map.xx));
     map.kq       = ones(size(map.xx));
     map.km       = ones(size(map.xx));

@@ -32,6 +32,8 @@ colorCode{7} = [0 0 0]; % Shaft
 colorCode{8} = [0 0 0]; % Rotor bar conductor
 colorCode{9} = [0 0 0]; % Rotor sleeve
 
+colorCode{10} = [0 0 0]; % Ideal Barrier
+
 if ncol==7
     Mat=[Mat ones(nrig,2)];
 end

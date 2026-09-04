@@ -22,11 +22,19 @@ dataSet.AirGapRadius    = dataSet.AirGapRadius*ScaleFactor;
 dataSet.AirGapThickness = dataSet.AirGapThickness*ScaleFactor;
 
 % Geometry
-dataSet.ToothLength    = dataSet.ToothLength*ScaleFactor;
-dataSet.ToothWidth     = dataSet.ToothWidth*ScaleFactor;
-dataSet.ToothTangDepth = dataSet.ToothTangDepth*ScaleFactor;
-dataSet.FilletCorner   = dataSet.FilletCorner*ScaleFactor;
-dataSet.RadShiftInner  = dataSet.RadShiftInner*ScaleFactor;
+dataSet.ToothLength       = dataSet.ToothLength*ScaleFactor;
+dataSet.ToothWidth        = dataSet.ToothWidth*ScaleFactor;
+dataSet.ToothTangDepth    = dataSet.ToothTangDepth*ScaleFactor;
+dataSet.FilletCorner      = dataSet.FilletCorner*ScaleFactor;
+dataSet.RadShiftInner     = dataSet.RadShiftInner*ScaleFactor;
+dataSet.YokeWidth         = dataSet.YokeWidth*ScaleFactor;
+dataSet.PoleBodyHeight    = dataSet.PoleBodyHeight*ScaleFactor;
+dataSet.PoleHeadHeight    = dataSet.PoleHeadHeight*ScaleFactor;
+dataSet.PoleWidth         = dataSet.PoleWidth*ScaleFactor;
+dataSet.CoilWidth         = dataSet.CoilWidth*ScaleFactor;
+dataSet.CoilHeight        = dataSet.CoilHeight*ScaleFactor;
+dataSet.PoleRotHeadAngle  = dataSet.PoleRotHeadAngle*ScaleFactor;
+dataSet.PoleRotHeadFillet = dataSet.PoleRotHeadFillet*ScaleFactor;
 
 % Options
 dataSet.TanRibEdit      = dataSet.TanRibEdit*ScaleFactor;

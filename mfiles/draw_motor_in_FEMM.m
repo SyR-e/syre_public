@@ -55,7 +55,7 @@ if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype') || strcmp(geo.RotTyp
 elseif strcmp(geo.RotType,'Spoke-type')
     geo.axisType = 'PM';
     phase1_offset = phase1_offset;
-elseif strcmp(geo.RotType,'EESM')
+elseif strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
     geo.axisType = 'SR';
     phase1_offset = phase1_offset+90; 
 else

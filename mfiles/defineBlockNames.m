@@ -26,6 +26,7 @@ indAir=1;
 indPMs=1;
 indBar=1;
 ind=1;
+indIdBar=1;
 
 rotType=geo.RotType;
 
@@ -36,6 +37,7 @@ materialCodes;
 % codMatShaft = 7;
 % codMatPM    = 6;
 % codMatAir   = 1;
+% codIdealBarrier = 10;
 
 for ii=1:length(BarCenter(:,3))
     if (BarCenter(ii,3)==codMatAirRot)
@@ -50,6 +52,10 @@ for ii=1:length(BarCenter(:,3))
         BarName{ind}=['Bar_' int2str(indBar)];
         ind=ind+1;
         indBar=indBar+1;
+    elseif BarCenter(ii,3)==codMatIdealBarrier
+        BarName{ind}=['IdealBar_' int2str(indIdBar)];
+        ind=ind+1;
+        indIdBar=indIdBar+1;
     end
 end
 

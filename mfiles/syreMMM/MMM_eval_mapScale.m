@@ -14,10 +14,10 @@
 
 function [mapScale] = MMM_eval_mapScale(motorModel,setup)
 
-% Create the maps (kL,kN) of the scaled motor (ECCE 2022)
+% Create the maps (kL,kN) of the scaled motor (ECCE 2022, OJIA 2025)
 
 if nargin==1
-    prompt = {'Min axial length','Max axial length','Min number of turns','Max number of turns','DC link voltage [V]','Peak phase current [Apk]'};
+    prompt = {'Min axial length','Max axial length','Min number of turns','Max number of turns','DC link voltage (V)','Peak phase current (Apk)','Number of poits per axes'};
     name   = 'Scaling map setup';
     answer = {
         num2str(floor(motorModel.data.l*0.5))
@@ -26,23 +26,25 @@ if nargin==1
         num2str(ceil(motorModel.data.Ns*2))
         int2str(motorModel.data.Vdc)
         int2str(motorModel.data.Imax)
+        int2str(51)
         };
     answer = inputdlg(prompt,name,1,answer);
     lMin  = eval(answer{1});
     lMax  = eval(answer{2});
     NsMin = eval(answer{3});
     NsMax = eval(answer{4});
+    nPts  = eval(answer{7});
     setup.Vdc   = eval(answer{5});
     setup.Imax  = eval(answer{6});
-    setup.lVect  = linspace(lMin,lMax,101);
-    setup.NsVect = linspace(NsMin,NsMax,101);
+    setup.lVect  = linspace(lMin,lMax,nPts);
+    setup.NsVect = linspace(NsMin,NsMax,nPts);
 end
 
 if isempty(motorModel.controlTrajectories)
     motorModel.controlTrajectories = MMM_eval_AOA(motorModel,'LUT');
 end
 
-MTPA = motorModel.controlTrajectories.MTPA;
+% MTPA = motorModel.controlTrajectories.MTPA;
 
 Imax = setup.Imax;
 Vdc  = setup.Vdc;
@@ -53,6 +55,9 @@ Ns0  = motorModel.data.Ns;
 p    = motorModel.data.p;
 R    = motorModel.data.R;
 n3ph = motorModel.data.n3phase;
+
+motorModel.data.Imax = Imax;
+motorModel.data.Vdc  = Vdc;
 
 if ~isempty(motorModel.DemagnetizationLimit)
     tempPMmax = max(motorModel.DemagnetizationLimit.tempPM);
@@ -92,14 +97,16 @@ end
 
 [l,Ns] = meshgrid(setup.lVect,setup.NsVect);
 
-T    = nan(size(l));
-n    = nan(size(l));
-id   = nan(size(l));
-iq   = nan(size(l));
-fd   = nan(size(l));
-fq   = nan(size(l));
-iHWC = nan(size(l));
-ich  = nan(size(l));
+T     = nan(size(l));
+n     = nan(size(l));
+id    = nan(size(l));
+iq    = nan(size(l));
+fd    = nan(size(l));
+fq    = nan(size(l));
+iHWC  = nan(size(l));
+ich   = nan(size(l));
+Pmax  = nan(size(l));
+Pnmax = nan(size(l));
 
 kL = l/l0;
 kN = Ns/Ns0;
@@ -108,25 +115,61 @@ Rs = kN.^2.*Rs0.*(kL.*l0./(l0+lend)+lend/(l0+lend));
 
 index = 1:1:numel(l);
 
+motorModelTmp = motorModel;
+
+disp('(L,Ns) map evaluation in progress...')
+fprintf(' %06.2f%%',0)
+
 for ii=1:length(index)
-    id_MTPA = MTPA.id/kN(ii);
-    iq_MTPA = MTPA.iq/kN(ii);
-    T_MTPA  = MTPA.T*kL(ii);
-    fd_MTPA = MTPA.fd*kN(ii)*kL(ii);
-    fq_MTPA = MTPA.fq*kN(ii)*kL(ii);
+
+    motorModelTmp.FluxMap_dq.Id = motorModel.FluxMap_dq.Id/kN(ii);
+    motorModelTmp.FluxMap_dq.Iq = motorModel.FluxMap_dq.Iq/kN(ii);
+    motorModelTmp.FluxMap_dq.Fd = motorModel.FluxMap_dq.Fd*kN(ii)*kL(ii);
+    motorModelTmp.FluxMap_dq.Fq = motorModel.FluxMap_dq.Fq*kN(ii)*kL(ii);
+    motorModelTmp.FluxMap_dq.T  = motorModel.FluxMap_dq.T*kL(ii);
+
+    motorModelTmp.controlTrajectories.MTPA.id = motorModel.controlTrajectories.MTPA.id/kN(ii);
+    motorModelTmp.controlTrajectories.MTPA.iq = motorModel.controlTrajectories.MTPA.iq/kN(ii);
+    motorModelTmp.controlTrajectories.MTPA.fd = motorModel.controlTrajectories.MTPA.fd*kN(ii)*kL(ii);
+    motorModelTmp.controlTrajectories.MTPA.fq = motorModel.controlTrajectories.MTPA.fq*kN(ii)*kL(ii);
+    motorModelTmp.controlTrajectories.MTPA.T  = motorModel.controlTrajectories.MTPA.T*kL(ii);
+
+    motorModelTmp.controlTrajectories.MTPV.id = motorModel.controlTrajectories.MTPV.id/kN(ii);
+    motorModelTmp.controlTrajectories.MTPV.iq = motorModel.controlTrajectories.MTPV.iq/kN(ii);
+    motorModelTmp.controlTrajectories.MTPV.fd = motorModel.controlTrajectories.MTPV.fd*kN(ii)*kL(ii);
+    motorModelTmp.controlTrajectories.MTPV.fq = motorModel.controlTrajectories.MTPV.fq*kN(ii)*kL(ii);
+    motorModelTmp.controlTrajectories.MTPV.T  = motorModel.controlTrajectories.MTPV.T*kL(ii);
+
+
+    id_MTPA = motorModelTmp.controlTrajectories.MTPA.id;
+    iq_MTPA = motorModelTmp.controlTrajectories.MTPA.iq;
+    T_MTPA  = motorModelTmp.controlTrajectories.MTPA.T;
+    fd_MTPA = motorModelTmp.controlTrajectories.MTPA.fd;
+    fq_MTPA = motorModelTmp.controlTrajectories.MTPA.fq;
 
     id(ii) = interp1(abs(id_MTPA+j*iq_MTPA),id_MTPA,Imax);
     iq(ii) = interp1(abs(id_MTPA+j*iq_MTPA),iq_MTPA,Imax);
     fd(ii) = interp1(abs(id_MTPA+j*iq_MTPA),fd_MTPA,Imax);
     fq(ii) = interp1(abs(id_MTPA+j*iq_MTPA),fq_MTPA,Imax);
-    w_A    = calcLimitPulsation(id(ii),iq(ii),fd(ii),fq(ii),Rs(ii),Vdc/sqrt(3));
+    % w_A    = calcLimitPulsation(id(ii),iq(ii),fd(ii),fq(ii),Rs(ii),Vdc/sqrt(3));
 
-    n(ii) = real(w_A)*30/pi/p;
-    T(ii) = interp1(abs(id_MTPA+j*iq_MTPA),T_MTPA,Imax);
+    % n(ii) = real(w_A)*30/pi/p;
+    % T(ii) = interp1(abs(id_MTPA+j*iq_MTPA),T_MTPA,Imax);
+
+    [PlimTmp] = OpLimEval(motorModelTmp,Imax,Vdc);
+    Pmax(ii) = max(PlimTmp.P);
+    Pnmax(ii) = PlimTmp.P(end);
+    n(ii)     = PlimTmp.n_A;
+    T(ii)     = PlimTmp.T_A;
 
     iHWC(ii) = interp1(fTmp*kN(ii)*kL(ii),iTmp/kN(ii),abs(fd(ii)+j*fq(ii)),'linear','extrap');
     ich(ii)  = interp1(fTmp*kN(ii)*kL(ii),iTmp/kN(ii),0,'linear','extrap');
+
+    fprintf('\b\b\b\b\b\b\b')
+    fprintf('%06.2f%%',ii/numel(index)*100)
 end
+
+disp('(L,Ns) map evaluated!')
 
 loss = 3/2*Rs.*abs(id+j*iq).^2*n3ph;
 kj = loss./(2*pi*R/1000*l/1000);
@@ -157,14 +200,16 @@ if isfield(motorModel,'geo')
 else
     mapScale.J = NaN;
 end
-mapScale.Idemag     = Idemag;
+mapScale.Idemag        = Idemag;
 mapScale.IdemagTempMax = IdemagTempMax;
 mapScale.Idemag20deg   = Idemag20deg;
-mapScale.iHWC       = iHWC;
-mapScale.ich        = ich;
-mapScale.fM         = fM;
-mapScale.nUGO       = nUGO;
-mapScale.P          = mapScale.T.*mapScale.n*pi/30;
+mapScale.iHWC          = iHWC;
+mapScale.ich           = ich;
+mapScale.fM            = fM;
+mapScale.nUGO          = nUGO;
+mapScale.Pbase         = mapScale.T.*mapScale.n*pi/30;
+mapScale.Pmax          = Pmax;
+mapScale.Pnmax         = Pnmax;
 
 mapScale.motorModel = motorModel;
 
@@ -181,12 +226,13 @@ xlabel('$L$ (mm)')
 ylabel('$N_s$')
 colors = get(gca,'ColorOrder');
 contour(mapScale.l,mapScale.Ns,mapScale.T,'-','LineColor',colors(2,:),'LineWidth',1.5,'ShowText','on','DisplayName','$T$ (Nm)')
-contour(mapScale.l,mapScale.Ns,mapScale.PF,'-','LineColor',colors(1,:),'LineWidth',1.5,'ShowText','on','DisplayName','$cos\varphi$')
-if ~isnan(mapScale.J(1,1))
-    contour(mapScale.l,mapScale.Ns,mapScale.J,'-','LineColor',colors(3,:),'LineWidth',1.5,'ShowText','on','DisplayName','$J$ (Arms/mm$^2$)')
-else
-    contour(mapScale.l,mapScale.Ns,mapScale.kj/1000,'-','LineColor',colors(3,:),'LineWidth',1.5,'ShowText','on','DisplayName','$k_j$ (kW/m$^2$)')
-end
+contour(mapScale.l,mapScale.Ns,mapScale.n,'-','LineColor',colors(1,:),'LineWidth',1.5,'ShowText','on','DisplayName','$n$ (rpm)')
+% if ~isnan(mapScale.J(1,1))
+%     contour(mapScale.l,mapScale.Ns,mapScale.J,'-','LineColor',colors(3,:),'LineWidth',1.5,'ShowText','on','DisplayName','$J$ (Arms/mm$^2$)')
+% else
+%     contour(mapScale.l,mapScale.Ns,mapScale.kj/1000,'-','LineColor',colors(3,:),'LineWidth',1.5,'ShowText','on','DisplayName','$k_j$ (kW/m$^2$)')
+% end
+contour(mapScale.l,mapScale.Ns,mapScale.Pbase/1000,'-','LineColor',colors(3,:),'LineWidth',1.5,'ShowText','on','DisplayName','$P_{base}$ (kW)')
 plot(l0,Ns0,'ko','MarkerFaceColor','k','DisplayName','Baseline')
 legend('show','Location','northeast');
 title(['($L,N_s)$ map - $V_{dc}=' int2str(Vdc) '$ V / $I_{max}=' int2str(Imax) '$ Apk'])
@@ -197,13 +243,26 @@ figSetting()
 xlabel('$L$ (mm)')
 ylabel('$N_s$')
 colors = get(gca,'ColorOrder');
-contour(mapScale.l,mapScale.Ns,mapScale.T,'-','LineColor',colors(2,:),'LineWidth',1.5,'ShowText','on','DisplayName','$T$ (Nm)')
-contour(mapScale.l,mapScale.Ns,mapScale.n,'-','LineColor',colors(1,:),'LineWidth',1.5,'ShowText','on','DisplayName','$n$ (rpm)')
+contour(mapScale.l,mapScale.Ns,mapScale.T,'-','LineColor',colors(2,:),'LineWidth',1.5,'ShowText','on','DisplayName','$T_{max}$ (Nm)')
+contour(mapScale.l,mapScale.Ns,mapScale.n,'-','LineColor',colors(1,:),'LineWidth',1.5,'ShowText','on','DisplayName','$n_{base}$ (rpm)')
 contour(mapScale.l,mapScale.Ns,mapScale.kj/1000,'-','LineColor',colors(3,:),'LineWidth',1.5,'ShowText','on','DisplayName','$k_j$ (kW/m$^2$)')
 plot(l0,Ns0,'ko','MarkerFaceColor','k','DisplayName','Baseline')
 legend('show','Location','northeast');
 title(['($L,N_s)$ map - $V_{dc}=' int2str(Vdc) '$ V / $I_{max}=' int2str(Imax) '$ Apk'])
 set(hfig(2),'FileName',[pathname resFolder 'mapScaling_T_n_kj.fig'],'UserData',mapScale);
+
+hfig(3) = figure();
+figSetting()
+xlabel('$L$ (mm)')
+ylabel('$N_s$')
+colors = get(gca,'ColorOrder');
+contour(mapScale.l,mapScale.Ns,mapScale.T,'-','LineColor',colors(2,:),'LineWidth',1.5,'ShowText','on','DisplayName','$T_{max}$ (Nm)')
+contour(mapScale.l,mapScale.Ns,mapScale.n,'-','LineColor',colors(1,:),'LineWidth',1.5,'ShowText','on','DisplayName','$n_{base}$ (rpm)')
+contour(mapScale.l,mapScale.Ns,mapScale.Pmax/1000,'-','LineColor',colors(3,:),'LineWidth',1.5,'ShowText','on','DisplayName','$P_{max}$ (kW)')
+plot(l0,Ns0,'ko','MarkerFaceColor','k','DisplayName','Baseline')
+legend('show','Location','northeast');
+title(['($L,N_s)$ map - $V_{dc}=' int2str(Vdc) '$ V / $I_{max}=' int2str(Imax) '$ Apk'])
+set(hfig(3),'FileName',[pathname resFolder 'mapScaling_T_n_Pmax.fig'],'UserData',mapScale);
 
 % save data and figures
 

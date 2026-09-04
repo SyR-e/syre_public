@@ -12,7 +12,7 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function dataSet = DrawAndSaveMachineCOMSOL(dataSet,filename,pathname)
+function [dataSet,model] = DrawAndSaveMachineCOMSOL(dataSet,filename,pathname) %FILE NAME E PATH NAME da specificare quando inserisco procedura nel piano xb
 % function dataSet = DrawPushMachine(handles,filename,pathname)
 
 % if ~isfield(app,'dataSet')  % not launched from GUI_Syre
@@ -22,6 +22,8 @@ function dataSet = DrawAndSaveMachineCOMSOL(dataSet,filename,pathname)
 %     flagGUI=1;
 %     dataSet=app.dataSet;
 % end
+clc
+disp('Comsol Motor Model creation...')
 
 nameIn  = dataSet.currentfilename;
 nameIn  = strrep(nameIn,'.mat','.mph');
@@ -30,7 +32,9 @@ fileIn  = [pathIn nameIn];
 
 if dataSet.custom
     button = questdlg('Save custom machine?','SELECT','Yes','Cancel','Yes');
-
+    if strcmp(dataSet.TypeOfRotor,'EESM')
+        warning('Mechanical analysis not working with custom geometry')
+    end
 end
 
 if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom)) 
@@ -58,9 +62,15 @@ if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom))
     eval_type = 'singt';
 end
 
+fem = dimMesh(geo,eval_type);
+[~,BLKLABLESrotTemp,geo,~] = ROTmatr(geo,fem,mat);
+[geo,~,BLKLABLESstatTemp] = STATmatr(geo,fem);
+geo.BLKLABELS.rotore  = BLKLABLESrotTemp;
+geo.BLKLABELS.statore = BLKLABLESstatTemp;
+
 if dataSet.custom
     if isequal(button,'Yes')
-        [geo,mat] = draw_motor_in_COMSOL(geo,mat, pathname, filename);
+        [model,geo] = draw_motor_in_COMSOL(geo,mat,pathIn,nameIn);
                 
 %         if ~strcmp(fileIn,[pathname filename])
             fileTmp = [cd '\tmp\' filename];  
@@ -73,14 +83,14 @@ if dataSet.custom
             delete ([pathname fileans])
         end
          
-        [geo,mat] = draw_motor_in_COMSOL(geo,mat, pathname, filename);
+        [model,geo] = draw_motor_in_COMSOL(geo,mat,pathIn,nameIn);
 
     else
         disp('Custom machine not saved')
     end
     
 else
-    [geo,mat] = draw_motor_in_COMSOL(geo,mat, pathname, filename);
+    [model,geo] = draw_motor_in_COMSOL(geo,mat,pathIn,nameIn);
 end
 
 if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom)) 
@@ -112,3 +122,7 @@ if dataSet.custom==0 || (isequal(button,'Yes') && (dataSet.custom))
     save([pathname filename],'geo','per','dataSet','mat');
 end
 % cd(currentDir);
+
+dataSet.infoComsol = geo.infoComsol;
+
+disp('Done!')

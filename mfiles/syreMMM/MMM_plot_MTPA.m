@@ -172,6 +172,36 @@ else
     % Ir_plot_index_MTPvalues = Ir_plot_index_MTPvalues(:);
     hfig(1) = MTPX_slider(fdfq.Id(:,:,Ir_plot_index),fdfq.Iq(:,:,Ir_plot_index),fdfq.T(:,:,Ir_plot_index),fdfq.dTpp(:,:,Ir_plot_index),Ir_plot_values,MTPA,MTPV,[pathname resFolder 'MTPX_Ir.fig'],0);   
     hfig(2) = MTPX_slider(fdfq.Fd(:,:,Ir_plot_index),fdfq.Fq(:,:,Ir_plot_index),fdfq.T(:,:,Ir_plot_index),fdfq.dTpp(:,:,Ir_plot_index),Ir_plot_values,MTPA,MTPV,[pathname resFolder 'MTPX_Fr.fig'],1);   
+    
+    Is = abs(MTPA.id+j*MTPA.iq);
+    T  = MTPA.T;
+    Ir = repmat(MTPA.Ir_layers,[1 size(Is,2)]);
+    Fs = abs(MTPA.fd+j*MTPA.fq);
+    dTpp = MTPA.dTpp;
+
+    hfig(3) = figure();
+    set(hfig(3),'FileName',[pathname resFolder 'torqueVScurrentS.fig'])
+    figSetting();
+    xlabel('$I_s$ (A)')
+    ylabel('$T$ (Nm)')
+    contour3(Is,T,Ir,'LineWidth',1.5,'LevelList',unique(Ir));
+
+    hfig(4) = figure();
+    set(hfig(4),'FileName',[pathname resFolder 'torqueVScurrent3D.fig'])
+    figSetting();
+    xlabel('$I_s$ (A)')
+    ylabel('$I_r$ (A)')
+    contourf(Is,Ir,T,'ShowText','on');
+
+    hfig(5) = figure();
+    set(hfig(5),'FileName',[pathname resFolder 'torqueRippleVScurrent3D.fig'])
+    figSetting();
+    xlabel('$I_s$ (A)')
+    ylabel('$I_r$ (A)')
+    contourf(Is,Ir,dTpp,'ShowText','on');
+
+
+
 
 end
 

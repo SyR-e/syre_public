@@ -58,6 +58,16 @@ else
     
     tmp = orderfields(tmp);
 
-    map.dataAvailable = fieldnames(tmp);
+    [map2gui,~] = SDE_namesMapping();
+    dataAvailable = fieldnames(tmp);
+    for ii=1:length(dataAvailable)
+        if isKey(map2gui,dataAvailable{ii})
+            dataAvailable{ii} = map2gui(dataAvailable{ii});
+        else
+            dataAvailable{ii} = ['wip - ' dataAvailable{ii}];
+        end
+    end
+    dataAvailable = sort(dataAvailable);
+    map.dataAvailable = dataAvailable;
     map.dataSelect = [];
 end

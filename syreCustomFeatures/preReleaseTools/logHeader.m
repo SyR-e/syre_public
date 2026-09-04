@@ -20,8 +20,10 @@ fprintf(fid,['Date           : ' char(datetime('now')) '\r\n']);
 fprintf(fid,['Computer name  : ' getenv('computername') '\r\n']);
 fprintf(fid,['CPU            : ' feature('getcpu') '\r\n']);
 fprintf(fid,['# of cores     : ' int2str(feature('numcores')) '\r\n']);
-[~,tmp] = memory;
-fprintf(fid,['RAM            : ' int2str(tmp.PhysicalMemory.Total/1024/1024/1024) ' GB\r\n' ]);
+if ispc
+    [~,tmp] = memory;
+    fprintf(fid,['RAM            : ' int2str(tmp.PhysicalMemory.Total/1024/1024/1024) ' GB\r\n' ]);
+end
 fprintf(fid,['OS             : ' feature('getos') '\r\n']);
 tmp = ver('matlab');
 fprintf(fid,['Matlab release : ' tmp.Release(2:end-1) '\r\n' ]);

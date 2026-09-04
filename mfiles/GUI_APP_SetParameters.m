@@ -28,28 +28,45 @@ set(app.StatorOuterRadEdit,'Enable','on','Value',num2str(dataSet.StatorOuterRadi
 set(app.AirGapRadiusEdit,'Enable','on','Value',num2str(dataSet.AirGapRadius));
 set(app.ShaftRadEdit,'Enable','on','Value',num2str(dataSet.ShaftRadius));
 set(app.StackLenghtEdit,'Enable','on','Value',num2str(dataSet.StackLength));
-set(app.TypeOfRotorList,'Enable','on','Value',dataSet.TypeOfRotor);
+if(strcmp(dataSet.TypeOfRotor,'Hybrid'))
+    selectHybridRotorType(app);
+else
+    set(app.TypeOfRotorList,'Enable','on','Value',dataSet.TypeOfRotor);
+end
 
 % Preliminary design
 set(app.bRangeEdit,'Enable','on','Value',mat2str(dataSet.bRange));
 set(app.xRangeEdit,'Enable','on','Value',mat2str(dataSet.xRange));
 
-set(app.BfeEdit,'Enable','on','Value',num2str(dataSet.Bfe));
-set(app.ktEdit,'Enable','on','Value',num2str(dataSet.kt));
+set(app.FEAfixCheckBox,'Enable','on','Value',dataSet.FEAfixFlag);
+
+%set(app.BfeEdit,'Enable','on','Value',num2str(dataSet.Bfe));
+%set(app.ktEdit,'Enable','on','Value',num2str(dataSet.kt));
 set(app.RotoryokefactorpuEditField,'Enable','on','Value',num2str(dataSet.RotorYokeFactor));
 set(app.StatoryokefactorpuEditField,'Enable','on','Value',num2str(dataSet.StatorYokeFactor));
 set(app.FEAfixPopUp,'Enable','on','Value',int2str(dataSet.FEAfixN));
 %set(app.CurrLoXBEdit,'Value',num2str(dataSet.CurrLoPP));
-set(app.ThermalLoadingsyrmDesignEditField,'Enable','on','Value',num2str(dataSet.ThermalLoadKj));
-set(app.CurrentDensityArmsmm2EditField,'Enable','on','Value',num2str(dataSet.CurrentDensity));
-set(app.PMfillingfactorpuEditField,'Enable','on','Value',num2str(dataSet.kPM));
+set(app.ThermalLoadingsyrmDesignEditField,'Enable','on','Value',num2str(round(dataSet.ThermalLoadKj)));
+set(app.CurrentDensityArmsmm2EditField,'Enable','on','Value',num2str(round(dataSet.CurrentDensity,4,"significant")));
+% set(app.PMfillingfactorpuEditField,'Enable','on','Value',num2str(dataSet.kPM));
+
+if strcmp(dataSet.TypeOfRotor,'EESM')
+    set(app.EESMpoleheadfactorpuEditField,'Enable','on','Value',num2str(dataSet.PoleHeadFactor))
+    set(app.EditField,'Enable','on','Value',num2str(dataSet.RotorBody2YokeFactor))
+    set(app.PMfillingfactorpuEditField,'Enable','off','Value',num2str(0))
+
+else
+    set(app.EESMpoleheadfactorpuEditField,'Enable','off','Value',num2str(0))
+    set(app.EditField,'Enable','off','Value',num2str(0))
+    set(app.PMfillingfactorpuEditField,'Enable','on','Value',num2str(dataSet.kPM))
+end
 
 if strcmp(dataSet.TypeOfRotor,'IM')
     set(app.syrmDesignPushButt,'Enable','off')
-    set(app.FEAfixPushButt,'Enable','off')
+    %set(app.FEAfixPushButt,'Enable','off')
 else
     set(app.syrmDesignPushButt,'Enable','on')
-    set(app.FEAfixPushButt,'Enable','on')
+    %set(app.FEAfixPushButt,'Enable','on')
 end
 
 f = dataSet.syrmDesignFlag;
@@ -78,17 +95,13 @@ switch f.i0
         set(app.syrmDesignThermalInputDropDown,'Enable','on','Value','Constant current density J');
 end
 
-set(app.MTPApointButton,'Enable','on','Value',f.gf);
-set(app.CharcurrentButton,'Enable','on','Value',f.ichf);
-set(app.HWCSCcurrentButton,'Enable','on','Value',f.scf);
-set(app.DemagratedButton,'Enable','on','Value',f.demag0);
-set(app.DemagHWCButton,'Enable','on','Value',f.demagHWC);
-if ~isfield(f, 'demagUGO')
-    f.demagUGO = 0;
-end
-set(app.DemagUGOButton,'Enable','on','Value',f.demagUGO);
-
-set(app.MechstressButton,'Enable','on','Value',f.Mech);
+set(app.MTPAsearchCheckBox,'Enable','on','Value',f.gf);
+set(app.CharcurrentCheckBox,'Enable','on','Value',f.ichf);
+set(app.HWCcurrentCheckBox,'Enable','on','Value',f.scf);
+set(app.DemagImaxCheckBox,'Enable','on','Value',f.demag0);
+set(app.DemagHWCCheckBox,'Enable','on','Value',f.demagHWC);
+set(app.DemagUGOCheckBox,'Enable','on','Value',f.demagUGO);
+set(app.StructuralCheckBox,'Enable','on','Value',f.Mech);
 
 %% Stator panel
 set(app.ToothLengEdit,'Enable','on','Value',num2str(dataSet.ToothLength));
@@ -233,7 +246,7 @@ elseif strcmp(dataSet.TypeOfRotor,'Spoke-type')
     set(app.RadRibEdit,'Enable','on','Value',mat2str(dataSet.RadRibEdit));
     set(app.SplitRibsEditField,'Enable','off','Value','0');
     set(app.RadRibCheck,'Enable','on','Value',dataSet.RadRibCheck);
-elseif (strcmp(dataSet.TypeOfRotor,'IM')||strcmp(dataSet.TypeOfRotor,'EESM'))
+elseif (strcmp(dataSet.TypeOfRotor,'IM')||strcmp(dataSet.TypeOfRotor,'EESM')||strcmp(dataSet.TypeOfRotor,'Hybrid'))
     set(app.NumberOfLayersEdit,'Enable','off','Value',num2str(dataSet.NumOfLayers));
     set(app.AlphapuEdit,'Enable','off','Value',mat2str(dataSet.ALPHApu));
     set(app.AlphadegreeEdit,'Enable','off','Editable','off','Value',mat2str(dataSet.ALPHAdeg));
@@ -333,7 +346,7 @@ else
 end
 
 % EESM motor panel
-if strcmp(dataSet.TypeOfRotor,'EESM')
+if strcmp(dataSet.TypeOfRotor,'EESM') || strcmp(dataSet.TypeOfRotor,'Hybrid')
     % set(app.PoleAnglepuEditField,'Enable','on','Editable','on','Value',num2str(dataSet.PoleAnglepu));
     set(app.PoleAnglepuEditField,'Enable','on','Editable','on','Value',num2str(dataSet.ALPHApu));
     set(app.YokewidthmmEditField,'Enable','on','Editable','on','Value',num2str(dataSet.YokeWidth));
@@ -342,10 +355,21 @@ if strcmp(dataSet.TypeOfRotor,'EESM')
     set(app.PolewidthmmEditField,'Enable','on','Editable','on','Value',num2str(dataSet.PoleWidth));
     set(app.CoilwidthmmEditField,'Enable','on','Editable','on','Value',num2str(dataSet.CoilWidth));
     set(app.CoilheightmmEditField,'Enable','on','Editable','on','Value',num2str(dataSet.CoilHeight));
-    set(app.PoleHeadFilletmmEditField,'Enable','on','Editable','on','Value',num2str(dataSet.PoleRotHeadFillet));
-    set(app.PoleHeadAngledegEditField,'Enable','on','Editable','on','Value',num2str(dataSet.PoleRotHeadAngle)); 
+    set(app.HeadFilletmmEditField,'Enable','on','Editable','on','Value',num2str(dataSet.PoleRotHeadFillet));
+    set(app.HeadAngledegEditField,'Enable','on','Editable','on','Value',num2str(dataSet.PoleRotHeadAngle));
+    set(app.YokeFilletmmEditField,'Enable','on','Editable','on','Value',num2str(dataSet.PoleRotYokeFillet));
+    set(app.YokeAngledegEditField,'Enable','on','Editable','on','Value',num2str(dataSet.PoleRotYokeAngle));
     set(app.NumberofturnsperpoleEditField,'Enable','on','Editable','on','Value',num2str(dataSet.FieldTurns));
     set(app.CoilfillingfactorpuEditField,'Enable','on','Editable','on','Value',num2str(dataSet.RotorConductorFillingFactor));
+    switch dataSet.PoleHeadShape
+        case 0
+            set(app.PoleheadshapeDropDown,'Value','Arc');
+        case 1
+            set(app.PoleheadshapeDropDown,'Value','Cos');
+        case 2
+            set(app.PoleheadshapeDropDown,'Value','3rd harmonic');
+    end
+    set(app.PoleheadshapeDropDown,'Enable','on');
 else
     % set(app.PoleAnglepuEditField,'Enable','off','Value',num2str(dataSet.PoleAnglepu));
     set(app.PoleAnglepuEditField,'Enable','off','Editable','off','Value',num2str(dataSet.ALPHApu));
@@ -355,10 +379,24 @@ else
     set(app.PolewidthmmEditField,'Enable','off','Value',num2str(dataSet.PoleWidth));
     set(app.CoilwidthmmEditField,'Enable','off','Value',num2str(dataSet.CoilWidth));
     set(app.CoilheightmmEditField,'Enable','off','Editable','on','Value',num2str(dataSet.CoilHeight));
-    set(app.PoleHeadFilletmmEditField,'Enable','off','Editable','on','Value',num2str(dataSet.PoleRotHeadFillet));
-    set(app.PoleHeadAngledegEditField,'Enable','off','Editable','on','Value',num2str(dataSet.PoleRotHeadAngle));
+    set(app.HeadFilletmmEditField,'Enable','off','Editable','on','Value',num2str(dataSet.PoleRotHeadFillet));
+    set(app.HeadAngledegEditField,'Enable','off','Editable','on','Value',num2str(dataSet.PoleRotHeadAngle));
+    set(app.YokeFilletmmEditField,'Enable','off','Editable','on','Value',num2str(dataSet.PoleRotYokeFillet));
+    set(app.YokeAngledegEditField,'Enable','off','Editable','on','Value',num2str(dataSet.PoleRotYokeAngle));
     set(app.NumberofturnsperpoleEditField,'Enable','off','Editable','off','Value',num2str(dataSet.FieldTurns));
     set(app.CoilfillingfactorpuEditField,'Enable','off','Editable','off','Value',num2str(dataSet.RotorConductorFillingFactor));
+    set(app.PoleheadshapeDropDown,'Enable','off','Editable','off','Value','Arc');
+end
+
+if strcmp(dataSet.TypeOfRotor,'Hybrid')
+    % set(app.TanRibEdit,'Enable','off','Editable','off','Value',mat2str(dataSet.TanRibEdit));
+    % set(app.RadRibEdit,'Enable','on','Editable','on','Value',mat2str(dataSet.RadRibEdit));
+    % set(app.MagnetlengthmmEditField,'Enable','on','Editable','on','Value',mat2str(dataSet.MagnetLength))
+    % set(app.MagnetoffsetmmEditField,'Enable','on','Editable','on','Value',mat2str(dataSet.MagnetOffset))
+else
+    % set(app.MagnetlengthmmEditField,'Enable','off')
+    % set(app.MagnetoffsetmmEditField,'Enable','off')
+
 end
 
 %% Options panel
@@ -723,7 +761,7 @@ else
     set(app.FilletTanribsoutBou,'Enable','off')
 end
 
-if strcmp(dataSet.TypeOfRotor,'EESM')
+if strcmp(dataSet.TypeOfRotor,'EESM') || strcmp(dataSet.TypeOfRotor,'Hybrid')
 
     set(app.YokeWidthBouCheck,'Enable','on');
     set(app.PoleBodyHeightBouCheck,'Enable','on');
@@ -733,6 +771,8 @@ if strcmp(dataSet.TypeOfRotor,'EESM')
     set(app.CoilHeightBouCheck,'Enable','on');
     set(app.PoleRotHeadFilletBouCheck,'Enable','on');
     set(app.PoleRotHeadAngleBouCheck,'Enable','on');
+    % set(app.PoleRotYokeFilletBouCheck,'Enable','on');
+    % set(app.PoleRotYokeAngleBouCheck,'Enable','on');
 
     if dataSet.YokeWidthBouCheck
         set(app.YokeWidthBou,'Enable','on');
@@ -774,6 +814,16 @@ if strcmp(dataSet.TypeOfRotor,'EESM')
     else
         set(app.PoleRotHeadAngleBou,'Enable','off');
     end
+    % if dataSet.PoleRotYokeFilletBouCheck
+    %     set(app.PoleRotYokeFilletBou,'Enable','on');
+    % else
+    %     set(app.PoleRotYokeFilletBou,'Enable','off');
+    % end
+    % if dataSet.PoleRotYokeAngleBouCheck
+    %     set(app.PoleRotYokeAngleBou,'Enable','on');
+    % else
+    %     set(app.PoleRotYokeAngleBou,'Enable','off');
+    % end
     set(app.FieldbystatorcurrentdensityEditField,'Enable','on')
 else
     set(app.YokeWidthBouCheck,'Enable','off','Value',0);
@@ -784,6 +834,8 @@ else
     set(app.CoilHeightBouCheck,'Enable','off','Value',0);
     set(app.PoleRotHeadFilletBouCheck,'Enable','off','Value',0);
     set(app.PoleRotHeadAngleBouCheck,'Enable','off','Value',0);
+    % set(app.RotYokeFilletBouCheck,'Enable','off','Value',0);
+    % set(app.RotYokeAngleBouCheck,'Enable','off','Value',0);
 
     set(app.YokeWidthBou,'Enable','off');
     set(app.PoleBodyHeightBou,'Enable','off');
@@ -793,9 +845,35 @@ else
     set(app.CoilHeightBou,'Enable','off');
     set(app.PoleRotHeadFilletBou,'Enable','off');
     set(app.PoleRotHeadAngleBou,'Enable','off');
+    % set(app.PoleRotYokeFilletBou,'Enable','off');
+    % set(app.PoleRotYokeAngleBou,'Enable','off');
+
 
     set(app.FieldbystatorcurrentdensityEditField,'Enable','off')
 end
+
+% if strcmp(dataSet.TypeOfRotor,'Hybrid')
+% 
+%     set(app.MagnetLengthBouCheck,'Enable','on')
+%     set(app.MagnetOffsetBouCheck,'Enable','on')
+% 
+%     if dataSet.MagnetLengthBouCheck
+%         set(app.MagnetLengthBou,'Enable','on')
+%     else
+%         set(app.MagnetLengthBou,'Enable','off')
+%     end
+%     if dataSet.MagnetOffsetBouCheck
+%         set(app.MagnetOffsetBou,'Enable','on')
+%     else
+%         set(app.MagnetOffsetBou,'Enable','off')
+%     end
+% 
+% else
+%     set(app.MagnetLengthBouCheck,'Enable','off')
+%     set(app.MagnetOffsetBouCheck,'Enable','off')
+%     set(app.MagnetLengthBou,'Enable','off')
+%     set(app.MagnetOffsetBou,'Enable','off')
+% end
 
 
 app.Alpha1BouEdit.Value          = mat2str(dataSet.Alpha1Bou);
@@ -830,6 +908,11 @@ app.CoilWidthBou.Value         = mat2str(dataSet.CoilWidthBou);
 app.CoilHeightBou.Value        = mat2str(dataSet.CoilHeightBou);
 app.PoleRotHeadFilletBou.Value = mat2str(dataSet.PoleRotHeadFilletBou);
 app.PoleRotHeadAngleBou.Value  = mat2str(dataSet.PoleRotHeadAngleBou);
+% app.PoleRotYokeFilletBou.Value = mat2str(dataSet.PoleRotYokeFilletBou);
+% app.PoleRotYokeAngleBou.Value  = mat2str(dataSet.PoleRotYokeAngleBou);
+
+% app.MagnetLengthBou.Value = mat2str(dataSet.MagnetLengthBou);
+% app.MagnetOffsetBou.Value = mat2str(dataSet.MagnetOffsetBou);
 
 % opt objectives
 set(app.TorqueOptCheck,'Value',dataSet.TorqueOptCheck);
@@ -1192,6 +1275,8 @@ switch dataSet.EvalType
         set(app.NumOfRotorPosiPPEdit,'Enable','off');
         set(app.BrPPEdit,'Enable','off');
         set(app.TempPPEdit,'Enable','off');
+        set(app.FieldcurrentloadpuEditField,'Enable','off'); % EESM
+        set(app.FieldcurrentAEditField,'Enable','off'); % EESM
         set(app.NGridPPEdit,'Enable','off');
         set(app.EvaluatedSpeedEdit,'Enable','on');
         set(app.StartPProMagnetPush,'Enable','off')
@@ -1241,10 +1326,47 @@ switch dataSet.EvalType
         set(app.AxistypeDropDown,'Enable','on');
         set(app.JMAGButton,'Enable','off')
         set(app.COMSOLButton_2,'Enable','off')
-        set(app.OffsetcurrentAEditField,'Enable','off');
+    case 'first_mag'
+        set(app.EvalTypePopUp,'Enable','on','Value','First Magnetization (Block Integral)');
+        set(app.SpanEltPPEdit,'Enable','on');
+        set(app.GammaPPEdit,'Enable','on');
+        set(app.CurrLoPPEdit,'Enable','on');
+        set(app.CurrentPP,'Enable','on');
+        set(app.NumOfRotorPosiPPEdit,'Enable','on');
+        set(app.BrPPEdit,'Enable','on');
+        set(app.TempPPEdit,'Enable','on');
+        set(app.NGridPPEdit,'Enable','off');
+        set(app.EvaluatedSpeedEdit,'Enable','on');
+        set(app.StartPProMagnetPush,'Enable','on');
+        set(app.StartPProAnsysPush,'Enable','on');
+        set(app.MapQuadrantsPopUp,'Enable','off');
+        set(app.Active3phasesetsEditField,'Enable','on');
+        set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','off')
+        set(app.COMSOLButton_2,'Enable','off')
+        set(app.FieldcurrentAEditField,'Enable','on','Value',mat2str(dataSet.FieldCurrent));
+    case 'idemag_non_linear_Node'
+        set(app.EvalTypePopUp,'Enable','on','Value','Demagnetization Analysis Non-Linear (Node)');
+        set(app.SpanEltPPEdit,'Enable','on');
+        set(app.GammaPPEdit,'Enable','on');
+        set(app.CurrLoPPEdit,'Enable','on');
+        set(app.CurrentPP,'Enable','on');
+        set(app.NumOfRotorPosiPPEdit,'Enable','on');
+        set(app.BrPPEdit,'Enable','on');
+        set(app.TempPPEdit,'Enable','on');
+        set(app.NGridPPEdit,'Enable','off');
+        set(app.EvaluatedSpeedEdit,'Enable','on');
+        set(app.StartPProMagnetPush,'Enable','on');
+        set(app.StartPProAnsysPush,'Enable','on');
+        set(app.MapQuadrantsPopUp,'Enable','off');
+        set(app.Active3phasesetsEditField,'Enable','on');
+        set(app.AxistypeDropDown,'Enable','on');
+        set(app.JMAGButton,'Enable','off')
+        set(app.COMSOLButton_2,'Enable','off')
+        set(app.FieldcurrentAEditField,'Enable','on','Value',mat2str(dataSet.FieldCurrent));
 end
 
-if strcmp(dataSet.TypeOfRotor,'EESM')
+if strcmp(dataSet.TypeOfRotor,'EESM') || strcmp(dataSet.TypeOfRotor,'Hybrid')
     set(app.AxistypeDropDown,'Enable','off');
 else
     set(app.FieldcurrentloadpuEditField,'Enable','off');
@@ -1292,8 +1414,10 @@ end
 
 if dataSet.XFEMMsimulation
     set(app.XFEMMsimulationButton,'Value',true,'Text','XFEMM')
+    set(app.StartPProPush,'Text','XFEMM')
 else
     set(app.XFEMMsimulationButton,'Value',false,'Text','FEMM')
+    set(app.StartPProPush,'Text','FEMM')
 end
 
 
@@ -1523,7 +1647,3 @@ if dataSet.custom
 else
     set(app.ScaleCheck,'Enable','on');
 end
-
-
-
-

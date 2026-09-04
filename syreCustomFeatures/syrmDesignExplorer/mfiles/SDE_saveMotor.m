@@ -74,6 +74,8 @@ else
         dataSet.CoilHeight        = interp2(map.xx,map.bb,map.hb,x,b);
         dataSet.PoleRotHeadAngle  = interp2(map.xx,map.bb,map.thHead_deg,x,b);
         dataSet.PoleRotHeadFillet = interp2(map.xx,map.bb,map.r_fillet,x,b);
+        dataSet.PoleRotYokeAngle  = interp2(map.xx,map.bb,map.thYoke_deg,x,b);
+        dataSet.PoleRotYokeFillet = interp2(map.xx,map.bb,map.r_bfillet,x,b);
                
         % dataSet.RotorConductorFillingFactor = map.win.kcuf;
         % dataSet.FieldTurns                  = map.win.Nf;
@@ -100,7 +102,7 @@ dataSet.PMdimBouCheck = 0;
 if ~isfield(map,'EI')
 figure();
 figSetting();
-title(['$x=' num2str(map.xSelect,2) '$ / $b=' num2str(map.bSelect,2) '$'])
+title(['$x=' num2str(map.xSelect,3) '$ / $b=' num2str(map.bSelect,3) '$'])
 end
 
 [dataSet,~,~,~] = back_compatibility(dataSet,[],[],0);

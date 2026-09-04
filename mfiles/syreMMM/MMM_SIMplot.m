@@ -5,7 +5,7 @@ function MMM_SIMplot(motorModel)
     
     Time                = motorModel.SyreDrive.simOut.Outputs.id.Time;
     Torque_ref          = motorModel.SyreDrive.simOut.Outputs.T_ext.Data;
-    Torque              = motorModel.SyreDrive.simOut.Out_M.T_m.Data;
+    Torque              = motorModel.SyreDrive.simOut.Out_M.T.Data;
     Torque_obs          = motorModel.SyreDrive.simOut.Outputs.T_elt.Data;
     Torque_load         = motorModel.SyreDrive.simOut.Out_M.T_load.Data;
     Speed               = motorModel.SyreDrive.simOut.Out_M.n_m.Data;

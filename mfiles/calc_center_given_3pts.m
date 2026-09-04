@@ -1,4 +1,4 @@
-% Copyright 2024
+% Copyright 2026
 %
 %    Licensed under the Apache License, Version 2.0 (the "License");
 %    you may not use this file except in compliance with the License.
@@ -12,23 +12,23 @@
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
+
 function [xc, yc] = calc_center_given_3pts(x1, y1, x2, y2, x3, y3)
-    % Funzione che restituisce il centro della circonferenza passante per i punti (x1, y1), (x2, y2), (x3, y3)
 
-    syms a bb c
-    % Definizione delle equazioni per i tre punti
-    eqn1 = x1^2 + y1^2 + a * x1 + bb * y1 + c == 0;
-    eqn2 = x2^2 + y2^2 + a * x2 + bb * y2 + c == 0;
-    eqn3 = x3^2 + y3^2 + a * x3 + bb * y3 + c == 0;
+    M = [x1 y1 1;
+         x2 y2 1;
+         x3 y3 1];
 
-    % Risoluzione delle equazioni per trovare i coefficienti a, bb, c
-    sol = solve([eqn1, eqn2, eqn3], [a, bb, c]);
+    rhs = -[x1^2 + y1^2;
+            x2^2 + y2^2;
+            x3^2 + y3^2];
 
-    % Conversione delle soluzioni in numeri reali
-    A = double(sol.a);
-    B = double(sol.bb);
+    coeff = M \ rhs;
 
-    % Calcolo del centro della circonferenza
+    A = coeff(1);
+    B = coeff(2);
+
     xc = -A / 2;
     yc = -B / 2;
+
 end

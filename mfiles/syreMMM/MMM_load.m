@@ -50,13 +50,7 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     else
         data.J = 0;
     end
-    if(strcmp(mod.dataSet.TypeOfRotor,'Circular')||strcmp(mod.dataSet.TypeOfRotor,'Seg')||strcmp(mod.dataSet.TypeOfRotor,'ISeg')||strcmp(mod.dataSet.TypeOfRotor,'Fluid'))
-        data.axisType = 'SR';
-    elseif strcmp(mod.dataSet.TypeOfRotor,'IM')
-        data.axisType = 'SR';
-    else
-        data.axisType = 'PM';
-    end
+    data.axisType = 'PM';
     if strcmp(mod.dataSet.FluxBarrierMaterial,'Air')
         data.motorType = 'SR';
     else
@@ -67,10 +61,6 @@ elseif isfield(mod,'dataSet')   % first time MMM is used
     elseif strcmp(mod.dataSet.TypeOfRotor,'EESM')
         data.motorType = 'EE';
         data.axisType = 'SR';
-        if ~isfield(mod.dataSet,'RotorEndWindingsLength')
-            mod.dataSet.RotorEndWindingsLength = NaN;
-        end
-        data.lendf = mod.dataSet.RotorEndWindingsLength;
     end
     
     data.pathname = pathname;

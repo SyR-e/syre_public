@@ -24,7 +24,7 @@ T   = str2double(answer{1});
 n   = str2double(answer{2});
 Vdc = str2double(answer{3});
 
-fPWM = 10000;   % To change the fPWM, it must be changed manually the User_Constants.h (#define fs 10.0e3f)
+fPWM = 20000;   % To change the fPWM, it must be changed manually the User_Constants.h (#define fs 10.0e3f)
 
 I     = nan;
 gamma = nan;

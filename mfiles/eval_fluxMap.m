@@ -114,7 +114,7 @@ switch MapQuadrants
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
         end
     case 2
-        if strcmp(dataIn.axisType,'PM') || strcmp(geo.RotType,'EESM')
+        if strcmp(dataIn.axisType,'PM') || strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
             idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
             iqvect = linspace(0,SimulatedCurrent,NumGrid);
         else
@@ -125,7 +125,7 @@ switch MapQuadrants
         idvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
         iqvect = linspace(-SimulatedCurrent,SimulatedCurrent,NumGrid+NumGrid-1);
 end
-if strcmp(geo.RotType,'EESM')
+if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
     ifvect = linspace(0, SimulatedIf, NumGrid);
 end
 
@@ -150,7 +150,7 @@ if strcmp(dataIn.TypeOfRotor,'IM')
     iqvect(iqvect==0) = iStep/10;
 end
 
-if strcmp(geo.RotType,'EESM')
+if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
     [Id,Iq,If] = meshgrid(idvect,iqvect,ifvect);
 else
     if strcmp(MapType,'grid')
@@ -211,9 +211,9 @@ end
 
 Id = Id(:);
 Iq = Iq(:);
-if strcmp(geo.RotType,'EESM')
+if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
     If   = If(:);
-    Fr  = zeros(size(Id)); % Fdr / Fqr - Vr?
+    Ff  = zeros(size(Id)); % Fdr / Fqr - Vr?
 end
 Fd   = zeros(size(Id));
 Fq   = zeros(size(Id));
@@ -270,15 +270,20 @@ for ii=1:length(Id)
         Fbar{ii}    = OUT{ii}.IM.Fbar;
         FbarTot{ii} = OUT{ii}.IM.FbarTot;
     end
+
+    if isfield(OUT{1},'ff')
+        Ff(ii) = OUT{ii}.ff;
+    end
 end
 
 if strcmp(MapType,'grid')
-    if strcmp(geo.RotType,'EESM')
+    if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
         Id   = reshape(Id,[nR,nC,nF]);
         Iq   = reshape(Iq,[nR,nC,nF]);
         If   = reshape(If,[nR,nC,nF]);
         Fd   = reshape(Fd,[nR,nC,nF]);
         Fq   = reshape(Fq,[nR,nC,nF]);
+        Ff   = reshape(Ff,[nR,nC,nF]);
         T    = reshape(T,[nR,nC,nF]);
         dT   = reshape(dT,[nR,nC,nF]);
         dTpp = reshape(dTpp,[nR,nC,nF]);
@@ -337,8 +342,9 @@ if strcmp(MapType,'grid')
     F_map.dTpp = dTpp;
     % F_map.We   = We;
     % F_map.Wc   = Wc;
-    if strcmp(geo.RotType,'EESM')
+    if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
         F_map.If   = If;
+        F_map.Ff   = Ff;
     end
 
     if exist('Pfes_h','var')
@@ -375,8 +381,9 @@ else
     F_map.dTpp = dTpp;
     % F_map.We   = We;
     % F_map.Wc   = Wc;
-    if strcmp(geo.RotType,'EESM')
+    if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
         F_map.If   = If;
+        F_map.Ff   = Ff;
     end
     if exist('Pfes_h','var')
         F_map.Pfes_h = Pfes_h;
@@ -419,7 +426,7 @@ if ~exist([pathname resFolder],'dir')
 end
 
 % NewDir = [pathname resFolder filemot(1:end-4) '_F_map_' Idstr 'x' Iqstr '_' int2str(per.tempPP) 'deg'];
-if strcmp(geo.RotType,'EESM')
+if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
     NewDir = [pathname resFolder 'F_map_' Idstr 'x' Iqstr '_' int2str(floor(dataIn.FieldCurrent)) 'f' int2str(10*(dataIn.FieldCurrent-floor(dataIn.FieldCurrent))) '_' int2str(MapQuadrants) 'Q'];
 else
     NewDir = [pathname resFolder 'F_map_' Idstr 'x' Iqstr '_' int2str(per.tempPP) 'deg_' int2str(MapQuadrants) 'Q'];
@@ -470,7 +477,7 @@ dataSet.axisType         = dataIn.axisType;
 
 save([NewDir,'F_map','.mat'],'dataSet','geo','per','mat','-append');
 if strcmp(MapType,'grid')
-    if strcmp(geo.RotType,'EESM')
+    if strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid')
         save([NewDir,'fdfq_idiq_n41.mat'],'dataSet','geo','per','mat','-append');
     else
         save([NewDir,'fdfq_idiq_n256.mat'],'dataSet','geo','per','mat','-append');

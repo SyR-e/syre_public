@@ -57,7 +57,7 @@ if ~isfield(motorModel,'SyreDrive')
 
     flag = 1;
     if Dflag
-        disp('- Added Syre Drive');
+        disp('- Added syreDrive');
     end
 end
 
@@ -217,19 +217,19 @@ end
 
 % Added model type in syreDrive (Andrei Bojoi MSc Thesis)
 if ~isfield(motorModel.SyreDrive,'modelType')
-    motorModel.SyreDrive.modelType = 'Average';
-     if Dflag
-        disp('- Added model type in syreDrive')
-    end
-    flag=1;
+    % motorModel.SyreDrive.modelType = 'Average';
+    % % if Dflag
+    % %     disp('- Added model type in syreDrive')
+    % % end
+    flag=0;
 end
 
 if ~isfield(motorModel.SyreDrive,'IronLoss')
     motorModel.SyreDrive.IronLoss = 'No';
-    flag = 1;
-    if Dflag
-        disp('- Added IronLoss Syre Drive');
-    end
+    % flag = 1;
+    % if Dflag
+    %     disp('- Added IronLoss Syre Drive');
+    % end
 end
 
 
@@ -279,13 +279,13 @@ if ~isfield(motorModel,'DemagnetizationLimit')
 end
 
 % Control strategy in syreDrive
-if ~isfield(motorModel.SyreDrive,'Ctrl_strategy')
-    motorModel.SyreDrive.Ctrl_strategy = 'FOC';
-    if Dflag
-        disp('- Included Control strategy in syreDrive')
-    end
-    flag=1;
-end
+% if ~isfield(motorModel.SyreDrive,'Ctrl_strategy')
+    % motorModel.SyreDrive.Ctrl_strategy = 'FOC';
+    % if Dflag
+    %     disp('- Included Control strategy in syreDrive')
+    % end
+    % flag=0;
+% end
 
 if ~isfield(motorModel.TnSetup,'ASCsafeFlag')
    motorModel.TnSetup.ASCsafeFlag = 'No';
@@ -298,16 +298,24 @@ end
 if ~isfield(motorModel.SyreDrive,'modelSetup')
     motorModel.SyreDrive.modelSetup.Ctrl_type      = motorModel.SyreDrive.Ctrl_type;
     motorModel.SyreDrive.modelSetup.FMapsModel     = motorModel.SyreDrive.FMapsModel;
-    motorModel.SyreDrive.modelSetup.modelType      = motorModel.SyreDrive.modelType;
-    motorModel.SyreDrive.modelSetup.Ctrl_strategy  = motorModel.SyreDrive.Ctrl_strategy;
+    if isfield(motorModel.SyreDrive,'modelType')
+        motorModel.SyreDrive.modelSetup.modelType  = motorModel.SyreDrive.modelType;
+        motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'modelType'); 
+    else
+        motorModel.SyreDrive.modelSetup.modelType  = 'Average';
+    end
+    if isfield(motorModel.SyreDrive,'Ctrl_strategy')
+        motorModel.SyreDrive.modelSetup.Ctrl_strategy  = motorModel.SyreDrive.Ctrl_strategy;
+        motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'Ctrl_strategy');
+    else
+        motorModel.SyreDrive.modelSetup.Ctrl_strategy  = 'FOC';
+    end
     motorModel.SyreDrive.modelSetup.IronLoss       = motorModel.SyreDrive.IronLoss;
     motorModel.SyreDrive.modelSetup.WindingLossAC  = 'No';
     motorModel.SyreDrive.modelSetup.motorModelType = 'Controlled Current Generators (CCG)';
 
     motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'Ctrl_type');
-    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'FMapsModel');    
-    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'modelType');   
-    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'Ctrl_strategy');
+    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'FMapsModel');
     motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'IronLoss');
  
     if Dflag
@@ -335,18 +343,9 @@ if ~isfield(motorModel,'VFMdata')
     motorModel.VFMdata.data.Remag = [];
     
     if Dflag
-        disp('- Added iron, PM and AC loss for SC evaluation')
+        disp('- Added VFM post-processing')
     end
     flag=1;
-end
-
-
-% message in command window if some data are added
-if flag && Dflag
-    msg = 'This project was created with an older version of SyR-e: proceed to SAVE MACHINE to update to latest version';
-    %     title = 'WARNING';
-    %     f = warndlg(msg,title,'modal');
-    warning(msg);
 end
 
 % GUI updated for EESM Efficiency Map
@@ -359,7 +358,7 @@ if ~isfield(motorModel.data,'if0')
             if ~isfield(motorModel.dataSet,'RotorEndWindingsLength')
                 motorModel.dataSet.RotorEndWindingsLength = NaN;
             end
-            motorModel.data.lendf = motorModel.dataSet.RotorEndWindingsLength;
+            motorModel.data.lendf    = motorModel.dataSet.RotorEndWindingsLength;
             motorModel.data.tempCoRo = motorModel.data.tempCu;
             motorModel.data.Rf       = motorModel.per.Rf;
         else
@@ -379,3 +378,97 @@ if ~isfield(motorModel.data,'if0')
         motorModel.data.Rf       = NaN;
     end
 end
+
+% linear or herringbone skew
+if ~isfield(motorModel.tmpSkew,'shape')
+    motorModel.tmpSkew.shape = 'Linear skewing';
+    if Dflag
+        disp('- Added linear or herringbone skewing selection');
+    end
+    flag=1;
+end
+
+% EESM scaling
+if ~isfield(motorModel.tmpScale,'Nr')
+    motorModel.tmpScale.Nr = motorModel.data.Nr;
+    if Dflag
+        disp('- Added EESM scaling');
+    end
+    flag=1;
+end
+
+% changed syreDrive model type to inverter model
+if ~isfield(motorModel.SyreDrive.modelSetup,'InverterModel')
+    motorModel.SyreDrive.modelSetup.InverterModel = motorModel.SyreDrive.modelSetup.modelType;
+    if strcmp(motorModel.SyreDrive.modelSetup.InverterModel,'Istantaneous')
+        motorModel.SyreDrive.modelSetup.InverterModel = 'PWM';
+    end
+    motorModel.SyreDrive.modelSetup = rmfield(motorModel.SyreDrive.modelSetup,'modelType');
+    if Dflag
+        disp('- Updated syreDrive inverter model type');
+    end
+    flag=1;
+end
+
+% clear syreDrive structure
+if isfield(motorModel.SyreDrive,'modelType')
+    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'modelType');
+    if Dflag
+        disp('- removed modelType from syreDrive');
+    end
+    flag=1;
+end
+
+if isfield(motorModel.SyreDrive,'IronLoss')
+    motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'IronLoss');
+    % flag = 1;
+    % if Dflag
+    %     disp('- Added IronLoss Syre Drive');
+    % end
+end
+
+if strcmp(motorModel.data.motorType,'EE')
+    tmpCTRL = motorModel.TnSetup.Control;
+    if strcmp(tmpCTRL,'MTPA') || strcmp(tmpCTRL,'Max efficiency')
+        motorModel.TnSetup.Control = 'Min Overall Losses';
+    end
+end
+
+if isfield(motorModel.SyreDrive,'SIM_path')
+    if exist(motorModel.SyreDrive.SIM_path,'file')
+        motorModel.SyreDrive.SIM_file = motorModel.SyreDrive.SIM_path;
+        motorModel.SyreDrive = rmfield(motorModel.SyreDrive,'SIM_path');
+        if strcmp(motorModel.SyreDrive.SIM_file(end-2:end),'slx')
+            motorModel.SyreDrive.Simulator = 'Simulink';
+        elseif strcmp(motorModel.SyreDrive.SIM_file(end-4:end),'plecs')
+            motorModel.SyreDrive.Simulator = 'PLECS';
+        else
+            motorModel.SyreDrive.Simulator = [];
+        end
+    else
+        motorModel.SyreDrive.SIM_file  = [];
+        motorModel.SyreDrive.Simulator = [];
+    end
+    if Dflag
+        disp('- renamed syreDrive filename data');
+    end
+    flag=1;
+end
+
+if ~isfield(motorModel.SyreDrive,'SIM_file')
+    motorModel.SyreDrive.SIM_file  = [];
+    motorModel.SyreDrive.Simulator = [];
+    if Dflag
+        disp('- added syreDrive filename');
+    end
+    flag=1;
+end
+
+% message in command window if some data are added
+if flag && Dflag
+    msg = 'This project was created with an older version of SyR-e: proceed to SAVE MACHINE to update to latest version';
+    %     title = 'WARNING';
+    %     f = warndlg(msg,title,'modal');
+    warning(msg);
+end
+

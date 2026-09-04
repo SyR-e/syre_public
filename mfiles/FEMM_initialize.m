@@ -50,15 +50,13 @@ if ~strcmp(mat.SlotCond.MatName,mat.BarCond.MatName)
 end
 
 % add barrier 
-if isfield(mat.LayerMag,'BH')
-    mi_addmaterial(mat.LayerMag.MatName);
+% disp(mat.LayerMag)
+mi_addmaterial(mat.LayerMag.MatName,mat.LayerMag.mu,mat.LayerMag.mu,mat.LayerMag.Hc(1),0,mat.LayerMag.sigmaPM/1e6);
 
+if isfield(mat.LayerMag,'BH')
     for ii=1:length(mat.LayerMag.BH(:,1))
         mi_addbhpoint(mat.LayerMag.MatName,mat.LayerMag.BH(ii,1),mat.LayerMag.BH(ii,2));
     end
-    
-else
-    mi_addmaterial(mat.LayerMag.MatName,mat.LayerMag.mu,mat.LayerMag.mu,mat.LayerMag.Hc(1),0,mat.LayerMag.sigmaPM/1e6);
 end
 
 % add sleeve
@@ -66,3 +64,9 @@ mi_addmaterial(mat.Sleeve.MatName,1,1,0,0);
 
 % add air
 mi_addmaterial('Air',1,1,0,0);
+
+
+%IdealBarrier
+if strcmp(geo.RotType ,'Hybrid')
+    mi_addmaterial(mat.LayerIdealBarrier.MatName,mat.LayerIdealBarrier.mu,mat.LayerIdealBarrier.mu,0,0);
+end

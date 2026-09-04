@@ -2,11 +2,9 @@
 
 void PIReg(XPIRegPars *par,XPIRegVars *var)
 {
-    float int_lim;
-    
     //Error computation
     var->err  = var->ref-var->fbk;    //Proportional regulator
-    var->prop = par->kp*var->err;
+    var->prop = par->kp*var->err+var->ffw;
     //Saturation of the proportional part to lim
     if (var->prop>par->lim)
         var->prop=par->lim;
@@ -14,16 +12,20 @@ void PIReg(XPIRegPars *par,XPIRegVars *var)
         var->prop=-par->lim;
     
     //Limit of the intg part
-    int_lim = par->lim-fabs(var->prop);
+    // int_lim = par->lim-fabs(var->prop);
     
     //Integral part
     var->intg+=par->ki*var->err;
     
     //Saturation of the intg part
-    if (var->intg > int_lim)
-        var->intg = int_lim;
-    if (var->intg < (-int_lim))
-        var->intg = -int_lim;
+    // if (var->intg > int_lim)
+        // var->intg = int_lim;
+    // if (var->intg < (-int_lim))
+        // var->intg = -int_lim;
+    if (var->intg > par->lim-var->prop)
+        var->intg = par->lim-var->prop;
+    if (var->intg < -par->lim-var->prop)
+        var->intg = -par->lim-var->prop;
     
     //Output computation
     var->out=var->prop+var->intg;
@@ -233,7 +235,8 @@ void DTComp(Xabc duty, Xabc duty_km1, Xabc isabc,float vdc,float dt, Xabc *vsabc
 
 //----------------------------------------------------------------------------------------------------//
 //Current control loops
-void Current_loop(float vdc, float Imax, Xdq isdq_ref,Xdq isdq ,Xdq vffw_dq,XPIRegPars* id_par, XPIRegVars* id_var, XPIRegPars* iq_par, XPIRegVars* iq_var,Xdq* vsdq_ref) {
+/*
+void Current_loop(float vdc, float Imax, Xdq isdq_ref,Xdq isdq ,XPIRegPars* id_par, XPIRegVars* id_var, XPIRegPars* iq_par, XPIRegVars* iq_var,Xdq* vsdq_ref) {
 	
     float vs_max;
 	float tmp1;
@@ -241,7 +244,7 @@ void Current_loop(float vdc, float Imax, Xdq isdq_ref,Xdq isdq ,Xdq vffw_dq,XPIR
     vs_max = vdc * SQRT1OVER3;
     
     //d-axis control loop
-    id_par->lim = vs_max-vffw_dq.d;
+    id_par->lim = vs_max;
     id_var->ref = isdq_ref.d;
     id_var->fbk = isdq.d;
     PIReg(id_par, id_var);
@@ -253,26 +256,14 @@ void Current_loop(float vdc, float Imax, Xdq isdq_ref,Xdq isdq ,Xdq vffw_dq,XPIR
     if (isdq_ref.q<-tmp1)	isdq_ref.q =-tmp1;
     
     //q-axis control loop
-    iq_par->lim   = sqrtf(vs_max*vs_max-vsdq_ref->d*vsdq_ref->d)-vffw_dq.q;
+    iq_par->lim   = sqrtf(vs_max*vs_max-vsdq_ref->d*vsdq_ref->d);
     iq_var->ref   =isdq_ref.q;
     iq_var->fbk   =isdq.q;
     PIReg(iq_par, iq_var);
     vsdq_ref->q=iq_var->out;
     
 }
-
-
-//----------------------------------------------------------------------------------------------------//
-
-// General formulation for a low pass filter with only one coefficient
-// sarebbe da sostituire con una macro
-//float Filter(float xk,float xf_k, float kfilt) 
-//{
-//    
-//    xf_k+= kfilt * (xk-xf_k);
-//    
-//    return xf_k;
-//}
+*/
 
 //----------------------------------------------------------------------------------------------------//
 

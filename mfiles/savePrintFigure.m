@@ -26,6 +26,11 @@ else
 end
 
 figname=get(hfig,'FileName');
+if isempty(figname)
+    [filename,pathname] = uiputfile(['*.fig'],'Save figure');
+    figname = checkPathSyntax([pathname '\' filename]);
+    set(hfig,'FileName',figname);
+end
 if ~isempty(figname)
     saveas(hfig,figname)
     print(hfig,[figname(1:end-4) '.png'],'-dpng','-r600')

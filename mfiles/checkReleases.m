@@ -23,20 +23,26 @@ disp('Check minimum release requirements')
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
 % Matlab
-disp('Check Matlab release...')
-disp('   minimum requirement      : 2019b (9.7)  released 18-Jul-2019')
-disp('   suggested release        : 2025b (25.2) released 28-Jul-2025')
+disp('Check MATLAB release...')
+disp('   minimum requirement      : 2023b (23.2) released 18-Jul-2023')
+disp('   suggested release        : 2026a (26.1) released 19-Nov-2025')
 
 tmp = ver('matlab');
 vMatlab = eval(tmp.Version);
-vMatlabDate = datetime(tmp.Date);
+vMatlabDate = datetime(tmp.Date,'Locale','en_US');
 
-disp(['   installed Matlab release : ' tmp.Release(3:end-1) ' (' tmp.Version ') released ' tmp.Date])
+disp(['   installed MATLAB release : ' tmp.Release(3:end-1) ' (' tmp.Version ') released ' tmp.Date])
 
-if vMatlabDate>=datetime('24-May-2018')
-    disp('(v) Matlab release OK')
+if usejava('desktop')
+    disp('   active MATLAB session    : Desktop');
 else
-    disp('(x) Matlab release too old. Some compatibility issues may arise')
+    disp('   active MATLAB session    : Online');
+end
+
+if vMatlabDate>=datetime('24-May-2018','Locale','en_US')
+    disp('(v) MATLAB release OK')
+else
+    disp('(x) MATLAB release too old. Some compatibility issues may arise')
     out = 0;
 end
 
@@ -47,8 +53,11 @@ disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
 disp('Check FEMM version...')
 disp('   minimum requirement      : 25Feb2018')
 
-if exist('mo_getgapb')
+if exist('mo_getgapb.m','file')
     disp('(v) FEMM version OK')
+elseif ~exist('openfemm.m','file')
+    disp('(x) FEMM not installed. Limited operation')
+    out = 0;
 else
     disp('(x) FEMM version too old. Please update FEMM')
     out = 0;
@@ -164,13 +173,13 @@ end
 
 disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
-if out
-    disp('Minimum requirements fulfilled')
-else
-    disp('Minimum requirements NOT fulfilled!')
-end
-
-disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
+% if out
+%     disp('Minimum requirements fulfilled')
+% else
+%     disp('Minimum requirements NOT fulfilled!')
+% end
+% 
+% disp('-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-')
 
 if nargout==0
     clear out

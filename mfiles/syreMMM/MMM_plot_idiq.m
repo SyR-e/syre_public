@@ -82,7 +82,7 @@ else
     Ir_plot_index = unique(Ir_plot_index); %Eventuali indici ripetuti vengono rimossi
     Ir_values = Ir(1,1,:);
     Ir_plot_values = Ir_values(Ir_plot_index);
-    hfig(4) = surfplot_slider(Fd(:,:,end),Fq(:,:,end),T,Ir_plot_values,[pathname resFolder 'Torque_Ir.fig'],[{'$\lambda_d$ (Vs)'}, {'$\lambda_q$ (Vs)'}, {'T (Nm)'}]);
+    hfig(4) = surfplot_slider(Fd(:,:,end),Fq(:,:,end),T(:,:,Ir_plot_index),Ir_plot_values,[pathname resFolder 'Torque_Ir.fig'],[{'$\lambda_d$ (Vs)'}, {'$\lambda_q$ (Vs)'}, {'T (Nm)'}]);
 end
 
 %% Save figures

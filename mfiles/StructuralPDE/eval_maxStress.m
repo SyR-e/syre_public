@@ -63,15 +63,19 @@ sTmpRad = [];
 
 for ii=1:geo.nlay
     if (strcmp(geo.RotType,'Circular')||strcmp(geo.RotType,'Seg'))
-        % chech tangential ribs
-        x1 = geo.xxD1k(ii);        y1 = geo.yyD1k(ii); % First edge of the rib
-        x2 = geo.xxD2k(ii);        y2 = geo.yyD2k(ii); % Second edge of the rib
-        x0 = geo.xpont(ii);        y0 = geo.ypont(ii); % Rib center
+        % check tangential ribs
+        x1 = geo.xxD1k(ii);
+        y1 = geo.yyD1k(ii); % First edge of the rib
+        x2 = geo.xxD2k(ii);
+        y2 = geo.yyD2k(ii); % Second edge of the rib
+        x0 = geo.xpont(ii);
+        y0 = geo.ypont(ii); % Rib center
         r1 = ((x0-x1)^2+(y0-y1)^2)^0.5; % Distance center-first edge
         r2 = ((x0-x2)^2+(y0-y2)^2)^0.5; % Distance center-second edge
         r = max([r1,r2,geo.pontT(ii)])+geo.pont0;
         fi = linspace(0,2*pi,51);
-        X = x0+r*cos(fi);        Y = y0+r*sin(fi); % Circle based on ribs size
+        X = x0+r*cos(fi);
+        Y = y0+r*sin(fi); % Circle based on ribs size
         [X,Y] = rot_point(X,Y,90/geo.p*pi/180);
         index_T = inpolygon(x*1000,y*1000,X,Y); % Points inside circle
         %xTmp = x(index)/1000;
@@ -80,8 +84,8 @@ for ii=1:geo.nlay
         sigmaTanMax(ii) = max(sTmp_T);
         % sigmaTanAvg(ii) = mean(sTmp);
         nPointOverTan(ii) = sum(sTmp_T>sigma_max);
-        sTmpTot = [sTmpTot;sTmp_T]; %#ok<AGROW>
-        sTmpTan = [sTmpTan;sTmp_T]; %#ok<AGROW>
+        sTmpTot = [sTmpTot;sTmp_T];
+        sTmpTan = [sTmpTan;sTmp_T];
 
         % check radial ribs
         if geo.pontR(ii)>0

@@ -14,12 +14,14 @@
 
 function [structModel,data4GeoMat] = femm2pde(geo,mat,simSetup)
 
-meshSize  = simSetup.meshSize;
-shaftBC   = simSetup.shaftBC; 
-flagFull  = simSetup.flagFull;
-evalSpeed = simSetup.evalSpeed;
-filename  = simSetup.filename;
-pathname  = simSetup.pathname;
+meshSize   = simSetup.meshSize;
+shaftBC    = simSetup.shaftBC; 
+flagFull   = simSetup.flagFull;
+evalSpeed  = simSetup.evalSpeed;
+filename   = simSetup.filename;
+pathname   = simSetup.pathname;
+flagSoftPM = simSetup.flagSoftPM;
+flagResin  = simSetup.flagResin;
 
 if ~isfield(geo,'custom')
     geo.custom = 0;
@@ -108,6 +110,12 @@ elseif strcmp(meshSize,'FEMM original')
     FEMMmesh.size = NaN;
 end
 
+if flagResin
+    groupAir = 23;
+else
+    groupAir = 2;
+end
+
 if ~isnan(FEMMmesh.size)
     xy = geo.BLKLABELS.rotore.xy;
     for ii=1:size(xy,1)
@@ -115,11 +123,12 @@ if ~isnan(FEMMmesh.size)
             if ~geo.custom
                 if ~flag_xfemm
                     mi_selectlabel(xy(ii,1),xy(ii,2));
-                    mi_setblockprop('Air',1,0,'None',0,2,0);
+                    mi_setblockprop('Air',FEMMmesh.auto,FEMMmesh.size,'None',0,groupAir,0);
                     mi_clearselected;
                 else
                     [id,~] = findblocklabel_mfemm(FemmProblem,[xy(ii,1),xy(ii,2)]);
                     FemmProblem.BlockLabels(id+1).MaxArea = FemmProblem.BlockLabels(id+1).MaxArea;
+                    FemmProblem.BlockLabels(id+1).InGroup = groupAir;
                 end
             end
         elseif xy(ii,3)==7 % Shaft
@@ -247,7 +256,7 @@ end
 nodes       = zeros(2,numNodes);
 elements    = zeros(3,numElements);
 eleGroup    = zeros(1,numElements);
-elementID   = ones(1,numElements); % 1-->Fe, 2-->PM/Al, 3-->sleeve
+elementID   = ones(1,numElements); % 1-->Fe, 2-->PM/Al, 3-->sleeve, 4-->shaft, 5-->spacer/resin
 
 for ii=1:numNodes
     if ~flag_xfemm
@@ -261,9 +270,8 @@ end
 k=1; %zz=1; jj=1; 
 psMagnet = polyshape;
 psSleeve = polyshape;
-% if simSetup.meshShaft
-    psShaft  = polyshape;
-% end
+psShaft  = polyshape;
+psResin  = polyshape;
 
 
 for ii=1:numElements
@@ -277,7 +285,7 @@ for ii=1:numElements
     elements(2,ii)  = tmp(2);
     elements(3,ii)  = tmp(3);
     eleGroup(ii)    = tmp(7);
-    if (eleGroup(ii)~=22 && eleGroup(ii)~=199 && eleGroup(ii)<200)
+    if (eleGroup(ii)~=22 && eleGroup(ii)~=199 && eleGroup(ii)<200 && eleGroup(ii)~=23)
         filt(k)=ii;
         k=k+1;
     end
@@ -334,6 +342,23 @@ for ii=1:numElements
         psTemp   = polyshape(vertex);
         psMagnet = union(psMagnet,psTemp);
         elementID(ii) = 2;
+    elseif (eleGroup(ii)==23)
+        if flagResin
+            if ~flag_xfemm
+                index    = elements(:,ii);
+                vertex   = nodes(:,index);
+                vertex   = vertex';
+            else
+                tmp = myfpproc.getvertices(ii);
+                vertex = [tmp(1),tmp(2);tmp(3),tmp(4);tmp(5),tmp(6)];
+                nodes(:,elements(1,ii)) = [tmp(1);tmp(2)]/1000;
+                nodes(:,elements(2,ii)) = [tmp(3);tmp(4)]/1000;
+                nodes(:,elements(3,ii)) = [tmp(5);tmp(6)]/1000;
+            end
+            psTemp   = polyshape(vertex);
+            psResin = union(psResin,psTemp);
+            elementID(ii) = 5;
+        end
     end
 end
 
@@ -460,27 +485,29 @@ xyNodes  = meshData.Nodes(1,:)+j*meshData.Nodes(2,:);
 eleData  = [xyNodes(meshData.Elements(1,:));xyNodes(meshData.Elements(2,:));xyNodes(meshData.Elements(3,:))];
 % eleG     = mean(eleData,1);
 
-dataForCF.kgm3_Fe     = mat.Rotor.kgm3;
-dataForCF.kgm3_PM     = mat.LayerMag.kgm3;
-dataForCF.w           = evalSpeed*pi/30;
-dataForCF.psMagnet    = psMagnet;
-dataForCF.psSleeve    = psSleeve;
-dataForCF.kgm3_sleeve = mat.Sleeve.kgm3;
-
-if strcmp(geo.RotType,'IM')
-    dataForCF.kgm3_PM = mat.BarCond.kgm3;
-end
+% dataForCF.kgm3_Fe     = mat.Rotor.kgm3;
+% dataForCF.kgm3_PM     = mat.LayerMag.kgm3;
+% dataForCF.w           = evalSpeed*pi/30;
+% dataForCF.psMagnet    = psMagnet;
+% dataForCF.psSleeve    = psSleeve;
+% dataForCF.kgm3_sleeve = mat.Sleeve.kgm3;
+% 
+% 
+% if strcmp(geo.RotType,'IM')||strcmp(geo.RotType,'EESM')
+%     dataForCF.kgm3_PM = mat.BarCond.kgm3;
+%     % dataForCF.kgm3_PM = 8940;
+% end
 
 % dataForCF.eleData = eleData;
 
 % warning('Mass density set by default!!!')
 
-dataForCmatrix.E_Fe     = mat.Rotor.E*1e9;
-dataForCmatrix.E_PM     = mat.Rotor.E*1e9*1e-3;
-dataForCmatrix.nu       = 0.3;
-dataForCmatrix.psMagnet = psMagnet;
-dataForCmatrix.E_sleeve = mat.Sleeve.E*1e9;
-dataForCmatrix.psSleeve = psSleeve;
+% dataForCmatrix.E_Fe     = mat.Rotor.E*1e9;
+% dataForCmatrix.E_PM     = mat.Rotor.E*1e9*1e-3;
+% dataForCmatrix.nu       = 0.3;
+% dataForCmatrix.psMagnet = psMagnet;
+% dataForCmatrix.E_sleeve = mat.Sleeve.E*1e9;
+% dataForCmatrix.psSleeve = psSleeve;
 
 data4GeoMat.kgm3_Fe        = mat.Rotor.kgm3;
 data4GeoMat.kgm3_PM        = mat.LayerMag.kgm3;
@@ -494,18 +521,22 @@ data4GeoMat.E_sleeve       = mat.Sleeve.E*1e9;
 data4GeoMat.nu             = 0.3;
 data4GeoMat.sigmaMaxFe     = mat.Rotor.sigma_max*1e6;
 data4GeoMat.sigmaMaxSleeve = mat.Sleeve.sigma_max*1e6;
-% if simSetup.meshShaft
-    data4GeoMat.psShaft        = psShaft;
-% end
+data4GeoMat.psShaft        = psShaft;
 data4GeoMat.kgm3_shaft     = 0;
 data4GeoMat.E_shaft        = mat.Rotor.E*1e9*1e-6;
+data4GeoMat.psResin        = psResin;
+data4GeoMat.E_resin        = 3.2e9;
+data4GeoMat.kgm3_resin     = 1270;
 
 if strcmp(geo.RotType,'IM')
     data4GeoMat.kgm3_PM = mat.BarCond.kgm3;
+    % data4GeoMat.kgm3_PM = 8940;
+elseif strcmp(geo.RotType,'EESM')
+    data4GeoMat.kgm3_PM = mat.BarCond.kgm3*geo.win.kcuf;
+    data4GeoMat.kgm3_PM = 8940*geo.win.kcuf;
 end
 
-
-if (strcmp(geo.RotType,'IM'))
+if flagSoftPM
     specifyCoefficients(structModel,...
         'm',0,...
         'd',0,...
@@ -520,36 +551,7 @@ else
         'a',0,...
         'f',@(x,y)centrifugalForce(x,y,data4GeoMat));
 end
-%     specifyCoefficients(structModel,...
-%     'm',0,...
-%     'd',0,...
-%     'c',cMat,...
-%     'a',0,...
-%     'f',@(x,y)centrifugalForce(x,y,dataForCF));
 
-% else
-%     specifyCoefficients(structModel,...
-%         'm',0,...
-%         'd',0,...
-%         'c',cMat,...
-%         'a',0,...
-%         'f',@(x,y)centrifugalForce(x,y,data4GeoMat));
-% end
 
-% if strcmp(geo.RotType,'IM')
-%     specifyCoefficients(structModel,...
-%         'm',0,...
-%         'd',0,...
-%         'c',@(x,y)defineCmatrix(x,y,dataForCF),...
-%         'a',0,...
-%         'f',@(x,y)centrifugalForce(x,y,dataForCmatrix));
-% else
-%     specifyCoefficients(structModel,...
-%         'm',0,...
-%         'd',0,...
-%         'c',cMat,...
-%         'a',0,...
-%         'f',@(x,y)centrifugalForce(x,y,dataForCF));
-% end
 
 % keyboard

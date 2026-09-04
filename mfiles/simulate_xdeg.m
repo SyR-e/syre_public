@@ -30,6 +30,14 @@ th0        = geo.th0;
 p          = geo.p;
 ps         = geo.ps;
 n3phase    = geo.win.n3phase; %AS number of 3-phase circuits
+
+flagCharger = false;
+if isfield(per,'rotorPos')
+    if(~isnan(per.rotorPos))
+        flagCharger = true;
+    end
+end
+
 if(isnan(n3phase))
     Nbob       = geo.win.Nbob;
     nphases = 5;
@@ -40,7 +48,7 @@ end
 % Nbob       = geo.win.Nbob*[0.5 1 1];
 % warning('Test different Nbob')
 l          = geo.l;
-if strcmp(geo.RotType,'EESM')
+if strcmp(geo.RotType,'EESM')  || strcmp(geo.RotType,'Hybrid')
     If = per.if;       % Field current
     Nf = geo.win.Nf;   % EESM number of turns per pole
 end
@@ -67,21 +75,61 @@ custom_act = 0;
 
 if isfield(per,'custom_act')
     if per.custom_act
-        if(isnan(geo.win.n3phase))
-            curr_pos = per.rotorPos;
-            Ia         = per.custom_ia(1,:,curr_pos);
-            Ib         = per.custom_ib(1,:,curr_pos);
-            Ic         = per.custom_ic(1,:,curr_pos);
-            Id         = per.custom_id(1,:,curr_pos);
-            Ie         = per.custom_ie(1,:,curr_pos);
-            rotorPos   = per.custom_rotorPos;
-            custom_act = per.custom_act;
+        if(flagCharger)
+            if(isnan(geo.win.n3phase))
+                curr_pos = per.rotorPos;
+                Ia         = per.custom_ia(1,:,curr_pos);
+                Ib         = per.custom_ib(1,:,curr_pos);
+                Ic         = per.custom_ic(1,:,curr_pos);
+                Id         = per.custom_id(1,:,curr_pos);
+                Ie         = per.custom_ie(1,:,curr_pos);
+                Ia_        = per.custom_i_(1,:,curr_pos);
+                Ib_        = per.custom_i_(2,:,curr_pos);
+                Ic_        = per.custom_i_(3,:,curr_pos);
+                Id_        = per.custom_i_(4,:,curr_pos);
+                Ie_        = per.custom_i_(5,:,curr_pos);
+                rotorPos   = per.custom_rotorPos;
+                custom_act = per.custom_act;
+                win_delta  = 0;
+            else
+                curr_pos = per.rotorPos;
+                Ia         = per.custom_ia(1,:,curr_pos);
+                Ib         = per.custom_ib(1,:,curr_pos);
+                Ic         = per.custom_ic(1,:,curr_pos);
+                Id         = per.custom_id(1,:,curr_pos);
+                Ie         = per.custom_ie(1,:,curr_pos);
+                If         = per.custom_if(1,:,curr_pos);
+                Ia_        = per.custom_i_(1,:,curr_pos);
+                Ib_        = per.custom_i_(2,:,curr_pos);
+                Ic_        = per.custom_i_(3,:,curr_pos);
+                Id_        = per.custom_i_(4,:,curr_pos);
+                Ie_        = per.custom_i_(5,:,curr_pos);
+                If_        = per.custom_i_(6,:,curr_pos);
+                rotorPos   = per.custom_rotorPos;
+                custom_act = per.custom_act;
+                win_delta  = per.custom_win_delta;
+            end
         else
-            Ia         = per.custom_ia;
-            Ib         = per.custom_ib;
-            Ic         = per.custom_ic;
-            %time       = per.custom_time;
-            custom_act = per.custom_act;
+            if(isnan(geo.win.n3phase))
+                Ia         = per.custom_ia;
+                Ib         = per.custom_ib;
+                Ic         = per.custom_ic;
+                Id         = per.custom_id;
+                Ie         = per.custom_ie;
+                %time       = per.custom_time;
+                custom_act = per.custom_act;
+            else
+                Ia         = per.custom_ia;
+                Ib         = per.custom_ib;
+                Ic         = per.custom_ic;
+                %time       = per.custom_time;
+                custom_act = per.custom_act;
+                if per.nsim_singt==0
+                    per.nsim_singt = numel(Ia);
+                    per.delta_sim_singt = 360;
+                end
+                custom_th      = per.custom_th;
+            end
         end
     end
 end
@@ -121,16 +169,15 @@ switch eval_type
         sim_step=xdeg/(nsim);               % during re-evaluation, regular position steps
         offset = per.offset;
         theta=offset:sim_step:xdeg+offset;
-        if(custom_act)
-            if(isnan(n3phase))
-                thetaPark=0*th0(1)+0*offset+geo.p*rotorPos(curr_pos)*ones(1, nsim+1); % 
-                wt = linspace(0,360,nsim);
-            else
-                thetaPark=th0(1)+[theta(1:nsim) theta(1)]; % disregard the last position
-            end
+
+        if(flagCharger)
+            thetaPark=0*th0(1)+0*offset+geo.p*rotorPos(curr_pos)*ones(1, nsim+1); % 
+            wt = linspace(0,360,nsim);
         else
             thetaPark=th0(1)+[theta(1:nsim) theta(1)]; % disregard the last position
+            %thetaPark = custom_th+th0(1);
         end
+
         iOffset = per.iOffset;
         iOffsetPU = iOffset/per.i0;
     case 'singm' % flux map
@@ -162,6 +209,9 @@ switch eval_type
         tmp = tmp(tmp(:,3) == 6,:);
         BrDir = atan2(tmp(:,7),tmp(:,6));
         BrGro=200+[1:1:numel(BrDir)];
+        if strcmp(geo.RotType,'Hybrid')
+            BrGro = 400+[1:1:numel(BrDir)];
+        end
     case 'flxdn' % flux density analysis (airgap, tooth, stator yoke)
         xdeg = per.delta_sim_singt;
         nsim = round(per.nsim_singt*xdeg/per.delta_sim_singt);
@@ -245,6 +295,27 @@ switch eval_type
         thetaPark = th0(1)+[theta(1:nsim) theta(1)]; % disregard the last position
         iOffset = per.iOffset;
         iOffsetPU = iOffset/per.i0;
+
+    case {'first_mag','idemag_non_linear_Node'} % demagnetization
+
+        xdeg=per.delta_sim_singt; %Rotor angular excursion
+        nsim = round(per.nsim_singt*xdeg/per.delta_sim_singt); %number of rotor position (number of simulation)
+        sim_step=xdeg/(nsim);               % during re-evaluation, regular position steps
+        offset = per.offset;
+        theta=offset:sim_step:xdeg+offset;
+        thetaPark=th0(1)+[theta(1:nsim) theta(1)]; % disregard the last position
+        iOffset = per.iOffset;
+        iOffsetPU = iOffset/per.i0;
+
+
+  
+        tmp=geo.BLKLABELS.rotore.xy;
+        tmp = tmp(tmp(:,3) == 6,:);
+        BrDir = atan2(tmp(:,7),tmp(:,6));
+        BrGro=200+[1:1:numel(BrDir)]; %magnet group (case Hybrid)
+        if strcmp(geo.RotType,'Hybrid')
+            BrGro = 400+[1:1:numel(BrDir)];
+        end
 end
 
 % evaluation of the phase current values for all positions to be simulated
@@ -252,6 +323,7 @@ end
 iAmp = per.overload*per.i0;
 
 iAmpCoil = iAmp.*Nbob;
+
 if(isnan(n3phase))
     iOffCoil = iOffset.*Nbob;
 
@@ -290,45 +362,118 @@ end
 SOL.th = zeros(1,nsim);         % electrical angle in degree
 SOL.T  = zeros(1,nsim);         % Torque
 
-if(isnan(n3phase))
-
-    SOL.id1 = zeros(1,nsim);         % d-axis current
-    SOL.iq1 = zeros(1,nsim);         % q-axis current
-    SOL.id3 = zeros(1,nsim);         % d3-axis current
-    SOL.iq3 = zeros(1,nsim);         % q3-axis current
-    SOL.i0 = zeros(1,nsim);         % 0-axis current (homopolar)
-    SOL.fd1 = zeros(1,nsim);         % d-axis flux linkage
-    SOL.fq1 = zeros(1,nsim);         % q-axis flux linkage
-    SOL.fd3 = zeros(1,nsim);         % d3-axis flux linkage
-    SOL.fq3 = zeros(1,nsim);         % q3-axis flux linkage
-    SOL.f0 = zeros(1,nsim);         % 0-axis flux linkage (homopolar)
-
-    SOL.ia = zeros(1,nsim);   % phase a current
-    SOL.ib = zeros(1,nsim);   % phase b current
-    SOL.ic = zeros(1,nsim);   % phase c current
-    SOL.id = zeros(1,nsim);   % phase d current
-    SOL.ie = zeros(1,nsim);   % phase e current
-    SOL.fa = zeros(1,nsim);   % phase a flux linkage
-    SOL.fb = zeros(1,nsim);   % phase b flux linkage
-    SOL.fc = zeros(1,nsim);   % phase c flux linkage
-    SOL.fd = zeros(1,nsim);   % phase d flux linkage
-    SOL.fe = zeros(1,nsim);   % phase e flux linkage
+if(flagCharger)
+    if(isnan(n3phase))   
+        SOL.id1 = zeros(1,nsim);         % d-axis current
+        SOL.iq1 = zeros(1,nsim);         % q-axis current
+        SOL.id3 = zeros(1,nsim);         % d3-axis current
+        SOL.iq3 = zeros(1,nsim);         % q3-axis current
+        SOL.i0 = zeros(1,nsim);         % 0-axis current (homopolar)
+        SOL.fd1 = zeros(1,nsim);         % d-axis flux linkage
+        SOL.fq1 = zeros(1,nsim);         % q-axis flux linkage
+        SOL.fd3 = zeros(1,nsim);         % d3-axis flux linkage
+        SOL.fq3 = zeros(1,nsim);         % q3-axis flux linkage
+        SOL.f0 = zeros(1,nsim);         % 0-axis flux linkage (homopolar)
+    
+        SOL.ia = zeros(1,nsim);   % phase a current
+        SOL.ib = zeros(1,nsim);   % phase b current
+        SOL.ic = zeros(1,nsim);   % phase c current
+        SOL.id = zeros(1,nsim);   % phase d current
+        SOL.ie = zeros(1,nsim);   % phase e current
+        SOL.fa = zeros(1,nsim);   % phase a flux linkage
+        SOL.fb = zeros(1,nsim);   % phase b flux linkage
+        SOL.fc = zeros(1,nsim);   % phase c flux linkage
+        SOL.fd = zeros(1,nsim);   % phase d flux linkage
+        SOL.fe = zeros(1,nsim);   % phase e flux linkage
+    else
+        SOL.ida = zeros(1,nsim);         % d-axis current
+        SOL.iqa = zeros(1,nsim);         % q-axis current
+        SOL.idb = zeros(1,nsim);         % d3-axis current
+        SOL.iqb = zeros(1,nsim);         % q3-axis current
+        SOL.i0a = zeros(1,nsim);         % 0-axis current (homopolar)
+        SOL.i0b = zeros(1,nsim);         % 0-axis current (homopolar)
+        SOL.fda = zeros(1,nsim);         % d-axis flux linkage
+        SOL.fqa = zeros(1,nsim);         % q-axis flux linkage
+        SOL.fdb = zeros(1,nsim);         % d3-axis flux linkage
+        SOL.fqb = zeros(1,nsim);         % q3-axis flux linkage
+        SOL.f0a = zeros(1,nsim);         % 0-axis flux linkage (homopolar)
+        SOL.f0b = zeros(1,nsim);         % 0-axis flux linkage (homopolar)
+    
+        SOL.ia = zeros(1,nsim);   % phase a current
+        SOL.ib = zeros(1,nsim);   % phase b current
+        SOL.ic = zeros(1,nsim);   % phase c current
+        SOL.id = zeros(1,nsim);   % phase d current
+        SOL.ie = zeros(1,nsim);   % phase e current
+        SOL.if = zeros(1,nsim);   % phase e current
+        SOL.fa = zeros(1,nsim);   % phase a flux linkage
+        SOL.fb = zeros(1,nsim);   % phase b flux linkage
+        SOL.fc = zeros(1,nsim);   % phase c flux linkage
+        SOL.fd = zeros(1,nsim);   % phase d flux linkage
+        SOL.fe = zeros(1,nsim);   % phase e flux linkage
+        SOL.ff = zeros(1,nsim);   % phase e flux linkage
+    end
 else
-    SOL.id = zeros(1,nsim);         % d-axis current
-    SOL.iq = zeros(1,nsim);         % q-axis current
-    SOL.i0 = zeros(1,nsim);         % 0-axis current (homopolar)
-    SOL.fd = zeros(1,nsim);         % d-axis flux linkage
-    SOL.fq = zeros(1,nsim);         % q-axis flux linkage
-    SOL.f0 = zeros(1,nsim);         % 0-axis flux linkage (homopolar)
-    SOL.ia = zeros(n3phase,nsim);   % phase a current
-    SOL.ib = zeros(n3phase,nsim);   % phase b current
-    SOL.ic = zeros(n3phase,nsim);   % phase c current
-    SOL.fa = zeros(n3phase,nsim);   % phase a flux linkage
-    SOL.fb = zeros(n3phase,nsim);   % phase b flux linkage
-    SOL.fc = zeros(n3phase,nsim);   % phase c flux linkage
+    if(isnan(n3phase))   
+        SOL.id1 = zeros(1,nsim);         % d-axis current
+        SOL.iq1 = zeros(1,nsim);         % q-axis current
+        SOL.id3 = zeros(1,nsim);         % d3-axis current
+        SOL.iq3 = zeros(1,nsim);         % q3-axis current
+        SOL.i0 = zeros(1,nsim);         % 0-axis current (homopolar)
+        SOL.fd1 = zeros(1,nsim);         % d-axis flux linkage
+        SOL.fq1 = zeros(1,nsim);         % q-axis flux linkage
+        SOL.fd3 = zeros(1,nsim);         % d3-axis flux linkage
+        SOL.fq3 = zeros(1,nsim);         % q3-axis flux linkage
+        SOL.f0 = zeros(1,nsim);         % 0-axis flux linkage (homopolar)
+    
+        SOL.ia = zeros(1,nsim);   % phase a current
+        SOL.ib = zeros(1,nsim);   % phase b current
+        SOL.ic = zeros(1,nsim);   % phase c current
+        SOL.id = zeros(1,nsim);   % phase d current
+        SOL.ie = zeros(1,nsim);   % phase e current
+        SOL.fa = zeros(1,nsim);   % phase a flux linkage
+        SOL.fb = zeros(1,nsim);   % phase b flux linkage
+        SOL.fc = zeros(1,nsim);   % phase c flux linkage
+        SOL.fd = zeros(1,nsim);   % phase d flux linkage
+        SOL.fe = zeros(1,nsim);   % phase e flux linkage
+    else
+        SOL.id = zeros(1,nsim);         % d-axis current
+        SOL.iq = zeros(1,nsim);         % q-axis current
+        SOL.i0 = zeros(1,nsim);         % 0-axis current (homopolar)
+        SOL.fd = zeros(1,nsim);         % d-axis flux linkage
+        SOL.fq = zeros(1,nsim);         % q-axis flux linkage
+        SOL.f0 = zeros(1,nsim);         % 0-axis flux linkage (homopolar)
+        SOL.ia = zeros(n3phase,nsim);   % phase a current
+        SOL.ib = zeros(n3phase,nsim);   % phase b current
+        SOL.ic = zeros(n3phase,nsim);   % phase c current
+        SOL.fa = zeros(n3phase,nsim);   % phase a flux linkage
+        SOL.fb = zeros(n3phase,nsim);   % phase b flux linkage
+        SOL.fc = zeros(n3phase,nsim);   % phase c flux linkage
+    end
 end
+
 SOL.we = zeros(1,nsim);         % magnetic energy
 SOL.wc = zeros(1,nsim);         % magnetic coenergy
+
+
+
+%================================================================
+if strcmp(eval_type,'first_mag') ||  strcmp(eval_type,'idemag_non_linear_Node')
+    SOL.Bmed = zeros(1,nsim);
+    SOL.Hmed = zeros(1,nsim);
+    SOL.Jmed = zeros(1,nsim);
+    SOL.mesh_nodes = cell(1, nsim);
+    SOL.Bvals = cell(1, nsim);
+    SOL.Hvals = cell(1, nsim);
+    SOL.Hx = cell(1, nsim);
+    SOL.Hy = cell(1, nsim);
+    SOL.Bx = cell(1, nsim);
+    SOL.By = cell(1, nsim);
+
+    SOL.theta_B = cell(1, nsim);
+    SOL.theta_H= cell(1, nsim);
+end
+%================================================================
+
 
 if(isnan(n3phase))
     phase_name = cell(nphases,1);
@@ -344,91 +489,238 @@ if custom_act
 
     theta_custom = linspace(0,360,length(Ia));
 
-    if(isnan(n3phase))
-        Ia_i = zeros(1,nsim);
-        Ib_i = zeros(1,nsim);
-        Ic_i = zeros(1,nsim);
-        Id_i = zeros(1,nsim);
-        Ie_i = zeros(1,nsim);
-    else
-        Ia_i = zeros(n3phase,nsim);
-        Ib_i = zeros(n3phase,nsim);
-        Ic_i = zeros(n3phase,nsim);
-    end
-
-    if(isnan(n3phase))
-        Ia_i(1,:) = interp1(theta_custom,Ia(1,:),wt(1:end));
-        Ib_i(1,:) = interp1(theta_custom,Ib(1,:),wt(1:end));
-        Ic_i(1,:) = interp1(theta_custom,Ic(1,:),wt(1:end));
-        Id_i(1,:) = interp1(theta_custom,Id(1,:),wt(1:end));
-        Ie_i(1,:) = interp1(theta_custom,Ie(1,:),wt(1:end));
-    else
-        for ik=1:(n3phase)
-            %         Ia_i(ik,:) = interp1(1:sim_range,Ia(ik,1:sim_range),linspace(1,sim_range,nsim));
-            %         Ib_i(ik,:) = interp1(1:sim_range,Ib(ik,1:sim_range),linspace(1,sim_range,nsim));
-            %         Ic_i(ik,:) = interp1(1:sim_range,Ic(ik,1:sim_range),linspace(1,sim_range,nsim));
-    
-            Ia_i(ik,:) = interp1(theta_custom,Ia(ik,:),theta(1:end-1));
-            Ib_i(ik,:) = interp1(theta_custom,Ib(ik,:),theta(1:end-1));
-            Ic_i(ik,:) = interp1(theta_custom,Ic(ik,:),theta(1:end-1));
+    if(flagCharger)
+        if(isnan(n3phase))
+            Ia_i = zeros(1,nsim);
+            Ib_i = zeros(1,nsim);
+            Ic_i = zeros(1,nsim);
+            Id_i = zeros(1,nsim);
+            Ie_i = zeros(1,nsim);
+        else
+            Ia_i = zeros(1,nsim);
+            Ib_i = zeros(1,nsim);
+            Ic_i = zeros(1,nsim);
+            Id_i = zeros(1,nsim);
+            Ie_i = zeros(1,nsim);
+            If_i = zeros(1,nsim);
         end
-    end
 
-    if(isnan(n3phase))
-        if(isscalar(rotorPos))
+        if(isnan(n3phase))
+            Ia_i(1,:) = interp1(theta_custom,Ia(1,:),wt(1:end));
+            Ib_i(1,:) = interp1(theta_custom,Ib(1,:),wt(1:end));
+            Ic_i(1,:) = interp1(theta_custom,Ic(1,:),wt(1:end));
+            Id_i(1,:) = interp1(theta_custom,Id(1,:),wt(1:end));
+            Ie_i(1,:) = interp1(theta_custom,Ie(1,:),wt(1:end));
+            Ia_i_(1,:) = interp1(theta_custom,Ia_(1,:),wt(1:end));
+            Ib_i_(1,:) = interp1(theta_custom,Ib_(1,:),wt(1:end));
+            Ic_i_(1,:) = interp1(theta_custom,Ic_(1,:),wt(1:end));
+            Id_i_(1,:) = interp1(theta_custom,Id_(1,:),wt(1:end));
+            Ie_i_(1,:) = interp1(theta_custom,Ie_(1,:),wt(1:end));
+        else
+            Ia_i(1,:) = interp1(theta_custom,Ia(1,:),wt(1:end));
+            Ib_i(1,:) = interp1(theta_custom,Ib(1,:),wt(1:end));
+            Ic_i(1,:) = interp1(theta_custom,Ic(1,:),wt(1:end));
+            Id_i(1,:) = interp1(theta_custom,Id(1,:),wt(1:end));
+            Ie_i(1,:) = interp1(theta_custom,Ie(1,:),wt(1:end));
+            If_i(1,:) = interp1(theta_custom,If(1,:),wt(1:end));
+            Ia_i_(1,:) = interp1(theta_custom,Ia_(1,:),wt(1:end));
+            Ib_i_(1,:) = interp1(theta_custom,Ib_(1,:),wt(1:end));
+            Ic_i_(1,:) = interp1(theta_custom,Ic_(1,:),wt(1:end));
+            Id_i_(1,:) = interp1(theta_custom,Id_(1,:),wt(1:end));
+            Ie_i_(1,:) = interp1(theta_custom,Ie_(1,:),wt(1:end));
+            If_i_(1,:) = interp1(theta_custom,If_(1,:),wt(1:end));
+        end
 
+        if(isnan(n3phase))
+            if(isscalar(rotorPos))
+    
+                figure
+                figSetting
+                title('Phase A - Current')
+    
+                plot(linspace(0,xdeg,nsim),Ia_i(1,:),'DisplayName',['Interpolated - ' num2str(1)] )
+                plot(linspace(0,xdeg,sim_range),Ia(1,1:sim_range),'DisplayName',['Input - ' num2str(1)]')
+                plot(linspace(0,xdeg,sim_range),Ib(1,1:sim_range),'DisplayName',['Input - ' num2str(2)]')
+                plot(linspace(0,xdeg,sim_range),Ic(1,1:sim_range),'DisplayName',['Input - ' num2str(3)]')
+                plot(linspace(0,xdeg,sim_range),Id(1,1:sim_range),'DisplayName',['Input - ' num2str(4)]')
+                plot(linspace(0,xdeg,sim_range),Ie(1,1:sim_range),'DisplayName',['Input - ' num2str(5)]')
+            end
+        else
+            if(isscalar(rotorPos))
+    
+                figure
+                figSetting
+                title('Phase A - Current')
+    
+                plot(linspace(0,xdeg,nsim),Ia_i(1,:),'DisplayName',['Interpolated - ' num2str(1)] )
+                plot(linspace(0,xdeg,sim_range),Ia(1,1:sim_range),'DisplayName',['Input - ' num2str(1)]')
+                plot(linspace(0,xdeg,sim_range),Ib(1,1:sim_range),'DisplayName',['Input - ' num2str(2)]')
+                plot(linspace(0,xdeg,sim_range),Ic(1,1:sim_range),'DisplayName',['Input - ' num2str(3)]')
+                plot(linspace(0,xdeg,sim_range),Id(1,1:sim_range),'DisplayName',['Input - ' num2str(4)]')
+                plot(linspace(0,xdeg,sim_range),Ie(1,1:sim_range),'DisplayName',['Input - ' num2str(5)]')                
+                plot(linspace(0,xdeg,sim_range),If(1,1:sim_range),'DisplayName',['Input - ' num2str(6)]')                
+            end
+        end
+
+        % axis([0 xdeg -1.2*abs(max(max(Ia))) 1.2*abs(max(max(Ia)))])
+
+        legend show
+    
+        if(isnan(n3phase))
+            %%% Nbob rescaling
+            Ia_i = Ia_i*Nbob;
+            Ib_i = Ib_i*Nbob;
+            Ic_i = Ic_i*Nbob;
+            Id_i = Id_i*Nbob;
+            Ie_i = Ie_i*Nbob;
+        else
+            %%% Nbob rescaling
+            Ia_i = Ia_i*Nbob(1);
+            Ib_i = Ib_i*Nbob(1);
+            Ic_i = Ic_i*Nbob(1);
+            Id_i = Id_i*Nbob(1);
+            Ie_i = Ie_i*Nbob(1);
+            If_i = If_i*Nbob(1);
+        end
+    else
+        if(isnan(n3phase))
+            Ia_i = zeros(1,nsim);
+            Ib_i = zeros(1,nsim);
+            Ic_i = zeros(1,nsim);
+            Id_i = zeros(1,nsim);
+            Ie_i = zeros(1,nsim);
+        else
+            Ia_i = zeros(n3phase,nsim);
+            Ib_i = zeros(n3phase,nsim);
+            Ic_i = zeros(n3phase,nsim);
+        end
+
+        if(isnan(n3phase))
+            Ia_i(1,:) = interp1(theta_custom,Ia(1,:),wt(1:end));
+            Ib_i(1,:) = interp1(theta_custom,Ib(1,:),wt(1:end));
+            Ic_i(1,:) = interp1(theta_custom,Ic(1,:),wt(1:end));
+            Id_i(1,:) = interp1(theta_custom,Id(1,:),wt(1:end));
+            Ie_i(1,:) = interp1(theta_custom,Ie(1,:),wt(1:end));
+        else
+            custom_th = [custom_th-360 custom_th custom_th+360];
+            Ia = [Ia Ia Ia];
+            Ib = [Ib Ib Ib];
+            Ic = [Ic Ic Ic];
+            for ik=1:(n3phase)
+                %         Ia_i(ik,:) = interp1(1:sim_range,Ia(ik,1:sim_range),linspace(1,sim_range,nsim));
+                %         Ib_i(ik,:) = interp1(1:sim_range,Ib(ik,1:sim_range),linspace(1,sim_range,nsim));
+                %         Ic_i(ik,:) = interp1(1:sim_range,Ic(ik,1:sim_range),linspace(1,sim_range,nsim));
+        
+                Ia_i(ik,:) = interp1(custom_th,Ia(ik,:),thetaPark(1:end-1));
+                Ib_i(ik,:) = interp1(custom_th,Ib(ik,:),thetaPark(1:end-1));
+                Ic_i(ik,:) = interp1(custom_th,Ic(ik,:),thetaPark(1:end-1));
+
+                idq = abc2dq0([Ia_i;Ib_i;Ic_i],thetaPark(1:end-1)*pi/180);
+                id = idq(1,:);
+                iq = idq(2,:);
+            end
+        end
+
+        if(isnan(n3phase))
+            if(isscalar(rotorPos))
+    
+                figure
+                figSetting
+                title('Phase A - Current')
+    
+                plot(linspace(0,xdeg,nsim),Ia_i(1,:),'DisplayName',['Interpolated - ' num2str(1)] )
+                plot(linspace(0,xdeg,sim_range),Ia(1,1:sim_range),'DisplayName',['Input - ' num2str(1)]')
+                plot(linspace(0,xdeg,sim_range),Ib(1,1:sim_range),'DisplayName',['Input - ' num2str(2)]')
+                plot(linspace(0,xdeg,sim_range),Ic(1,1:sim_range),'DisplayName',['Input - ' num2str(3)]')
+                plot(linspace(0,xdeg,sim_range),Id(1,1:sim_range),'DisplayName',['Input - ' num2str(4)]')
+                plot(linspace(0,xdeg,sim_range),Ie(1,1:sim_range),'DisplayName',['Input - ' num2str(5)]')
+            end
+        else
+    
             figure
             figSetting
             title('Phase A - Current')
-
-            plot(linspace(0,xdeg,nsim),Ia_i(1,:),'DisplayName',['Interpolated - ' num2str(1)] )
-            plot(linspace(0,xdeg,sim_range),Ia(1,1:sim_range),'DisplayName',['Input - ' num2str(1)]')
-            plot(linspace(0,xdeg,sim_range),Ib(1,1:sim_range),'DisplayName',['Input - ' num2str(2)]')
-            plot(linspace(0,xdeg,sim_range),Ic(1,1:sim_range),'DisplayName',['Input - ' num2str(3)]')
-            plot(linspace(0,xdeg,sim_range),Id(1,1:sim_range),'DisplayName',['Input - ' num2str(4)]')
-            plot(linspace(0,xdeg,sim_range),Ie(1,1:sim_range),'DisplayName',['Input - ' num2str(5)]')
+    
+            for ik=1:(n3phase)
+                plot(thetaPark(1:end-1),Ia_i(ik,:),'DisplayName',['Interpolated - ' num2str(ik) ' 3phase set'] )
+                plot(custom_th,Ia(ik,:),'DisplayName',['Input - ' num2str(ik) ' 3phase set']')
+                xlim([thetaPark(1) thetaPark(end-1)])
+                % plot(linspace(0,xdeg,nsim),Ia_i(ik,:),'DisplayName',['Interpolated - ' num2str(ik) ' 3phase set'] )
+                % plot(linspace(0,xdeg,sim_range),Ia(ik,1:sim_range),'DisplayName',['Input - ' num2str(ik) ' 3phase set']')
+                %plot(linspace(0,xdeg,sim_range),Ib(1,1:sim_range),'DisplayName','B')
+                %plot(linspace(0,xdeg,sim_range),Ic(1,1:sim_range),'DisplayName','C')
+            end
         end
-    else
 
-        figure
-        figSetting
-        title('Phase A - Current')
-
-        for ik=1:(n3phase)
-            plot(linspace(0,xdeg,nsim),Ia_i(ik,:),'DisplayName',['Interpolated - ' num2str(ik) ' 3phase set'] )
-            plot(linspace(0,xdeg,sim_range),Ia(ik,1:sim_range),'DisplayName',['Input - ' num2str(ik) ' 3phase set']')
-            %plot(linspace(0,xdeg,sim_range),Ib(1,1:sim_range),'DisplayName','B')
-            %plot(linspace(0,xdeg,sim_range),Ic(1,1:sim_range),'DisplayName','C')
-        end
-    end
-
-    if(isnan(n3phase))
-        if(custom_act)   
-            axis([0 xdeg -1.2*abs(max(max(Ia))) 1.2*abs(max(max(Ia)))])
-        else
-            axis([0 xdeg -1.2*max(max(Ia)) 1.2*max(max(Ia))])
-        end
-    else
         axis([0 xdeg -1.2*max(max(Ia)) 1.2*max(max(Ia))])
-    end
-    legend show
 
-    if(isnan(n3phase))
-        %%% Nbob rescaling
-        Ia_i = Ia_i*Nbob;
-        Ib_i = Ib_i*Nbob;
-        Ic_i = Ic_i*Nbob;
-        Id_i = Id_i*Nbob;
-        Ie_i = Ie_i*Nbob;
-    else
-        %%% Nbob rescaling
-        Ia_i = Ia_i*Nbob;
-        Ib_i = Ib_i*Nbob;
-        Ic_i = Ic_i*Nbob;
+        legend show
+    
+        if(isnan(n3phase))
+            %%% Nbob rescaling
+            Ia_i = Ia_i*Nbob;
+            Ib_i = Ib_i*Nbob;
+            Ic_i = Ic_i*Nbob;
+            Id_i = Id_i*Nbob;
+            Ie_i = Ie_i*Nbob;
+        else
+            %%% Nbob rescaling
+            Ia_i = Ia_i*Nbob;
+            Ib_i = Ib_i*Nbob;
+            Ic_i = Ic_i*Nbob;
+        end
     end
 end
 
 %% Simulation
+
+if strcmp(eval_type,'first_mag')
+    disp('First Magnetization Analysis')
+    fprintf('Field current: %d A \n', If)
+    fprintf('Number of turns: %d \n', Nf)
+    fprintf('Phase current: %.3f A \n', per.overload*per.i0)
+
+    vers_x = cos(BrDir);
+    vers_y = sin(BrDir);
+    versore_dir = [vers_x vers_y]/norm([vers_x vers_y]);
+end
+
+
+if strcmp(eval_type,'idemag_non_linear_Node')
+    disp('De-Magnetization Analysis (Non-Linear)')
+    fprintf('Field current: %d A \n', If)
+    fprintf('Number of turns: %d \n', Nf)
+    fprintf('Phase current: %.3f A \n', per.overload*per.i0)
+
+    vers_x = cos(BrDir);
+    vers_y = sin(BrDir);
+    versore_dir = [vers_x vers_y]/norm([vers_x vers_y]);
+end
+
+% update PM mesh size
+fem = dimMesh(geo,eval_type);
+xy = geo.BLKLABELS.rotore.xy;
+for ii=1:size(xy,1)
+    kk=1;
+    if xy(ii,3)==6
+        magdir = atan2(xy(ii,7),xy(ii,6))*180/pi;
+        if ~flag_xfemm
+             mi_selectlabel(xy(ii,1),xy(ii,2));
+             if strcmp(geo.RotType,'Hybrid')
+                 mi_setblockprop([mat.LayerMag.MatName '_' num2str(kk)], 0, fem.res/geo.mesh_kpm,'None', magdir, 400+kk, 0);
+             else
+                 mi_setblockprop([mat.LayerMag.MatName '_' num2str(kk)], 0, fem.res/geo.mesh_kpm,'None', magdir, 200+kk, 0);
+             end
+             mi_clearselected;
+        else
+            labelcoords = getblocklabelcoords_mfemm(FemmProblem);
+            tmp = sum(labelcoords==xy(ii,1:2),2);
+            index = find(tmp==2);
+            FemmProblem.BlockLabels(index).MaxArea = fem.res/geo.mesh_kpm;
+        end
+    end
+end
+
 for jj = 1:nsim
 
     % flag_xfemm = 0;
@@ -436,34 +728,90 @@ for jj = 1:nsim
     % opendocument(femmFileName);
 
     % assign the phase current values to the FEMM circuits
-    if(isnan(n3phase))
-       if custom_act
+       
+    if(flagCharger)
+        if(isnan(n3phase))        
             i_tmp(1,jj) = Ia_i(1,jj);
             i_tmp(2,jj) = Ib_i(1,jj);
             i_tmp(3,jj) = Ic_i(1,jj);
             i_tmp(4,jj) = Id_i(1,jj);
             i_tmp(5,jj) = Ie_i(1,jj);
-
-            idqd3q30 = abcde2dqd3q30([Ia_i(1,jj)/Nbob;Ib_i(1,jj)/Nbob;Ic_i(1,jj)/Nbob;Id_i(1,jj)/Nbob;Ie_i(1,jj)/Nbob],(thetaPark(jj)+(th0(1)-th0(1)))*pi/180);
-
+            i_tmp_(1,jj) = Ia_i_(1,jj);
+            i_tmp_(2,jj) = Ib_i_(1,jj);
+            i_tmp_(3,jj) = Ic_i_(1,jj);
+            i_tmp_(4,jj) = Id_i_(1,jj);
+            i_tmp_(5,jj) = Ie_i_(1,jj);
+    
+            idqd3q30 = abcde2dqd3q30([Ia_i(1,jj);Ib_i(1,jj);Ic_i(1,jj);Id_i(1,jj);Ie_i(1,jj)],(thetaPark(jj)+(th0(1)-th0(1)))*pi/180);
+    
             id1 = idqd3q30(1);
             iq1 = idqd3q30(2);
             id3 = idqd3q30(3);
             iq3 = idqd3q30(4);
             io = idqd3q30(5);
-       else
-            % i123 = dq2abc(id(ik+1),iq(ik+1),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
-            i12345 = dqd3q302abcde([id1(1);iq1(1);id3(1);iq3(1);io(1)],(thetaPark(jj)+(th0(1)-th0(1)))*pi/180);      % each 5phase set has its own offset angle
-            % i_tmp((3*ik)+1,jj) = (i123(1)+iOffCoil(ik+1))*flag3phSet(ik+1);
-            % i_tmp((3*ik)+2,jj) = (i123(2)+iOffCoil(ik+1))*flag3phSet(ik+1);
-            % i_tmp((3*ik)+3,jj) = (i123(3)+iOffCoil(ik+1))*flag3phSet(ik+1);
-            i_tmp(1,jj) = i12345(1);
-            i_tmp(2,jj) = i12345(2);
-            i_tmp(3,jj) = i12345(3);
-            i_tmp(4,jj) = i12345(4);
-            i_tmp(5,jj) = i12345(5);
-        end
+        else
+            i_tmp(1,jj) = Ia_i(1,jj);
+            i_tmp(2,jj) = Ib_i(1,jj);
+            i_tmp(3,jj) = Ic_i(1,jj);
+            i_tmp(4,jj) = Id_i(1,jj);
+            i_tmp(5,jj) = Ie_i(1,jj);
+            i_tmp(6,jj) = If_i(1,jj);
+            i_tmp_(1,jj) = Ia_i_(1,jj);
+            i_tmp_(2,jj) = Ib_i_(1,jj);
+            i_tmp_(3,jj) = Ic_i_(1,jj);
+            i_tmp_(4,jj) = Id_i_(1,jj);
+            i_tmp_(5,jj) = Ie_i_(1,jj);
+            i_tmp_(6,jj) = If_i_(1,jj);
 
+            idqdq00 = abcdef2dqdq00([Ia_i(1,jj);Ib_i(1,jj);Ic_i(1,jj);Id_i(1,jj);Ie_i(1,jj);If_i(1,jj)],(thetaPark(jj)+(th0(1)-th0(1)))*pi/180, win_delta);
+
+            ida = idqdq00(1);
+            iqa = idqdq00(2);
+            idb = idqdq00(3);
+            iqb = idqdq00(4);
+            ioa = idqdq00(5);
+            iob = idqdq00(6);
+        end
+    else
+        if(isnan(n3phase))
+            if custom_act
+                i_tmp(1,jj) = Ia_i(1,jj);
+                i_tmp(2,jj) = Ib_i(1,jj);
+                i_tmp(3,jj) = Ic_i(1,jj);
+                i_tmp(4,jj) = Id_i(1,jj);
+                i_tmp(5,jj) = Ie_i(1,jj);
+            else
+                i12345 = dqd3q302abcde([id1;iq1;id3;iq3;io],thetaPark(jj)*pi/180);      % each 3phase set has its own offset angle
+                % i_tmp((3*ik)+1,jj) = (i123(1)+iOffCoil(ik+1))*flag3phSet(ik+1);
+                % i_tmp((3*ik)+2,jj) = (i123(2)+iOffCoil(ik+1))*flag3phSet(ik+1);
+                % i_tmp((3*ik)+3,jj) = (i123(3)+iOffCoil(ik+1))*flag3phSet(ik+1);
+                i_tmp(1,jj) = i12345(1);
+                i_tmp(2,jj) = i12345(2);
+                i_tmp(3,jj) = i12345(3);
+                i_tmp(4,jj) = i12345(4);
+                i_tmp(5,jj) = i12345(5);
+            end
+        else
+            for ik=0:(n3phase-1)
+                if custom_act
+                    i_tmp((3*ik)+1,jj) = Ia_i(ik+1,jj);
+                    i_tmp((3*ik)+2,jj) = Ib_i(ik+1,jj);
+                    i_tmp((3*ik)+3,jj) = Ic_i(ik+1,jj);
+                else
+                    % i123 = dq2abc(id(ik+1),iq(ik+1),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
+                    i123 = dq02abc([id(ik+1);iq(ik+1);io(ik+1)],(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
+                    % i_tmp((3*ik)+1,jj) = (i123(1)+iOffCoil(ik+1))*flag3phSet(ik+1);
+                    % i_tmp((3*ik)+2,jj) = (i123(2)+iOffCoil(ik+1))*flag3phSet(ik+1);
+                    % i_tmp((3*ik)+3,jj) = (i123(3)+iOffCoil(ik+1))*flag3phSet(ik+1);
+                    i_tmp((3*ik)+1,jj) = i123(1)*flag3phSet(ik+1);
+                    i_tmp((3*ik)+2,jj) = i123(2)*flag3phSet(ik+1);
+                    i_tmp((3*ik)+3,jj) = i123(3)*flag3phSet(ik+1);
+                end
+            end   
+        end
+    end
+
+    if(isnan(n3phase))
         phase_name{1}     = strcat('fase',num2str(1));
         phase_name{2}     = strcat('fase',num2str(2));
         phase_name{3}     = strcat('fase',num2str(3));
@@ -487,7 +835,7 @@ for jj = 1:nsim
             mi_modifycircprop(phase_name_neg{3}, 1,-i_tmp(3,jj));
             mi_modifycircprop(phase_name_neg{4}, 1,-i_tmp(4,jj));
             mi_modifycircprop(phase_name_neg{5}, 1,-i_tmp(5,jj));
-            if strcmp(geo.RotType,'EESM')
+            if strcmp(geo.RotType,'EESM')|| strcmp(geo.RotType,'Hybrid')
                 mi_modifycircprop('field',1,If*Nf);
             end
         else
@@ -501,35 +849,19 @@ for jj = 1:nsim
             FemmProblem = setcircuitcurrent(FemmProblem,phase_name_neg{3},-i_tmp(3,jj));
             FemmProblem = setcircuitcurrent(FemmProblem,phase_name_neg{4},-i_tmp(4,jj));
             FemmProblem = setcircuitcurrent(FemmProblem,phase_name_neg{5},-i_tmp(5,jj));
-            if strcmp(geo.RotType,'EESM')
+            if strcmp(geo.RotType,'EESM')|| strcmp(geo.RotType,'Hybrid')
                 FemmProblem = setcircuitcurrent(FemmProblem,'field',If*Nf);
             end
         end
     else
         for ik=0:(n3phase-1)
-            if custom_act
-                i_tmp((3*ik)+1,jj) = Ia_i(ik+1,jj);
-                i_tmp((3*ik)+2,jj) = Ib_i(ik+1,jj);
-                i_tmp((3*ik)+3,jj) = Ic_i(ik+1,jj);
-            else
-                % i123 = dq2abc(id(ik+1),iq(ik+1),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
-                i123 = dq02abc([id(ik+1);iq(ik+1);io(ik+1)],(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);      % each 3phase set has its own offset angle
-                % i_tmp((3*ik)+1,jj) = (i123(1)+iOffCoil(ik+1))*flag3phSet(ik+1);
-                % i_tmp((3*ik)+2,jj) = (i123(2)+iOffCoil(ik+1))*flag3phSet(ik+1);
-                % i_tmp((3*ik)+3,jj) = (i123(3)+iOffCoil(ik+1))*flag3phSet(ik+1);
-                i_tmp((3*ik)+1,jj) = i123(1)*flag3phSet(ik+1);
-                i_tmp((3*ik)+2,jj) = i123(2)*flag3phSet(ik+1);
-                i_tmp((3*ik)+3,jj) = i123(3)*flag3phSet(ik+1);
-            end
-    
-    
             phase_name{3*ik+1}     = strcat('fase',num2str(3*ik+1));
             phase_name{3*ik+2}     = strcat('fase',num2str(3*ik+2));
             phase_name{3*ik+3}     = strcat('fase',num2str(3*ik+3));
             phase_name_neg{3*ik+1} = strcat('fase',num2str(3*ik+1),'n');
             phase_name_neg{3*ik+2} = strcat('fase',num2str(3*ik+2),'n');
             phase_name_neg{3*ik+3} = strcat('fase',num2str(3*ik+3),'n');
-    
+
             % change current value in FEMM
             if ~flag_xfemm
                 mi_modifycircprop(phase_name{3*ik+1}, 1,i_tmp((3*ik)+1,jj));
@@ -538,7 +870,7 @@ for jj = 1:nsim
                 mi_modifycircprop(phase_name_neg{3*ik+1}, 1,-i_tmp((3*ik)+1,jj));
                 mi_modifycircprop(phase_name_neg{3*ik+2}, 1,-i_tmp((3*ik)+2,jj));
                 mi_modifycircprop(phase_name_neg{3*ik+3}, 1,-i_tmp((3*ik)+3,jj));
-                if strcmp(geo.RotType,'EESM')
+                if strcmp(geo.RotType,'EESM')|| strcmp(geo.RotType,'Hybrid')
                     mi_modifycircprop('field',1,If*Nf);
                 end
             else
@@ -548,7 +880,7 @@ for jj = 1:nsim
                 FemmProblem = setcircuitcurrent(FemmProblem,phase_name_neg{3*ik+1},-i_tmp((3*ik)+1,jj));
                 FemmProblem = setcircuitcurrent(FemmProblem,phase_name_neg{3*ik+2},-i_tmp((3*ik)+2,jj));
                 FemmProblem = setcircuitcurrent(FemmProblem,phase_name_neg{3*ik+3},-i_tmp((3*ik)+3,jj));
-                if strcmp(geo.RotType,'EESM')
+                if strcmp(geo.RotType,'EESM')|| strcmp(geo.RotType,'Hybrid')
                     FemmProblem = setcircuitcurrent(FemmProblem,'field',If*Nf);
                 end
             end
@@ -567,18 +899,23 @@ for jj = 1:nsim
                 mi_modifymaterial([mat.LayerMag.MatName '_' num2str(ii)],3,Hc_vect(ii));
             end
         else
+            existing_materials = {FemmProblem.Materials.Name};
             for ii = 1:length(Hc_vect)
-                FemmProblem = modifymaterial_mfemm(FemmProblem,[mat.LayerMag.MatName '_' num2str(ii)],'H_c',Hc_vect(ii));
+                %Si potrebbe togliere qua? %Più che altro la logica di
+                %aggiungere roba in simulate xdeg?
+                targetName = [mat.LayerMag.MatName '_' num2str(ii)];
+                if ismember(targetName,existing_materials)
+                    FemmProblem = modifymaterial_mfemm(FemmProblem,[mat.LayerMag.MatName '_' num2str(ii)],'H_c',Hc_vect(ii));
+                else
+                    FemmProblem = modifymaterial_mfemm(FemmProblem,mat.LayerMag.MatName,'H_c',Hc_vect(ii));
+                end
+
             end
         end
     end
 
-    if(isnan(n3phase))
-        if(custom_act)
-            theta_r = rotorPos(curr_pos) - (th0(1) + 0*per.offset)/p;
-        else
-            theta_r = theta(jj)/p;
-        end
+    if(flagCharger)
+        theta_r = rotorPos(curr_pos) - (th0(1) + 0*per.offset)/p;
     else
         theta_r = theta(jj)/p;
     end
@@ -612,6 +949,14 @@ for jj = 1:nsim
                 mi_selectgroup(ii);
             end
         end
+
+        if strcmp(geo.RotType,'Hybrid')
+            indexPM = 400+(1:1:nPM);
+            for ii = 401:1:400+4*p
+                mi_selectgroup(ii);
+            end
+        end
+
         for kk=1:length(indexPM)
             mi_selectgroup(indexPM(kk));
         end
@@ -715,46 +1060,86 @@ for jj = 1:nsim
         end
     end
 
-    if(isnan(n3phase))
-        % fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);
-        fdqd3q30 = abcde2dqd3q30([f(1);f(2);f(3);f(4);f(5)],(thetaPark(jj)+(th0(1)-th0(1)))*pi/180);
-        %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)-ik*60/n3phase)*pi/180);
-        %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),thetaPark(jj)*pi/180,n3phase,ik);
-        fd1_temp(1,jj) = fdqd3q30(1);
-        fq1_temp(1,jj) = fdqd3q30(2);
-        fd3_temp(1,jj) = fdqd3q30(3);
-        fq3_temp(1,jj) = fdqd3q30(4);
-        fo_temp(1,jj) = fdqd3q30(5);
-        fa_temp(1,jj) = f(1);
-        fb_temp(1,jj) = f(2);
-        fc_temp(1,jj) = f(3);
-        fd_temp(1,jj) = f(4);
-        fe_temp(1,jj) = f(5);
-
-        fd1 = mean(fd1_temp(:,jj));
-        fq1 = mean(fq1_temp(:,jj));
-        fd3 = mean(fd3_temp(:,jj));
-        fq3 = mean(fq3_temp(:,jj));
-        fo = mean(fo_temp(:,jj));
-    else
-        for ik=0:(n3phase-1) %AS
+    if(flagCharger)
+        if(isnan(n3phase))
             % fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);
-            fdq0 = abc2dq0([f(3*ik+1);f(3*ik+2);f(3*ik+3)],(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);
+            fdqd3q30 = abcde2dqd3q30([f(1);f(2);f(3);f(4);f(5)],(thetaPark(jj)+(th0(1)-th0(1)))*pi/180);
             %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)-ik*60/n3phase)*pi/180);
             %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),thetaPark(jj)*pi/180,n3phase,ik);
-            fd_temp(ik+1,jj) = fdq0(1);
-            fq_temp(ik+1,jj) = fdq0(2);
-            fo_temp(ik+1,jj) = fdq0(3);
-            fa_temp(ik+1,jj) = f(3*ik+1);
-            fb_temp(ik+1,jj) = f(3*ik+2);
-            fc_temp(ik+1,jj) = f(3*ik+3);
+            fd1_temp(1,jj) = fdqd3q30(1);
+            fq1_temp(1,jj) = fdqd3q30(2);
+            fd3_temp(1,jj) = fdqd3q30(3);
+            fq3_temp(1,jj) = fdqd3q30(4);
+            fo_temp(1,jj) = fdqd3q30(5);
+            fa_temp(1,jj) = f(1);
+            fb_temp(1,jj) = f(2);
+            fc_temp(1,jj) = f(3);
+            fd_temp(1,jj) = f(4);
+            fe_temp(1,jj) = f(5);
+    
+            fd1 = mean(fd1_temp(:,jj));
+            fq1 = mean(fq1_temp(:,jj));
+            fd3 = mean(fd3_temp(:,jj));
+            fq3 = mean(fq3_temp(:,jj));
+            fo = mean(fo_temp(:,jj));
+        else
+            fdqdq00 = abcdef2dqdq00([f(1);f(2);f(3);f(4);f(5);f(6)],(thetaPark(jj)+(th0(1)-th0(1)))*pi/180, win_delta);
+            fda_temp(1,jj) = fdqdq00(1);
+            fqa_temp(1,jj) = fdqdq00(2);
+            fdb_temp(1,jj) = fdqdq00(3);
+            fqb_temp(1,jj) = fdqdq00(4);
+            foa_temp(1,jj) = fdqdq00(5);
+            fob_temp(1,jj) = fdqdq00(6);
+
+            fda = mean(fda_temp(:,jj));
+            fqa = mean(fqa_temp(:,jj));
+            fdb = mean(fdb_temp(:,jj));
+            fqb = mean(fqb_temp(:,jj));
+            foa = mean(foa_temp(:,jj));
+            fob = mean(fob_temp(:,jj));
         end
-
-        fd = mean(fd_temp(:,jj));
-        fq = mean(fq_temp(:,jj));
-        fo = mean(fo_temp(:,jj));
+    else
+        if(isnan(n3phase))
+            % fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);
+            fdqd3q30 = abcde2dqd3q30([f(1);f(2);f(3);f(4);f(5)],(thetaPark(jj)+(th0(1)-th0(1)))*pi/180);
+            %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)-ik*60/n3phase)*pi/180);
+            %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),thetaPark(jj)*pi/180,n3phase,ik);
+            fd1_temp(1,jj) = fdqd3q30(1);
+            fq1_temp(1,jj) = fdqd3q30(2);
+            fd3_temp(1,jj) = fdqd3q30(3);
+            fq3_temp(1,jj) = fdqd3q30(4);
+            fo_temp(1,jj) = fdqd3q30(5);
+            fa_temp(1,jj) = f(1);
+            fb_temp(1,jj) = f(2);
+            fc_temp(1,jj) = f(3);
+            fd_temp(1,jj) = f(4);
+            fe_temp(1,jj) = f(5);
+    
+            fd1 = mean(fd1_temp(:,jj));
+            fq1 = mean(fq1_temp(:,jj));
+            fd3 = mean(fd3_temp(:,jj));
+            fq3 = mean(fq3_temp(:,jj));
+            fo = mean(fo_temp(:,jj));
+        else
+            for ik=0:(n3phase-1) %AS
+                % fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);
+                fdq0 = abc2dq0([f(3*ik+1);f(3*ik+2);f(3*ik+3)],(thetaPark(jj)+(th0(ik+1)-th0(1)))*pi/180);
+                %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),(thetaPark(jj)-ik*60/n3phase)*pi/180);
+                %         fdq = abc2dq(f(3*ik+1),f(3*ik+2),f(3*ik+3),thetaPark(jj)*pi/180,n3phase,ik);
+                fd_temp(ik+1,jj) = fdq0(1);
+                fq_temp(ik+1,jj) = fdq0(2);
+                fo_temp(ik+1,jj) = fdq0(3);
+                fa_temp(ik+1,jj) = f(3*ik+1);
+                fb_temp(ik+1,jj) = f(3*ik+2);
+                fc_temp(ik+1,jj) = f(3*ik+3);
+            end
+    
+            fd = mean(fd_temp(:,jj));
+            fq = mean(fq_temp(:,jj));
+            fo = mean(fo_temp(:,jj));
+        end
     end
-
+    
     % Torque computation. For old model, the rotor blocks are selected and
     % torque is computed as block integral. For new models (with
     % slidingGap), torque is directly computed from the airgap boundary
@@ -838,61 +1223,116 @@ for jj = 1:nsim
         wc = NaN;
     end
 
-    if(custom_act)
-        if(isnan(n3phase))
-            SOL.th(jj) = wt(jj);
-        else
-            SOL.th(jj) = thetaPark(jj);
-        end
+    if(flagCharger)
+        SOL.th(jj) = wt(jj);
     else
         SOL.th(jj) = thetaPark(jj);
     end
+
     SOL.T(jj)  = T;
     SOL.we(jj) = we;
     SOL.wc(jj) = wc;
 
-    if(isnan(n3phase))
-
-        SOL.id1(jj) = mean(mean(id1)./Nbob); % Divide by Ns (simulation done with one turn per coil)
-        SOL.iq1(jj) = mean(mean(iq1)./Nbob);
-        SOL.id3(jj) = mean(mean(id3)./Nbob); % Divide by Ns (simulation done with one turn per coil)
-        SOL.iq3(jj) = mean(mean(iq3)./Nbob);
-        SOL.io(jj) = mean(mean(io)./Nbob);
-        SOL.fd1(jj) = mean(fd1.*Nbob); % Times Ns
-        SOL.fq1(jj) = mean(fq1.*Nbob);
-        SOL.fd3(jj) = mean(fd3.*Nbob); % Times Ns
-        SOL.fq3(jj) = mean(fq3.*Nbob);
-        SOL.fo(jj) = mean(fo.*Nbob);
-
-        SOL.ia(1,jj) = i_tmp(1,jj)/Nbob(1);
-        SOL.ib(1,jj) = i_tmp(2,jj)/Nbob(1);
-        SOL.ic(1,jj) = i_tmp(3,jj)/Nbob(1);
-        SOL.id(1,jj) = i_tmp(4,jj)/Nbob(1);
-        SOL.ie(1,jj) = i_tmp(5,jj)/Nbob(1);
-        SOL.fa(1,jj) = f(1)*Nbob(1);
-        SOL.fb(1,jj) = f(2)*Nbob(1);
-        SOL.fc(1,jj) = f(3)*Nbob(1); 
-        SOL.fd(1,jj) = f(4)*Nbob(1); 
-        SOL.fe(1,jj) = f(5)*Nbob(1); 
+    if(flagCharger)
+        if(isnan(n3phase))
+    
+            SOL.id1(jj) = mean(mean(id1)./Nbob); % Divide by Ns (simulation done with one turn per coil)
+            SOL.iq1(jj) = mean(mean(iq1)./Nbob);
+            SOL.id3(jj) = mean(mean(id3)./Nbob); % Divide by Ns (simulation done with one turn per coil)
+            SOL.iq3(jj) = mean(mean(iq3)./Nbob);
+            SOL.io(jj) = mean(mean(io)./Nbob);
+            SOL.fd1(jj) = mean(fd1.*Nbob); % Times Ns
+            SOL.fq1(jj) = mean(fq1.*Nbob);
+            SOL.fd3(jj) = mean(fd3.*Nbob); % Times Ns
+            SOL.fq3(jj) = mean(fq3.*Nbob);
+            SOL.fo(jj) = mean(fo.*Nbob);
+    
+            SOL.ia(1,jj) = i_tmp(1,jj)/Nbob(1);
+            SOL.ib(1,jj) = i_tmp(2,jj)/Nbob(1);
+            SOL.ic(1,jj) = i_tmp(3,jj)/Nbob(1);
+            SOL.id(1,jj) = i_tmp(4,jj)/Nbob(1);
+            SOL.ie(1,jj) = i_tmp(5,jj)/Nbob(1);
+            SOL.fa(1,jj) = f(1)*Nbob(1);
+            SOL.fb(1,jj) = f(2)*Nbob(1);
+            SOL.fc(1,jj) = f(3)*Nbob(1); 
+            SOL.fd(1,jj) = f(4)*Nbob(1); 
+            SOL.fe(1,jj) = f(5)*Nbob(1); 
+        else
+            SOL.ida(jj) = mean(mean(ida)./Nbob); % Divide by Ns (simulation done with one turn per coil)
+            SOL.iqa(jj) = mean(mean(iqa)./Nbob);
+            SOL.idb(jj) = mean(mean(idb)./Nbob); % Divide by Ns (simulation done with one turn per coil)
+            SOL.iqb(jj) = mean(mean(iqb)./Nbob);
+            SOL.ioa(jj) = mean(mean(ioa)./Nbob);
+            SOL.iob(jj) = mean(mean(iob)./Nbob);
+            SOL.fda(jj) = mean(fda.*Nbob); % Times Ns
+            SOL.fqa(jj) = mean(fqa.*Nbob);
+            SOL.fdb(jj) = mean(fdb.*Nbob); % Times Ns
+            SOL.fqb(jj) = mean(fqb.*Nbob);
+            SOL.foa(jj) = mean(foa.*Nbob);
+            SOL.fob(jj) = mean(fob.*Nbob);
+    
+            SOL.ia(1,jj) = i_tmp(1,jj)/Nbob(1);
+            SOL.ib(1,jj) = i_tmp(2,jj)/Nbob(1);
+            SOL.ic(1,jj) = i_tmp(3,jj)/Nbob(1);
+            SOL.id(1,jj) = i_tmp(4,jj)/Nbob(1);
+            SOL.ie(1,jj) = i_tmp(5,jj)/Nbob(1);
+            SOL.if(1,jj) = i_tmp(6,jj)/Nbob(1);
+            SOL.fa(1,jj) = f(1)*Nbob(1);
+            SOL.fb(1,jj) = f(2)*Nbob(1);
+            SOL.fc(1,jj) = f(3)*Nbob(1); 
+            SOL.fd(1,jj) = f(4)*Nbob(1); 
+            SOL.fe(1,jj) = f(5)*Nbob(1); 
+            SOL.ff(1,jj) = f(6)*Nbob(1); 
+        end
     else
-        SOL.id(jj) = mean(mean(id)./Nbob); % Divide by Ns (simulation done with one turn per coil)
-        SOL.iq(jj) = mean(mean(iq)./Nbob);
-        SOL.io(jj) = mean(mean(io)./Nbob);
-        SOL.fd(jj) = mean(fd.*Nbob); % Times Ns
-        SOL.fq(jj) = mean(fq.*Nbob);
-        SOL.fo(jj) = mean(fo.*Nbob);
-
-        for ff=1:n3phase
-            SOL.ia(ff,jj) = i_tmp(1+3*(ff-1),jj)/Nbob(ff);
-            SOL.ib(ff,jj) = i_tmp(2+3*(ff-1),jj)/Nbob(ff);
-            SOL.ic(ff,jj) = i_tmp(3+3*(ff-1),jj)/Nbob(ff);
-            SOL.fa(ff,jj) = f(1+3*(ff-1))*Nbob(ff);
-            SOL.fb(ff,jj) = f(2+3*(ff-1))*Nbob(ff);
-            SOL.fc(ff,jj) = f(3+3*(ff-1))*Nbob(ff);
+        if(isnan(n3phase))
+            SOL.id1(jj) = mean(mean(id1)./Nbob); % Divide by Ns (simulation done with one turn per coil)
+            SOL.iq1(jj) = mean(mean(iq1)./Nbob);
+            SOL.id3(jj) = mean(mean(id3)./Nbob); % Divide by Ns (simulation done with one turn per coil)
+            SOL.iq3(jj) = mean(mean(iq3)./Nbob);
+            SOL.io(jj) = mean(mean(io)./Nbob);
+            SOL.fd1(jj) = mean(fd1.*Nbob); % Times Ns
+            SOL.fq1(jj) = mean(fq1.*Nbob);
+            SOL.fd3(jj) = mean(fd3.*Nbob); % Times Ns
+            SOL.fq3(jj) = mean(fq3.*Nbob);
+            SOL.fo(jj) = mean(fo.*Nbob);
+    
+            SOL.ia(1,jj) = i_tmp(1,jj)/Nbob(1);
+            SOL.ib(1,jj) = i_tmp(2,jj)/Nbob(1);
+            SOL.ic(1,jj) = i_tmp(3,jj)/Nbob(1);
+            SOL.id(1,jj) = i_tmp(4,jj)/Nbob(1);
+            SOL.ie(1,jj) = i_tmp(5,jj)/Nbob(1);
+            SOL.fa(1,jj) = f(1)*Nbob(1);
+            SOL.fb(1,jj) = f(2)*Nbob(1);
+            SOL.fc(1,jj) = f(3)*Nbob(1); 
+            SOL.fd(1,jj) = f(4)*Nbob(1); 
+            SOL.fe(1,jj) = f(5)*Nbob(1);
+        else
+            SOL.id(jj) = mean(mean(id)./Nbob); % Divide by Ns (simulation done with one turn per coil)
+            SOL.iq(jj) = mean(mean(iq)./Nbob);
+            SOL.io(jj) = mean(mean(io)./Nbob);
+            SOL.fd(jj) = mean(fd.*Nbob); % Times Ns
+            SOL.fq(jj) = mean(fq.*Nbob);
+            SOL.fo(jj) = mean(fo.*Nbob);
+    
+            for ff=1:n3phase
+                SOL.ia(ff,jj) = i_tmp(1+3*(ff-1),jj)/Nbob(ff);
+                SOL.ib(ff,jj) = i_tmp(2+3*(ff-1),jj)/Nbob(ff);
+                SOL.ic(ff,jj) = i_tmp(3+3*(ff-1),jj)/Nbob(ff);
+                SOL.fa(ff,jj) = f(1+3*(ff-1))*Nbob(ff);
+                SOL.fb(ff,jj) = f(2+3*(ff-1))*Nbob(ff);
+                SOL.fc(ff,jj) = f(3+3*(ff-1))*Nbob(ff);
+            end
         end
     end
 
-    if strcmp(geo.RotType,'EESM')
+    if(flagCharger)
+        [parms, perf] = param_charger(geo, per, mat, i_tmp, i_tmp_, thetaPark(jj), Nbob, win_delta, jj, nsim, pathname, filename);
+        SOL.parms{jj} = parms;
+        SOL.perf{jj} = perf;
+    end
+
+    if strcmp(geo.RotType,'EESM')|| strcmp(geo.RotType,'Hybrid')
         SOL.if(jj) = If;
         if ~flag_xfemm
             temp_out = mo_getcircuitproperties('field');
@@ -1021,7 +1461,12 @@ for jj = 1:nsim
                 else
                     tmp = myfpproc.getpointvalues(real(pos(EleOK(ee))),imag(pos(EleOK(ee))));
                 end
-                Btmp=abs(tmp(2)+j*tmp(3))*cos(angle(tmp(2)+j*tmp(3))-BrDir(groNo(ee)-200));
+
+                if strcmp(geo.RotType,'Hybrid')
+                    Btmp=abs(tmp(2)+j*tmp(3))*cos(angle(tmp(2)+j*tmp(3))-BrDir(groNo(ee)-400));
+                else
+                    Btmp=abs(tmp(2)+j*tmp(3))*cos(angle(tmp(2)+j*tmp(3))-BrDir(groNo(ee)-200));
+                end
 
                 if Btmp<Bmin
                     Bmin=Btmp;
@@ -1054,6 +1499,191 @@ for jj = 1:nsim
             SOL.dPM(jj)       = dPM;
             SOL.VolDem(jj)    = VolDem;
             SOL.VolTot(jj)    = VolTot;
+
+        %=============================================================
+        %Stefano Tarricone - 2026
+
+        case {'first_mag'}
+            Tstart = now();
+            % disp('First Mag Analysis');
+
+            % Variables Initialization
+            Vol_Block = 0;
+            Bx_int = 0;
+            By_int = 0;
+            We = 0;
+            Wc = 0;
+
+            if ~flag_xfemm
+
+                % mo_showdensityplot(1,0,max(mat.LayerMag.BH(:,1)),min(mat.LayerMag.BH(:,1)),'bmag');
+                mo_showdensityplot(0,0,0,0,'mag'); 
+                mo_clearblock();
+ 
+                for gID = BrGro
+                    mo_groupselectblock(gID)
+                end
+
+
+                Vol_Block = mo_blockintegral(10); % Volume totale
+                Bx_int    = mo_blockintegral(8);  % Integrale Bx
+                By_int    = mo_blockintegral(9);  % Integrale By
+                We        = mo_blockintegral(2);  % Energia immagazzinata
+                Wc        = mo_blockintegral(17); % Coenergia
+                mo_clearblock();
+
+            else
+                fpproc('clearblock');
+
+                for gID = BrGro
+                    fpproc('selectgroup', gID);
+                end
+
+
+                Vol_Block = fpproc('blockintegral', 10);
+                Bx_int    = fpproc('blockintegral', 8);
+                By_int    = fpproc('blockintegral', 9);
+                We        = fpproc('blockintegral', 2);
+                Wc        = fpproc('blockintegral', 17);
+                fpproc('clearblock');
+            end
+
+
+            if Vol_Block > 0
+                % Medie vettoriali 
+                Bx_avg = Bx_int / Vol_Block;
+                By_avg = By_int / Vol_Block;
+                B_vec_avg = [Bx_avg, By_avg];
+
+                Bmed = dot(B_vec_avg,versore_dir);
+                SOL.Bmed(jj) = Bmed;
+
+                % Calcolo H energetico (Energy/Volume / B)
+                if abs(Bmed) > 1e-9
+                    Hmed = ((We + Wc) / Vol_Block) / Bmed;
+                    SOL.Hmed(jj) = Hmed;
+                else
+                    Hmed = 0;
+                    SOL.Hmed(jj) = 0;
+                end
+
+                %J (Polarizzazione): J = B - mu0*H
+                mu0 = 4*pi*1e-7;
+                SOL.Jmed(jj) = Bmed - (mu0 * Hmed);
+
+            else
+               
+                SOL.Bmed(jj) = 0;
+                SOL.Hmed(jj) = 0;
+                SOL.Jmed(jj) = 0;
+            end
+
+            Tend = now();
+            disp(['Done in ' num2str((Tend-Tstart)*24*3600, '%.3f') ' s']);
+
+        case {'idemag_non_linear_Node'}
+            % disp('Non linear demag analisi')
+            Tstart=now();
+
+            Hsum=zeros(1,geo.nlay);
+            Bsum=zeros(1,geo.nlay);
+            Jsum=zeros(1,geo.nlay);
+            murSum=zeros(1,geo.nlay);
+            AreaTot=zeros(1,geo.nlay);
+
+
+            % get the PMs flux density
+            if ~flag_xfemm
+                EleNo = mo_numelements;               % Number of mesh elements
+            else
+                EleNo = myfpproc.numelements;
+            end              
+            pos = zeros(EleNo,1);                 % Mesh elements centroid coordinates as complex number
+            groNo = zeros(EleNo,1);               % group number
+            area = zeros(EleNo,1);
+            % vert = zeros(EleNo,3);
+
+            for ee = 1:EleNo
+                if ~flag_xfemm
+                    elm = mo_getelement(ee);
+                else
+                    elm = myfpproc.getelements(ee);
+                end
+                pos(ee) = elm(4)+j*elm(5); %(centroid)
+                groNo(ee) = elm(7);
+                area(ee) = elm(6);
+            end
+
+            minGro = min(BrGro);
+            maxGro = max(BrGro);
+            mask  = (groNo >= minGro) & (groNo <= maxGro);
+            EleOK = find(mask);
+
+            Avals = area(EleOK)';
+
+            for ee=1:length(EleOK)
+                if ~flag_xfemm
+                    tmp=mo_getpointvalues(real(pos(EleOK(ee))),imag(pos(EleOK(ee))));
+                else
+                    tmp = myfpproc.getpointvalues(real(pos(EleOK(ee))),imag(pos(EleOK(ee))));
+                end
+
+
+                Bvals(ee)=dot([tmp(2),tmp(3)],versore_dir);
+                theta_B(ee) = atan2(tmp(3),tmp(2));
+                theta_H(ee) = atan2(tmp(7),tmp(6));
+                H_x(ee) = tmp(6);
+                H_y(ee) = tmp(7);
+                B_x(ee) = tmp(2);
+                B_y(ee) = tmp(3);
+                Hvals(ee)=dot([tmp(6),tmp(7)],versore_dir);
+                nodes_mag(ee) = pos(EleOK(ee));
+
+            end
+            SOL.theta_B{jj} =  theta_B;
+            SOL.theta_H{jj} =  theta_H;
+            SOL.mesh_nodes{jj} = nodes_mag;
+            SOL.Bvals{jj} = Bvals;
+            SOL.Hvals{jj} = Hvals;
+            SOL.Hx{jj} = H_x;
+            SOL.Hy{jj} = H_y;
+            SOL.Bx{jj} = B_x;
+            SOL.By{jj} = B_y;
+
+            mu0 = 4*pi*1e-7;
+            AreaTot = sum(Avals);
+            Jvals   = Bvals - mu0*Hvals;
+
+            if AreaTot(1) > 0
+                Hmed = sum(Hvals .* Avals) / AreaTot;
+                Bmed = sum(Bvals .* Avals) / AreaTot;
+                Jmed = sum(Jvals .* Avals) / AreaTot;
+                SOL.Hmed(jj) = Hmed;
+                SOL.Bmed(jj) = Bmed;
+                SOL.Jmed(jj) = Jmed;
+            end
+
+            Tend=now();
+            Tsing=Tend-Tstart;
+            disp(['Done in ' int2str(Tsing*24*3600) ' s']);
+
+            % figure;
+            % hold on, grid on, box on
+            % xlabel('H [A/m]'); ylabel('B [T]')
+            % plot(mat.LayerMag.BH(:,2)-mat.LayerMag.Hc,mat.LayerMag.BH(:,1),'k','LineWidth',1.5)
+            % plot(Hvals,Bvals,'r.')
+            % pB = plot(NaN,NaN,'r.','MarkerSize',4,'DisplayName','B[T]');
+            % pJ = plot(NaN,NaN,'b.','MarkerSize',4,'DisplayName','J[T]');
+            % plot(Hmed,Bmed,'ro','LineWidth',1.5)
+            % plot(Hmed,Jmed,'bo','LineWidth',1.5)
+            % legend([pB pJ],'Location','best');
+            % legend('AutoUpdate','off');
+            % title('BH - Demagnetization');
+            % drawnow
+
+            % =========================================================================
+
+
         case {'singtIron','singmIron'} % simulation with iron loss
             if jj==1 % store the mesh information
                 if ~flag_xfemm

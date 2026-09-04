@@ -139,7 +139,7 @@ if isfield(out.SOL,'ia')
         ic = [out.SOL.ic out.SOL.ic(:,1)];
 
         fa = [out.SOL.fa out.SOL.fa(:,1)];
-        fb = [out.SOL.fb out.SOL.fb(:,1)];       rimosso da simodelsa
+        fb = [out.SOL.fb out.SOL.fb(:,1)];       
         fc = [out.SOL.fc out.SOL.fc(:,1)];
     else
         iph = phaseQuantityDecoding(out.SOL.ia,out.SOL.ib,out.SOL.ic,delta_sim_singt);

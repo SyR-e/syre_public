@@ -19,7 +19,10 @@ function [lendf,geo] = calc_endTurnFieldLength(geo)
 wp = geo.wp;
 wb = geo.wb;
 
-lendf = pi*(wp/2+wb/2);
+% lendf = pi*(wp/2+wb/2);
+% lendf = wp + 2*wb  % -> wb/2 + (wb/2+wp+wb/2) + wb/2 (rettangolo)
+lendf = wp+pi*wb/2; % due quarti di cerchio più ampiezza polo
+
 
 geo.lendf = lendf;
 

@@ -18,7 +18,6 @@ Xabc isabc;
 Xalphabeta isab;
 Xin input,offset_in;
 float vdc;
-float offset_current_a, offset_current_b, offset_current_c;
 
 //Protection variables
 int pwm_stop;
@@ -27,7 +26,6 @@ int pwm_stop;
 Xabc vsabc_ref, vsabc_k0, duty_abc, duty_abc_km1;
 Xalphabeta vsab_ref, vsab_k0, vsab_km1;
 Xdq vsdq_ref, vsdq_k0;
-Xdq vffw_dq;
 float v0, flux_nom, volt_nom;
 XPIRegPars  id_par, iq_par, sp_par;
 XPIRegVars  id_var, iq_var, sp_var;
@@ -49,7 +47,6 @@ float omega_elt;
 XPIRegPars lambda_par,iqs_par,delta_par;
 XPIRegVars lambda_var,iqs_var,delta_var;
 Xsc SinCos_delta,SinCos_thetaS;
-Xdq vffw_dsqs;
 Xdq vdsqs,idsqs;
 Xdq vdsqs_ref;
 float lambda_MTPA,Flux_Lim,lambda_ref,iqs_ref;
@@ -122,4 +119,4 @@ float Reset,  BlueBTN;
 
 Xdq isdq_ref, isdq, isdq_ext;
 
-float T_ext, T_elt, Tref, Tlim, theta_r;
+float T_ext, T_ext_ramp, T_elt, Tref, Tlim, theta_r;

@@ -36,6 +36,12 @@ data.motorType  = 'SR';
 data.J          = 0;
 data.tempVectPM = [];
 data.R          = 0;
+data.if0        = 0;
+data.Vr         = 0;
+data.Nr         = 1;
+data.lendf      = 0;
+data.tempCoRo   = 0;
+data.Rf         = 0;
 
 
 data.nCurr = 4;
@@ -45,10 +51,12 @@ scaleFactors.Llq = 0;
 scaleFactors.Ns  = data.Ns;
 scaleFactors.l   = data.l;
 scaleFactors.R   = data.R;
+scaleFactors.Nr  = data.Nr;
 
 skewData.thSkw   = 0;
 skewData.nSlice  = 1;
 skewData.nPoints = 51;
+skewData.shape   = 'Linear skewing';
 % data.skew = skewData;
 
 Tw.nCurrent         = 1;
@@ -67,37 +75,87 @@ Tw.SkinEffectMethod = 'LUT';
 Tw.PMLossFlag       = 'No';
 Tw.PMLossFactor     = 1;
 Tw.Control          = 'MTPA';
+Tw.ASCsafeFlag      = 'No';
 
-SyreDrive.Ctrl_type    = 'Torque control';
-SyreDrive.FMapsModel   = 'dq Model';
-SyreDrive.Converter.V0 = 0;
-SyreDrive.Converter.Rd = 1e-4;
-SyreDrive.Converter.dT = 1;
-SyreDrive.SS_on = 'Off';
-SyreDrive.SS_settings.inj_waveform = 'Sinusoidal';
-SyreDrive.SS_settings.dem = 'Current';
-SyreDrive.SS_settings.HS_ctrl = 'APP';
+% SyreDrive.Ctrl_type      = 'Torque control';
+% SyreDrive.FMapsModel     = 'dq Model';
+% SyreDrive.Ctrl
+% SyreDrive.Converter.V0   = 0;
+% SyreDrive.Converter.Rd   = 1e-4;
+% SyreDrive.Converter.dT   = 1;
+% SyreDrive.Converter.fPWM = 10000;
+% SyreDrive.SS_on          = 'Off';
+% SyreDrive.SS_settings.inj_waveform = 'Sinusoidal';
+% SyreDrive.SS_settings.dem = 'Current';
+% SyreDrive.SS_settings.HS_ctrl = 'APP';
 
-WaveformSetup.CurrLoad  = 1;
-WaveformSetup.CurrAmpl  = data.i0;
-WaveformSetup.CurrAngle = 45;
-WaveformSetup.EvalSpeed = data.n0;
-WaveformSetup.nCycle    = 1;
 
-motorModel.data                = data;
-motorModel.FluxMap_dq          = [];
-motorModel.FluxMap_dqt         = [];
-motorModel.IronPMLossMap_dq    = [];
-motorModel.acLossFactor        = [];
-motorModel.controlTrajectories = [];
-motorModel.IncInductanceMap_dq = [];
-motorModel.FluxMapInv_dq       = [];
-motorModel.FluxMapInv_dqt      = [];
-motorModel.tmpScale            = scaleFactors;
-motorModel.tmpSkew             = skewData;
-motorModel.TnSetup             = Tw;
-motorModel.SyreDrive           = SyreDrive;
-motorModel.WaveformSetup       = WaveformSetup;
+SyreDrive.modelSetup.Ctrl_type      = 'Torque control';
+SyreDrive.modelSetup.FMapsModel     = 'dq Model';
+SyreDrive.modelSetup.Ctrl_strategy  = 'DFVC';
+SyreDrive.modelSetup.IronLoss       = 'No';
+SyreDrive.modelSetup.WindingLossAC  = 'No';
+SyreDrive.modelSetup.motorModelType = 'Controlled Current Generators (CCG)';
+SyreDrive.modelSetup.InverterModel  = 'PWM';
+SyreDrive.Converter.V0              = 0;
+SyreDrive.Converter.Rd              = 1e-4;
+SyreDrive.Converter.dT              = 1;
+SyreDrive.Converter.fPWM            = 10000;
+SyreDrive.SS_on                     = 'Off';
+SyreDrive.SS_settings.inj_waveform  = 'Sinusoidal';
+SyreDrive.SS_settings.dem           = 'Current';
+SyreDrive.SS_settings.HS_ctrl       = 'APP';
+SyreDrive.SIM_file                  = [];
+SyreDrive.Simulator                 = [];
+
+
+
+WaveformSetup.CurrLoad       = 1;
+WaveformSetup.CurrAmpl       = data.i0;
+WaveformSetup.CurrAngle      = 45;
+WaveformSetup.EvalSpeed      = data.n0;
+WaveformSetup.nCycle         = 1;
+WaveformSetup.IronLossFlag   = 'No';
+WaveformSetup.PMLossFlag     = 'No';
+WaveformSetup.ACLossFlag     = 'No';
+WaveformSetup.IronLossFactor = 1;
+WaveformSetup.PMLossFactor   = 1;
+
+motorModel.data                 = data;
+motorModel.FluxMap_dq           = [];
+motorModel.FluxMap_dqt          = [];
+motorModel.IronPMLossMap_dq     = [];
+motorModel.acLossFactor         = [];
+motorModel.DemagnetizationLimit = [];
+motorModel.controlTrajectories  = [];
+motorModel.IncInductanceMap_dq  = [];
+motorModel.AppInductanceMap_dq  = [];
+motorModel.FluxMapInv_dq        = [];
+motorModel.FluxMapInv_dqt       = [];
+motorModel.tmpScale             = scaleFactors;
+motorModel.tmpSkew              = skewData;
+motorModel.TnSetup              = Tw;
+motorModel.SyreDrive            = SyreDrive;
+motorModel.WaveformSetup        = WaveformSetup;
+
+motorModel.Thermal.TempCuLimit  = 180;
+motorModel.Thermal.TempPmLimit  = 150;
+motorModel.Thermal.nmin         = 0;
+motorModel.Thermal.nmax         = motorModel.data.nmax;
+motorModel.Thermal.NumSpeed     = 6;
+motorModel.Thermal.interpTempPM = 0;
+
+motorModel.data.targetPMtemp = 80;
+
+motorModel.PMtempModels.tempVectPM          = motorModel.data.tempPM;
+motorModel.PMtempModels.FluxMap_dq{1}       = motorModel.FluxMap_dq;
+motorModel.PMtempModels.FluxMap_dqt{1}      = motorModel.FluxMap_dqt;
+motorModel.PMtempModels.IronPMLossMap_dq{1} = motorModel.IronPMLossMap_dq;
+motorModel.data.tempVectPM                  = motorModel.data.tempPM;
+
+motorModel.VFMdata.Control    = [];
+motorModel.VFMdata.data.Demag = [];
+motorModel.VFMdata.data.Remag = [];
 
 % Custom geometry
 motorModel.dataSet.pShape.rotor  = [];

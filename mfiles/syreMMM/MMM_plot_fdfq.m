@@ -33,11 +33,11 @@ motName  = motorModel.data.motorName;
 resFolder = checkPathSyntax([motName '_results\MMM results\' 'dq Flux Maps - ' int2str(motorModel.data.tempPM) 'deg\']);
 
 %% Surfaces
-figNames{1}  = 'FluxD_3D';
-figNames{2}  = 'FluxQ_3D';
-figNames{3}  = 'Torque_3D';
-figNames{4}  = 'TorRipPP_3D';
-figNames{5}  = 'TorRip_3D';
+figNames{1}  = 'FluxD';
+figNames{2}  = 'FluxQ';
+figNames{3}  = 'Torque';
+figNames{4}  = 'TorRipPP';
+figNames{5}  = 'TorRip';
 figNames{6}  = 'FluxD_2D';
 figNames{7}  = 'FluxQ_2D';
 figNames{8}  = 'FluxDQ_2D';
@@ -147,7 +147,7 @@ else
     Ir_plot_index = unique(Ir_plot_index); %Eventuali indici ripetuti vengono rimossi
     Ir_values = Ir(1,1,:);
     Ir_plot_values = Ir_values(Ir_plot_index);
-    hfig(12) = surfplot_slider(Id(:,:,end),Iq(:,:,end),T,Ir_plot_values,[pathname resFolder 'Torque_Ir.fig']);
+    hfig(12) = surfplot_slider(Id(:,:,end),Iq(:,:,end),T(:,:,Ir_plot_index),Ir_plot_values,[pathname resFolder 'Torque_Ir.fig']);
     h_count = 12;
 end
 

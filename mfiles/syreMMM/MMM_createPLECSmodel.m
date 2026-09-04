@@ -16,7 +16,7 @@
 
 function motorModel = MMM_createPLECSmodel(motorModel)
 
-motorModel.SyreDrive.Simulator = 'Plecs';
+motorModel.SyreDrive.Simulator = 'PLECS';
 
 % Check models
 if isempty(motorModel.controlTrajectories)
@@ -41,14 +41,14 @@ save(checkPathSyntax([ctrlFolder_path '\motorModel.mat']),'motorModel');
 
 MMM_print_MotorDataH_PLECS(motorModel);
 
-motorModel.SyreDrive.SIM_path = checkPathSyntax([ctrlFolder_path '\' motorModel.data.motorName '_Model.plecs']);
+motorModel.SyreDrive.SIM_file = checkPathSyntax([ctrlFolder_path '\' motorModel.data.motorName '_Model.plecs']);
 
 save(checkPathSyntax([ctrlFolder_path '\motorModel.mat']),'motorModel');
 
 disp('PLECS model created!')
-disp(['pathname:'])
+disp('pathname:')
 disp(['  ' ctrlFolder_path '\'])
-disp(['filename:'])
+disp('filename:')
 disp(['  ' motorModel.data.motorName '_Motor_ctrl.plecs'])
 
 run(checkPathSyntax([ctrlFolder_path '\init_sim_PLECS.m']))

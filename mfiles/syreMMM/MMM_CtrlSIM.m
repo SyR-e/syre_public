@@ -15,11 +15,12 @@
 function motorModel = MMM_CtrlSIM(motorModel)
 
 mainFolder = fileparts(which('GUI_Syre.mlapp'));
-ctrlFolder_path = fileparts(motorModel.SyreDrive.SIM_path);
+ctrlFolder_path = fileparts(motorModel.SyreDrive.SIM_file);
 
 cd(ctrlFolder_path);         % Sets the correct "Current Folder" to run the simulation
+save('motorModel.mat','motorModel')
 
-motorModel.SyreDrive.simOut = sim(motorModel.SyreDrive.SIM_path);   % Starts simulation
+motorModel.SyreDrive.simOut = sim(motorModel.SyreDrive.SIM_file);   % Starts simulation
 cd(mainFolder);
 clear mex; close_system;
 end

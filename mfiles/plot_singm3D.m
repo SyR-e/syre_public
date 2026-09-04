@@ -30,6 +30,7 @@ Ir = linspace(min(F_map.If,[],'all'),max(F_map.If,[],'all'),n_interp);
 
 Fd = interp3(F_map.Id,F_map.Iq,F_map.If,F_map.Fd,Id,Iq,Ir,'spline');
 Fq = interp3(F_map.Id,F_map.Iq,F_map.If,F_map.Fq,Id,Iq,Ir,'spline');
+Fr = interp3(F_map.Id,F_map.Iq,F_map.If,F_map.Ff,Id,Iq,Ir,'spline');
 T  = interp3(F_map.Id,F_map.Iq,F_map.If,F_map.T,Id,Iq,Ir,'spline');
 
 if isfield(F_map,'dT')
@@ -80,7 +81,7 @@ if isoctave()  %OCT
     if isfield(F_map,'If')
         save ('-mat7-binary', name_file,'Ir','-append');
     end
-    if isfield(F_map,'Fr')
+    if isfield(F_map,'Ff')
         save ('-mat7-binary', name_file,'Fr','-append');
     end
     clear name_file
@@ -112,7 +113,7 @@ else
     if isfield(F_map,'If')
         save (nameFile,'Ir','-append');
     end
-    if isfield(F_map,'Fr')
+    if isfield(F_map,'Ff')
         save (nameFile,'Fr','-append');
     end
     if exist('IM','var')
@@ -216,14 +217,14 @@ if flagPlot
     
     
     figure
-    surf(Id(:,:,end),Iq(:,:,end),Ir(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('Ir [A]')
+    surf(Id(:,:,end),Iq(:,:,end),Fr(:,:,end)), grid on, xlabel('i_d [A]'), ylabel('i_q [A]'), zlabel('\lambda_f (Ir_{max})')
     h=gcf(); %OCT
     if isoctave()
-        fig_name=strcat(FigDir, 'Irsurf.fig');
+        fig_name=strcat(FigDir, 'Ffsurf.fig');
         hgsave(h,[fig_name]);
         clear fig_name
     else
-        saveas(gcf,[FigDir 'Irsurf.fig'])
+        saveas(gcf,[FigDir 'Ffsurf.fig'])
     end
 end
 

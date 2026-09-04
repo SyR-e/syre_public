@@ -20,8 +20,9 @@ p    = motorModel.geo.p;
 % cd([motorModel.data.pathname motorModel.data.motorName '_ctrl_INST'])
 switch(motorModel.SyreDrive.Simulator)
     case 'Simulink'
-        init_sim
-    case 'Plecs'
+        % % open_system(motorModel.SyreDrive.SIM_path)
+        % init_sim
+    case 'PLECS'
         init_sim_PLECS
 end     
 
@@ -47,7 +48,7 @@ switch(motorModel.SyreDrive.Simulator)
         open(motorModel.SyreDrive.SIM_path)
         options = simset('SrcWorkspace','current', 'DstWorkspace', 'current');
         out = sim(motorModel.SyreDrive.SIM_path,tSim,options);   % Starts simulation
-    case 'Plecs'
+    case 'PLECS'
         addpath('matlab-jsonrpc-main\');
         URL = 'http://localhost:1080';
         proxy = jsonrpc(URL,'Timeout', 100);
@@ -86,7 +87,7 @@ switch(motorModel.SyreDrive.Simulator)
         
         t = 60/(out.Out_M.n_m.Data(length(out.Out_M.n_m.Data(:)))*motorModel.data.p);
 
-    case 'Plecs'
+    case 'PLECS'
         Time_dq = out.Time;
         Id = out.Values(6,:);
         Iq = out.Values(7,:);

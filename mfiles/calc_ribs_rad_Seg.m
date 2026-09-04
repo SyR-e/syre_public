@@ -26,6 +26,11 @@ hc = geo.hc;
 radial_ribs_split = geo.radial_ribs_split;  % flag to define if radial ribs is single or splitted
 radial_ribs_eval  = geo.radial_ribs_eval;   % flag to select if ribs are automatically sized or not
 
+kRdim = 3.8/6.1;  % radial ribs correction factor
+kRdim = 1;
+
+PMdimPU = geo.PMdim./geo.PMdim;
+PMdimPU(isnan(PMdimPU)) = 0;
 
 pontRang       = geo.pontRang;
 RotorFilletRad1 = geo.RotorFillet1;
@@ -140,59 +145,71 @@ VectCir=find(xcir_plot>=xrot_traf(1));
 x_ext_rot=xcir_plot(VectCir);
 y_ext_rot=ycir_plot(VectCir);
 
-A=[];
+A_Fe  = nan(1,nlay);
+rG_Fe = nan(1,nlay);
+A_PM  = nan(1,nlay);
+rG_PM = nan(1,nlay);
+
 for ii=1:nlay
     if ii==1
         X=[B2k(ii), XpBar2(ii), xxD2k(ii),xpont(ii),fliplr(x_ext_rot)];
         Y=[0, YpBar2(ii), yyD2k(ii),ypont(ii),fliplr(y_ext_rot)];
-        %         figure(100);hold on;fill(X,Y,'r');hold off;
-        A(ii)=polyarea(X,Y);
-        tmp_bary(ii,:)=centroid(X',Y');         %MarcoP
-        clear X Y;
+        A_Fe(ii)=polyarea(X,Y);
+        tmp = centroid(X,Y);
+        rG_Fe(ii) = tmp(1);
     else
         X=[B1k(ii-1), XpBar1(ii-1), xxD1k(ii-1),xpont(ii-1),xrot_traf(ii-1),xrot_traf(ii),xpont(ii),xxD2k(ii),XpBar2(ii),B2k(ii)];
         Y=[0, YpBar1(ii-1), yyD1k(ii-1),ypont(ii-1),yrot_traf(ii-1),yrot_traf(ii),ypont(ii),yyD2k(ii),YpBar2(ii),0];
-        %         figure(100);hold on;fill(X,Y,'r'); hold off;
-        A(ii)=polyarea(X,Y);
-        tmp_bary(ii,:)=centroid(X',Y');         %MarcoP
-        clear X Y;
+        A_Fe(ii)=polyarea(X,Y);
+        tmp = centroid(X,Y);
+        rG_Fe(ii) = tmp(1);
+    end
+    Xe = [xxD1k(ii) xxD2k(ii) XpBar2(ii) XpBar1(ii)];
+    Ye = [yyD1k(ii) yyD2k(ii) YpBar2(ii) YpBar1(ii)];
+    Xi = [XpBar1(ii) XpBar2(ii) B2k(ii) B1k(ii)];
+    Yi = [YpBar1(ii) YpBar2(ii) 0 0];
+    if PMdimPU(2,ii)
+        Ae = polyarea(Xe,Ye);
+        tmp = centroid(Xe,Ye);
+        re = tmp(1);
+    else
+        Ae = 0;
+        re = 0;
+    end
+    if PMdimPU(1,ii)
+        Ai = polyarea(Xi,Yi);
+        tmp = centroid(Xi,Yi);
+        ri = tmp(1);
+    else
+        Ai = 0;
+        ri = 0;
+    end
+    
+    A_PM(ii) = Ae+Ai;
+    rG_PM(ii) = (Ae*re+Ai*ri)/(Ae+Ai);
+end
+
+A_Fe_hang = cumsum(A_Fe);
+A_PM_hang = cumsum(A_PM);
+A_hanged = A_Fe_hang+A_PM_hang;
+rG_hanged = zeros(1,nlay);
+
+for ii=1:nlay
+    if ii==1
+        rG_hanged(ii) = (A_Fe(ii)*rG_Fe(ii)+A_PM(ii)*rG_PM(ii))/(A_Fe(ii)+A_PM(ii));
+    else
+        rG_hanged(ii) = (A_Fe(ii)*rG_Fe(ii)+A_PM(ii)*rG_PM(ii)+A_hanged(ii-1)*rG_hanged(ii-1))/(A_Fe(ii)+A_PM(ii)+A_hanged(ii-1));
     end
 end
-Afe = cumsum(A);
 
-%MarcoP
-rG(1)=tmp_bary(1,1);     % baricentro della regione di ferro sorretta dal ponticello a I
-for ii=2:nlay
-    rG(ii)=(Afe(ii-1)*rG(ii-1)+A(ii)*tmp_bary(ii,1))/Afe(ii);  % baricentri delle regioni di ferro sorrette dalle due U
-end
-
-M_Fe = 2*Afe*l * 1e-9 * rhoFE ;   % massa ferro appeso ai ponticelli
-
-% Seg - calcolo area magnete
-% barriera ad I
-X_Ibarr=[xxD1k(1) xxD2k(1) B2k(1) B1k(1)];
-Y_Ibarr=[yyD1k(1) yyD2k(1) 0 0];
-areaI=2*polyarea(X_Ibarr,Y_Ibarr);  % area della barriera a I in cui inserire i magneti (escludo i due semicerchi all'estremità della barriera e gli eventuali ponticelli)
-% % barriera ad U centrale
-if nlay == 1
-    area_barr_withoutPM = [areaI];
-else
-    % barriere ad U
-    for kk=2:nlay
-        areaUbars(kk-1) = (2*YpBar2(kk)*hc(kk))+(2*hc(kk)*abs((xxD2k(kk)+i*yyD2k(kk))-(XpBar2(kk)+i*YpBar2(kk)))); %area della barriera a U in cui inserire i magneti (escludo i due semicerchi all'estremità della barriera)
-    end
-    area_barr_withoutPM = [areaI areaUbars];
-end
-rG_PM = (B1k+B2k)/2;    % vettore con i baricentri dei magneti
-area_barr_withPM=area_barr_withoutPM;
-A_PM=cumsum(area_barr_withPM);
-M_PM=A_PM*rhoPM*1e-9*2*l;
+M_Fe = 2*A_Fe_hang*l*1e-9*rhoFE;
+M_PM = 2*A_PM_hang*l*1e-9*rhoPM;
 
 % Seg - calcolo e disegno ponticelli
-F_centrifuga = (M_Fe+M_PM) .* rG/1000 *  (nmax * pi/30)^2;
+F_centrifuga = (M_Fe+M_PM) .* rG_hanged/1000 *  (nmax * pi/30)^2;
 
 if radial_ribs_eval == 0
-    pont = F_centrifuga/(sigma_max * l);    % mm
+    pont = F_centrifuga/(sigma_max * l)*kRdim;    % mm
 else
     pont = geo.pontR;
 end
@@ -202,6 +219,8 @@ if ~flag_segV
 else
     pont(pont>(yyD2k-pont0)) = yyD2k(pont>(yyD2k-pont0))-pont0*2;
 end
+
+
 
 % do not use split ribs if barrier is small
 radial_ribs_split(YpBar2<pont*1.5) = 0;

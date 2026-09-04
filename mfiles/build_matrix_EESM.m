@@ -34,6 +34,10 @@ if geo.r_fillet ~= 0
     xc_fillet = temp.xc_fillet;
     yc_fillet = temp.yc_fillet;
 end
+if geo.r_bfillet ~= 0
+    xc_bfillet = temp.xc_bfillet;
+    yc_bfillet = temp.yc_bfillet;
+end
 rotore = [];
 Mag = [];
 % Cu <- Mag || Mag <- Cu
@@ -50,9 +54,20 @@ indexEle = 1;
 rotore = [rotore
     0    0    xp1     yp1    xp2  yp2   1 codMatFeRot indexEle
     %xp2  yp2  xp3     yp3    NaN  NaN   0 codMatFeRot indexEle
-    0    0    xp3     yp3     xp4  yp4  -1 codMatFeRot indexEle
+    %0    0    xp3     yp3     xp4  yp4  -1 codMatFeRot indexEle
+    xp3  yp3  xp4(1)  yp4(1)  NaN  NaN   0 codMatFeRot indexEle
+    ];
+if geo.r_bfillet == 0
+    rotore = [rotore
     xp4  yp4  xp5(1)  yp5(1)  NaN  NaN   0 codMatFeRot indexEle
     ];
+else
+    rotore = [rotore
+    xc_bfillet yc_bfillet xp4(1) yp4(1) xp4(2) yp4(2) 1 codMatFeRot indexEle
+    xp4(2) yp4(2) xp5(1)    yp5(1)    NaN    NaN    0 codMatFeRot indexEle
+    ];
+end
+
 if geo.r_fillet == 0
     rotore = [rotore
     xp5  yp5  xp6     yp6     NaN  NaN   0 codMatFeRot indexEle
@@ -86,25 +101,32 @@ rotore = [rotore
 
 indexEle = indexEle+1;
 
-Mag = [Mag
-    xc1 yc1 xc2(1) yc2(1) NaN NaN 0 codMatCuRot indexEle
-    ];
+if geo.r_bfillet == 0 || length(xc1) == 1
+    Mag = [Mag
+        xc1 yc1 xc2(1) yc2(1) NaN NaN 0 codMatCuRot indexEle
+        ];
+else
+    Mag = [Mag
+        xc_bfillet, yc_bfillet xc1(1) yc1(1) xc1(2) yc1(2) 1 codMatCuRot indexEle
+        xc1(2) yc1(2) xc2(1) yc2(1) NaN NaN 0 codMatCuRot indexEle
+        ];
+end
 if geo.r_fillet == 0
     Mag = [Mag
     xc2 yc2 xc3 yc3 NaN NaN 0 codMatCuRot indexEle
-    xc2 yc2 xc3 yc3 NaN NaN 0 codMatFeRot indexEle
+    %xc2 yc2 xc3 yc3 NaN NaN 0 codMatFeRot indexEle
     ];
 else
     Mag = [Mag
     xc_fillet yc_fillet xc2(1) yc2(1) xc2(2) yc2(2) 1 codMatCuRot indexEle
     xc2(2) yc2(2) xc3    yc3    NaN    NaN    0 codMatCuRot indexEle
-    xc_fillet yc_fillet xc2(1) yc2(1) xc2(2) yc2(2) 1 codMatFeRot indexEle
-    xc2(2) yc2(2) xc3    yc3    NaN    NaN    0 codMatFeRot indexEle
+    % xc_fillet yc_fillet xc2(1) yc2(1) xc2(2) yc2(2) 1 codMatFeRot indexEle
+    % xc2(2) yc2(2) xc3    yc3    NaN    NaN    0 codMatFeRot indexEle
     ];
 end
 Mag = [Mag
     xc3 yc3 xc4 yc4 NaN NaN 0 codMatCuRot indexEle
-    xc4 yc4 xc1 yc1 NaN NaN 0 codMatCuRot indexEle
+    xc4 yc4 xc1(1) yc1(1) NaN NaN 0 codMatCuRot indexEle
     ];
 
 rotore = [rotore;Mag];

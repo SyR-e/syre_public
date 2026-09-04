@@ -39,8 +39,15 @@ fem.res_traf = 0;
 [rotor,~,geo] = ROTmatr(geo,fem,mat);
 [geo,stator,~] = STATmatr(geo,fem);
 
-GUI_Plot_Machine(h,rotor);
-GUI_Plot_Machine(h,stator);
+
+if strcmp(geo.RotType, 'Hybrid')
+    warning('Model under development ')
+    GUI_Plot_Hybrid(h,rotor,stator);
+else
+    GUI_Plot_Machine(h,rotor);
+    GUI_Plot_Machine(h,stator);
+end
+
 
 % Axis limits (to center the figure)
 set(h,'dataAspectRatio',[1 1 1]);
@@ -136,7 +143,7 @@ dataSet.CentralShrink = geo.hcShrink;
 % set(app.CalculatedRatedCurrent,'String',num2str(dataSet.RatedCurrent));
 % set(app.CurrentPP,'String',num2str(dataSet.RatedCurrent));
 % set(app.Rsedit,'String',num2str(dataSet.Rs));
-if (~strcmp(geo.RotType, 'SPM') && ~strcmp(geo.RotType,'IM') && ~strcmp(geo.RotType,'EESM'))
+if (~strcmp(geo.RotType, 'SPM') && ~strcmp(geo.RotType,'IM') && ~strcmp(geo.RotType,'EESM') && ~strcmp(geo.RotType,'Hybrid'))
     dataSet.ALPHAdeg = round(100*geo.dalpha)/100;
     dataSet.HCmm = round(100*geo.hc)/100;
 %     set(app.AlphadegreeEdit,'String',mat2str(dataSet.ALPHAdeg));
@@ -147,7 +154,8 @@ elseif strcmp(geo.RotType,'SPM')
 elseif strcmp(geo.RotType, 'Spoke-type')
     dataSet.TanRibEdit = geo.pontT;
 elseif(strcmp(geo.RotType, 'EESM'))
-    dataSet.ALPHAdeg = round(100*geo.dalpha)/100;
+    dataSet.ALPHAdeg = round(geo.dalpha,2);
+    dataSet.ALPHApu  = round(geo.dalpha_pu,3);
     dataSet.YokeWidth         = geo.lyr;
     dataSet.PoleBodyHeight    = geo.hpb;
     dataSet.PoleHeadHeight    = geo.hph;
@@ -157,6 +165,36 @@ elseif(strcmp(geo.RotType, 'EESM'))
     dataSet.CoilHeight        = geo.hb;
     dataSet.PoleRotHeadAngle  = geo.thHead_deg;
     dataSet.PoleRotHeadFillet = geo.r_fillet;
+    dataSet.PoleRotYokeAngle  = geo.thYoke_deg;
+    dataSet.PoleRotYokeFillet = geo.r_bfillet;
+
+%==============================================================
+elseif strcmp(geo.RotType, 'Hybrid')
+    dataSet.ALPHAdeg = round(100*geo.dalpha)/100;
+    dataSet.YokeWidth         = geo.lyr;
+    dataSet.PoleBodyHeight    = geo.hpb;
+    dataSet.PoleHeadHeight    = geo.hph;
+    dataSet.PoleAnglepu       = geo.dalpha_pu;
+    dataSet.PoleWidth         = geo.wp;
+    dataSet.CoilWidth         = geo.wb;
+    dataSet.CoilHeight        = geo.hb;
+    dataSet.PoleRotHeadAngle  = geo.thHead_deg;
+    dataSet.PoleRotHeadFillet = geo.r_fillet; 
+
+    % Parametri specifici del Magnete per test_VFM
+    dataSet.MagWidth  = geo.w_pm;
+    % dataSet.MagHeight = geo.h_pm;
+    % dataSet.MagOffset = geo.o_pm;  
+    dataSet.MagnetOffset = geo.o_pm;
+    dataSet.MagnetLength = geo.h_pm;
+    dataSet.RadRibEdit = geo.w_bridge_pm;
+
+    
+
+    if isfield(geo, 'AreaPM')
+        dataSet.AreaPM = geo.AreaPM;
+    end
+%=================================================================
 end
 
 dataSet.RadRibEdit = round(geo.pontR*100)/100;
@@ -176,6 +214,30 @@ if isfield(geo,'AreaC')
     dataSet.PMdimPU(isnan(dataSet.PMdimPU))=0;
 else
     dataSet.PMdimPU = nan(2,geo.nlay);
+end
+
+%AGGIORNAMENTO PARAMETRI IN GUI
+
+if strcmp(geo.RotType, 'Hybrid')
+    dataSet.ALPHAdeg = round(100*geo.dalpha)/100;
+    dataSet.YokeWidth         =  round(100*geo.lyr)/100;
+    dataSet.PoleBodyHeight    =  round(100*geo.hpb)/100;
+    dataSet.PoleHeadHeight    =  round(100*geo.hph)/100;
+    dataSet.PoleAnglepu       =  round(100*geo.dalpha_pu)/100;
+    dataSet.PoleWidth         =  round(100*geo.wp)/100;
+    dataSet.CoilWidth         =  round(100*geo.wb)/100;
+    dataSet.CoilHeight        =  round(100*geo.hb)/100;
+    dataSet.PoleRotHeadAngle  =  round(100*geo.thHead_deg)/100;
+    dataSet.PoleRotHeadFillet =  round(100*geo.r_fillet)/100; 
+
+    % Parametri specifici del Magnete per test_VFM
+    dataSet.MagWidth  =  round(100*geo.w_pm)/100;
+    % dataSet.MagHeight = geo.h_pm;
+    % dataSet.MagOffset = geo.o_pm;  
+    dataSet.MagnetOffset =  round(100*geo.o_pm)/100;
+    dataSet.MagnetLength =  round(100*geo.h_pm)/100;
+    dataSet.RadRibEdit =  round(100*geo.w_bridge_pm)/100;
+
 end
 
 app.dataSet = dataSet;

@@ -1,4 +1,4 @@
-% Copyright 2024
+% Copyright 2026
 %
 %    Licensed under the Apache License, Version 2.0 (the "License");
 %    you may not use this file except in compliance with the License.
@@ -6,800 +6,1273 @@
 %
 %        http://www.apache.org/licenses/LICENSE-2.0
 %
-%    Unless required by applicable law or agreed to in writing, dx
+%    Unless required by applicable law or agreed to in writing, software
 %    distributed under the License is distributed on an "AS IS" BASIS,
 %    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %    See the License for the specific language governing permissions and
 %    limitations under the License.
 
-function [geo,mat,dataSet] = draw_motor_in_COMSOL(geo,mat,pathIn,nameIn,dataSet)
+function [model,geo] = draw_motor_in_COMSOL(geo,mat,pathIn,nameIn)
 
-% Connessione a COMSOL e Apertura modello default
+%  ========================================================================
+%  Inizializzazione del modello
+%  ========================================================================
+
 import com.comsol.model.*
 import com.comsol.model.util.*
-model = mphopen('Test_auto.mph');
 
-if ~isfile([pathIn nameIn(1:end-4),'_dxf'])
-    button='Yes';
+[~,fileName,~] = fileparts(nameIn);
+
+comsolDir = fullfile(pathIn,[fileName '_Comsol\']);
+
+if exist(comsolDir,'dir') ~= 7
+    mkdir(comsolDir);
+end
+
+modelFile     = fullfile(comsolDir,[fileName '.mph']);
+rotorDxfFile  = fullfile(comsolDir,[fileName '_rot.dxf' ]);
+statorDxfFile = fullfile(comsolDir,[fileName '_stat.dxf']);
+
+% Tag principali del modello COMSOL
+modelTag     = 'MotorModel';
+% modelTag     = ['MotorModel' num2str(geo.Acoilf)];
+componentTag = 'comp1';
+geometryTag  = 'geom1';
+meshTag      = 'mesh1';
+
+% Tag delle feature geometriche
+rotorImportTag  = 'impRot';
+splitRotorTag   = 'splRot';
+if strcmp(geo.RotType,'EESM')
+    unionCoilFillTag = 'uniCuFillR';
+end
+statorImportTag = 'impStat';
+
+
+
+%  ========================================================================
+%  Creazione del modello Comsol
+%  ========================================================================
+
+model = ModelUtil.create(modelTag);
+
+model.modelPath(pathIn);
+model.label([fileName '.mph']);
+
+model.component.create(componentTag,true);
+
+model.component(componentTag).geom.create(geometryTag,2);
+model.component(componentTag).geom(geometryTag).lengthUnit('mm');
+
+% Il nodo mesh viene creato ma non viene costruito.
+% Le funzioni fisiche successive definiranno la mesh appropriata.
+model.component(componentTag).mesh.create(meshTag);
+
+
+%  ========================================================================
+%  Costruzione delle due metà di traferro ed esportazione .dxf
+%  ========================================================================
+
+sectorAngle = pi/geo.p*geo.ps;
+
+r_ro = geo.r;
+r_ag = geo.r + geo.g/2;
+r_si = geo.r + geo.g;
+
+materialCodes;
+
+idxMatAirRot = max(geo.rotor(:,end)) + 1;
+
+geo.rotor_n = [r_ro, 0, r_ag, 0, NaN, NaN, 0, codMatAirRot, idxMatAirRot;
+               0,    0, r_ag, 0, r_ag*cos(sectorAngle), r_ag*sin(sectorAngle), 1, codMatAirRot, idxMatAirRot;
+               r_ro*cos(sectorAngle), r_ro*sin(sectorAngle), r_ag*cos(sectorAngle), r_ag*sin(sectorAngle), NaN, NaN, 0, codMatAirRot, idxMatAirRot];
+
+
+idxMatAirSta = max(geo.stator(:,end)) + 1;
+
+geo.stator_n = [r_ag, 0, r_si, 0, NaN, NaN, 0, codMatAirSta, idxMatAirSta;
+                0, 0, r_ag, 0, r_ag*cos(sectorAngle), r_ag*sin(sectorAngle), 1, codMatAirSta, idxMatAirSta;
+                r_si*cos(sectorAngle), r_si*sin(sectorAngle), r_ag*cos(sectorAngle), r_ag*sin(sectorAngle), NaN, NaN, 0, codMatAirSta, idxMatAirSta];
+
+
+% Geometrie complete da esportare
+comsolRotor =  [geo.rotor;
+                geo.rotor_n];
+
+comsolStator = [geo.stator;
+                geo.stator_n];
+
+
+syreToDxf(NaN, comsolRotor,  comsolDir, [fileName '_rot.dxf' ]);
+syreToDxf(comsolStator, NaN, comsolDir, [fileName '_stat.dxf']);
+
+
+%  ========================================================================
+%  Importazione .dxf su modello Comsol
+%  ========================================================================
+
+geom = model.component(componentTag).geom(geometryTag);
+geom.create(rotorImportTag,'Import');
+geom.feature(rotorImportTag).label('Rotor geometry');
+geom.feature(rotorImportTag).set('type', 'dxf');
+geom.feature(rotorImportTag).set('filename', rotorDxfFile);
+geom.feature(rotorImportTag).set('selresult','on');
+geom.feature(rotorImportTag).set('selindividual','on');
+geom.feature(rotorImportTag).importData();
+
+geom.create(splitRotorTag,'Split');
+geom.feature(splitRotorTag).selection('input').set({rotorImportTag});
+geom.run(splitRotorTag);
+
+if strcmp(geo.RotType,'EESM')
+
+    matRot = geo.BLKLABELS.rotore.xy(:,1:3);
+
+    pCuR = matRot(matRot(:,3)==codMatCuRot,1:2);
+    pFillR = matRot(matRot(:,3)==codMatAirRot,1:2);
+
+    pCuR = unique(pCuR(all(isfinite(pCuR),2),:),'rows');
+    pFillR = unique(pFillR(all(isfinite(pFillR),2),:),'rows');
+
+    rObjSel = max(1e-7,1e-6*geo.r);
+    objSel = cell(1,size(pCuR,1)+size(pFillR,1));
+    kk = 0;
+
+    for ii = 1:size(pCuR,1)
+
+        kk = kk+1;
+        tag = ['selCuObj' num2str(ii)];
+
+        geom.create(tag,'DiskSelection');
+        geom.feature(tag).set('entitydim',-1);
+        geom.feature(tag).set('posx',pCuR(ii,1));
+        geom.feature(tag).set('posy',pCuR(ii,2));
+        geom.feature(tag).set('r',rObjSel);
+        geom.feature(tag).set('condition','intersects');
+        geom.feature(tag).set('selshow','off');
+
+        objSel{kk} = tag;
+
+    end
+
+    for ii = 1:size(pFillR,1)
+
+        kk = kk+1;
+        tag = ['selFillObj' num2str(ii)];
+
+        geom.create(tag,'DiskSelection');
+        geom.feature(tag).set('entitydim',-1);
+        geom.feature(tag).set('posx',pFillR(ii,1));
+        geom.feature(tag).set('posy',pFillR(ii,2));
+        geom.feature(tag).set('r',rObjSel);
+        geom.feature(tag).set('condition','intersects');
+        geom.feature(tag).set('selshow','off');
+
+        objSel{kk} = tag;
+
+    end
+
+    geom.create('selCuFillObj','UnionSelection');
+    geom.feature('selCuFillObj').set('entitydim',-1);
+    geom.feature('selCuFillObj').set('input',objSel);
+    geom.feature('selCuFillObj').set('selshow','off');
+
+    geom.create(unionCoilFillTag,'Union');
+    geom.feature(unionCoilFillTag).label('Rotor winding and fill');
+    geom.feature(unionCoilFillTag).selection('input').named('selCuFillObj');
+    geom.feature(unionCoilFillTag).set('intbnd','on');
+    geom.run(unionCoilFillTag);
+
+end
+
+geom.create(statorImportTag,'Import');
+geom.feature(statorImportTag).label('Stator geometry');
+geom.feature(statorImportTag).set('type', 'dxf');
+geom.feature(statorImportTag).set('filename', statorDxfFile);
+geom.feature(statorImportTag).importData();
+
+geom.feature('fin').set('action','assembly');
+geom.feature('fin').set('pairtype','contact');
+geom.run('fin');
+
+
+%  ========================================================================
+%  MEMORIZZAZIONE DELLE INFORMAZIONI COMSOL IN geo
+%  ========================================================================
+
+geo.infoComsol = struct();
+geo.infoComsol.machineType = geo.RotType;
+geo.infoComsol.modelName = fileName;
+
+geo.infoComsol.tags = struct();
+geo.infoComsol.tags.model = modelTag;
+geo.infoComsol.tags.component = componentTag;
+geo.infoComsol.tags.geometry = geometryTag;
+geo.infoComsol.tags.mesh = meshTag;
+
+
+% Contenitori che verranno riempiti nei blocchi successivi
+geo.infoComsol.tags.selection = struct();
+geo.infoComsol.tags.selection.domain = struct();
+geo.infoComsol.tags.selection.boundary = struct();
+geo.infoComsol.tags.material = struct();
+
+
+% ------------------------------------------------------------------------
+% File e cartelle
+% ------------------------------------------------------------------------
+
+geo.infoComsol.files = struct();
+geo.infoComsol.files.inputDirectory = pathIn;
+geo.infoComsol.files.comsolDirectory = comsolDir;
+geo.infoComsol.files.model = modelFile;
+geo.infoComsol.files.rotorDxf = rotorDxfFile;
+geo.infoComsol.files.statorDxf = statorDxfFile;
+
+
+% ------------------------------------------------------------------------
+% Informazioni geometriche
+% ------------------------------------------------------------------------
+
+geo.infoComsol.geometry = struct();
+geo.infoComsol.geometry.dimension = 2; % Modello 2D (to  be verified)
+geo.infoComsol.geometry.lengthUnit = 'mm';
+geo.infoComsol.geometry.sectorAngleDeg = sectorAngle*180/pi;
+geo.infoComsol.geometry.rotorOuterRadius = r_ro;
+geo.infoComsol.geometry.airgapMiddleRadius = r_ag;
+geo.infoComsol.geometry.statorInnerRadius = r_si;
+
+geo.infoComsol.geometry.numberOfDomains = double(geom.getNDomains());
+geo.infoComsol.geometry.numberOfBoundaries = double(geom.getNBoundaries());
+
+
+%  ========================================================================
+%  Selezioni dei domini
+%  ========================================================================
+
+comp = model.component(componentTag);
+
+matR = geo.BLKLABELS.rotore.xy(:,1:3);
+matS = geo.BLKLABELS.statore.xy(:,1:3);
+
+matDom = [matR; matS];
+
+% matDom = matDom(all(isfinite(matDom(:,1:2)),2),:); In caso di punti non validi
+
+comp.selection.create('findDom','Disk');
+findDom = comp.selection('findDom');
+findDom.set('entitydim',2);
+
+dFillR = [];
+dFillS = [];
+dCuS = [];
+dFeS = [];
+dFeR = [];
+dPM = [];
+dShaft = [];
+dCuR = [];
+dSleeve = [];
+
+for ii = 1:size(matDom,1)
+
+    findDom.set('posx',matDom(ii,1));
+    findDom.set('posy',matDom(ii,2));
+
+    id = double(findDom.entities());
+    id = id(:)';
+
+    switch matDom(ii,3)
+
+        case codMatAirRot
+            dFillR = [dFillR id];
+
+        case codMatAirSta
+            dFillS = [dFillS id];
+
+        case codMatCu
+            dCuS = [dCuS id];
+
+        case codMatFeSta
+            dFeS = [dFeS id];
+
+        case codMatFeRot
+            dFeR = [dFeR id];
+
+        case codMatBar
+            dPM = [dPM id];
+
+        case codMatShaft
+            dShaft = [dShaft id];
+
+        case codMatCuRot
+            dCuR = [dCuR id];
+
+        case codMatSleeve
+            dSleeve = [dSleeve id];
+
+    end
+
+end
+
+thAg = sectorAngle/2;
+rAgR = (r_ro+r_ag)/2;
+rAgS = (r_ag+r_si)/2;
+
+findDom.set('posx',rAgR*cos(thAg));
+findDom.set('posy',rAgR*sin(thAg));
+dAgR = double(findDom.entities());
+dAgR = dAgR(:)';
+
+findDom.set('posx',rAgS*cos(thAg));
+findDom.set('posy',rAgS*sin(thAg));
+dAgS = double(findDom.entities());
+dAgS = dAgS(:)';
+
+dFillR = unique(dFillR);
+dFillS = unique(dFillS);
+dCuS = unique(dCuS);
+dFeS = unique(dFeS);
+dFeR = unique(dFeR);
+dPM = unique(dPM);
+dShaft = unique(dShaft);
+dCuR = unique(dCuR);
+dSleeve = unique(dSleeve);
+dAgR = unique(dAgR);
+dAgS = unique(dAgS);
+
+dAg = unique([dAgR dAgS]);
+dRot = unique([dFillR dAgR dFeR dPM dShaft dCuR dSleeve]);
+dSta = unique([dFillS dAgS dCuS dFeS]);
+
+selDom = {
+    'airGap',   'domAg',     'Air gap',             dAg;
+    'airGapRot','domAgR',    'Rotor air gap',       dAgR;
+    'airGapSta','domAgS',    'Stator air gap',      dAgS;
+
+    'rotor',     'domRot',     'Rotor domains',            dRot;
+    'feRot',     'domFeR',     'Rotor iron',               dFeR;
+    'cuRot',     'domCuR',     'Rotor conductors',         dCuR;
+    'PMRot',     'domPMR',     'Rotor permanent magnets',  dPM;
+    'fillRot',   'domFillR',   'Rotor fill',               dFillR;
+    'sleeveRot', 'domSleeveR', 'Rotor sleeve',             dSleeve;
+    'shaft',     'domShaft',   'Shaft',                    dShaft;
+    
+    'stator',   'domSta',    'Stator domains',      dSta;
+    'feSta',    'domFeS',    'Stator iron',         dFeS;
+    'cuSta',    'domCuS',    'Stator conductors',   dCuS;
+    'fillSta',   'domFillS', 'Stator fill',         dFillS;
+    };
+
+for ii = 1:size(selDom,1)
+    if ~isempty(selDom{ii,4})
+
+        fld = selDom{ii,1};
+        tag = selDom{ii,2};
+        comp.selection.create(tag,'Explicit').geom(2);
+        comp.selection(tag).label(selDom{ii,3});
+        comp.selection(tag).set(selDom{ii,4});
+
+        geo.infoComsol.tags.selection.domain.(fld) = tag;
+    end
+
+end
+
+comp.selection.remove('findDom');
+
+
+%  ========================================================================
+%  Creazione e assegnazione dei materiali
+%  ========================================================================
+
+sel = geo.infoComsol.tags.selection.domain;
+
+% ------------------------------------------------------------------------
+% Definizione proprietà materiali
+% ------------------------------------------------------------------------
+
+nDig     = 16;                                      % Cifre conversione COMSOL
+dimDom   = 2;                                       % Dimensione domini
+matClass = 'Common';                                % Classe materiale COMSOL
+matNS    = 'nonSolid';                              % Tipo materiale non solido
+famAir   = 'air';                                   % Famiglia COMSOL aria
+famCu    = 'copper';                                % Famiglia COMSOL rame
+famFill  = 'plastic';                               % Famiglia COMSOL filler
+
+pgDef = 'def';                                      % Gruppo proprietà base
+pgEnu = 'Enu';                                      % Gruppo proprietà elastiche
+pgBH  = 'BHCurve';                                  % Gruppo curva BH
+pgRes = 'linzRes';                                  % Gruppo resistività lineare
+pgPM  = 'RemanentFluxDensity';                      % Gruppo magneti permanenti
+   
+typeEnu  = 'Enu';                                   % Tipo gruppo elastico
+descEnu  = 'Young''s_modulus_and_Poisson''s_ratio'; % Descrizione gruppo elastico
+typeBH   = 'B-H Curve';                             % Tipo gruppo BH
+typeInt  = 'Interpolation';                         % Tipo interpolazione BH
+typePM   = 'Remanent flux density';                 % Tipo gruppo PM
+typeRes  = 'Linearized resistivity';                % Tipo gruppo resistivita
+selUnion = 'Union';                                 % Tipo selection aggregata
+
+funBH  = 'BH';                                      % Nome funzione BH
+bhExt  = 'linear';                                  % Estrapolazione BH
+bhUnit = 'T';                                       % Unità B
+hUnit  = 'A/m';                                     % Unità H
+bhB    = [funBH '(normHin)'];                       % Relazione B(H)
+bhH    = [funBH '_inv(normBin)'];                   % Relazione H(B)
+bhW    = [funBH '_prim(normHin)'];                  % Energia magnetica
+inTemp = 'temperature';                             % Input temperatura
+inH    = 'magneticfield';                           % Input campo magnetico
+inB    = 'magneticfluxdensity';                     % Input induzione magnetica
+
+uRho   = '[kg/m^3]';                                % u.d.m. densità
+uSig   = '[S/m]';                                   % u.d.m. conducibilità
+uE     = '[Pa]';                                    % u.d.m. modulo elastico
+uCp    = '[J/(kg*K)]';                              % u.d.m. calore specifico
+uK     = '[W/(m*K)]';                               % u.d.m. conducibilità termica
+uRhoE  = '[ohm*m]';                                 % u.d.m. resistività
+uAlpha = '[1/K]';                                   % u.d.m. coefficiente termico
+uTemp  = '[K]';                                     % u.d.m. temperatura
+uBr    = '[T]';                                     % u.d.m. induzione residua
+
+
+% Air gap
+tagAir  = 'matAir';                                 % Tag COMSOL
+nameAir = [char(mat.SlotAir.MatName) ' - air gap']; % Nome materiale
+rhoAir  = mat.SlotAir.kgm3;                         % Densità [kg/m^3]
+sigAir  = mat.SlotAir.sigma;                        % Conducibilità [S/m]
+muAir   = mat.LayerAir.mu;                          % Permeabilità relativa [-]
+epsAir  = 1;                                        % Permittività [-], esterno
+rhoAirC = [num2str(rhoAir,nDig) uRho];              % numero + u.d.m. in stringa per Comsol
+sigAirC = [num2str(sigAir,nDig) uSig];
+muAirC  = num2str(muAir,nDig);
+epsAirC = num2str(epsAir,nDig);
+
+% ROTORE ------------------------------------------------------------------
+% Ferro di rotore
+tagFeR  = 'matFeR';                                 % Tag COMSOL
+nameFeR = [char(mat.Rotor.MatName) ' - rotor'];     % Nome materiale
+rhoFeR  = mat.Rotor.kgm3;                           % Densità [kg/m^3]
+EFeR    = mat.Rotor.E*1e9;                          % Modulo di Young [Pa]  MM -> 185e9
+nuFeR   = 0.28;                                     % Poisson [-], esterno
+sigFeR  = 0;                                        % Conducibilità [S/m], laminato
+epsFeR  = 1;                                        % Permittività [-], esterno
+rhoFeRC = [num2str(rhoFeR,nDig) uRho];              % numero + u.d.m. in stringa per Comsol
+EFeRC   = [num2str(EFeR,nDig) uE];
+nuFeRC  = num2str(nuFeR,nDig);
+sigFeRC = [num2str(sigFeR,nDig) uSig];
+epsFeRC = num2str(epsFeR,nDig);
+bhFeR = num2cell([mat.Rotor.BH(:,2) mat.Rotor.BH(:,1)]);
+for ii = 1:numel(bhFeR)
+    bhFeR{ii} = num2str(bhFeR{ii},nDig);
+end
+%bhFeR   = vertcat(bhFeR{:});
+
+% Conduttori di rotore
+tagCuR    = 'matCuR';                               % Tag COMSOL
+nameCuR   = [char(mat.BarCond.MatName) ' - rotor']; % Nome materiale
+rhoCuR    = mat.BarCond.kgm3*geo.win.kcuf;          % Densità equivalente [kg/m^3]  MM -> 5480
+sigCuR    = mat.BarCond.sigma;                      % Conducibilità [S/m]
+rho0CuR   = 1/sigCuR;                               % Resistività a Tref [ohm*m]
+alphaCuR  = mat.BarCond.alpha;                      % Coefficiente termico [1/K]
+TrefCuR   = 293.15;                                 % Temperatura riferimento [K], esterno
+ECuR      = mat.BarCond.E*10^6;                     % Modulo equivalente [Pa], esterno -> se non esiste 5.34e9
+nuCuR     = mat.BarCond.nu;                         % Poisson [-], esterno -> se non esiste 0.34345
+muCuR     = 1;                                      % Permeabilità [-], esterno
+epsCuR    = 1;                                      % Permittività [-], esterno
+cpCuR     = 385;                                    % Calore specifico [J/(kg*K)], esterno
+kCuR      = 400;                                    % Conducibilità termica [W/(m*K)], esterno
+emisCuR   = 0.5;                                    % Emissività [-], esterno
+rhoCuRC   = [num2str(rhoCuR,nDig) uRho];            % numero + u.d.m. in stringa per Comsol
+sigCuRC   = [num2str(sigCuR,nDig) uSig];
+rho0CuRC  = [num2str(rho0CuR,nDig) uRhoE];
+alphaCuRC = [num2str(alphaCuR,nDig) uAlpha];
+TrefCuRC  = [num2str(TrefCuR,nDig) uTemp];
+ECuRC     = [num2str(ECuR,nDig) uE];
+nuCuRC    = num2str(nuCuR,nDig);
+muCuRC    = num2str(muCuR,nDig);
+epsCuRC   = num2str(epsCuR,nDig);
+cpCuRC    = [num2str(cpCuR,nDig) uCp];
+kCuRC     = [num2str(kCuR,nDig) uK];
+emisCuRC  = num2str(emisCuR,nDig);
+
+% Magneti di rotore
+tagPMR  = 'matPMR';                                 % Tag COMSOL
+namePMR = [char(mat.LayerMag.MatName) ' - rotor'];  % Nome materiale
+rhoPMR  = mat.LayerMag.kgm3;                        % Densità [kg/m^3]
+sigPMR  = mat.LayerMag.sigmaPM;                     % Conducibilità [S/m]
+muPMR   = mat.LayerMag.mu;                          % Permeabilità recoil [-]
+BrPMR   = mat.LayerMag.Br;                          % Induzione residua [T]
+HcPMR   = mat.LayerMag.Hc;                          % Campo coercitivo [A/m], futuro
+EPMR    = [];                                       % Modulo di Young, assente in SyR-e
+nuPMR   = [];                                       % Poisson, assente in SyR-e
+epsPMR  = 1;                                        % Permittività [-], esterno
+cpPMR   = 400;                                      % Calore specifico [J/(kg*K)], esterno
+kPMR    = 7;                                        % Conducibilità termica [W/(m*K)], esterno
+rhoPMRC = [num2str(rhoPMR,nDig) uRho];              % numero + u.d.m. in stringa per Comsol
+sigPMRC = [num2str(sigPMR,nDig) uSig];
+epsPMRC = num2str(epsPMR,nDig);
+cpPMRC  = [num2str(cpPMR,nDig) uCp];
+kPMRC   = [num2str(kPMR,nDig) uK];
+zPMRC   = num2str(0,nDig);
+muPMRC  = num2str(muPMR,nDig);
+muPMRT  = {muPMRC,zPMRC,zPMRC,zPMRC,muPMRC,zPMRC,zPMRC,zPMRC,muPMRC};
+BrPMRC  = {[num2str(BrPMR,nDig) uBr]};
+EPMRC   = '';
+nuPMRC  = '';
+if ~isempty(EPMR) && ~isempty(nuPMR)
+    EPMRC  = [num2str(EPMR,nDig) uE];
+    nuPMRC = num2str(nuPMR,nDig);
+end
+
+% Filler di rotore
+tagFillR = 'matFillR';                          % Tag COMSOL
+if strcmp(geo.RotType,'EESM')
+    nameFillR = 'Rotor fill';                   % Nome materiale
+    rhoFillR  = 1000;                           % Densità [kg/m^3], esterno
+    EFillR    = 5e9;                            % Modulo di Young [Pa], esterno
+    nuFillR   = 0.34;                           % Poisson [-], esterno
+    sigFillR  = 0;                              % Conducibilità [S/m], esterno
+    muFillR   = 1;                              % Permeabilità [-], esterno
+    epsFillR  = 1;                              % Permittività [-], esterno
+    fillRNS   = false;                          % Filler solido
 else
-    button = questdlg('DXF existing. Replace it?','SELECT','Yes','No','Yes');
+    nameFillR = [char(mat.LayerAir.MatName) ' - rotor fill']; % Nome materiale
+    rhoFillR  = mat.LayerAir.kgm3;                            % Densità [kg/m^3]
+    EFillR    = [];                                           % Non richiesto per aria
+    nuFillR   = [];                                           % Non richiesto per aria
+    sigFillR  = mat.SlotAir.sigma;                            % Conducibilità [S/m]
+    muFillR   = mat.LayerAir.mu;                              % Permeabilità relativa [-]
+    epsFillR  = 1;                                            % Permittività [-], esterno
+    fillRNS   = true;                                         % Dominio non solido
+end             
+rhoFillRC = [num2str(rhoFillR,nDig) uRho];                    % numero + u.d.m. in stringa per Comsol
+sigFillRC = [num2str(sigFillR,nDig) uSig];
+muFillRC = num2str(muFillR,nDig);
+epsFillRC = num2str(epsFillR,nDig);
+if ~isempty(EFillR)
+    EFillRC = [num2str(EFillR,nDig) uE];
+    nuFillRC = num2str(nuFillR,nDig);
 end
 
-% if strcmp(button,'Yes')
-%     syreToDxf(geo.stator, geo.rotor,pathname, filename);
-% end
-
-% Estrazione del nome del file senza estensione
-[~, file_name, ~] = fileparts(nameIn);
-
-%Caricamento dei file
-load([pathIn nameIn(1:end-4),'.mat']);
-
-comsol_stator = [geo.stator
-                geo.r+geo.g/2 0 geo.r+geo.g 0 NaN NaN 0 2 max(geo.stator(:,end)+1);
-                0 0 geo.r+geo.g/2 0 (geo.r+geo.g/2)*cos(pi/geo.p*geo.ps) (geo.r+geo.g/2)*sin(pi/geo.p*geo.ps) 1 2 max(geo.stator(:,end)+1);
-                (geo.r+geo.g/2)*cos(pi/geo.p*geo.ps) (geo.r+geo.g/2)*sin(pi/geo.p*geo.ps) (geo.r+geo.g)*cos(pi/geo.p*geo.ps) (geo.r+geo.g)*sin(pi/geo.p*geo.ps) NaN NaN 0 2 max(geo.stator(:,end)+1)];
-comsol_rotor = [geo.rotor
-                geo.r 0 geo.r+geo.g/2 0 NaN NaN 0 1 max(geo.rotor(:,end)+1);
-                0 0 geo.r+geo.g/2 0 (geo.r+geo.g/2)*cos(pi/geo.p*geo.ps) (geo.r+geo.g/2)*sin(pi/geo.p*geo.ps) 1 1 max(geo.rotor(:,end)+1);
-                geo.r*cos(pi/geo.p*geo.ps) geo.r*sin(pi/geo.p*geo.ps) (geo.r+geo.g/2)*cos(pi/geo.p*geo.ps) (geo.r+geo.g/2)*sin(pi/geo.p*geo.ps) NaN NaN 0 1 max(geo.rotor(:,end)+1)];
-Comsol_dir = strcat(pathIn,strrep(nameIn,'.mph','_Comsol\'));
-syreToDxf(comsol_stator,NaN,Comsol_dir,strcat(file_name,'_stat.dxf'));
-syreToDxf(NaN,comsol_rotor,Comsol_dir,strcat(file_name,'_rot.dxf'));
-
-% Caricamento dei file DXF
-rot_dxf = fullfile(Comsol_dir, [file_name, '_rot.dxf']);
-stat_dxf = fullfile(Comsol_dir, [file_name, '_stat.dxf']);
-
-% ============== Import e Costruzione della Geometria ============== %
-
-geom = model.component('comp1').geom('geom1');
-model.component('comp1').geom('geom1').create('imp1', 'Import');
-model.component('comp1').geom('geom1').feature('imp1').set('filename', rot_dxf); 
-model.component('comp1').geom('geom1').feature('imp1').importData();
-model.component('comp1').geom('geom1').create('imp2', 'Import');
-model.component('comp1').geom('geom1').feature('imp2').set('filename', stat_dxf);
-model.component('comp1').geom('geom1').feature('imp2').importData();
-model.component('comp1').geom('geom1').feature('fin').set('action', 'assembly');
-model.component('comp1').geom('geom1').run('fin');
-model.component('comp1').geom('geom1').lengthUnit('mm');
-
-% Implementazione lunghezza assiale
-model.component('comp1').physics('rmm').prop('d').set('d', 'l');
-
-% Implementazione Air Gap
-%rotore
-xre2_n = geo.r + geo.g/2;
-yre2_n = 0;
-xre3_n = (geo.r + geo.g/2)*cos(pi/geo.p*geo.ps);
-yre3_n = (geo.r + geo.g/2)*sin(pi/geo.p*geo.ps);
-
-xra2_n = geo.r;
-yra2_n = 0;
-xra3_n = geo.r*cos(pi/geo.p*geo.ps);
-yra3_n = geo.r*sin(pi/geo.p*geo.ps);
-
-index_el_r = max(geo.rotor(:,9)) + 1;
-air_r = 1;
-
-%statore
-xse1_n = geo.r + geo.g;
-yse1_n = 0;
-xse2_n = (geo.r + geo.g)*cos(pi/geo.p*geo.ps);
-yse2_n = (geo.r + geo.g)*sin(pi/geo.p*geo.ps);
-
-xsi1_n = geo.r + geo.g/2;
-ysi1_n = 0;
-xsi2_n = (geo.r + geo.g/2)*cos(pi/geo.p*geo.ps);
-ysi2_n = (geo.r + geo.g/2)*sin(pi/geo.p*geo.ps);
-
-index_el_s = max(geo.stator(:,9)) + 1;
-air_s = 2;
-
-%assegnazione coordinate
-geo_stator = [];
-geo_rotor = [];
-geo.stator_n = [xsi1_n, ysi1_n, xse1_n, yse1_n, NaN, NaN, 0, air_s, index_el_s; 
-                0, 0, xse1_n, yse1_n, xse2_n, yse2_n, 1, air_s, index_el_s;
-                xse2_n, yse2_n, xsi2_n, ysi2_n, NaN, NaN, 0, air_s, index_el_s
-                ];
-geo.rotor_n = [xra2_n, yra2_n, xre2_n, yre2_n, NaN, NaN, 0, air_r, index_el_r;
-               0, 0, xre2_n, yre2_n, xre3_n, yre3_n, 1, air_r, index_el_r;
-               xre3_n, yre3_n, xra3_n, yra3_n, NaN, NaN, 0, air_r, index_el_r;];
-
-geo_stator = [geo.stator; geo.stator_n];
-geo_rotor = [geo.rotor; geo.rotor_n];
-
-% Ndomains = max(geo.stator(:,end))+(geo.Qs)+(geo.Qs-1)+max(geo.rotor(:,end));
-% Ndomains_n = max(geo_stator(:,end))+(geo.Qs)+(geo.Qs-1)+max(geo_rotor(:,end));
-Ndomains_n = geom.getNDomains();  
-
-if strcmp(dataSet.TypeOfRotor,'EESM')
-    Ndomains_n = Ndomains_n - 1;
+% Sleeve di rotore
+tagSleeveR  = 'matSleeveR';                                 % Tag COMSOL
+nameSleeveR = [char(mat.Sleeve.MatName) ' - rotor sleeve']; % Nome materiale
+rhoSleeveR  = mat.Sleeve.kgm3;                              % Densità [kg/m^3]
+ESleeveR    = mat.Sleeve.E*1e9;                             % Modulo di Young [Pa]
+nuSleeveR   = [];                                           % Poisson, assente in SyR-e
+sigSleeveR  = 0;                                            % Conducibilità [S/m], esterno
+muSleeveR   = 1;                                            % Permeabilità [-], esterno
+epsSleeveR  = 1;                                            % Permittività [-], esterno
+rhoSleeveRC = [num2str(rhoSleeveR,nDig) uRho];              % numero + u.d.m. in stringa per Comsol
+ESleeveRC   = [num2str(ESleeveR,nDig) uE];
+sigSleeveRC = [num2str(sigSleeveR,nDig) uSig];
+muSleeveRC  = num2str(muSleeveR,nDig);
+epsSleeveRC = num2str(epsSleeveR,nDig);
+if ~isempty(nuSleeveR)
+    nuSleeveRC = num2str(nuSleeveR,nDig);
 end
 
-%Ndomains_n = 55   x Thor but why?
-% Correzione matrici boundaries
-stat_boundary = [];
-rot_boundary = [];
-
-%rotore
-x_bnd_r_1 = (xra2_n + xre2_n)/2;
-y_bnd_r_1 = (yra2_n + yre2_n)/2;
-x_bnd_r_2 = (xre3_n + xra3_n)/2;
-y_bnd_r_2 = (yre3_n + yra3_n)/2;
-
-%statore
-x_bnd_s_1 = (xsi1_n + xse1_n)/2;
-y_bnd_s_1 = (ysi1_n + yse1_n)/2;
-x_bnd_s_2 = (xse2_n + xsi2_n)/2;
-y_bnd_s_2 = (yse2_n + ysi2_n)/2;
-
-%assegnazione coordinate
-gm.s.boundary = [x_bnd_s_1, y_bnd_s_1, 10;
-                 x_bnd_s_2, y_bnd_s_2, 10
-                 ];
-gm.r.boundary = [x_bnd_r_1, y_bnd_r_1, 10;
-                 x_bnd_r_2, y_bnd_r_2, 10
-                 ];
-
-stat_boundary = [geo.BLKLABELS.statore.boundary; gm.s.boundary];
-rot_boundary = [geo.BLKLABELS.rotore.boundary; gm.r.boundary];
-
-% Correzione matrici materiali (BLKLABELS)
-stat_mat = [];
-rot_mat = [];
-
-%definizione punto medio
-xm_arc = geo.r*cos(pi/geo.p); 
-ym_arc = geo.r*sin(pi/geo.p);
-
-%rotore
-xm_rot = xm_arc + geo.g/4;
-ym_rot = ym_arc + geo.g/4;
-
-%statore
-xm_stat = xm_arc + (3*geo.g/4);
-ym_stat = ym_arc + (3*geo.g/4);
-
-stat_mat = [geo.BLKLABELS.statore.xy; xm_stat, ym_stat, 2, 1.6667, 1];
-rot_mat = [geo.BLKLABELS.rotore.xy; xm_rot, ym_rot, 1, 1.6667, 1, 0, 0, 0];
-
-% ============== Assegnazione dei Materiali ============== %
-
-%BH Curve M270-35A
-% BH_curve_invertita = mat.Stator.BH(:,:);    
-% BH_curve = zeros(200,2);                    
-% BH_curve(:,1) = BH_curve_invertita(:,2);
-% BH_curve(:,2) = BH_curve_invertita(:,1);             %note: this code requires the BH_tab with inverted columns
-BH_curve = [mat.Stator.BH(:,2),mat.Stator.BH(:,1)];
-Bf_max = max(BH_curve(:,2));
-BH_curve_cell = arrayfun(@(x, y) {num2str(x), num2str(y)}, BH_curve(:, 1), BH_curve(:, 2), 'UniformOutput', false);    % Converte la matrice BH_curve in una cella di stringhe con due colonne
-BH_curve_table = vertcat(BH_curve_cell{:});                                                                            % Converte la cella di stringhe in una matrice di stringhe
-
-% Air
-model.component('comp1').material().create('mat1', 'Common');
-model.component('comp1').material('mat1').propertyGroup('def').func().create('eta', 'Piecewise');
-model.component('comp1').material('mat1').propertyGroup('def').func().create('Cp', 'Piecewise');
-model.component('comp1').material('mat1').propertyGroup('def').func().create('rho', 'Analytic');
-model.component('comp1').material('mat1').propertyGroup('def').func().create('k', 'Piecewise');
-model.component('comp1').material('mat1').propertyGroup('def').func().create('cs', 'Analytic');
-model.component('comp1').material('mat1').propertyGroup('def').func().create('an1', 'Analytic');
-model.component('comp1').material('mat1').propertyGroup('def').func().create('an2', 'Analytic');
-model.component('comp1').material('mat1').propertyGroup().create('RefractiveIndex', 'Refractive index');
-model.component('comp1').material('mat1').propertyGroup().create('NonlinearModel', 'Nonlinear model');
-model.component('comp1').material('mat1').propertyGroup().create('idealGas', 'Ideal gas');
-model.component('comp1').material('mat1').propertyGroup('idealGas').func().create('Cp_IG', 'Piecewise');
-model.component('comp1').material('mat1').label('Air');
-model.component('comp1').material('mat1').set('family', 'air');
-model.component('comp1').material('mat1').propertyGroup('def').func('eta').set('arg', 'T');
-model.component('comp1').material('mat1').propertyGroup('def').func('eta').set('pieces', {'200.0', '1600.0', '-8.38278E-7+8.35717342E-8*T^1-7.69429583E-11*T^2+4.6437266E-14*T^3-1.06585607E-17*T^4'});
-model.component('comp1').material('mat1').propertyGroup('def').func('eta').set('argunit', 'K');
-model.component('comp1').material('mat1').propertyGroup('def').func('eta').set('fununit', 'Pa*s');
-model.component('comp1').material('mat1').propertyGroup('def').func('Cp').set('arg', 'T');
-model.component('comp1').material('mat1').propertyGroup('def').func('Cp').set('pieces', {'200.0', '1600.0', '1047.63657-0.372589265*T^1+9.45304214E-4*T^2-6.02409443E-7*T^3+1.2858961E-10*T^4'});
-model.component('comp1').material('mat1').propertyGroup('def').func('Cp').set('argunit', 'K');
-model.component('comp1').material('mat1').propertyGroup('def').func('Cp').set('fununit', 'J/(kg*K)');
-model.component('comp1').material('mat1').propertyGroup('def').func('rho').set('expr', 'pA*0.02897/R_const[K*mol/J]/T');
-model.component('comp1').material('mat1').propertyGroup('def').func('rho').set('args', {'pA', 'T'});
-model.component('comp1').material('mat1').propertyGroup('def').func('rho').set('fununit', 'kg/m^3');
-model.component('comp1').material('mat1').propertyGroup('def').func('rho').set('argunit', {'Pa', 'K'});
-model.component('comp1').material('mat1').propertyGroup('def').func('rho').set('plotargs', {'pA', '101325', '101325'; 'T', '273.15', '293.15'});
-model.component('comp1').material('mat1').propertyGroup('def').func('k').set('arg', 'T');
-model.component('comp1').material('mat1').propertyGroup('def').func('k').set('pieces', {'200.0', '1600.0', '-0.00227583562+1.15480022E-4*T^1-7.90252856E-8*T^2+4.11702505E-11*T^3-7.43864331E-15*T^4'});
-model.component('comp1').material('mat1').propertyGroup('def').func('k').set('argunit', 'K');
-model.component('comp1').material('mat1').propertyGroup('def').func('k').set('fununit', 'W/(m*K)');
-model.component('comp1').material('mat1').propertyGroup('def').func('cs').set('expr', 'sqrt(1.4*R_const[K*mol/J]/0.02897*T)');
-model.component('comp1').material('mat1').propertyGroup('def').func('cs').set('args', {'T'});
-model.component('comp1').material('mat1').propertyGroup('def').func('cs').set('fununit', 'm/s');
-model.component('comp1').material('mat1').propertyGroup('def').func('cs').set('argunit', {'K'});
-model.component('comp1').material('mat1').propertyGroup('def').func('cs').set('plotargs', {'T', '273.15', '373.15'});
-model.component('comp1').material('mat1').propertyGroup('def').func('an1').set('funcname', 'alpha_p');
-model.component('comp1').material('mat1').propertyGroup('def').func('an1').set('expr', '-1/rho(pA,T)*d(rho(pA,T),T)');
-model.component('comp1').material('mat1').propertyGroup('def').func('an1').set('args', {'pA', 'T'});
-model.component('comp1').material('mat1').propertyGroup('def').func('an1').set('fununit', '1/K');
-model.component('comp1').material('mat1').propertyGroup('def').func('an1').set('argunit', {'Pa', 'K'});
-model.component('comp1').material('mat1').propertyGroup('def').func('an1').set('plotargs', {'pA', '101325', '101325'; 'T', '273.15', '373.15'});
-model.component('comp1').material('mat1').propertyGroup('def').func('an2').set('funcname', 'muB');
-model.component('comp1').material('mat1').propertyGroup('def').func('an2').set('expr', '0.6*eta(T)');
-model.component('comp1').material('mat1').propertyGroup('def').func('an2').set('args', {'T'});
-model.component('comp1').material('mat1').propertyGroup('def').func('an2').set('fununit', 'Pa*s');
-model.component('comp1').material('mat1').propertyGroup('def').func('an2').set('argunit', {'K'});
-model.component('comp1').material('mat1').propertyGroup('def').func('an2').set('plotargs', {'T', '200', '1600'});
-model.component('comp1').material('mat1').propertyGroup('def').set('thermalexpansioncoefficient', '');
-model.component('comp1').material('mat1').propertyGroup('def').set('molarmass', '');
-model.component('comp1').material('mat1').propertyGroup('def').set('bulkviscosity', '');
-model.component('comp1').material('mat1').propertyGroup('def').set('thermalexpansioncoefficient', {'alpha_p(pA,T)', '0', '0', '0', 'alpha_p(pA,T)', '0', '0', '0', 'alpha_p(pA,T)'});
-model.component('comp1').material('mat1').propertyGroup('def').set('molarmass', '0.02897[kg/mol]');
-model.component('comp1').material('mat1').propertyGroup('def').set('bulkviscosity', 'muB(T)');
-model.component('comp1').material('mat1').propertyGroup('def').set('relpermeability', {'1', '0', '0', '0', '1', '0', '0', '0', '1'});
-model.component('comp1').material('mat1').propertyGroup('def').set('relpermittivity', {'1', '0', '0', '0', '1', '0', '0', '0', '1'});
-model.component('comp1').material('mat1').propertyGroup('def').set('dynamicviscosity', 'eta(T)');
-model.component('comp1').material('mat1').propertyGroup('def').set('ratioofspecificheat', '1.4');
-model.component('comp1').material('mat1').propertyGroup('def').set('electricconductivity', {'0[S/m]', '0', '0', '0', '0[S/m]', '0', '0', '0', '0[S/m]'});
-model.component('comp1').material('mat1').propertyGroup('def').set('heatcapacity', 'Cp(T)');
-model.component('comp1').material('mat1').propertyGroup('def').set('density', 'rho(pA,T)');
-model.component('comp1').material('mat1').propertyGroup('def').set('thermalconductivity', {'k(T)', '0', '0', '0', 'k(T)', '0', '0', '0', 'k(T)'});
-model.component('comp1').material('mat1').propertyGroup('def').set('soundspeed', 'cs(T)');
-model.component('comp1').material('mat1').propertyGroup('def').addInput('temperature');
-model.component('comp1').material('mat1').propertyGroup('def').addInput('pressure');
-model.component('comp1').material('mat1').propertyGroup('RefractiveIndex').set('n', {'1', '0', '0', '0', '1', '0', '0', '0', '1'});
-model.component('comp1').material('mat1').propertyGroup('NonlinearModel').set('BA', '(def.gamma+1)/2');
-model.component('comp1').material('mat1').propertyGroup('idealGas').func('Cp_IG').label('Piecewise 2');
-model.component('comp1').material('mat1').propertyGroup('idealGas').func('Cp_IG').set('arg', 'T');
-model.component('comp1').material('mat1').propertyGroup('idealGas').func('Cp_IG').set('pieces', {'200.0', '1600.0', '1047.63657-0.372589265*T^1+9.45304214E-4*T^2-6.02409443E-7*T^3+1.2858961E-10*T^4'});
-model.component('comp1').material('mat1').propertyGroup('idealGas').func('Cp_IG').set('argunit', 'K');
-model.component('comp1').material('mat1').propertyGroup('idealGas').func('Cp_IG').set('fununit', 'J/(kg*K)');
-model.component('comp1').material('mat1').propertyGroup('idealGas').set('Rs', 'R_const/Mn');
-model.component('comp1').material('mat1').propertyGroup('idealGas').set('heatcapacity', 'Cp_IG(T)');
-model.component('comp1').material('mat1').propertyGroup('idealGas').set('ratioofspecificheat', '1.4');
-model.component('comp1').material('mat1').propertyGroup('idealGas').set('molarmass', '0.02897');
-model.component('comp1').material('mat1').propertyGroup('idealGas').addInput('temperature');
-model.component('comp1').material('mat1').propertyGroup('idealGas').addInput('pressure');
-model.component('comp1').material('mat1').materialType('nonSolid');
-model.component('comp1').material('mat1').set('family', 'air');
-
-% Silicon Iron (SPLIT STATOR AND ROTOR?)
-IronName = mat.Stator.MatName;
-model.component('comp1').material().create('mat2', 'Common');
-model.component('comp1').material('mat2').propertyGroup().create('BHCurve', 'B-H Curve');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').func().create('BH', 'Interpolation');
-model.component('comp1').material('mat2').label(IronName);  
-model.component('comp1').material('mat2').propertyGroup('def').set('electricconductivity', {'0'}); 
-model.component('comp1').material('mat2').propertyGroup('def').set('relpermittivity', {'1[1]', '0', '0', '0', '1[1]', '0', '0', '0', '1[1]'});
-model.component('comp1').material('mat2').propertyGroup('BHCurve').label('B-H Curve');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').func('BH').label('Interpolation 1');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').func('BH').set('table', BH_curve_table);
-model.component('comp1').material('mat2').propertyGroup('BHCurve').func('BH').set('extrap', 'linear');  %'const' instead of 'linear' - eh no, suggestions of chatgtp not always are good 
-model.component('comp1').material('mat2').propertyGroup('BHCurve').func('BH').set('fununit', 'T');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').func('BH').set('argunit', 'A/m');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').func('BH').set('defineinv', true);
-model.component('comp1').material('mat2').propertyGroup('BHCurve').func('BH').set('defineprimfun', true);
-model.component('comp1').material('mat2').propertyGroup('BHCurve').set('normB', 'BH(normHin)');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').set('normH', 'BH_inv(normBin)');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').set('Wpm', 'BH_prim(normHin)');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').descr('normHin', 'Magnetic field norm');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').descr('normBin', 'Magnetic flux density norm');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').addInput('magneticfield');
-model.component('comp1').material('mat2').propertyGroup('BHCurve').addInput('magneticfluxdensity');
-model.component('comp1').material('mat2').set('family', 'plastic');
-
-% Copper
-density_copper = mat.SlotCond.kgm3;               %[kg/m^3]
-model.component('comp1').material().create('mat3', 'Common');
-model.component('comp1').material('mat3').propertyGroup().create('Enu', 'Young''s modulus and Poisson''s ratio');
-model.component('comp1').material('mat3').propertyGroup().create('linzRes', 'Linearized resistivity');
-model.component('comp1').material('mat3').label('Copper');
-model.component('comp1').material('mat3').set('family', 'copper');
-model.component('comp1').material('mat3').propertyGroup('def').set('relpermeability', {'1', '0', '0', '0', '1', '0', '0', '0', '1'});
-model.component('comp1').material('mat3').propertyGroup('def').set('electricconductivity', {'5.998e7[S/m]', '0', '0', '0', '5.998e7[S/m]', '0', '0', '0', '5.998e7[S/m]'});
-model.component('comp1').material('mat3').propertyGroup('def').set('heatcapacity', '385[J/(kg*K)]');
-model.component('comp1').material('mat3').propertyGroup('def').set('relpermittivity', {'1', '0', '0', '0', '1', '0', '0', '0', '1'});
-model.component('comp1').material('mat3').propertyGroup('def').set('emissivity', '0.5');
-model.component('comp1').material('mat3').propertyGroup('def').set('density', {num2str(density_copper)} );
-model.component('comp1').material('mat3').propertyGroup('def').set('thermalconductivity', {'400[W/(m*K)]', '0', '0', '0', '400[W/(m*K)]', '0', '0', '0', '400[W/(m*K)]'});
-model.component('comp1').material('mat3').propertyGroup('Enu').set('E', '126e9[Pa]');
-model.component('comp1').material('mat3').propertyGroup('Enu').set('nu', '0.34');
-model.component('comp1').material('mat3').propertyGroup('linzRes').set('rho0', '1.667e-8[ohm*m]');
-model.component('comp1').material('mat3').propertyGroup('linzRes').set('alpha', '3.862e-3[1/K]');
-model.component('comp1').material('mat3').propertyGroup('linzRes').set('Tref', '293.15[K]');
-model.component('comp1').material('mat3').propertyGroup('linzRes').addInput('temperature');
-model.component('comp1').material('mat3').set('family', 'copper');
-
-% N52 PM
-Br = per.BrPP;
-mu = mat.LayerMag.mu; 
-model.component('comp1').material().create('mat4', 'Common');
-model.component('comp1').material('mat4').propertyGroup().create('RemanentFluxDensity', 'Remanent flux density');
-model.component('comp1').material('mat4').label('N52 (Sintered NdFeB)');
-model.component('comp1').material('mat4').set('family', 'chrome');
-model.component('comp1').material('mat4').propertyGroup('def').set('electricconductivity', {'1/1.4[uohm*m]', '0', '0', '0', '1/1.4[uohm*m]', '0', '0', '0', '1/1.4[uohm*m]'});
-model.component('comp1').material('mat4').propertyGroup('def').set('relpermittivity', {'1', '0', '0', '0', '1', '0', '0', '0', '1'});
-model.component('comp1').material('mat4').propertyGroup('RemanentFluxDensity').set('murec', {num2str(mu), '0', '0', '0', num2str(mu), '0', '0', '0', num2str(mu)});
-model.component('comp1').material('mat4').propertyGroup('RemanentFluxDensity').set('normBr', {num2str(Br)});
-g = model.component('comp1').material('mat4').propertyGroup('def');   
-g.set('density','7500[kg/m^3]');
-g.set('heatcapacity','400[J/(kg*K)]');
-g.set('thermalconductivity',{'7[W/(m*K)]','0','0','0','7[W/(m*K)]','0','0','0','7[W/(m*K)]'});
-model.component('comp1').material('mat4').set('family', 'chrome');
-
-% Definizione selection inspector
-model.component('comp1').selection().create('disk1', 'Disk');
-model.component('comp1').selection().create('disk2', 'Disk');
-
-% Assegnazione default Aria 
-sel = 1:Ndomains_n;
-model.component('comp1').material('mat1').selection().set(sel);
-model.component('comp1').physics('rmm').feature('al1').label("Ampere's Law - Air");
-model.component('comp1').physics('rmm').feature('al1').create('loss1', 'LossCalculation', 2);
-
-% Vettori per assegnazione materiali
-tmp = [];
-tmp_rot = rot_mat(:, 1:3);
-tmp_stat = stat_mat(:, 1:3);
-tmp = [tmp_rot; tmp_stat]; 
-disk1 = model.component('comp1').selection('disk1');
-
-% Vettori per settare i domini
-A = []; 
-B = [];
-C = [];
-
-% Assegnazione materiali
-for kk = 1:Ndomains_n
-    x = tmp(kk,1);
-    y = tmp(kk,2);
-    disk1.set('posx', x);
-    disk1.set('posy', y);
-    selNumber = disk1.entities();
-    switch tmp(kk, 3)
-        case {3, 8}
-            A = horzcat(A, selNumber);
-        case {4, 5}
-            B = horzcat(B, selNumber);
-        case 6
-            C = horzcat(C, selNumber);
+% Shaft
+tagShaft  = 'matShaft';                          % Tag COMSOL
+nameShaft = char(mat.Shaft.MatName);             % Nome materiale
+rhoShaft  = mat.Shaft.kgm3;                      % Densità [kg/m^3]
+EShaft    = [];                                  % Modulo di Young, assente in SyR-e
+nuShaft   = [];                                  % Poisson, assente in SyR-e
+sigShaft  = 0;                                   % Conducibilità [S/m], esterno
+epsShaft  = 1;                                   % Permittività [-], esterno
+shaftNS   = strcmpi(nameShaft,'ShaftAir');       % Albero non solido
+rhoShaftC = [num2str(rhoShaft,nDig) uRho];       % numero + u.d.m. in stringa per Comsol
+sigShaftC = [num2str(sigShaft,nDig) uSig];
+epsShaftC = num2str(epsShaft,nDig);
+if shaftNS
+    muShaft  = mat.LayerAir.mu;                  % Permeabilità relativa [-]
+    muShaftC = num2str(muShaft,nDig);
+else
+        bhShaft = num2cell([mat.Shaft.BH(:,2) mat.Shaft.BH(:,1)]);
+    for ii = 1:numel(bhShaft)
+        bhShaft{ii} = num2str(bhShaft{ii},nDig);
     end
+    %bhShaft = vertcat(bhShaft{:});
+end
+if ~isempty(EShaft) && ~isempty(nuShaft)
+    EShaftC  = [num2str(EShaft,nDig) uE];
+    nuShaftC = num2str(nuShaft,nDig);
 end
 
-model.component('comp1').material('mat3').selection().set(A);
-model.component('comp1').material('mat2').selection().set(B);
-model.component('comp1').material('mat4').selection().set(C);
+%STATORE ------------------------------------------------------------------
+% Ferro di statore
+tagFeS  = 'matFeS';                               % Tag COMSOL
+nameFeS = [char(mat.Stator.MatName) ' - stator']; % Nome materiale
+rhoFeS  = mat.Stator.kgm3;                        % Densità [kg/m^3]
+EFeS    = mat.Stator.E*1e9;                       % Modulo di Young [Pa]
+nuFeS   = 0.28;                                   % Poisson [-], esterno
+sigFeS  = 0;                                      % Conducibilità [S/m], laminato
+epsFeS  = 1;                                      % Permittività [-], esterno
+rhoFeSC = [num2str(rhoFeS,nDig) uRho];            % numero + u.d.m. in stringa per Comsol
+EFeSC   = [num2str(EFeS,nDig) uE];
+nuFeSC  = num2str(nuFeS,nDig);
+sigFeSC = [num2str(sigFeS,nDig) uSig];
+epsFeSC = num2str(epsFeS,nDig);
+bhFeS = num2cell([mat.Stator.BH(:,2) mat.Stator.BH(:,1)]);
+for ii = 1:numel(bhFeS)
+    bhFeS{ii} = num2str(bhFeS{ii},nDig);
+end
 
-% ============== Fitting Steinmetz ============== %
+% Conduttori di statore
+tagCuS    = 'matCuS';                                 % Tag COMSOL
+nameCuS   = [char(mat.SlotCond.MatName) ' - stator']; % Nome materiale
+rhoCuS    = mat.SlotCond.kgm3*geo.win.kcu;            % Densità equivalente [kg/m^3]
+sigCuS    = mat.SlotCond.sigma;                       % Conducibilità [S/m]
+rho0CuS   = 1/sigCuS;                                 % Resistività a Tref [ohm*m]
+alphaCuS  = mat.SlotCond.alpha;                       % Coefficiente termico [1/K]
+TrefCuS   = 293.15;                                   % Temperatura riferimento [K], esterno
+ECuS      = 126e9;                                    % Modulo di Young [Pa], esterno
+nuCuS     = 0.34;                                     % Poisson [-], esterno
+muCuS     = 1;                                        % Permeabilità [-], esterno
+epsCuS    = 1;                                        % Permittività [-], esterno
+cpCuS     = 385;                                      % Calore specifico [J/(kg*K)], esterno
+kCuS      = 400;                                      % Conducibilità termica [W/(m*K)], esterno
+emisCuS   = 0.5;                                      % Emissività [-], esterno
+rhoCuSC   = [num2str(rhoCuS,nDig) uRho];              % numero + u.d.m. in stringa per Comsol
+sigCuSC   = [num2str(sigCuS,nDig) uSig];
+rho0CuSC  = [num2str(rho0CuS,nDig) uRhoE];
+alphaCuSC = [num2str(alphaCuS,nDig) uAlpha];
+TrefCuSC  = [num2str(TrefCuS,nDig) uTemp];
+ECuSC     = [num2str(ECuS,nDig) uE];
+nuCuSC    = num2str(nuCuS,nDig);
+muCuSC    = num2str(muCuS,nDig);
+epsCuSC   = num2str(epsCuS,nDig);
+cpCuSC    = [num2str(cpCuS,nDig) uCp];
+kCuSC     = [num2str(kCuS,nDig) uK];
+emisCuSC  = num2str(emisCuS,nDig);
 
-% Calcolo tempo di simulazione
+% Filler di statore
+tagFillS  = 'matFillS';                                   % Tag COMSOL
+nameFillS = [char(mat.SlotAir.MatName) ' - stator fill']; % Nome materiale
+rhoFillS  = mat.SlotAir.kgm3;                             % Densità [kg/m^3]
+sigFillS  = mat.SlotAir.sigma;                            % Conducibilità [S/m]
+muFillS   = mat.LayerAir.mu;                              % Permeabilità relativa [-]
+epsFillS  = 1;                                            % Permittività [-], esterno
+rhoFillSC = [num2str(rhoFillS,nDig) uRho];
+sigFillSC = [num2str(sigFillS,nDig) uSig];
+muFillSC  = num2str(muFillS,nDig);
+epsFillSC = num2str(epsFillS,nDig);
 
-p = geo.p;                                  % paia poli macchina
-w = per.EvalSpeed*pi/30;                    % velocità di rotazione [rad/s]
-freq = w*p/2/pi;                            % frequenza di alimentazione [Hz]
+% Selection aggregata dei domini d'aria
+tagAirDom  = 'domAir';                          % Tag selection
+nameAirDom = 'Air domains';                     % Nome selection
+airIn = {sel.airGap};
+if isfield(sel,'fillSta')
+    airIn{end+1} = sel.fillSta;
+end
+if isfield(sel,'fillRot') && fillRNS
+    airIn{end+1} = sel.fillRot;
+end
+if isfield(sel,'shaft') && shaftNS
+    airIn{end+1} = sel.shaft;
+end
+comp.selection.create(tagAirDom,selUnion);
+comp.selection(tagAirDom).label(nameAirDom);
+comp.selection(tagAirDom).set('entitydim',dimDom);
+comp.selection(tagAirDom).set('input',airIn);
+geo.infoComsol.tags.selection.domain.air = tagAirDom;
 
-ff = linspace(50, freq, 51);
-Bf = linspace(0, Bf_max, 51);
-kh = mat.Rotor.kh;
-ke = mat.Rotor.ke;
-alpha = mat.Rotor.alpha;
-beta = mat.Rotor.beta;
-pfe_f = kh .*(ff .^alpha) .*(Bf .^beta) +  ke .*(ff .^2) .*(Bf .^2);
+% ------------------------------------------------------------------------
+% Creazione materiali in COMSOL e assegnazione ai domini
+% ------------------------------------------------------------------------
 
-[fitresult, gof] = createFit(ff, Bf, pfe_f);
-KH = fitresult.KH;
-ALPHA = fitresult.ALPHA;
-BETA = fitresult.BETA;
+% Air gap
+comp.material.create(tagAir,matClass);
+comp.material(tagAir).label(nameAir);
+comp.material(tagAir).set('family',famAir);
+comp.material(tagAir).materialType(matNS);
+comp.material(tagAir).propertyGroup(pgDef).set('density',rhoAirC);
+comp.material(tagAir).propertyGroup(pgDef).set('electricconductivity',sigAirC);
+comp.material(tagAir).propertyGroup(pgDef).set('relpermeability',muAirC);
+comp.material(tagAir).propertyGroup(pgDef).set('relpermittivity',epsAirC);
+comp.material(tagAir).selection().named(sel.airGap);
+geo.infoComsol.tags.material.airGap = tagAir;
 
-% ============== Assegnazione Condizioni a Contorno ============== %
+% Ferro di rotore
+if isfield(sel,'feRot')
+    comp.material.create(tagFeR,matClass);
+    comp.material(tagFeR).label(nameFeR);
+    comp.material(tagFeR).propertyGroup(pgDef).set('density',rhoFeRC);
+    comp.material(tagFeR).propertyGroup(pgDef).set('electricconductivity',sigFeRC);
+    comp.material(tagFeR).propertyGroup(pgDef).set('relpermittivity',epsFeRC);
+    comp.material(tagFeR).propertyGroup().create(pgEnu,typeEnu,descEnu);
+    comp.material(tagFeR).propertyGroup(pgEnu).set('E',EFeRC);
+    comp.material(tagFeR).propertyGroup(pgEnu).set('nu',nuFeRC);
+    comp.material(tagFeR).propertyGroup().create(pgBH,typeBH);
+    comp.material(tagFeR).propertyGroup(pgBH).func().create(funBH,typeInt);
+    comp.material(tagFeR).propertyGroup(pgBH).func(funBH).set('table',bhFeR);
+    comp.material(tagFeR).propertyGroup(pgBH).func(funBH).set('extrap',bhExt);
+    comp.material(tagFeR).propertyGroup(pgBH).func(funBH).set('fununit',bhUnit);
+    comp.material(tagFeR).propertyGroup(pgBH).func(funBH).set('argunit',hUnit);
+    comp.material(tagFeR).propertyGroup(pgBH).func(funBH).set('defineinv',true);
+    comp.material(tagFeR).propertyGroup(pgBH).func(funBH).set('defineprimfun',true);
+    comp.material(tagFeR).propertyGroup(pgBH).set('normB',bhB);
+    comp.material(tagFeR).propertyGroup(pgBH).set('normH',bhH);
+    comp.material(tagFeR).propertyGroup(pgBH).set('Wpm',bhW);
+    comp.material(tagFeR).propertyGroup(pgBH).addInput(inH);
+    comp.material(tagFeR).propertyGroup(pgBH).addInput(inB);
+    comp.material(tagFeR).selection().named(sel.feRot);
+    geo.infoComsol.tags.material.feRot = tagFeR;
+end
 
-% Definizione boundary condition PM 
-tmp_rot_righe = size(rot_mat, 1);
-AM = [];
-BC_pm = [];
+% Conduttori di rotore
+if isfield(sel,'cuRot')
+    comp.material.create(tagCuR,matClass);
+    comp.material(tagCuR).label(nameCuR);
+    comp.material(tagCuR).set('family',famCu);
+    comp.material(tagCuR).propertyGroup(pgDef).set('density',rhoCuRC);
+    comp.material(tagCuR).propertyGroup(pgDef).set('electricconductivity',sigCuRC);
+    comp.material(tagCuR).propertyGroup(pgDef).set('relpermeability',muCuRC);
+    comp.material(tagCuR).propertyGroup(pgDef).set('relpermittivity',epsCuRC);
+    comp.material(tagCuR).propertyGroup(pgDef).set('heatcapacity',cpCuRC);
+    comp.material(tagCuR).propertyGroup(pgDef).set('thermalconductivity',kCuRC);
+    comp.material(tagCuR).propertyGroup(pgDef).set('emissivity',emisCuRC);
+    comp.material(tagCuR).propertyGroup().create(pgEnu,typeEnu,descEnu);
+    comp.material(tagCuR).propertyGroup(pgEnu).set('E',ECuRC);
+    comp.material(tagCuR).propertyGroup(pgEnu).set('nu',nuCuRC);
+    comp.material(tagCuR).propertyGroup().create(pgRes,typeRes);
+    comp.material(tagCuR).propertyGroup(pgRes).set('rho0',rho0CuRC);
+    comp.material(tagCuR).propertyGroup(pgRes).set('alpha',alphaCuRC);
+    comp.material(tagCuR).propertyGroup(pgRes).set('Tref',TrefCuRC);
+    comp.material(tagCuR).propertyGroup(pgRes).addInput(inTemp);
+    comp.material(tagCuR).selection().named(sel.cuRot);
+    geo.infoComsol.tags.material.cuRot = tagCuR;
+end
 
-for kk = 1:tmp_rot_righe            
-    x = tmp(kk,1);
-    y = tmp(kk,2);
-    disk1.set('posx', x);
-    disk1.set('posy', y);
-    selNumber = disk1.entities();
-    if rot_mat(kk, 3)==6
-        BC_pm = horzcat(BC_pm, selNumber);
-        xm = rot_mat(kk, 6);
-        ym = rot_mat(kk, 7);
-        zm = rot_mat(kk, 8);
-        AM = [xm, ym, zm];
-        alnumber_m = ['al_m' num2str(kk+1)];
-        model.component('comp1').physics('rmm').create(alnumber_m, 'AmperesLaw', 2);
-        model.component('comp1').physics('rmm').feature(alnumber_m).selection().set(selNumber);
-        model.component('comp1').physics('rmm').feature(alnumber_m).set('ConstitutiveRelationBH', 'RemanentFluxDensity');
-        model.component('comp1').physics('rmm').feature(alnumber_m).set('e_crel_BH_RemanentFluxDensity', AM);
-        model.component('comp1').physics('rmm').feature(alnumber_m).create('loss1', 'LossCalculation', 2);
-        % model.component("comp1").physics("rmm").feature("cmag2").selection().set(selNumber);
-        % model.component("comp1").physics("rmm").feature("cmag2").feature("north1").selection().set(11, 19);
-        % model.component("comp1").physics("rmm").feature("cmag2").feature("south1").selection().set(7, 15);
+% Magneti di rotore
+if isfield(sel,'PMRot')
+    comp.material.create(tagPMR,matClass);
+    comp.material(tagPMR).label(namePMR);
+    comp.material(tagPMR).propertyGroup(pgDef).set('density',rhoPMRC);
+    comp.material(tagPMR).propertyGroup(pgDef).set('electricconductivity',sigPMRC);
+    comp.material(tagPMR).propertyGroup(pgDef).set('relpermittivity',epsPMRC);
+    comp.material(tagPMR).propertyGroup(pgDef).set('heatcapacity',cpPMRC);
+    comp.material(tagPMR).propertyGroup(pgDef).set('thermalconductivity',kPMRC);
+    comp.material(tagPMR).propertyGroup().create(pgPM,typePM);
+    comp.material(tagPMR).propertyGroup(pgPM).set('murec',muPMRT);
+    comp.material(tagPMR).propertyGroup(pgPM).set('normBr',BrPMRC);
+    if ~isempty(EPMR) && ~isempty(nuPMR)
+        comp.material(tagPMR).propertyGroup().create(pgEnu,typeEnu,descEnu);
+        comp.material(tagPMR).propertyGroup(pgEnu).set('E',EPMRC);
+        comp.material(tagPMR).propertyGroup(pgEnu).set('nu',nuPMRC);
     end
+    comp.material(tagPMR).selection().named(sel.PMRot);
+    geo.infoComsol.tags.material.PMRot = tagPMR;
 end
 
-% ============== Definizione conducting magnets ============== %  %not
-%needed but useful for others pourposes (for example when the magnetization
-%vector is unknow)
-% model.component("comp1").physics("rmm").create("cmag2", "ConductingMagnet", 2);
-% model.component("comp1").physics("rmm").feature().move("cmag2", 6);
-% model.component("comp1").physics("rmm").feature("cmag2").label("Conducting Magnet");
-% model.component("comp1").physics("rmm").feature("cmag2").set("sigma_mat", "userdef");
-% model.component("comp1").physics("rmm").feature("cmag2").set("sigma_mat", "from_mat");
-% model.component("comp1").physics("rmm").feature("cmag2").selection().set(5, 7);
-% model.component("comp1").physics("rmm").feature("cmag2").feature("north1").selection().set(11, 19);
-% model.component("comp1").physics("rmm").feature("cmag2").feature("south1").selection().set(7, 15);
-
-
-% Memorizzazione domini barriere di flusso rotore             
-Bar = [];
-
-for kk = 1:tmp_rot_righe
-    x = tmp(kk,1);
-    y = tmp(kk,2);                           
-    disk1.set('posx', x);
-    disk1.set('posy', y);
-    selNumber = disk1.entities();
-    if rot_mat(kk, 3)==1
-        Bar = horzcat(Bar, selNumber);
+% Filler di rotore
+if isfield(sel,'fillRot')
+    comp.material.create(tagFillR,matClass);
+    comp.material(tagFillR).label(nameFillR);
+    comp.material(tagFillR).propertyGroup(pgDef).set('density',rhoFillRC);
+    comp.material(tagFillR).propertyGroup(pgDef).set('electricconductivity',sigFillRC);
+    comp.material(tagFillR).propertyGroup(pgDef).set('relpermeability',muFillRC);
+    comp.material(tagFillR).propertyGroup(pgDef).set('relpermittivity',epsFillRC);
+    if fillRNS
+        comp.material(tagFillR).set('family',famAir);
+        comp.material(tagFillR).materialType(matNS);
+    else
+        comp.material(tagFillR).set('family',famFill);
+        comp.material(tagFillR).propertyGroup().create(pgEnu,typeEnu,descEnu);
+        comp.material(tagFillR).propertyGroup(pgEnu).set('E',EFillRC);
+        comp.material(tagFillR).propertyGroup(pgEnu).set('nu',nuFillRC);
     end
+    comp.material(tagFillR).selection().named(sel.fillRot);
+    geo.infoComsol.tags.material.fillRot = tagFillR;
 end
 
-% Definizione boundary condition su ferro di statore
-BC_fe_s = [];
+% Sleeve di rotore
+if isfield(sel,'sleeveRot')
+    comp.material.create(tagSleeveR,matClass);
+    comp.material(tagSleeveR).label(nameSleeveR);
+    comp.material(tagSleeveR).propertyGroup(pgDef).set('density',rhoSleeveRC);
+    comp.material(tagSleeveR).propertyGroup(pgDef).set('electricconductivity',sigSleeveRC);
+    comp.material(tagSleeveR).propertyGroup(pgDef).set('relpermeability',muSleeveRC);
+    comp.material(tagSleeveR).propertyGroup(pgDef).set('relpermittivity',epsSleeveRC);
+    if ~isempty(nuSleeveR)
+        comp.material(tagSleeveR).propertyGroup().create(pgEnu,typeEnu,descEnu);
+        comp.material(tagSleeveR).propertyGroup(pgEnu).set('E',ESleeveRC);
+        comp.material(tagSleeveR).propertyGroup(pgEnu).set('nu',nuSleeveRC);
+    end
+    comp.material(tagSleeveR).selection().named(sel.sleeveRot);
+    geo.infoComsol.tags.material.sleeveRot = tagSleeveR;
+end
 
-for kk = 1:size(tmp_stat, 1)
-    x = tmp_stat(kk,1);
-    y = tmp_stat(kk,2);
-    disk1.set('posx', x);                         
-    disk1.set('posy', y);                                
-    selNumber = disk1.entities();                 
-    if tmp_stat(kk, 3)==4                             
-       BC_fe_s = horzcat(BC_fe_s, selNumber);          
-    end                                                  
-end                                                     
-
-model.component('comp1').physics('rmm').create('al_fs', 'AmperesLaw', 2);
-model.component('comp1').physics('rmm').feature('al_fs').selection().set(BC_fe_s);
-model.component('comp1').physics('rmm').feature('al_fs').set('ConstitutiveRelationBH', 'BHCurve');
-model.component('comp1').physics('rmm').feature('al_fs').create('loss_f', 'LossCalculation', 2);
-model.component('comp1').physics('rmm').feature('al_fs').feature('loss_f').set('LossModel', 'Steinmetz');
-model.component('comp1').physics('rmm').feature('al_fs').label("Ampere's Law - Stator");
-model.component('comp1').physics('rmm').feature('al_fs').feature('loss_f').set('kh_steinmetz', KH);
-model.component('comp1').physics('rmm').feature('al_fs').feature('loss_f').set('alpha', ALPHA);
-model.component('comp1').physics('rmm').feature('al_fs').feature('loss_f').set('beta_steinmetz', BETA);
-
-% Definizione boundary condition su ferro di rotore
-BC_fe_r = [];
-
-for kk = 1:size(tmp_rot, 1)
-    x = tmp_rot(kk,1);
-    y = tmp_rot(kk,2);
-    disk1.set('posx', x);
-    disk1.set('posy', y);
-    selNumber = disk1.entities();
-    if tmp_rot(kk,3)==5
-       BC_fe_r = horzcat(BC_fe_r, selNumber);          %VA A DESTINAZIONE  |
-    end                                                %                   |                    
-end                                                    %                   |
-                                                       %                   |
-model.component('comp1').physics('rmm').create('al_fr', 'AmperesLaw', 2);% |
-model.component('comp1').physics('rmm').feature('al_fr').selection().set(BC_fe_r);
-model.component('comp1').physics('rmm').feature('al_fr').set('ConstitutiveRelationBH', 'BHCurve');
-model.component('comp1').physics('rmm').feature('al_fr').create('loss_f', 'LossCalculation', 2);
-model.component('comp1').physics('rmm').feature('al_fr').feature('loss_f').set('LossModel', 'Steinmetz');
-model.component('comp1').physics('rmm').feature('al_fr').label("Ampere's Law - Rotor");
-model.component('comp1').physics('rmm').feature('al_fr').feature('loss_f').set('kh_steinmetz', KH);
-model.component('comp1').physics('rmm').feature('al_fr').feature('loss_f').set('alpha', ALPHA);
-model.component('comp1').physics('rmm').feature('al_fr').feature('loss_f').set('beta_steinmetz', BETA);
-
-% ============== Definizione multiphase_winding ============== % 
-avv = geo.win.avv;
-[num_righe_avv, num_colonne_avv] = size(avv);
-coil1 = [];
-coil2 = [];
-coil3 = [];
-coil_1 = [];
-coil_2 = [];
-coil_3 = [];
-Ac = reshape(A,2,[]);            %matrice ordinata dei domini dei coils
-                                 %note!: the domains are ordinated 
-                                 %counterclockwise starting from x_axis
-                                 %(from left to right)
-
-
-% model.component('comp1').physics('rmm').create('coil1', 'Coil', 2);
-% model.component('comp1').physics('rmm').feature('coil1').label('Phase 1');
-% model.component('comp1').physics('rmm').feature('coil1').set('ConductorModel', 'Multi');
-% model.component('comp1').physics('rmm').feature('coil1').set('coilGroup', true);
-% model.component('comp1').physics('rmm').feature('coil1').set('CoilExcitation', 'CircuitCurrent');
-% model.component('comp1').physics('rmm').feature('coil1').set('N', {num2str(geo.win.Nbob*2*geo.p)});
-% model.component('comp1').physics('rmm').feature('coil1').set('AreaFrom', 'FillingFactor');
-% model.component('comp1').physics('rmm').feature('coil1').set('FillingFactor', {num2str(geo.win.kcu)});
-% model.component('comp1').physics('rmm').create('coil2', 'Coil', 2);
-% model.component('comp1').physics('rmm').feature('coil2').label('Phase 2');
-% model.component('comp1').physics('rmm').feature('coil2').set('ConductorModel', 'Multi');
-% model.component('comp1').physics('rmm').feature('coil2').set('coilGroup', true);
-% model.component('comp1').physics('rmm').feature('coil2').set('CoilExcitation', 'CircuitCurrent');
-% model.component('comp1').physics('rmm').feature('coil2').set('N', {num2str(geo.win.Nbob*2*geo.p)});
-% model.component('comp1').physics('rmm').feature('coil2').set('AreaFrom', 'FillingFactor');
-% model.component('comp1').physics('rmm').feature('coil2').set('FillingFactor', {num2str(geo.win.kcu)});
-% model.component('comp1').physics('rmm').create('coil3', 'Coil', 2);
-% model.component('comp1').physics('rmm').feature('coil3').label('Phase 3');
-% model.component('comp1').physics('rmm').feature('coil3').set('ConductorModel', 'Multi');
-% model.component('comp1').physics('rmm').feature('coil3').set('coilGroup', true);
-% model.component('comp1').physics('rmm').feature('coil3').set('CoilExcitation', 'CircuitCurrent');
-% model.component('comp1').physics('rmm').feature('coil3').set('N', {num2str(geo.win.Nbob*2*geo.p)});
-% model.component('comp1').physics('rmm').feature('coil3').set('AreaFrom', 'FillingFactor');
-% model.component('comp1').physics('rmm').feature('coil3').set('FillingFactor', {num2str(geo.win.kcu)});
-% 
-% loop implemented to assign to the model the right configuration (designed in geo.win.avv)
-for i = 1:num_righe_avv
-    for c = 1:num_colonne_avv                                 
-        switch avv(i, c)
-            case 1
-                coil1 = horzcat(coil1, Ac(i, c));
-            case 3
-                coil3 = horzcat(coil3, Ac(i, c));
-            case 2
-                coil2 = horzcat(coil2, Ac(i, c));
-            case -1
-                coil_1 = horzcat(coil_1, Ac(i, c));   %the "underscore" stays for "minus" 
-            case -3
-                coil_3 = horzcat(coil_3, Ac(i, c));
-            case -2
-                coil_2 = horzcat(coil_2, Ac(i, c));
-            
-
+% Shaft
+if isfield(sel,'shaft')
+    comp.material.create(tagShaft,matClass);
+    comp.material(tagShaft).label(nameShaft);
+    comp.material(tagShaft).propertyGroup(pgDef).set('density',rhoShaftC);
+    comp.material(tagShaft).propertyGroup(pgDef).set('electricconductivity',sigShaftC);
+    comp.material(tagShaft).propertyGroup(pgDef).set('relpermittivity',epsShaftC);
+    if shaftNS
+        comp.material(tagShaft).set('family',famAir);
+        comp.material(tagShaft).materialType(matNS);
+        comp.material(tagShaft).propertyGroup(pgDef).set('relpermeability',muShaftC);
+    else
+        comp.material(tagShaft).propertyGroup().create(pgBH,typeBH);
+        comp.material(tagShaft).propertyGroup(pgBH).func().create(funBH,typeInt);
+        comp.material(tagShaft).propertyGroup(pgBH).func(funBH).set('table',bhShaft);
+        comp.material(tagShaft).propertyGroup(pgBH).func(funBH).set('extrap',bhExt);
+        comp.material(tagShaft).propertyGroup(pgBH).func(funBH).set('fununit',bhUnit);
+        comp.material(tagShaft).propertyGroup(pgBH).func(funBH).set('argunit',hUnit);
+        comp.material(tagShaft).propertyGroup(pgBH).func(funBH).set('defineinv',true);
+        comp.material(tagShaft).propertyGroup(pgBH).func(funBH).set('defineprimfun',true);
+        comp.material(tagShaft).propertyGroup(pgBH).set('normB',bhB);
+        comp.material(tagShaft).propertyGroup(pgBH).set('normH',bhH);
+        comp.material(tagShaft).propertyGroup(pgBH).set('Wpm',bhW);
+        comp.material(tagShaft).propertyGroup(pgBH).addInput(inH);
+        comp.material(tagShaft).propertyGroup(pgBH).addInput(inB);
+        if ~isempty(EShaft) && ~isempty(nuShaft)
+            comp.material(tagShaft).propertyGroup().create(pgEnu,typeEnu,descEnu);
+            comp.material(tagShaft).propertyGroup(pgEnu).set('E',EShaftC);
+            comp.material(tagShaft).propertyGroup(pgEnu).set('nu',nuShaftC);
         end
     end
+    comp.material(tagShaft).selection().named(sel.shaft);
+    geo.infoComsol.tags.material.shaft = tagShaft;
 end
 
-% % Assegna i domini alle bobine     - FEATURE: COIL - NOT USED ANYMORE 
-% model.component('comp1').physics('rmm').feature('coil1').selection().set(coil1);
-% model.component('comp1').physics('rmm').feature('coil2').selection().set(coil2);
-% model.component('comp1').physics('rmm').feature('coil3').selection().set(coil3);
-% 
-% % Assegna i domini alla bobina con corrente inversa 
-% model.component('comp1').physics('rmm').feature('coil3').create('rcd1', 'ReverseCoilGroupDomain', 2);
-% model.component('comp1').physics('rmm').feature('coil3').feature('rcd1').selection().set(coil3);
-% model.component('comp1').physics('rmm').feature('coil3').feature('rcd1').label('Reverse Current Phase 3');
-% 
-% %Assegna calcolo perdite alle bobine
-% model.component('comp1').physics('rmm').feature('coil1').create('loss1', 'LossCalculation', 2);
-% model.component('comp1').physics('rmm').feature('coil2').create('loss1', 'LossCalculation', 2);
-% model.component('comp1').physics('rmm').feature('coil3').create('loss1', 'LossCalculation', 2); 
+% Ferro di statore
+if isfield(sel,'feSta')
+    comp.material.create(tagFeS,matClass);
+    comp.material(tagFeS).label(nameFeS);
+    comp.material(tagFeS).propertyGroup(pgDef).set('density',rhoFeSC);
+    comp.material(tagFeS).propertyGroup(pgDef).set('electricconductivity',sigFeSC);
+    comp.material(tagFeS).propertyGroup(pgDef).set('relpermittivity',epsFeSC);
+    comp.material(tagFeS).propertyGroup().create(pgEnu,typeEnu,descEnu);
+    comp.material(tagFeS).propertyGroup(pgEnu).set('E',EFeSC);
+    comp.material(tagFeS).propertyGroup(pgEnu).set('nu',nuFeSC);
+    comp.material(tagFeS).propertyGroup().create(pgBH,typeBH);
+    comp.material(tagFeS).propertyGroup(pgBH).func().create(funBH,typeInt);
+    comp.material(tagFeS).propertyGroup(pgBH).func(funBH).set('table',bhFeS);
+    comp.material(tagFeS).propertyGroup(pgBH).func(funBH).set('extrap',bhExt);
+    comp.material(tagFeS).propertyGroup(pgBH).func(funBH).set('fununit',bhUnit);
+    comp.material(tagFeS).propertyGroup(pgBH).func(funBH).set('argunit',hUnit);
+    comp.material(tagFeS).propertyGroup(pgBH).func(funBH).set('defineinv',true);
+    comp.material(tagFeS).propertyGroup(pgBH).func(funBH).set('defineprimfun',true);
+    comp.material(tagFeS).propertyGroup(pgBH).set('normB',bhB);
+    comp.material(tagFeS).propertyGroup(pgBH).set('normH',bhH);
+    comp.material(tagFeS).propertyGroup(pgBH).set('Wpm',bhW);
+    comp.material(tagFeS).propertyGroup(pgBH).addInput(inH);
+    comp.material(tagFeS).propertyGroup(pgBH).addInput(inB);
+    comp.material(tagFeS).selection().named(sel.feSta);
+    geo.infoComsol.tags.material.feSta = tagFeS;
+end
 
-gamma = dataSet.GammaPP;           % angle vector I wrt to d_axis [deg]
-teta_0 = geo.th0;                  % angle between dq_plane and alphabeta_plane [deg]
+% Conduttori di statore
+if isfield(sel,'cuSta')
+    comp.material.create(tagCuS,matClass);
+    comp.material(tagCuS).label(nameCuS);
+    comp.material(tagCuS).set('family',famCu);
+    comp.material(tagCuS).propertyGroup(pgDef).set('density',rhoCuSC);
+    comp.material(tagCuS).propertyGroup(pgDef).set('electricconductivity',sigCuSC);
+    comp.material(tagCuS).propertyGroup(pgDef).set('relpermeability',muCuSC);
+    comp.material(tagCuS).propertyGroup(pgDef).set('relpermittivity',epsCuSC);
+    comp.material(tagCuS).propertyGroup(pgDef).set('heatcapacity',cpCuSC);
+    comp.material(tagCuS).propertyGroup(pgDef).set('thermalconductivity',kCuSC);
+    comp.material(tagCuS).propertyGroup(pgDef).set('emissivity',emisCuSC);
+    comp.material(tagCuS).propertyGroup().create(pgEnu,typeEnu,descEnu);
+    comp.material(tagCuS).propertyGroup(pgEnu).set('E',ECuSC);
+    comp.material(tagCuS).propertyGroup(pgEnu).set('nu',nuCuSC);
+    comp.material(tagCuS).propertyGroup().create(pgRes,typeRes);
+    comp.material(tagCuS).propertyGroup(pgRes).set('rho0',rho0CuSC);
+    comp.material(tagCuS).propertyGroup(pgRes).set('alpha',alphaCuSC);
+    comp.material(tagCuS).propertyGroup(pgRes).set('Tref',TrefCuSC);
+    comp.material(tagCuS).propertyGroup(pgRes).addInput(inTemp);
+    comp.material(tagCuS).selection().named(sel.cuSta);
+    geo.infoComsol.tags.material.cuSta = tagCuS;
+end
 
-% [~,phase1_offset] = calcKwTh0(geo);
-% phase1_offset = phase1_offset+360/(6*geo.p*geo.q*geo.win.n3phase)/2*geo.p;    %first slot in 360/(6pq)/2 position
+% Filler di statore
+if isfield(sel,'fillSta')
+    comp.material.create(tagFillS,matClass);
+    comp.material(tagFillS).label(nameFillS);
+    comp.material(tagFillS).set('family',famAir);
+    comp.material(tagFillS).materialType(matNS);
+    comp.material(tagFillS).propertyGroup(pgDef).set('density',rhoFillSC);
+    comp.material(tagFillS).propertyGroup(pgDef).set('electricconductivity',sigFillSC);
+    comp.material(tagFillS).propertyGroup(pgDef).set('relpermeability',muFillSC);
+    comp.material(tagFillS).propertyGroup(pgDef).set('relpermittivity',epsFillSC);
+    comp.material(tagFillS).selection().named(sel.fillSta);
+    geo.infoComsol.tags.material.fillSta = tagFillS;
+end
 
-if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'Vtype') || strcmp(geo.RotType,'SPM-Halbach') || strcmp(geo.RotType, 'Seg')
-    if geo.axisType == 'PM'
-        teta_0 = teta_0-90;
-    else
-        teta_0 = teta_0;
+
+%  ========================================================================
+%  Selezioni dei bordi
+%  ========================================================================
+
+tolBnd = max(1e-6,1e-5*r_si);
+
+bAdjR = double(mphgetadj(model,geometryTag,'boundary','domain',dRot));
+bAdjS = double(mphgetadj(model,geometryTag,'boundary','domain',dSta));
+
+bAdjR = unique(bAdjR(:)');
+bAdjS = unique(bAdjS(:)');
+
+bR1 = [];
+bR2 = [];
+bS1 = [];
+bS2 = [];
+
+
+% Lati radiali del rotore
+if geo.ps < 2*geo.p
+
+    for ii = 1:numel(bAdjR)
+
+        id = bAdjR(ii);
+
+        dAdj = double(mphgetadj(model,geometryTag,'domain','boundary',id));
+        dAdj = unique(dAdj(:)');
+
+        % I lati di settore sono bordi esterni, non interfacce tra domini
+        if numel(dAdj) ~= 1
+            continue
+        end
+
+        pnt = double(mphgetadj(model,geometryTag,'point','boundary',id));
+        pnt = unique(pnt(:)');
+
+        xy = zeros(numel(pnt),2);
+
+        for jj = 1:numel(pnt)
+            coord = double(mphgetcoords(model,geometryTag,'point',pnt(jj)));
+            coord = coord(:);
+            xy(jj,:) = coord(1:2)';
+        end
+
+        dist1 = abs(xy(:,2));
+        proj1 = xy(:,1);
+
+        dist2 = abs(xy(:,1)*sin(sectorAngle)-xy(:,2)*cos(sectorAngle));
+        proj2 = xy(:,1)*cos(sectorAngle)+xy(:,2)*sin(sectorAngle);
+
+        if all(dist1 <= tolBnd) && all(proj1 >= -tolBnd)
+            bR1 = [bR1 id];
+        elseif all(dist2 <= tolBnd) && all(proj2 >= -tolBnd)
+            bR2 = [bR2 id];
+        end
+
     end
-elseif strcmp(geo.RotType,'Spoke-type')
-    geo.axisType = 'PM';
-    teta_0 = teta_0;
-else
-    geo.axisType = 'SR';
-    teta_0 = teta_0;
-end
-
-%p = geo.p;                                  % pole pairs                                                  -already defined                 
-%w = per.EvalSpeed*pi/30;                    % rotation speed - mechanic[rad/s]                            -already defined 
-%freq_t = w*p/2/pi;                          % power frequency (frequenzadi alimentazione) [Hz]            -already defined
-Ipk = per.i0*per.overload;
-q = geo.q;                                    % number of slots/pole/phase
-N_poles = p*2;
-N_slots_simulated = geo.Qs;
-N_turns_per_slot = dataSet.TurnsInSeries/p/q/2;  %NOTE: "/2" is necessary to consider the physical separation of a single slot in two parts
-N_simulated_sectors = 360/per.delta_sim_singt;
-N_conductors = dataSet.SlotConductorNumber;
-Slot_filling_factor = dataSet.SlotFillFactor;
 
 
-model.component("comp1").physics("rmm").create("wnd1", "MultiphaseWinding", 2);
-model.component("comp1").physics("rmm").feature("wnd1").label("Multiphase Winding - prova");
-model.component("comp1").physics("rmm").feature("wnd1").set("Ipk", {num2str(Ipk)});                            
-model.component("comp1").physics("rmm").feature("wnd1").set("alpha_i", {num2str((teta_0 + gamma)*pi/180)});  %rad!  
-model.component("comp1").physics("rmm").feature("wnd1").set("freq_t", {num2str(freq)});                     
-model.component("comp1").physics("rmm").feature("wnd1").set("WindingLayout", "automatic");
-model.component("comp1").physics("rmm").feature("wnd1").set("NoPoles", {num2str(N_poles)});                   
-model.component("comp1").physics("rmm").feature("wnd1").set("NoSlots", {num2str(N_slots_simulated)});         
-model.component("comp1").physics("rmm").feature("wnd1").set("NoCoilsPerSlot", {num2str(N_conductors)});  
-model.component("comp1").physics("rmm").feature("wnd1").set("N", {num2str(N_turns_per_slot)});                          
-model.component("comp1").physics("rmm").feature("wnd1").set("sigmaCoil", {num2str(mat.SlotCond.sigma)});            
-model.component("comp1").physics("rmm").feature("wnd1").set("AreaFrom", "FillingFactor");
-model.component("comp1").physics("rmm").feature("wnd1").set("FillingFactor", {num2str(Slot_filling_factor)});        
-model.component("comp1").physics("rmm").feature("wnd1").set("SectorSettingsType", "UserDefined");
-model.component("comp1").physics("rmm").feature("wnd1").set("nsectors", {num2str(N_simulated_sectors)});                
-model.component("comp1").physics("rmm").feature("wnd1").selection().set([coil1, coil2, coil3, coil_1, coil_2, coil_3]);
-model.component("comp1").physics("rmm").feature("wnd1").create("aPh1", "Phase");
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh1").label("Automatic Phase 1");
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh1").create("rcd1", "ReversedCurrentDirection", 2);
-model.component("comp1").physics("rmm").feature("wnd1").create("aPh2", "Phase");
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh2").label("Automatic Phase 2");
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh2").create("rcd1", "ReversedCurrentDirection", 2);
-model.component("comp1").physics("rmm").feature("wnd1").create("aPh3", "Phase");
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh3").label("Automatic Phase 3");
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh3").create("rcd1", "ReversedCurrentDirection", 2);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh1").selection().set([coil1, coil_1]);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh1").feature("rcd1").selection().set(coil_1);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh1").active(true);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh1").feature("rcd1").active(true);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh2").selection().set([coil2, coil_2]);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh2").feature("rcd1").selection().set(coil_2);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh2").active(true);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh2").feature("rcd1").active(true);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh3").selection().set([coil3, coil_3]);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh3").feature("rcd1").selection().set(coil_3);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh3").active(true);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh3").feature("rcd1").active(true);
-model.component("comp1").physics("rmm").feature("wnd1").feature().move("aPh1", 3);
-model.component("comp1").physics("rmm").feature("wnd1").feature().move("aPh2", 3);
-model.component("comp1").physics("rmm").feature("wnd1").feature().move("aPh3", 3);
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh1").set("alpha_o", "0[deg] ");            %check the order
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh2").set("alpha_o", "-120[deg]");
-model.component("comp1").physics("rmm").feature("wnd1").feature("aPh3").set("alpha_o", "-240[deg]");
-model.component("comp1").physics("rmm").feature("wnd1").create("loss1", "LossCalculation", 2);
+    % Lati radiali dello statore
+    for ii = 1:numel(bAdjS)
 
+        id = bAdjS(ii);
 
-% Vettori assegnazione periodic condition sui bordi
-tmp = [];
-tmp_rot = rot_boundary(:, 1:3);
-tmp_stat = stat_boundary(:, 1:3);
-tmp_righe_s = size(tmp_stat, 1);
-tmp_righe_r = size(tmp_rot, 1);
-AP_s = [];
-AP_r = [];  
+        dAdj = double(mphgetadj(model,geometryTag,'domain','boundary',id));
+        dAdj = unique(dAdj(:)');
 
-disk2 = model.component('comp1').selection('disk2').set('entitydim', 1);
-disk2 = model.component('comp1').selection('disk2').set('r', 0.01);
+        if numel(dAdj) ~= 1
+            continue
+        end
 
+        pnt = double(mphgetadj(model,geometryTag,'point','boundary',id));
+        pnt = unique(pnt(:)');
 
-% Definizione periodic condition statore (continuità/antiperiodicità)
-% note: ps = number of simmetric sectors electrically equivalent
-for kk = 1:tmp_righe_s
-    x = tmp_stat(kk,1);
-    y = tmp_stat(kk,2);
-    disk2.set('posx', x);
-    disk2.set('posy', y);
-    selNumber = disk2.entities();       
-    if tmp_stat(kk,3)==10
-        AP_s = horzcat(AP_s, selNumber);
+        xy = zeros(numel(pnt),2);
+
+        for jj = 1:numel(pnt)
+            coord = double(mphgetcoords(model,geometryTag,'point',pnt(jj)));
+            coord = coord(:);
+            xy(jj,:) = coord(1:2)';
+        end
+
+        dist1 = abs(xy(:,2));
+        proj1 = xy(:,1);
+
+        dist2 = abs(xy(:,1)*sin(sectorAngle)-xy(:,2)*cos(sectorAngle));
+        proj2 = xy(:,1)*cos(sectorAngle)+xy(:,2)*sin(sectorAngle);
+
+        if all(dist1 <= tolBnd) && all(proj1 >= -tolBnd)
+            bS1 = [bS1 id];
+        elseif all(dist2 <= tolBnd) && all(proj2 >= -tolBnd)
+            bS2 = [bS2 id];
+        end
+
     end
+
 end
 
-model.component('comp1').physics('rmm').create('pc1', 'PeriodicCondition', 1);
-model.component('comp1').physics('rmm').feature('pc1').selection().set(AP_s);
-if mod(geo.ps, 2)==0
-model.component('comp1').physics('rmm').feature('pc1').set('PeriodicType', 'Continuity');
-else
-model.component('comp1').physics('rmm').feature('pc1').set('PeriodicType', 'AntiPeriodicity');
-end
-model.component('comp1').physics('rmm').feature('pc1').label("Periodic Condition - Stator");
+bR1 = unique(bR1);
+bR2 = unique(bR2);
+bS1 = unique(bS1);
+bS2 = unique(bS2);
 
-% Definizione periodic condition rotor (continuità/antiperiodicità)
-for kk = 1:tmp_righe_r
-    x = tmp_rot(kk,1);
-    y = tmp_rot(kk,2);
-    %disp([x, y])
-    if isfinite(x) && isfinite(y)            %this loop prevents the crash caused by unreadble variable like "nah"
-        disk2.set('posx', x);                %i ignore the reason that leads to the creation of such variable in the mat file (.geo)
-        disk2.set('posy', y);                % with this loop there will be not problems anymore
-    else
-        %warning('Coordinata non valida: x=%g, y=%g. Salto questa selezione.', x, y)
-        continue;
+bRSides = unique([bR1 bR2]);
+bSSides = unique([bS1 bS2]);
+bSides = unique([bRSides bSSides]);
+
+
+% Interfaccia tra le due metà del traferro
+bAdjAgR = double(mphgetadj(model,geometryTag,'boundary','domain',dAgR));
+bAdjAgS = double(mphgetadj(model,geometryTag,'boundary','domain',dAgS));
+
+bAdjAgR = unique(bAdjAgR(:)');
+bAdjAgS = unique(bAdjAgS(:)');
+
+bAgR = [];
+bAgS = [];
+
+for ii = 1:numel(bAdjAgR)
+
+    id = bAdjAgR(ii);
+
+    pnt = double(mphgetadj(model,geometryTag,'point','boundary',id));
+    pnt = unique(pnt(:)');
+
+    xy = zeros(numel(pnt),2);
+
+    for jj = 1:numel(pnt)
+        coord = double(mphgetcoords(model,geometryTag,'point',pnt(jj)));
+        coord = coord(:);
+        xy(jj,:) = coord(1:2)';
     end
-    % disk2.set('posx', abs(x));
-    % disk2.set('posy', abs(y));
-    selNumber = disk2.entities();       
-    if tmp_rot(kk,3)==10
-        AP_r = horzcat(AP_r, selNumber);
+
+    radius = hypot(xy(:,1),xy(:,2));
+
+    if all(abs(radius-r_ag) <= tolBnd)
+        bAgR = [bAgR id];
     end
+
 end
 
-model.component('comp1').physics('rmm').create('pc2', 'PeriodicCondition', 1);
-model.component('comp1').physics('rmm').feature('pc2').selection().set(AP_r);
-if mod(geo.ps, 2)==0               
-model.component('comp1').physics('rmm').feature('pc2').set('PeriodicType', 'Continuity');
-else
-model.component('comp1').physics('rmm').feature('pc2').set('PeriodicType', 'AntiPeriodicity');
-end
-model.component('comp1').physics('rmm').feature('pc2').label("Periodic Condition - Rotor");
+for ii = 1:numel(bAdjAgS)
 
-% Definizione di Sector Symmetry su Air Gap                   
+    id = bAdjAgS(ii);
 
-model.component('comp1').physics('rmm').create('ssc1', 'SectorSymmetry', 1);
-model.component('comp1').physics('rmm').feature('ssc1').set('pairs', 'ap1');
-if mod(geo.ps, 2)==0
-model.component('comp1').physics('rmm').feature('ssc1').set('nsector', geo.p);
-model.component('comp1').physics('rmm').feature('ssc1').set('PeriodicType', 'Continuity');
-else
-model.component('comp1').physics('rmm').feature('ssc1').set('nsector', geo.p*2);
-model.component('comp1').physics('rmm').feature('ssc1').set('PeriodicType', 'AntiPeriodicity');
-end
-model.component('comp1').physics('rmm').feature('ssc1').set('constraintOptions', 'weakConstraints');
+    pnt = double(mphgetadj(model,geometryTag,'point','boundary',id));
+    pnt = unique(pnt(:)');
 
-% Definizione Arkkio Torque Calculation
-model.component('comp1').physics('rmm').create('ark1', 'ArkkioTorqueCalculation', 2);
+    xy = zeros(numel(pnt),2);
 
-% ============== Definizione Moving Mesh ============== %           
-T = [];
-tmp = rot_mat;
+    for jj = 1:numel(pnt)
+        coord = double(mphgetcoords(model,geometryTag,'point',pnt(jj)));
+        coord = coord(:);
+        xy(jj,:) = coord(1:2)';
+    end
 
-for kk = 1:tmp_rot_righe        
-    x = tmp(kk,1);
-    y = tmp(kk,2);
-    disk1.set('posx', x);
-    disk1.set('posy', y);   
-    selNumber = disk1.entities();
-    T = horzcat(T, selNumber);
+    radius = hypot(xy(:,1),xy(:,2));
+
+    if all(abs(radius-r_ag) <= tolBnd)
+        bAgS = [bAgS id];
+    end
+
 end
 
-model.component('comp1').common().create('rot1', 'RotatingDomain');
-model.component('comp1').common('rot1').selection().set(T);
-model.component('comp1').common('rot1').set('rotationType', 'rotationalVelocity');
-model.component('comp1').common('rot1').set('rotationalVelocityExpression', 'constantAngularVelocity');
-model.component('comp1').common('rot1').set('angularVelocity', w);
+bAgR = unique(bAgR);
+bAgS = unique(bAgS);
+bAg = unique([bAgR bAgS]);
 
 
+% Bore rotorico e statorico
+bBoreR = setdiff(bAdjAgR,unique([bAgR bRSides]));
+bBoreS = setdiff(bAdjAgS,unique([bAgS bSSides]));
 
-% ============== Definizione Circuito ============== % 
-% NOTE: feature CIRCUIT - not used anymore - x others pourposes can be implemented 
-%substituted by MULTIPHASE COILS
 
-% % import com.comsol.model.*
-% % import com.comsol.model.util.*
-% % model = mphload('syreDefaultMotor_solved.mph');
-% % model.physics('rmm').feature
+% Bordo esterno dello statore
+bndSta = geo.BLKLABELS.statore.boundary(:,1:3);
+pOutS = bndSta(all(isfinite(bndSta(:,1:2)),2) & bndSta(:,3)==0,1:2);
 
-% model.component('comp1').physics().create('cir', 'Circuit', 'geom1');
-% model.component('comp1').physics('cir').create('I1', 'CurrentSourceCircuit', -1);
-% model.component('comp1').physics('cir').create('I2', 'CurrentSourceCircuit', -1);
-% model.component('comp1').physics('cir').create('I3', 'CurrentSourceCircuit', -1);
-% model.component('comp1').physics('cir').create('termI1', 'ModelTerminalIV', -1);
-% model.component('comp1').physics('cir').create('termI2', 'ModelTerminalIV', -1);
-% model.component('comp1').physics('cir').create('termI3', 'ModelTerminalIV', -1);
-% model.component('comp1').physics('cir').feature('I2').setIndex('Connections', 1, 0, 0);
-% model.component('comp1').physics('cir').feature('I2').setIndex('Connections', 3, 1, 0);
-% model.component('comp1').physics('cir').feature('I3').setIndex('Connections', 1, 0, 0);
-% model.component('comp1').physics('cir').feature('I3').setIndex('Connections', 4, 1, 0);
-% model.component('comp1').physics('cir').feature('termI1').set('Connections', 2);
-% model.component('comp1').physics('cir').feature('termI2').set('Connections', 3);
-% model.component('comp1').physics('cir').feature('termI3').set('Connections', 4);
-% model.component('comp1').physics('cir').create('R1', 'Resistor', -1);
-% model.component('comp1').physics('cir').feature('R1').set('R', '100000 [Ω]');
-% model.component('comp1').physics('cir').feature('R1').setIndex('Connections', 1, 0, 0);
-% model.component('comp1').physics('cir').feature('R1').setIndex('Connections', 0, 1, 0);
-% model.component('comp1').physics('cir').feature('I1').set('sourceType', 'SineSource');
-% model.component('comp1').physics('cir').feature('I2').set('sourceType', 'SineSource');
-% model.component('comp1').physics('cir').feature('I3').set('sourceType', 'SineSource');
-% model.component('comp1').physics('cir').feature('I1').set('value', [num2str(Imod) ' [A]']);
-% model.component('comp1').physics('cir').feature('I1').set('freq', [num2str(freq) ' [Hz]']);
-% model.component('comp1').physics('cir').feature('I1').set('phase', [num2str(theta_i)]);
-% model.component('comp1').physics('cir').feature('I2').set('value', [num2str(Imod) ' [A]']);
-% model.component('comp1').physics('cir').feature('I2').set('freq', [num2str(freq) ' [Hz]']);
-% model.component('comp1').physics('cir').feature('I2').set('phase', [num2str(theta_i) ' - 120*pi/180']);
-% model.component('comp1').physics('cir').feature('I3').set('value', [num2str(Imod) ' [A]']);
-% model.component('comp1').physics('cir').feature('I3').set('freq', [num2str(freq) ' [Hz]']);
-% model.component('comp1').physics('cir').feature('I3').set('phase', [num2str(theta_i) ' + 120*pi/180']);
+comp.selection.create('findBnd','Disk');
+findBnd = comp.selection('findBnd');
+findBnd.set('entitydim',1);
+findBnd.set('r',max(1e-6,geo.g/100));
 
-% ============== Costruzione Mesh ============== %
-model.component("comp1").mesh("mesh1").automatic(true);
-model.component('comp1').mesh('mesh1').autoMeshSize(3);    % mesh size (1-10) 1 = extremely fine; 10 = extremely coarse 
-model.component('comp1').mesh('mesh1').run();
+bOutS = [];
 
-% ============== Salvataggio Modello Inizzializzato ============== %
+for ii = 1:size(pOutS,1)
+    findBnd.set('posx',pOutS(ii,1));
+    findBnd.set('posy',pOutS(ii,2));
+    id = double(findBnd.entities());
+    bOutS = [bOutS id(:)'];
+end
 
-geo.BC_fe_s = BC_fe_s;
-geo.BC_fe_r = BC_fe_r;
-geo.BC_pm = BC_pm;
-geo.Bar = Bar;
+bOutS = setdiff(unique(bOutS),unique([bSSides bBoreS bAgS]));
 
-mphsave(model, [Comsol_dir nameIn(1:end-4), '.mph']);
+
+% Interfaccia dello shaft
+bShaft = [];
+
+if ~isempty(dShaft)
+    bShaft = double(mphgetadj(model,geometryTag,'boundary','domain',dShaft));
+    bShaft = setdiff(unique(bShaft(:)'),bRSides);
+end
+
+
+% Interfaccia interna dello sleeve
+bSleeveIn = [];
+
+if ~isempty(dSleeve)
+    bSleeveIn = double(mphgetadj(model,geometryTag,'boundary','domain',dSleeve));
+    bSleeveIn = setdiff(unique(bSleeveIn(:)'),unique([bRSides bBoreR]));
+end
+
+
+% Interfaccia tra polo rotorico e bobina rotorica
+bPoleCoilFe = [];
+bPoleCoilCu = [];
+
+if ~isempty(dFeR) && ~isempty(dCuR)
+
+    bAdjFeR = double(mphgetadj(model,geometryTag,'boundary','domain',dFeR));
+    bAdjCuR = double(mphgetadj(model,geometryTag,'boundary','domain',dCuR));
+
+    bAdjFeR = unique(bAdjFeR(:)');
+    bAdjCuR = unique(bAdjCuR(:)');
+
+end
+
+
+% Contatto tra bobina rotorica e filler rotorico
+bCuFillR = [];
+
+if ~isempty(dCuR) && ~isempty(dFillR)
+
+    if ~exist('bAdjCuR','var')
+        bAdjCuR = double(mphgetadj(model,geometryTag,'boundary','domain',dCuR));
+        bAdjCuR = unique(bAdjCuR(:)');
+    end
+
+    bAdjFillR = double(mphgetadj(model,geometryTag,'boundary','domain',dFillR));
+    bAdjFillR = unique(bAdjFillR(:)');
+
+    bCuFillR = intersect(bAdjCuR,bAdjFillR);
+
+end
+
+% Lato bobina: esclude filler e lati radiali
+if ~isempty(bAdjCuR)
+    bPoleCoilCu = setdiff(bAdjCuR,unique([bCuFillR bRSides]));
+end
+
+% Lato ferro: esclude bordi che non possono appartenere al contatto
+if ~isempty(bAdjFeR)
+    bPoleCoilFe = setdiff(bAdjFeR,unique([bRSides bBoreR bShaft bSleeveIn bAgR]));
+end
+
+
+% Creazione delle selections
+selBnd = {
+    'sideRot1',    'bndR1',        'Rotor sector side 1',             bR1;
+    'sideRot2',    'bndR2',        'Rotor sector side 2',             bR2;
+    'sideRot',     'bndRSides',    'Rotor sector sides',              bRSides;
+    'boreRot',     'bndBoreR',     'Rotor bore',                      bBoreR;
+    'shaft',       'bndShaft',     'Shaft interface',                 bShaft;
+    'sleeveInRot', 'bndSleeveIn',  'Rotor sleeve inner interface',    bSleeveIn;
+    'poleCoilRotFe', 'bndPoleCoilFe', 'Rotor pole-winding interface - iron',    bPoleCoilFe;
+    'poleCoilRotCu', 'bndPoleCoilCu', 'Rotor pole-winding interface - winding', bPoleCoilCu;
+    'coilFillRot', 'bndCuFillR',   'Rotor winding-fill interface',    bCuFillR;
+
+    'sideSta1',    'bndS1',        'Stator sector side 1',            bS1;
+    'sideSta2',    'bndS2',        'Stator sector side 2',            bS2;
+    'sideSta',     'bndSSides',    'Stator sector sides',             bSSides;
+    'boreSta',     'bndBoreS',     'Stator bore',                     bBoreS;
+    'outerSta',    'bndOutS',      'Stator outer boundary',           bOutS;
+
+    'sideAll',     'bndSides',     'All sector sides',                bSides;
+    'airGapRot',   'bndAgR',       'Rotor air-gap interface',         bAgR;
+    'airGapSta',   'bndAgS',       'Stator air-gap interface',        bAgS;
+    'airGap',      'bndAg',        'Air-gap interfaces',              bAg;
+    };
+
+for ii = 1:size(selBnd,1)
+
+    if ~isempty(selBnd{ii,4})
+
+        fld = selBnd{ii,1};
+        tag = selBnd{ii,2};
+
+        comp.selection.create(tag,'Explicit').geom(1);
+        comp.selection(tag).label(selBnd{ii,3});
+        comp.selection(tag).set(selBnd{ii,4});
+
+        geo.infoComsol.tags.selection.boundary.(fld) = tag;
+
+    end
+
+end
+
+comp.selection.remove('findBnd');
+
+
+%  ========================================================================
+%  Raggruppamento delle selections
+%  ========================================================================
+
+grpDomTag = 'grpDom';
+grpBndTag = 'grpBnd';
+
+model.nodeGroup.create(grpDomTag,'Definitions',componentTag);
+model.nodeGroup(grpDomTag).set('type','selection');
+model.nodeGroup(grpDomTag).label('Domain selections');
+
+fldDom = fieldnames(geo.infoComsol.tags.selection.domain);
+
+for ii = 1:numel(fldDom)
+    tag = geo.infoComsol.tags.selection.domain.(fldDom{ii});
+    model.nodeGroup(grpDomTag).add('selection',tag);
+end
+
+model.nodeGroup.create(grpBndTag,'Definitions',componentTag);
+model.nodeGroup(grpBndTag).set('type','selection');
+model.nodeGroup(grpBndTag).label('Boundary selections');
+
+fldBnd = fieldnames(geo.infoComsol.tags.selection.boundary);
+
+for ii = 1:numel(fldBnd)
+    tag = geo.infoComsol.tags.selection.boundary.(fldBnd{ii});
+    model.nodeGroup(grpBndTag).add('selection',tag);
+end
+
+
+%  ========================================================================
+%  Controllo finale dei materiali
+%  ========================================================================
+
+matDom = [dAg dFeR dCuR dPM dFillR dSleeve dShaft dFeS dCuS dFillS];
+matDom = matDom(:)';
+
+allDom = 1:double(geom.getNDomains());
+
+matOverlap = numel(matDom) ~= numel(unique(matDom));
+missDom = setdiff(allDom,unique(matDom));
+
+
+%  ========================================================================
+%  Aggiornamento infoComsol
+%  ========================================================================
+
+geo.infoComsol.tags.group.domain = grpDomTag;
+geo.infoComsol.tags.group.boundary = grpBndTag;
+
+geo.infoComsol.geometry.numberOfDomains = double(geom.getNDomains());
+geo.infoComsol.geometry.numberOfBoundaries = double(geom.getNBoundaries());
+
+geo.infoComsol.check.materialOverlap = matOverlap;
+geo.infoComsol.check.missingMaterialDomains = missDom;
+geo.infoComsol.check.materialsComplete = ~matOverlap && isempty(missDom);
+geo.infoComsol.check.numberOfDomainSelections = numel(fldDom);
+geo.infoComsol.check.numberOfBoundarySelections = numel(fldBnd);
+
+geo.infoComsol.files.model = modelFile;
+
+if matOverlap
+    error('draw_motor_in_COMSOL:MaterialOverlap','Uno o più domini risultano assegnati a materiali differenti.');
+end
+
+if ~isempty(missDom)
+    error('draw_motor_in_COMSOL:MissingMaterial','I domini %s non hanno un materiale assegnato.',mat2str(missDom));
+end
+
+mphsave(model,modelFile);
+%mphlaunch(model)
+
+end

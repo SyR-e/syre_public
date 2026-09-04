@@ -48,6 +48,9 @@ mat.Rotor.BH        = tmp.BH;
 mat.Rotor.E         = tmp.E;
 mat.Rotor.MatName   = tmp.MatName;
 % mat.mu = tmp.mu;
+if isfield(tmp,'nu')
+    mat.Rotor.nu = tmp.nu;
+end
 
 %% slot conductor
 tmp = material_properties_conductor(dataSet.SlotMaterial);
@@ -74,6 +77,11 @@ mat.BarCond.sigma   = tmp.sigma;
 mat.BarCond.kgm3    = tmp.kgm3;
 mat.BarCond.MatName = tmp.MatName;
 mat.BarCond.alpha   = tmp.alpha;
+if isfield(tmp,'nu')
+    mat.BarCond.E  = tmp.E;
+    mat.BarCond.nu = tmp.nu;
+end
+
 
 %% rotor PM
 tmp = material_properties_layer(dataSet.FluxBarrierMaterial);
@@ -81,13 +89,14 @@ if ~isfield(tmp,'kgm3')
     error('Select a correct barrier material')
 end
 mat.LayerMag.kgm3 = tmp.kgm3;
-if isfield(tmp,'BH')
+
+
+%MODIFICHE per vedere se funziona con XFEMM oppure FEMM
+% disp(tmp.MatName)
+if strcmp(tmp.MatName,'AlNiCo5_demag') || strcmp(tmp.MatName,'AlNiCo5_demag_ARNOLD') 
     mat.LayerMag.BH   = tmp.BH;
-    mat.LayerMag.Br   = 0;
-    mat.LayerMag.Hc   = 0;
     mat.LayerMag.Hci  = tmp.Hci;
     mat.LayerMag.Bnom = tmp.Bnom;
-else
     mat.LayerMag.Br      = tmp.Br;
     mat.LayerMag.Hc      = tmp.Hc;
     mat.LayerMag.mu      = tmp.mu;
@@ -96,8 +105,30 @@ else
     if isfield(tmp,'temp')
         mat.LayerMag.temp    = tmp.temp;
     end
-    
+else
+    if isfield(tmp,'BH')
+        mat.LayerMag.BH   = tmp.BH;
+        mat.LayerMag.Br   = 0;
+        mat.LayerMag.Hc   = 0;
+        mat.LayerMag.Hci  = tmp.Hci;
+        mat.LayerMag.Bnom = tmp.Bnom;
+    else
+        mat.LayerMag.Br      = tmp.Br;
+        mat.LayerMag.Hc      = tmp.Hc;
+        mat.LayerMag.mu      = tmp.mu;
+        mat.LayerMag.kgm3    = tmp.kgm3;
+        mat.LayerMag.sigmaPM = tmp.sigmaPM;
+        if isfield(tmp,'temp')
+            mat.LayerMag.temp    = tmp.temp;
+        end
+    end
+
+
 end
+
+
+
+
 mat.LayerMag.MatName = tmp.MatName;
 %mat.MatList.barrier = tmp.MatList;
 
@@ -113,6 +144,16 @@ mat.LayerAir.Br = tmp.Br;
 mat.LayerAir.Hc = tmp.Hc;
 mat.LayerAir.mu = tmp.mu;
 mat.LayerAir.MatName = 'Air';
+
+%% rotor Ideal Barrier
+tmp = material_properties_layer('IdealBarrier');
+% disp('assign_mat_prop okay')
+mat.LayerIdealBarrier.kgm3 = tmp.kgm3;
+mat.LayerIdealBarrier.Br = tmp.Br;
+mat.LayerIdealBarrier.Hc = tmp.Hc;
+mat.LayerIdealBarrier.mu = tmp.mu/1e6;
+mat.LayerIdealBarrier.MatName = 'IdealBarrier';
+
 %% shaft
 tmp = material_properties_iron(dataSet.ShaftMaterial);
 if ~isfield(tmp,'kgm3')

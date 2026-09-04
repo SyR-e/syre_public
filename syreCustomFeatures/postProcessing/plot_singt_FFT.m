@@ -59,22 +59,29 @@ end
 pathfolder=checkPathSyntax([pathname folder '\']);
 
 % torque plot
-[Tcont,Tharm] = plot_figure_FFT_singt(th,abs(t),50,'$\theta_e$ [$^\circ$]','$T$ [Nm]');
-saveas(gcf,[pathfolder 'Torque.fig']);
+[Tcont,Tharm] = plot_figure_FFT_singt(th,abs(t),50,'$\theta_r$ ($^\circ$)','$T$ (Nm)');
+hfig(1) = gcf;
 save([pathfolder 'fft_out'],'out','Tcont','Tharm','th','t');
 if exist('geo','var')
     save([pathfolder 'fft_out'],'geo','per','-append');
 end
 
 % flux plot
-plot_figure_FFT_singt(th,abs(fd+j*fq),50,'$\theta_e$ [$^\circ$]','$|\lambda_{dq}|$ [Vs]')
-saveas(gcf,[pathfolder 'Flux.fig']);
+plot_figure_FFT_singt(th,abs(fd+j*fq),50,'$\theta_r$ ($^\circ$)','$|\lambda_{dq}|$ (Vs)')
+hfig(2) = gcf;
 
-plot_figure_FFT_singt(th,fd,50,'$\theta_e$ [$^\circ$]','$\lambda_{d}$ [Vs]')
-saveas(gcf,[pathfolder 'FluxD.fig']);
+plot_figure_FFT_singt(th,fd,50,'$\theta_r$ ($^\circ$)','$\lambda_{d}$ (Vs)')
+hfig(3) = gcf;
 
-plot_figure_FFT_singt(th,fq,50,'$\theta_e$ [$^\circ$]','$\lambda_{q}$ [Vs]')
-saveas(gcf,[pathfolder 'FluxQ.fig']);
+plot_figure_FFT_singt(th,fq,50,'$\theta_r$ ($^\circ$)','$\lambda_{q}$ (Vs)')
+hfig(4) = gcf;
 
 
+set(hfig(1),'FileName',[pathfolder 'Torque.fig'],'Name','Torque')
+set(hfig(2),'FileName',[pathfolder 'Flux.fig'],'Name','Flux')
+set(hfig(3),'FileName',[pathfolder 'FluxD.fig'],'Name','FluxD')
+set(hfig(4),'FileName',[pathfolder 'FluxQ.fig'],'Name','FluxQ')
 
+for ii=1:length(hfig)
+    savePrintFigure(hfig(ii))
+end

@@ -29,6 +29,7 @@ if isfield(dataIn,'flagFEAfix')
     axis_type  = geo.axisType;
     flagSave   = 0;
     RQ         = dataIn.RQ;
+    dataIn.XFEMMsimulation = geo.XFEMMsimulation;
 else
     flagFEAfix = 0;
 end

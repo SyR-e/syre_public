@@ -31,7 +31,7 @@ matFBS  = mat;
 hs      = geo.hs;
 g0      = geo.g;
 
-if ~strcmp(geo.RotType,'SPM') || ~strcmp(geo.RotType,'Spoke-type') || ~strcmp(geo.RotType,'SPM-Halbach')
+if ~strcmp(geo.RotType,'SPM') || ~strcmp(geo.RotType,'Spoke-type') || ~strcmp(geo.RotType,'SPM-Halbach')  %% Nota: condizione sempre vera!
     mat.LayerMag.Br = mat.LayerMag.Br.*ones(1,geo.nlay);   % replicate Br in case it is scalar
 end
 
@@ -81,7 +81,7 @@ if th_FBS==0
             rotor(1+nRow_mat*(ii-1):nRow_mat*ii,:) = rotorTmp;
 
             % labels
-            if strcmp(RotType,'EESM')
+            if strcmp(RotType,'EESM') || strcmp(RotType,'Hybrid')
                 [xtemp,ytemp] = rot_point(xy0(:,1),xy0(:,2),(ii-1)*pi/p);
                 magdir = atan2(xy0(:,7),xy0(:,6))+((ii-1)*pi/p-eps)+(cos((ii-2)*pi)+1)/2*pi;
                 if ~mod(ii,2)
@@ -89,13 +89,32 @@ if th_FBS==0
                 else
                     BarCenter(1+nRow_xy*(ii-1):nRow_xy*ii,:) = [xtemp, ytemp, xy0(:,3:5), cos(magdir), sin(magdir), xy0(:,8)];
                 end
-                if ii<ps
-                    BarCenter(4*ii-1,:) = NaN*ones(1,nCol_xy);
-                else
-                    if ps == 2*p
-                        BarCenter(end-1,:) = NaN*ones(1,nCol_xy);
+
+                if strcmp(RotType,'EESM') %serve a non duplicare troppe etichette Air 1 nel caso EESM
+                    if ii<ps
+                        BarCenter(4*ii-1,:) = NaN*ones(1,nCol_xy);
+                    else
+                        if ps == 2*p
+                            BarCenter(end-1,:) = NaN*ones(1,nCol_xy);
+                        end
                     end
                 end
+
+                if strcmp(RotType,'Hybrid')
+                    if ii<ps
+                        % Dobbiamo cancellare la 4° etichetta di ogni blocco
+                        % nRow_xy è 5 (bobinaT, bobinaB, ariaT, ariaB, magnete)
+                        % L'indice è (ii-1) * nRow_xy + 4
+                        index_da_cancellare = (ii - 1) * nRow_xy + 4;
+                        BarCenter(index_da_cancellare, :) = NaN*ones(1,nCol_xy);
+                    else
+                        if ii == 2*p %ultimo step
+                            index_da_cancellare = (ii - 1) * nRow_xy + 4;
+                            BarCenter(index_da_cancellare, :) = NaN*ones(1,nCol_xy);
+                        end
+                    end
+                end
+
             else
                 [xtemp,ytemp] = rot_point(xy0(:,1),xy0(:,2),(ii-1)*pi/p);
                 magdir = atan2(xy0(:,7),xy0(:,6))+((ii-1)*pi/p-eps)+(cos((ii-2)*pi)+1)/2*pi;
@@ -134,7 +153,7 @@ end
 % complete the matrix geometry (outer rotor, shaft and pole sides if needed)
 if strcmp(RotType,'SPM') || strcmp(geo.RotType,'SPM-Halbach')
     re = r-lm-hs;
-elseif strcmp(RotType,'EESM')
+elseif strcmp(RotType,'EESM') || strcmp(RotType,'Hybrid')
     re = geo.r-hs;
 else
     re = r-hs;
@@ -160,7 +179,7 @@ if (ps<2*p)
     xre3 = re*cos(pi/p*ps);
     yre3 = re*sin(pi/p*ps);
     
-    if strcmp(RotType,'EESM')
+    if strcmp(RotType,'EESM') || strcmp(RotType,'Hybrid')
         [xp3L,yp3L] = rot_point(temp.xp3,temp.yp3,-pi/p/2);
         [xp3U,yp3U] = rot_point(xp3L,yp3L,pi/p*ps);
         [xp7U,yp7U] = rot_point(temp.xp7(1),temp.yp7(1),pi/p*ps/2);
@@ -168,7 +187,7 @@ if (ps<2*p)
         if xre3 > xp7U
             flag = 0;
             while flag == 0
-            [xp7U,yp7U] = rot_point(temp.xp7(ii),temp.yp7(ii),pi/p*ps/2);
+                [xp7U,yp7U] = rot_point(temp.xp7(ii),temp.yp7(ii),pi/p*ps/2);
                 if (yre3-yp7U)/(xre3-xp7U) - yp7U/xp7U < tand(18) % minimum mesh angle on FEMM is 15° -> 18° for extra margin
                     ii = ii + 1;
                 else
@@ -195,11 +214,11 @@ if (ps<2*p)
             ];
         if ps > 1
             for ii = 1:1:(ps-1)
-            [xA,yA] = rot_point(temp.xp7(1),temp.yp7(1),pi/p/2+(ii-1)*pi/p);
-            [xB,yB] = rot_point(temp.xp7(1),temp.yp7(1),pi/p/2+(ii-1)*pi/p+(1-geo.dalpha_pu)*pi/p);
-            rotor = [rotor
-                xA yA xB yB NaN NaN 0 codMatAirRot indexEle+3+ii
-                ];
+                [xA,yA] = rot_point(temp.xp7(1),temp.yp7(1),pi/p/2+(ii-1)*pi/p);
+                [xB,yB] = rot_point(temp.xp7(1),temp.yp7(1),pi/p/2+(ii-1)*pi/p+(1-geo.dalpha_pu)*pi/p);
+                rotor = [rotor
+                    xA yA xB yB NaN NaN 0 codMatAirRot indexEle+3+ii
+                    ];
             end
         end
         if hs>0
@@ -262,7 +281,7 @@ else
     yra2 = 0;
     xra3 = -Ar;
     yra3 = 0;
-    if strcmp(RotType,'EESM')
+    if strcmp(RotType,'EESM') || strcmp(RotType,'Hybrid')
         rotor = [rotor
             0 0 xra2 yra2 xra3 yra3 1 codMatShaft indexEle+1
             0 0 xra3 yra3 xra2 yra2 1 codMatShaft indexEle+1
@@ -309,6 +328,9 @@ elseif strcmp(RotType,'Spoke-type')
     BarCenter = [BarCenter; xtemp ytemp codMatFeRot,fem.res,1,NaN,NaN,NaN];
 elseif strcmp(RotType,'EESM')
     [xtemp,ytemp] = rot_point(mean([Ar Ar+geo.lyr]),0,pi/2/p);
+    BarCenter = [BarCenter; xtemp ytemp codMatFeRot,fem.res,1,NaN,NaN,NaN];
+elseif strcmp(RotType,'Hybrid')
+    [xtemp,ytemp] = rot_point(mean([(Ar+geo.h_pm+geo.o_pm) re]),0,pi/2/p); %Ar - internal rotor radius lyr - yoke rotor
     BarCenter = [BarCenter; xtemp ytemp codMatFeRot,fem.res,1,NaN,NaN,NaN];
 else
     pointVect = sort([geo.Ar geo.B1k geo.B2k geo.r]);
@@ -367,7 +389,7 @@ if strcmp(geo.RotType,'SPM') || strcmp(geo.RotType,'SPM-Halbach')
     yRotAirBound2 = NaN;
     [xSleeveBound1,ySleeveBound1] = rot_point(mean([r-hs,r]),0,-90/p*pi/180);
     [xSleeveBound2,ySleeveBound2] = rot_point(mean([r-hs,r]),0,(ps-1/2)*180/p*pi/180);
-elseif strcmp(geo.RotType,'EESM')
+elseif strcmp(geo.RotType,'EESM') || strcmp(geo.RotType,'Hybrid') %%assumiamo la stessageometria e gli stessy boundary
     [xRotBound1,yRotBound1] = rot_point(mean([Ar,Ar+geo.lyr]),0,-90/p*pi/180);
     [xRotBound2,yRotBound2] = rot_point(mean([Ar,Ar+geo.lyr]),0,(ps-1/2)*180/p*pi/180);
     [xRotAirBound1,yRotAirBound1] = rot_point(mean([Ar+geo.lyr,r-hs]),0,-90/p*pi/180);

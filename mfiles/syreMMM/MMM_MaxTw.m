@@ -77,6 +77,9 @@ TwMap.F0      = nan(size(nmap));  % Flusso a vuoto [Vs]
 TwMap.VUGO    = nan(size(nmap));  % Tensione a vuoto [Vs]
 TwMap.ASCsafe = nan(size(nmap));  % Safe area for ASC
 TwMap.UGOsafe = nan(size(nmap));  % Safe area for UGO
+if strcmp(motorModel.data.motorType,'EE')
+    TwMap.Vr      = nan(size(nmap));  % Rotor voltage [V]
+end
 
 
 if (nargin==1)||isempty(hax)
@@ -86,7 +89,7 @@ if (nargin==1)||isempty(hax)
     hax = axes('OuterPosition',[0 0 1 1]);
 end
 
-if isnumeric(hax)&&~isnan(hax)
+if ~isempty(hax)
     cla(hax)
 
     if min(nVect)~=max(nVect)
@@ -134,7 +137,7 @@ if ~strcmp(motorModel.data.motorType,'EE')
         fprintf(' %06.2f%%',0)
         for ii=1:numel(Tmap)
             out{ii} = calcTnPoint(motorModelFine,Tmap(ii),nmap(ii));
-            if ~isnan(hax)
+            if ~isempty(hax)
                 if ~isnan(out{ii}.T)
                     xdata = [get(hg,'XData') nmap(ii)];
                     ydata = [get(hg,'YData') Tmap(ii)];
@@ -197,72 +200,6 @@ if ~strcmp(motorModel.data.motorType,'EE')
         TwMap.UGOsafe(ii) = out{ii}.UGOsafe;
     end
 
-
-
-
-
-
-
-    % for ii=1:numel(TwMap.n)
-    %
-    %     [out] = calcTnPoint(motorModelFine,Tmap(ii),nmap(ii));
-    %
-    %     % update figure and matrices
-    %     if ~isnan(out.T)
-    %         xdata = [get(hg,'XData') nmap(ii)];
-    %         ydata = [get(hg,'YData') Tmap(ii)];
-    %         set(hg,'XData',xdata,'YData',ydata);
-    %         drawnow();
-    %
-    %         TwMap.Tout(ii)    = out.T;
-    %         TwMap.Id(ii)      = out.Id;
-    %         TwMap.Iq(ii)      = out.Iq;
-    %         TwMap.Fd(ii)      = out.Fd;
-    %         TwMap.Fq(ii)      = out.Fq;
-    %         TwMap.Tem(ii)     = out.Tem;
-    %         TwMap.Vo(ii)      = out.Vo;
-    %         TwMap.Io(ii)      = out.Io;
-    %         TwMap.Im(ii)      = out.Im;
-    %         TwMap.Iph(ii)     = out.Iph;
-    %         TwMap.Vph(ii)     = out.Vph;
-    %         TwMap.PF(ii)      = out.PF;
-    %         TwMap.P(ii)       = out.P;
-    %         TwMap.Ploss(ii)   = out.Ploss;
-    %         TwMap.Pjs(ii)     = out.Pjs;
-    %         TwMap.PjDC(ii)    = out.PjDC;
-    %         TwMap.PjAC(ii)    = out.PjAC;
-    %         TwMap.Pfe(ii)     = out.Pfe;
-    %         TwMap.Pfes(ii)    = out.Pfes;
-    %         TwMap.Pfer(ii)    = out.Pfer;
-    %         TwMap.Ppm(ii)     = out.Ppm;
-    %         TwMap.Pjr(ii)     = out.Pjr;
-    %         TwMap.Pmech(ii)   = out.Pmech;
-    %         TwMap.Eo(ii)      = out.Eo;
-    %         TwMap.Ife(ii)     = out.Ife;
-    %         TwMap.slip(ii)    = out.slip;
-    %         TwMap.Ir(ii)      = out.Ir;
-    %         TwMap.Rs(ii)      = out.Rs;
-    %         TwMap.dTpp(ii)    = out.dTpp;
-    %         TwMap.eff(ii)     = out.eff;
-    %         TwMap.Idemag(ii)  = out.Idemag;
-    %         TwMap.IHWC(ii)    = out.IHWC;
-    %         TwMap.F0(ii)      = out.F0;
-    %         TwMap.VUGO(ii)    = out.VUGO;
-    %         TwMap.ASCsafe(ii) = out.ASCsafe;
-    %         TwMap.UGOsafe(ii) = out.UGOsafe;
-    %     else
-    %         xdata = [get(hr,'XData') nmap(ii)];
-    %         ydata = [get(hr,'YData') Tmap(ii)];
-    %         set(hr,'XData',xdata,'YData',ydata);
-    %         drawnow();
-    % %         pause(0.01);
-    %     end
-    %
-    %     fprintf('\b\b\b\b\b\b\b')
-    %     fprintf('%06.2f%%',ii/numel(TwMap.n)*100)
-    %
-    % end
-
     disp(' ')
     disp('Maps Evaluated');
 
@@ -270,17 +207,32 @@ if ~strcmp(motorModel.data.motorType,'EE')
 
     %TwMap.dTpp = interp2(motorModel.FluxMap_dq.Id,motorModel.FluxMap_dq.Iq,motorModel.FluxMap_dq.dTpp,TwMap.Id,TwMap.Iq);
 
+else
+    if strcmp(TwData.SkinEffectFlag,'Yes')
+        disp('Skin Effect yet not included in Efficiency Maps')
+    end
+    [out,TwMap] = efficiency_map3D(motorModel,TwData);
+    
+    pathname = motorModel.data.pathname;
+    motName = motorModel.data.motorName;
+    resFolder = checkPathSyntax([motName '_results\MMM results\' 'TwMap_' datestr(now,30) '\']);
+
+    resFolderOut = [pathname resFolder];
+    saveFlag=1;
+end
+
     TwMap.limits.n    = unique(TwMap.n)';
     TwMap.limits.Tmax = max(TwMap.Tout);
     TwMap.limits.Tmax(TwMap.limits.Tmax<0) = 0;
     TwMap.limits.Tmin = min(TwMap.Tout);
     TwMap.limits.Tmin(TwMap.limits.Tmin>0) = 0;
 
+    PwMap = MMM_effyMap_Torque2Power(TwMap);
     %% plot results
 
     pathname = motorModel.data.pathname;
     motName = motorModel.data.motorName;
-    resFolder = checkPathSyntax([motName '_results\MMM results\' 'TwMap_' datestr(now,30) '\']);
+    resFolder = checkPathSyntax([motName '_results\MMM results\' 'TwMap_' datestr(now,30) '_' motorModel.TnSetup.Control '\']);
 
     resFolderOut = [pathname resFolder];
 
@@ -311,7 +263,7 @@ if ~strcmp(motorModel.data.motorType,'EE')
     figNames{23} = 'ASC HWC current';
     figNames{24} = 'No load voltage';
     figNames{25} = 'Turn-off safe state';
-
+    
     flagPlot = 1:1:numel(figNames);
     if strcmp(TwData.IronLossFlag,'No')
         flagPlot(8)  = 0;
@@ -329,20 +281,25 @@ if ~strcmp(motorModel.data.motorType,'EE')
         flagPlot(6)  = 0;
         flagPlot(7)  = 0;
     end
-    if ~strcmp(motorType,'IM')
+    if ~strcmp(motorType,'IM') && ~strcmp(motorType,'EE')
         flagPlot(17) = 0;
         flagPlot(18) = 0;
         flagPlot(19) = 0;
     else
-        flagPlot(9)  = 0;
-        flagPlot(10) = 0;
         flagPlot(11) = 0;
+        flagPlot(16) = 0;
         flagPlot(20) = 0;
         flagPlot(21) = 0;
         flagPlot(22) = 0;
         flagPlot(23) = 0;
         flagPlot(24) = 0;
         flagPlot(25) = 0;
+        if strcmp(motorType,'IM')
+            flagPlot(9)  = 0;
+            flagPlot(10) = 0;
+        else
+            flagPlot(18) = 0;
+        end
     end
 
     flagPlot = flagPlot(flagPlot~=0);
@@ -439,27 +396,29 @@ if ~strcmp(motorModel.data.motorType,'EE')
                     contourf(TwMap.n,TwMap.T,TwMap.dTpp,'ShowText','on');
                     colorbar
                 case 21
-                    title('Active Short Circuit safe state area')
-                    plot(TwMap.n(TwMap.ASCsafe==1),TwMap.T(TwMap.ASCsafe==1),'g.')
-                    plot(TwMap.n(TwMap.ASCsafe==0),TwMap.T(TwMap.ASCsafe==0),'r.')
+                    title('Active Short-Circuit safe state area')
+                    plot(TwMap.n(TwMap.ASCsafe==1),TwMap.T(TwMap.ASCsafe==1),'g.','DisplayName','ASC safe')
+                    plot(TwMap.n(TwMap.ASCsafe==0),TwMap.T(TwMap.ASCsafe==0),'r.','DisplayName','ASC unsafe (demag.)')
+                    legend('show','Location','northeast');
                 case 22
-                    title('Uncontrolled Generator Operation safe state area')
-                    plot(TwMap.n(TwMap.UGOsafe==1),TwMap.T(TwMap.UGOsafe==1),'g.')
-                    plot(TwMap.n(TwMap.UGOsafe==0),TwMap.T(TwMap.UGOsafe==0),'r.')
+                    title('Open-Circuit safe state area')
+                    plot(TwMap.n(TwMap.UGOsafe==1),TwMap.T(TwMap.UGOsafe==1),'g.','DisplayName','OC safe')
+                    plot(TwMap.n(TwMap.UGOsafe==0),TwMap.T(TwMap.UGOsafe==0),'r.','DisplayName','OC unsafe (UGO)')
+                    legend('show','Location','northeast');
                 case 23
                     title('Active Short Circuit Hyper-Worst-Case current (Apk)')
                     contourf(TwMap.n,TwMap.T,TwMap.IHWC,'ShowText','on');
                     colorbar
                 case 24
-                    title('Line no-load voltage in UGO [Vpk]')
+                    title('Open-circuit line voltage (Vpk)')
                     contourf(TwMap.n,TwMap.T,TwMap.VUGO,'ShowText','on');
                     colorbar
                 case 25
                     title('Turn-off safe state')
-                    plot(TwMap.n(TwMap.UGOsafe==1),TwMap.T(TwMap.UGOsafe==1),'go','DisplayName','UGO safe')
-                    plot(TwMap.n(TwMap.UGOsafe==0),TwMap.T(TwMap.UGOsafe==0),'ro','DisplayName','UGO unsafe')
+                    plot(TwMap.n(TwMap.UGOsafe==1),TwMap.T(TwMap.UGOsafe==1),'go','DisplayName','OC safe')
+                    plot(TwMap.n(TwMap.UGOsafe==0),TwMap.T(TwMap.UGOsafe==0),'ro','DisplayName','OC unsafe (UGO)')
                     plot(TwMap.n(TwMap.ASCsafe==1),TwMap.T(TwMap.ASCsafe==1),'g.','DisplayName','ASC safe')
-                    plot(TwMap.n(TwMap.ASCsafe==0),TwMap.T(TwMap.ASCsafe==0),'r.','DisplayName','ASC unsafe')
+                    plot(TwMap.n(TwMap.ASCsafe==0),TwMap.T(TwMap.ASCsafe==0),'r.','DisplayName','ASC unsafe (demag.)')
                     legend('show','Location','northeast');
             end
             if flagPlot(ii)>1
@@ -468,37 +427,42 @@ if ~strcmp(motorModel.data.motorType,'EE')
             end
         end
 
-        ii=ii+1;
+        if ~strcmp(motorType,'EE')
+            ii=ii+1;
 
-        hfig(ii) = figure();
-        figSetting();
-        set(hfig(ii),'FileName',[pathname resFolder 'Control locus.fig']);
-        set(hfig(ii),'Name','Control locus');
-        hax(ii) = axes(...
-            'XLim',[min(Id,[],'all') max(Id,[],'all')],...
-            'YLim',[min(Id,[],'all') max(Iq,[],'all')],...
-            'PlotBoxAspectRatio',[1 1 1]);
-        xlabel('$i_d$ (A)')
-        ylabel('$i_q$ (A)')
-        if strcmp(TwData.Control,'Maximum efficiency')
-            title('Maximum efficiency locus')
-        elseif strcmp(TwData.Control,'MTPA')
-            title('Maximum torque per minimum copper loss locus')
+            hfig(ii) = figure();
+            figSetting();
+            set(hfig(ii),'FileName',[pathname resFolder 'Control locus.fig']);
+            set(hfig(ii),'Name','Control locus');
+            hax(ii) = axes(...
+                'XLim',[min(Id,[],'all') max(Id,[],'all')],...
+                'YLim',[min(Id,[],'all') max(Iq,[],'all')],...
+                'PlotBoxAspectRatio',[1 1 1]);
+            xlabel('$i_d$ (A)')
+            ylabel('$i_q$ (A)')
+            if strcmp(TwData.Control,'Maximum efficiency')
+                title('Maximum efficiency locus')
+            elseif strcmp(TwData.Control,'MTPA')
+                title('Maximum torque per minimum copper loss locus')
+            end
+            [c,h] = contour(Id,Iq,Tem,'k','DisplayName','$T$ (Nm)');
+            clabel(c,h)
+            plot(TwMap.Id,TwMap.Iq)
         end
-        [c,h] = contour(Id,Iq,Tem,'k','DisplayName','$T$ (Nm)');
-        clabel(c,h)
-        plot(TwMap.Id,TwMap.Iq)
     end
-else
-    [out,hfig] = efficiency_map3D(motorModel,TwData);
-    
-    pathname = motorModel.data.pathname;
-    motName = motorModel.data.motorName;
-    resFolder = checkPathSyntax([motName '_results\MMM results\' 'TwMap_' datestr(now,30) '\']);
 
-    resFolderOut = [pathname resFolder];
-    saveFlag=1;
-end
+    % power curve
+    ii=ii+1;
+    hfig(ii) = figure();
+    figSetting();
+    set(hfig(ii),'FileName',[pathname resFolder 'Efficiency map - power.fig'],'Name','Efficiency map - power');
+    xlabel('$n$ (rpm)')
+    ylabel('$P$ (W)')
+    title('Efficiency map (p.u.)')
+    contourf(PwMap.n,PwMap.P,PwMap.eff,[64:2:86 87:1:100]/100,'ShowText','on');
+    plot(PwMap.limits.n,PwMap.limits.Pmax,'-k','HandleVisibility','off')
+    colorbar
+
 
 %% Save figures
 if nargin()==2
@@ -513,7 +477,7 @@ else
             mkdir([pathname resFolder]);
         end
 
-        save([pathname resFolder 'TwMap.mat'],'motorModel','TwMap','TwData');
+        save([pathname resFolder 'TwMap.mat'],'motorModel','TwMap','TwData','PwMap');
     else
         answer = 'No';
     end
@@ -524,7 +488,7 @@ if strcmp(answer,'Yes')
         mkdir([pathname resFolder]);
     end
 
-    save([pathname resFolder 'TwMap.mat'],'motorModel','TwMap','TwData');
+    save([pathname resFolder 'TwMap.mat'],'motorModel','TwMap','TwData','PwMap');
 
     for ii=1:length(hfig)
         savePrintFigure(hfig(ii));

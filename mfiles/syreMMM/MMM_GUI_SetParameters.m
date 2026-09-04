@@ -268,11 +268,14 @@ set(app.NewLengthEditField,'Value',num2str(motorModel.tmpScale.l));
 set(app.NewStatorRadiusEditField,'Value',num2str(motorModel.tmpScale.R));
 set(app.NewLldEditField,'Value',num2str(motorModel.tmpScale.Lld));
 set(app.NewLlqEditField,'Value',num2str(motorModel.tmpScale.Llq));
+set(app.RotortunsEditField,'Value',num2str(motorModel.tmpScale.Nr));
+
 
 % Skew
 set(app.SkewAngleEditField,'Value',num2str(motorModel.tmpSkew.thSkw));
 set(app.SkewSliceEditField,'Value',int2str(motorModel.tmpSkew.nSlice));
 set(app.SkewPointsEditField,'Value',int2str(motorModel.tmpSkew.nPoints));
+set(app.SkewingshapeDropDown,'Value',motorModel.tmpSkew.shape);
 set(app.dqtMapskewingevaluationEditField,...
     'Value','0%',...
     'Enable','on',...
@@ -284,11 +287,13 @@ if ~isempty(motorModelUnScale)
     set(app.NewLldEditField,'Enable','on');
     set(app.NewLlqEditField,'Enable','on');
     set(app.NewStatorRadiusEditField,'Enable','on');
+    set(app.RotortunsEditField,'Enable','on');
     set(app.ScaleModelPush,'Enable','on');
     set(app.UnscaleModelPush,'Enable','on');
     set(app.SkewAngleEditField,'Enable','off');
     set(app.SkewSliceEditField,'Enable','off');
     set(app.SkewPointsEditField,'Enable','off');
+    set(app.SkewingshapeDropDown,'Enable','off');
     set(app.SkewModelPush,'Enable','off');
     set(app.UnskewModelPush,'Enable','off');
 elseif ~isempty(motorModelUnSkew)
@@ -297,11 +302,13 @@ elseif ~isempty(motorModelUnSkew)
     set(app.NewLldEditField,'Enable','off');
     set(app.NewLlqEditField,'Enable','off');
     set(app.NewStatorRadiusEditField,'Enable','off');
+    set(app.RotortunsEditField,'Enable','off');
     set(app.ScaleModelPush,'Enable','off');
     set(app.UnscaleModelPush,'Enable','off');
     set(app.SkewAngleEditField,'Enable','on');
     set(app.SkewSliceEditField,'Enable','on');
     set(app.SkewPointsEditField,'Enable','on');
+    set(app.SkewingshapeDropDown,'Enable','on');
     set(app.SkewModelPush,'Enable','on');
     set(app.UnskewModelPush,'Enable','on');
 else
@@ -310,11 +317,13 @@ else
     set(app.NewLldEditField,'Enable','on');
     set(app.NewLlqEditField,'Enable','on');
     set(app.NewStatorRadiusEditField,'Enable','on');
+    set(app.RotortunsEditField,'Enable','on');
     set(app.ScaleModelPush,'Enable','off');
     set(app.UnscaleModelPush,'Enable','off');
     set(app.SkewAngleEditField,'Enable','on');
     set(app.SkewSliceEditField,'Enable','on');
     set(app.SkewPointsEditField,'Enable','on');
+    set(app.SkewingshapeDropDown,'Enable','on');
     set(app.SkewModelPush,'Enable','off');
     set(app.UnskewModelPush,'Enable','off');
 end
@@ -373,10 +382,20 @@ set(app.TwControlDropDown,'Value',Tw.Control)
 set(app.TwAxis,...
     'XLim',[Tw.nmin Tw.nmax],...
     'YLim',[Tw.Tmin Tw.Tmax])
-
-if ~isfield(motorModel.SyreDrive,'SIM_path')
-    set(app.MaxTwPWMPush,'Enable','off')
+if strcmp(motorModel.data.motorType,'EE')
+    set(app.TwPMlossDropDown,'Enable','off')
+    set(app.TwPMlossFactorEditField,'Enable','off')
+     set(app.ControlsafeASCDropDown,'Enable','off')
+     set(app.MaxTwPWMPush,'Enable','off')
+     set(app.TwMechLossEditField,'Enable','off')
+else
+    set(app.TwPMlossDropDown,'Enable','on')
+    set(app.TwPMlossFactorEditField,'Enable','on')
+    set(app.ControlsafeASCDropDown,'Enable','on')
+    set(app.MaxTwPWMPush,'Enable','on')
+    set(app.TwMechLossEditField,'Enable','on')
 end
+
 
 % syreDrive
 set(app.ControltypeDropDown,'Value',motorModel.SyreDrive.modelSetup.Ctrl_type);
@@ -390,16 +409,31 @@ set(app.SensorlessSwitch,'Value',num2str(motorModel.SyreDrive.SS_on));
 set(app.InjectedsignalDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.inj_waveform));
 set(app.DemodulationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.dem));
 set(app.PositionerrorestimationDropDown,'Value',num2str(motorModel.SyreDrive.SS_settings.HS_ctrl));
-set(app.ModeltypeDropDown,'Value',motorModel.SyreDrive.modelSetup.modelType);
+set(app.InvertermodelDropDown,'Value',motorModel.SyreDrive.modelSetup.InverterModel);
 set(app.IronLossModelDropDown,'Value',motorModel.SyreDrive.modelSetup.IronLoss);
 set(app.MotormodelDropDown,'Value',motorModel.SyreDrive.modelSetup.motorModelType);
 set(app.ACLossModelDropDown,'Value',motorModel.SyreDrive.modelSetup.WindingLossAC);
 
-
-if ~isfield(motorModel.SyreDrive,'SIM_path')
-    set(app.RUNSimulinkModelButton,'Enable','off')
+if ~isempty(motorModel.SyreDrive.SIM_file)
+    set(app.eDrivefileEditField,'Editable','off','Value',motorModel.SyreDrive.SIM_file);
+    set(app.SimulatorEditField,'Editable','off','Value',motorModel.SyreDrive.Simulator);
 else
-    set(app.RUNSimulinkModelButton,'Enable','on')
+    set(app.eDrivefileEditField,'Editable','off','Value','');
+    set(app.SimulatorEditField,'Editable','off','Value','');
+end
+
+% if ~isfield(motorModel.SyreDrive,'SIM_path')
+%     set(app.RUNSimulinkModelButton,'Enable','off')
+% else
+%     set(app.RUNSimulinkModelButton,'Enable','on')
+% end
+
+if isempty(motorModel.SyreDrive.SIM_file)
+    set(app.MaxTwPWMPush,'Enable','off')
+    set(app.SinglePointsyreDriveButton,'Enable','off')
+else
+    set(app.MaxTwPWMPush,'Enable','on')
+    set(app.SinglePointsyreDriveButton,'Enable','on')
 end
 
 if strcmp(motorModel.SyreDrive.modelSetup.motorModelType,'SimScape FEM-based PMSM')
@@ -412,10 +446,7 @@ end
 % Waveform
 set(app.WaveformGammaEditField,'Value',mat2str(motorModel.WaveformSetup.CurrAngle,3))
 set(app.WaveformCurrentPUEditField,'Value',mat2str(motorModel.WaveformSetup.CurrLoad))
-set(app.WaveformCurrentEditField,...
-    'Enable','on',...
-    'Editable','off',...
-    'Value',mat2str(motorModel.WaveformSetup.CurrAmpl))
+set(app.WaveformCurrentEditField,'Value',mat2str(motorModel.WaveformSetup.CurrAmpl))
 set(app.WaveformSpeedEditField,'Value',mat2str(motorModel.WaveformSetup.EvalSpeed))
 set(app.WaveformPeriodsEditField,'Value',mat2str(motorModel.WaveformSetup.nCycle))
 set(app.WaveformironlossDropDown,'Value',motorModel.WaveformSetup.IronLossFlag)

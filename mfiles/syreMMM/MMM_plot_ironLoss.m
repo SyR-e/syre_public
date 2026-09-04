@@ -107,11 +107,11 @@ else
     Ir_plot_values = Ir_values(Ir_plot_index);
     for ii=1:length(fEval)
         [Pfe,Pfesh,Pfesc,Pferh,Pferc,~] = calcIronLoss(ironLoss,fdfq,fEval(ii),motorModel.data.motorType);
-        hfig(5*(ii-1)+1) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pfesh,Ir_plot_values,[pathname resFolder 'StatorHystereis.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfes_h$ (W)'}]);
-        hfig(5*(ii-1)+2) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pfesc,Ir_plot_values,[pathname resFolder 'StatorEddyCurrents.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfe_ec$ (W)'}]);
-        hfig(5*(ii-1)+3) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pferh,Ir_plot_values,[pathname resFolder 'RotorHysteresis.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfer_h$ (W)'}]);
-        hfig(5*(ii-1)+4) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pferc,Ir_plot_values,[pathname resFolder 'RotorEddyCurrents.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfer_ec$ (W)'}]);
-        hfig(5*(ii-1)+5) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pfe  ,Ir_plot_values,[pathname resFolder 'TotalIronLosses.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfe$ (W)'}]);
+        hfig(5*(ii-1)+1) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pfesh(:,:,Ir_plot_index),Ir_plot_values,[pathname resFolder 'StatorHystereis.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfes_h$ (W)'}]);
+        hfig(5*(ii-1)+2) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pfesc(:,:,Ir_plot_index),Ir_plot_values,[pathname resFolder 'StatorEddyCurrents.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfe_ec$ (W)'}]);
+        hfig(5*(ii-1)+3) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pferh(:,:,Ir_plot_index),Ir_plot_values,[pathname resFolder 'RotorHysteresis.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfer_h$ (W)'}]);
+        hfig(5*(ii-1)+4) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pferc(:,:,Ir_plot_index),Ir_plot_values,[pathname resFolder 'RotorEddyCurrents.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfer_ec$ (W)'}]);
+        hfig(5*(ii-1)+5) = surfplot_slider(Id(:,:,end),Iq(:,:,end),Pfe(:,:,Ir_plot_index)  ,Ir_plot_values,[pathname resFolder 'TotalIronLosses.fig'],[{'$i_d$ (A)'}, {'$i_d$ (A)'}, {'$Pfe$ (W)'}]);
     end
 end
 

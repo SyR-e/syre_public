@@ -290,7 +290,7 @@ if length(id)>1
     
 else    
     plot_singt_FFT('out.mat',[pathname resFolder]);
-    plot_singt_vsTime('out.mat',[pathname resFolder]);
+    % plot_singt_vsTime('out.mat',[pathname resFolder]);
 end
 
 
