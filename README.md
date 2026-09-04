@@ -6,11 +6,13 @@
 
 [![View SyR-e on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://it.mathworks.com/matlabcentral/fileexchange/158216-syr-e)
 
-SyR-e stands for Synchronous Reluctance – evolution. It is an open-source code developed in Matlab/Octave under the Apache Version 2.0 license.
+SyR-e stands for Synchronous Reluctance – evolution. It is an open-source code developed in Matlab under the Apache Version 2.0 license.
 
-Named after the Synchronous Reluctance machine, it covers the PM-assisted SyR, Interior PM and Surface Mounted PM machine types as well.
+Named after the Synchronous Reluctance machine, it covers other types of electrical machines, as Permanent Magnet Synchronous Machines (IPM and SPM), Electrically-Excited Synchronous Machines and Induction Motors.
 
-For all the motor types, rapid finite element analysis (FEA) output evaluation and optimization based design tools are available. For SyR and PM-SyR machines, design equations are provided, augmented with the fast FEA correction feature FEAfix.
+Preliminary design procedure with multi-physical evaluation is included for all the covered synchronous machines with a fast mix of analytical models, FEA simulations and graphical methods to identify the best trade-off.
+
+Link with eDrive simulation is included in the syreDrive module, that can create the eDrive model (motor + inverter + load + DC source) plus a pre-calibrated control algorithm, starting from the motor design data.
 
 Use the Wiki page of the syre_public repository for further information on installation and first run of SyR-e.
 
